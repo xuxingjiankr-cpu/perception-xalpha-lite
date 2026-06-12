@@ -1573,6 +1573,7 @@ def build_decision(
             "daily_entry_limit",
             "entry_score_gate",
             "skip_date_guard",
+            "kill_switch_inactive",
         }:
             return True
         return bool(c.get("passed"))
@@ -1766,8 +1767,11 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                         last_sell_state[sell_code] = now_iso()
                         state["last_sell_at_by_code"] = last_sell_state
                         stop_reasons = {"confirmed_loss_score_exit", "emergency_stop_exit", "bracket_stop_loss", "breakeven_stop_after_t1"}
+                        reason_is_stop = order.get("reason") in stop_reasons or (
+                            order.get("reason") == "unified_sell_score_exit" and as_float(order.get("pnl_pct"), 0.0) < 0
+                        )
                         bracket_cfg_run = cfg.get("strategy", {}).get("bracket", {})
-                        if bool(bracket_cfg_run.get("no_reentry_after_stop_loss_same_day", True)) and order.get("reason") in stop_reasons:
+                        if bool(bracket_cfg_run.get("no_reentry_after_stop_loss_same_day", True)) and reason_is_stop:
                             stopped_map = state.get("stopped_out_today_by_date")
                             if not isinstance(stopped_map, dict):
                                 stopped_map = {}

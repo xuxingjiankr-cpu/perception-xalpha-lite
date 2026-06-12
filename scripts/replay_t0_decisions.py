@@ -142,8 +142,11 @@ def record_post_submit(state: dict[str, Any], cfg: dict[str, Any], decision: dic
         last_sell[sell_code] = agent.now_iso()
         state["last_sell_at_by_code"] = last_sell
         stop_reasons = {"confirmed_loss_score_exit", "emergency_stop_exit", "bracket_stop_loss", "breakeven_stop_after_t1"}
+        reason_is_stop = order.get("reason") in stop_reasons or (
+            order.get("reason") == "unified_sell_score_exit" and as_float(order.get("pnl_pct"), 0.0) < 0
+        )
         bracket_cfg = cfg.get("strategy", {}).get("bracket", {})
-        if bool(bracket_cfg.get("no_reentry_after_stop_loss_same_day", True)) and order.get("reason") in stop_reasons:
+        if bool(bracket_cfg.get("no_reentry_after_stop_loss_same_day", True)) and reason_is_stop:
             stopped_map = state.get("stopped_out_today_by_date")
             if not isinstance(stopped_map, dict):
                 stopped_map = {}
@@ -247,8 +250,10 @@ def main() -> None:
             agent.append_jsonl(decisions_path, {
                 "timestamp": replay_now.isoformat(),
                 "action": orders[0]["direction"] if orders else "hold",
-                "reason": orders[0].get("reason") if orders else decision.get("reason"),
+                "reason": orders[0].get("reason") if orders else decision.get("state_machine", {}).get("reason"),
                 "approved": bool(decision.get("approved_for_submit")),
+                "sell_score": decision.get("sell_score"),
+                "carry_allowed": decision.get("carry_allowed"),
                 "failed_checks": [c.get("name") for c in decision.get("risk_checks", []) if not c.get("passed")],
                 "orders": orders,
             })
