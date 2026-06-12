@@ -829,6 +829,108 @@ def score_profit_exit(
     }
 
 
+def score_unified_sell(
+    *,
+    strategy: dict[str, Any],
+    filters: dict[str, Any],
+    local_time: datetime,
+    state: dict[str, Any],
+    trade_date: str,
+    q: dict[str, Any] | None,
+    code: str,
+    pnl_pct: float,
+    current: float,
+    highest_price: float,
+) -> dict[str, Any]:
+    """统一 sell_score 出场引擎 (unified_sell_score): 适用于当日T0仓位与隔夜持仓。
+
+    near_close 只是加权项, 不能单独触发卖出; 阈值按盈亏方向取
+    loss_exit_score_threshold / profit_exit_score_threshold。
+    """
+    weights = strategy.get("exit_score_weights", {})
+    stop_loss = abs(as_float(strategy.get("stop_loss_pct"), -0.012)) or 0.012
+    mom = as_float(q.get("momentum"), 0.0) if q else 0.0
+    acceleration_raw = q.get("acceleration") if q else None
+    acceleration = as_float(acceleration_raw) if acceleration_raw is not None else None
+    bid_pressure_raw = q.get("bid_pressure_3m_pct") if q else None
+    bid_pressure = as_float(bid_pressure_raw) if bid_pressure_raw is not None else None
+    spread = q.get("spread_pct") if q else None
+    max_spread = as_float(filters.get("max_spread_pct"), 0.0015)
+    decel_threshold = as_float(strategy.get("deceleration_exit_threshold"), -0.002)
+    trailing_drawdown = as_float(strategy.get("profit_trailing_drawdown_pct"), -0.005)
+
+    loss_depth_score = 0.0
+    if pnl_pct < 0:
+        loss_depth_score = min(abs(pnl_pct) / stop_loss, 1.0) * as_float(weights.get("loss_depth", 15), 15)
+
+    orb = get_orb(state, trade_date, code)
+    structure_score = 0.0
+    structure_reason = "none"
+    if orb and current > 0:
+        if current < as_float(orb.get("low")):
+            structure_score = as_float(weights.get("structure_break", 25), 25)
+            structure_reason = "below_orb_low"
+        elif current < as_float(orb.get("midpoint")):
+            structure_score = as_float(weights.get("structure_break", 25), 25) * 0.5
+            structure_reason = "below_orb_midpoint"
+
+    momentum_score = 0.0
+    momentum_reason = "none"
+    if mom <= as_float(strategy.get("exit_momentum_pct"), -0.001):
+        momentum_score = as_float(weights.get("momentum_reversal", 20), 20)
+        momentum_reason = "momentum_below_exit_threshold"
+    elif mom < 0:
+        momentum_score = as_float(weights.get("momentum_reversal", 20), 20) * 0.5
+        momentum_reason = "momentum_negative"
+
+    bid_score = as_float(weights.get("bid_pressure_negative", 15), 15) if bid_pressure is not None and bid_pressure <= 0 else 0.0
+    accel_score = as_float(weights.get("acceleration_negative", 15), 15) if acceleration is not None and acceleration <= decel_threshold else 0.0
+    liquidity_score = 0.0
+    if spread is None or as_float(spread, 999.0) > max_spread:
+        liquidity_score = as_float(weights.get("liquidity_deterioration", 15), 15)
+
+    near_close_score = 0.0
+    if (local_time.hour == 14 and local_time.minute >= 50) or local_time.hour >= 15:
+        near_close_score = as_float(weights.get("near_close_1450", 35), 35)
+    elif local_time.hour == 14 and local_time.minute >= 20:
+        near_close_score = as_float(weights.get("near_close_1420", 20), 20)
+
+    profit_drawdown_score = 0.0
+    drawdown_from_high = current / highest_price - 1.0 if highest_price > 0 and current > 0 else 0.0
+    if pnl_pct > 0 and drawdown_from_high < 0 and trailing_drawdown < 0:
+        profit_drawdown_score = min(abs(drawdown_from_high) / abs(trailing_drawdown), 1.0) * as_float(weights.get("profit_drawdown", 25), 25)
+
+    components = {
+        "loss_depth": loss_depth_score,
+        "structure_break": structure_score,
+        "momentum_reversal": momentum_score,
+        "bid_pressure_negative": bid_score,
+        "acceleration_negative": accel_score,
+        "liquidity_deterioration": liquidity_score,
+        "near_close": near_close_score,
+        "profit_drawdown": profit_drawdown_score,
+    }
+    total = sum(as_float(x, 0.0) for x in components.values())
+    threshold = as_float(strategy.get("loss_exit_score_threshold"), 70) if pnl_pct < 0 else as_float(strategy.get("profit_exit_score_threshold"), 65)
+    return {
+        "score": round(total, 2),
+        "threshold": threshold,
+        "components": components,
+        "near_close_component": near_close_score,
+        "details": {
+            "pnl_pct": pnl_pct,
+            "momentum": mom,
+            "acceleration": acceleration,
+            "bid_pressure_3m_pct": bid_pressure,
+            "spread_pct": spread,
+            "drawdown_from_high": drawdown_from_high,
+            "structure_reason": structure_reason,
+            "momentum_reason": momentum_reason,
+            "local_time": str(local_time),
+        },
+    }
+
+
 def score_entry(
     *,
     strategy: dict[str, Any],
@@ -1142,10 +1244,12 @@ def build_decision(
             q["cross_etf_divergence_pct"] = 0.0
     ranked = sorted(liquid_quotes, key=lambda x: as_float(x.get("momentum"), -999), reverse=True)
     best = ranked[0] if ranked else None
-    sellable_by_code = {
-        code: t0_sellable_quantity(state, trade_date, code, pos, lot_size)
-        for code, pos in positions.items()
-    }
+    # 统一出场: 当日T0库存与历史隔夜持仓都纳入可卖范围 (broker availableQuantity 为准)
+    sellable_by_code = {}
+    for code, pos in positions.items():
+        t0_qty = t0_sellable_quantity(state, trade_date, code, pos, lot_size)
+        overnight_qty = round_lot(as_float(pos.get("availableQuantity"), 0.0), lot_size)
+        sellable_by_code[code] = max(t0_qty, overnight_qty)
     held_code = next((code for code, qty in sellable_by_code.items() if qty >= int(risk["min_order_quantity"])), None)
     held_pos = positions.get(held_code) if held_code else None
     best_code = str(best.get("stockCode", "")).zfill(6) if best else None
@@ -1183,44 +1287,11 @@ def build_decision(
     entries_today = daily_state_bucket(state, "entries_by_date", trade_date)
     add("daily_entry_limit", entries_today < max_entries_per_day, {"entries_today": entries_today, "max_entries_per_day": max_entries_per_day})
 
-    force_close_active = bool(risk.get("force_close_before_market_close", True)) and (
-        (local_time.hour == 14 and local_time.minute >= 20) or (local_time.hour >= 15)
-    )
+    # 统一 sell_score 出场引擎: 收盘前不再无条件强平, near_close 只作为加权项
+    sell_score_result: dict[str, Any] | None = None
+    carry_allowed: bool | None = None
 
-    if force_close_active and held_code and held_pos:
-        q = next((x for x in quotes if str(x.get("stockCode")).zfill(6) == held_code), None)
-        available_qty = sellable_by_code.get(held_code, 0)
-        current = as_float(q.get("currentPrice")) if q else 0.0
-        if available_qty >= int(risk["min_order_quantity"]):
-            mark_node = t0_inventory_node_read(state, trade_date, held_code)
-            px = safe_sell_reference_price(q, current, mark_node, held_pos)
-            if px <= 0:
-                # 行情坏点时退回最后有效标记价/成本价, 强平必须成行
-                mark_node = t0_inventory_node_read(state, trade_date, held_code)
-                px = as_float(mark_node.get("last_mark_price"), 0.0) or as_float(held_pos.get("costPrice"), 0.0)
-            px *= 1.0 - as_float(risk["limit_price_slippage_pct"])
-            qty = round_lot(available_qty, lot_size)
-            action = "sell"
-            reason = "force_close_pre_market_close"
-            order = {
-                "direction": "sell",
-                "stockCode": held_code,
-                "exchange": q.get("exchange") if q else held_pos.get("exchange", "SH"),
-                "name": q.get("name") if q else held_pos.get("stockName"),
-                "quantity": qty,
-                "orderType": risk["order_type"],
-                "price": round(px, 3),
-                "reason": reason,
-                "momentum": as_float(q.get("momentum"), 0.0) if q else 0.0,
-                "cost_price": as_float(held_pos.get("costPrice")),
-                "t0_inventory_sellable_qty": available_qty,
-                "sell_scope": "t0_intraday_inventory_only",
-                "t0_eligible": True,
-            }
-        else:
-            action = "hold"
-            reason = "force_close_active_no_t0_inventory"
-    elif held_code and held_pos:
+    if held_code and held_pos:
         q = quote_for_code(quotes, held_code)
         available_qty = sellable_by_code.get(held_code, 0)
         current = as_float(q.get("currentPrice")) if q else 0.0
@@ -1236,16 +1307,9 @@ def build_decision(
         drawdown_from_high = current / highest_price - 1.0 if highest_price > 0 and current > 0 else 0.0
         holding_minutes = minutes_since(node.get("first_buy_at") or node.get("last_buy_at"))
         min_hold_minutes = as_float(strategy.get("min_hold_minutes"), 10)
-        min_profit_exit_pct = as_float(strategy.get("min_profit_exit_pct"), 0.003)
         emergency_stop_pct = as_float(strategy.get("emergency_stop_pct"), -0.02)
         node_r_value = as_float(node.get("r_value"), 0.0)
-        node_t1_filled = bool(node.get("t1_filled", False))
-        node_stop_moved = bool(node.get("stop_moved_to_breakeven", False))
-        node_target1_price = as_float(node.get("target1_price"), 0.0)
-        node_target2_price = as_float(node.get("target2_price"), 0.0)
-        node_stop_price = as_float(node.get("stop_price"), 0.0)
-        bracket_exit_enabled = bool(bracket_cfg.get("enabled")) and node_r_value > 0
-        loss_score = score_loss_exit(
+        sell_score_result = score_unified_sell(
             strategy=strategy,
             filters=filters,
             local_time=local_time,
@@ -1255,49 +1319,36 @@ def build_decision(
             code=held_code,
             pnl_pct=pnl_pct,
             current=current,
-            holding_minutes=holding_minutes,
-            broad_market_not_declining=broad_market_not_declining,
-        )
-        profit_score = score_profit_exit(
-            strategy=strategy,
-            local_time=local_time,
-            q=q,
-            pnl_pct=pnl_pct,
             highest_price=highest_price,
-            current=current,
-            holding_minutes=holding_minutes,
         )
-        exit_reason = None
+        sell_score_val = as_float(sell_score_result.get("score"), 0.0)
+        sell_threshold = as_float(sell_score_result.get("threshold"), 70)
+        near_close_comp = as_float(sell_score_result.get("near_close_component"), 0.0)
+        # near_close 不能单独触发卖出: 扣除 near_close 后必须仍有其他负面信号贡献
+        score_pass = sell_score_val >= sell_threshold and (sell_score_val - near_close_comp) > 0
         min_hold_passed = holding_minutes is None or holding_minutes >= min_hold_minutes
+        exit_reason = None
+        unconditional_exit = False
         if current <= 0:
-            exit_reason = None  # 行情坏点(价格为0/缺失)时不做任何离场判断
+            exit_reason = None  # 行情坏点(价格为0/缺失)时不卖
+        elif kill_switch.exists():
+            exit_reason = "kill_switch_liquidation"
+            unconditional_exit = True
+        elif cost_price <= 0:
+            exit_reason = "unrecognized_position_state_liquidation"
+            unconditional_exit = True
         elif pnl_pct <= emergency_stop_pct:
             exit_reason = "emergency_stop_exit"
-        elif bracket_exit_enabled and node_stop_price > 0 and current <= node_stop_price and not node_t1_filled:
-            exit_reason = "bracket_stop_loss"
+            unconditional_exit = True
         elif not min_hold_passed:
             exit_reason = None
-        elif bracket_exit_enabled and not node_t1_filled and node_target1_price > 0 and current >= node_target1_price:
-            exit_reason = "bracket_t1_partial_exit"
-        elif bracket_exit_enabled and node_t1_filled and node_stop_moved and pnl_pct <= 0:
-            exit_reason = "breakeven_stop_after_t1"
-        elif bracket_exit_enabled and node_t1_filled and node_target2_price > 0 and current >= node_target2_price:
-            exit_reason = "bracket_t2_full_exit"
-        elif pnl_pct >= as_float(strategy["take_profit_pct"]):
-            exit_reason = "take_profit_exit"
-        elif pnl_pct < 0 and as_float(loss_score.get("score"), 0.0) >= as_float(loss_score.get("threshold"), 70):
-            exit_reason = "confirmed_loss_score_exit"
-        elif pnl_pct >= min_profit_exit_pct and as_float(profit_score.get("score"), 0.0) >= as_float(profit_score.get("threshold"), 65):
-            exit_reason = "profit_protection_score_exit"
-        if available_qty >= int(risk["min_order_quantity"]) and exit_reason:
-            px = safe_sell_reference_price(q, current, node, held_pos)
-            px *= 1.0 - as_float(risk["limit_price_slippage_pct"])
-            if exit_reason == "bracket_t1_partial_exit":
-                t1_fraction = as_float(bracket_cfg.get("target1_sell_fraction", 0.5))
-                partial_qty = round_lot(available_qty * t1_fraction, lot_size)
-                qty = partial_qty if partial_qty >= int(risk["min_order_quantity"]) else round_lot(available_qty, lot_size)
-            else:
-                qty = round_lot(available_qty, lot_size)
+        elif score_pass:
+            exit_reason = "unified_sell_score_exit"
+        carry_allowed = exit_reason is None
+        px = safe_sell_reference_price(q, current, node, held_pos)
+        px *= 1.0 - as_float(risk["limit_price_slippage_pct"])
+        if available_qty >= int(risk["min_order_quantity"]) and exit_reason and px > 0:
+            qty = round_lot(available_qty, lot_size)
             r_multiple = round((px - cost_price) / node_r_value, 2) if node_r_value > 0 else None
             action = "sell"
             reason = exit_reason
@@ -1314,32 +1365,43 @@ def build_decision(
                 "pnl_pct": pnl_pct,
                 "acceleration": acceleration,
                 "bid_pressure_3m_pct": bid_pressure,
-                "loss_exit_score": loss_score,
-                "profit_exit_score": profit_score,
+                "sell_score": sell_score_val,
+                "sell_score_components": sell_score_result.get("components"),
+                "sell_score_threshold": sell_threshold,
+                "exit_policy": "unified_sell_score",
+                "unconditional_exit": unconditional_exit,
                 "holding_minutes": holding_minutes,
                 "min_hold_minutes": min_hold_minutes,
                 "highest_price_since_entry": highest_price,
                 "drawdown_from_high": drawdown_from_high,
-                "min_profit_exit_pct": min_profit_exit_pct,
                 "cost_price": cost_price,
                 "r_multiple": r_multiple,
                 "t0_inventory_sellable_qty": available_qty,
-                "sell_scope": "t0_intraday_inventory_only",
+                "sell_scope": "unified_sell_score_all_held",
                 "t0_eligible": True,
             }
         else:
             action = "hold"
-            reason = "min_hold_active_no_exit" if not min_hold_passed else "holding_no_exit_signal"
+            if exit_reason and px <= 0:
+                reason = "no_valid_sell_price"
+            elif exit_reason and available_qty < int(risk["min_order_quantity"]):
+                reason = "sellable_below_min_order_quantity"
+            elif not min_hold_passed:
+                reason = "min_hold_active_no_exit"
+            else:
+                reason = "carry_allowed_sell_score_not_met"
             if q is not None:
                 q["held_position_diagnostics"] = {
                     "pnl_pct": pnl_pct,
-                    "loss_exit_score": loss_score,
-                    "profit_exit_score": profit_score,
+                    "sell_score": sell_score_val,
+                    "sell_score_components": sell_score_result.get("components"),
+                    "sell_score_threshold": sell_threshold,
+                    "carry_allowed": carry_allowed,
                     "holding_minutes": holding_minutes,
                     "min_hold_minutes": min_hold_minutes,
                     "highest_price_since_entry": highest_price,
                     "drawdown_from_high": drawdown_from_high,
-                    "exit_policy": "weighted_confirmation_not_single_negative_tick",
+                    "exit_policy": "unified_sell_score",
                 }
     else:
         orb = get_orb(state, trade_date, best.get("stockCode") if best else None)
@@ -1548,6 +1610,10 @@ def build_decision(
         "risk_checks": checks,
         "approved_for_submit": bool(approved),
         "orders": [order] if order else [],
+        "exit_policy": "unified_sell_score",
+        "sell_score": sell_score_result.get("score") if sell_score_result else None,
+        "sell_score_components": sell_score_result.get("components") if sell_score_result else None,
+        "carry_allowed": carry_allowed,
     }
 
 
