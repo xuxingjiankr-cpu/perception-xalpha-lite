@@ -1,0 +1,129 @@
+{
+  "agent_name": "etf_paper_trading_agent",
+  "mode": "paper_dry_run",
+  "execution_enabled": false,
+  "asset_type": "ETF_ONLY",
+  "trading_hours_only": true,
+  "cancel_pending_before_rebalance": true,
+  "skill": {
+    "python": "py -3.13",
+    "script": "%USERPROFILE%\\.codex\\skills\\a-share-paper-trading\\a_share_paper_trading.py"
+  },
+  "universe": [
+    {
+      "stockCode": "510300",
+      "exchange": "SH",
+      "name": "??300ETF",
+      "t0_eligible": false,
+      "asset_class": "domestic_equity_etf"
+    },
+    {
+      "stockCode": "510500",
+      "exchange": "SH",
+      "name": "??500ETF",
+      "t0_eligible": false,
+      "asset_class": "domestic_equity_etf"
+    },
+    {
+      "stockCode": "159915",
+      "exchange": "SZ",
+      "name": "???ETF",
+      "t0_eligible": false,
+      "asset_class": "domestic_equity_etf"
+    },
+    {
+      "stockCode": "588000",
+      "exchange": "SH",
+      "name": "??50ETF",
+      "t0_eligible": false,
+      "asset_class": "domestic_equity_etf"
+    },
+    {
+      "stockCode": "518880",
+      "exchange": "SH",
+      "name": "??ETF",
+      "t0_eligible": true,
+      "asset_class": "gold_etf"
+    },
+    {
+      "stockCode": "511010",
+      "exchange": "SH",
+      "name": "??ETF",
+      "t0_eligible": true,
+      "asset_class": "bond_etf"
+    },
+    {
+      "stockCode": "513500",
+      "exchange": "SH",
+      "name": "??500ETF",
+      "t0_eligible": true,
+      "asset_class": "cross_border_etf"
+    },
+    {
+      "stockCode": "513100",
+      "exchange": "SH",
+      "name": "??ETF",
+      "t0_eligible": true,
+      "asset_class": "cross_border_etf"
+    }
+  ],
+  "strategy": {
+    "type": "quote_relative_strength_rotation",
+    "target_holdings": 4,
+    "cash_reserve_pct": 0.05,
+    "min_rebalance_cash_amount": 1000.0,
+    "rebalance_drift_threshold_pct": 0.03,
+    "score": {
+      "use_intraday_return": false,
+      "momentum_days": 5,
+      "require_full_momentum_history_for_execute": true,
+      "prefer_non_suspended": true
+    },
+    "grid_regime": {
+      "enabled": true,
+      "lookback_days": 5,
+      "breakout_threshold_pct": 0.002
+    },
+    "force_build_position": false,
+    "entry_score_threshold_pct": 0.005,
+    "defensive_cash_threshold_pct": -0.005,
+    "min_selected_with_positive_score": 1,
+    "min_positive_momentum_count_for_buy": 2
+  },
+  "risk": {
+    "max_position_pct": 0.25,
+    "max_single_order_pct": 0.1,
+    "max_daily_orders": 5,
+    "min_order_quantity": 100,
+    "quantity_lot": 100,
+    "allow_market_order": false,
+    "order_type": "limit",
+    "limit_price_slippage_pct": 0.002,
+    "kill_switch_file": "outputs/paper_trading_agent/KILL_SWITCH",
+    "stop_loss_enabled": true,
+    "stop_loss_pct": -0.03,
+    "max_daily_stop_loss_sells": 1
+  },
+  "outputs": {
+    "dir": "outputs/paper_trading_agent",
+    "jsonl": "agent_runs.jsonl",
+    "latest": "latest_decision.json",
+    "orders": "orders_planned.csv",
+    "blotter": "order_blotter.csv",
+    "price_history": "price_history.json"
+  },
+  "execution_control": {
+    "enabled": true,
+    "state_file": "execution_state.json",
+    "max_successful_executes_per_trade_date": 1,
+    "t0_max_successful_executes_per_trade_date": 3,
+    "t0_min_minutes_between_executes": 60,
+    "stop_loss_extra_sells_per_trade_date": 1
+  },
+  "self_iteration": {
+    "enabled": true,
+    "mode": "diagnostic_report_only",
+    "auto_apply_changes": false,
+    "requires_human_approval": true
+  }
+}

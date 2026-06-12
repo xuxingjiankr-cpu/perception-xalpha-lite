@@ -1,0 +1,52 @@
+# Safe-by-default repository for the ETF paper-trading agent.
+# Everything is ignored unless explicitly whitelisted below.
+
+*
+
+# Repository metadata / docs
+!.gitignore
+!README.md
+!docs/
+!docs/**
+
+# Paper-trading agent source and configs
+!configs/
+!configs/*.json
+!scripts/
+!scripts/*.py
+!scripts/*.ps1
+!scripts/*.cmd
+
+# Never commit runtime outputs, account state, logs, caches, datasets, or cloned references.
+outputs/
+data/
+_external/
+.dotnet/
+.skillhub_inspect_*/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.log
+**/*.jsonl
+**/*.csv
+**/*.parquet
+**/*.sqlite
+**/*.db
+**/*.bak*
+**/KILL_SWITCH
+
+# Secrets / local environment
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.crt
+*.cer
+*.secret
+*.token
+*.credentials
+
+# Keep downloaded installation docs local unless intentionally sanitized.
+htsc-skills-bundle_INSTALL_*.md

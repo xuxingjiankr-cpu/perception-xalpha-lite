@@ -1,0 +1,129 @@
+{
+  "agent_name": "t0_intraday_paper_agent",
+  "mode": "paper_execute",
+  "execution_enabled": true,
+  "asset_type": "ETF_T0_ONLY",
+  "trading_hours_only": true,
+  "skill": {
+    "python": "py -3.13",
+    "script": "%USERPROFILE%\\.codex\\skills\\a-share-paper-trading\\a_share_paper_trading.py"
+  },
+  "universe": [
+    {"stockCode": "518880", "exchange": "SH", "name": "黄金ETF", "asset_class": "gold_etf"},
+    {"stockCode": "513500", "exchange": "SH", "name": "标普500ETF", "asset_class": "cross_border_etf"},
+    {"stockCode": "513100", "exchange": "SH", "name": "纳指ETF", "asset_class": "cross_border_etf"},
+    {"stockCode": "513180", "exchange": "SH", "name": "恒生科技ETF", "asset_class": "hk_etf"},
+    {"stockCode": "513050", "exchange": "SH", "name": "中概互联网ETF", "asset_class": "hk_etf"},
+    {"stockCode": "513330", "exchange": "SH", "name": "恒生互联网ETF", "asset_class": "hk_etf"}
+  ],
+  "strategy": {
+    "type": "t0_snapshot_momentum_spread_filter",
+    "lookback_minutes": 5,
+    "entry_momentum_pct": 0.0015,
+    "exit_momentum_pct": -0.001,
+    "stop_loss_pct": -0.012,
+    "take_profit_pct": 0.018,
+    "min_profit_exit_pct": 0.003,
+    "min_hold_minutes": 10,
+    "loss_review_after_minutes": 15,
+    "loss_exit_score_threshold": 70,
+    "profit_exit_score_threshold": 65,
+    "emergency_stop_pct": -0.02,
+    "profit_trailing_drawdown_pct": -0.005,
+    "deceleration_exit_threshold": -0.002,
+    "require_negative_bid_pressure_for_profit_exit": true,
+    "hold_losers_until_stop_or_force_close": true,
+    "exit_score_weights": {
+      "loss_depth": 15,
+      "structure_break": 25,
+      "momentum_reversal": 20,
+      "bid_pressure_negative": 15,
+      "market_breadth_negative": 10,
+      "time_confirmation": 10,
+      "liquidity_deterioration": 15,
+      "profit_floor": 20,
+      "drawdown_from_high": 25,
+      "profit_momentum_negative": 15,
+      "profit_acceleration_negative": 15,
+      "profit_bid_pressure_negative": 15,
+      "near_close": 10
+    },
+    "entry_score_threshold": 50,
+    "entry_score_weights": {
+      "consolidation_breakout": 20,
+      "orb_breakout": 25,
+      "momentum_strength": 20,
+      "bid_pressure_positive": 20,
+      "acceleration_positive": 15,
+      "tight_spread": 10,
+      "cross_etf_divergence": 15,
+      "market_breadth_positive": 10
+    },
+    "cross_etf_divergence_threshold": 0.002,
+    "consolidation": {
+      "enabled": true,
+      "window_snapshots": 6,
+      "max_range_pct": 0.003,
+      "breakout_buffer_pct": 0.001,
+      "earliest_entry_time": "10:00"
+    },
+    "skip_dates": [],
+    "overnight_gap_guard_pct": 0.03,
+    "target_holdings": 1,
+    "cash_reserve_pct": 0.85,
+    "max_position_pct": 0.15,
+    "bracket": {
+      "enabled": true,
+      "risk_per_trade_pct": 0.004,
+      "risk_per_trade_pct_chaos_day": 0.002,
+      "target1_r_multiple": 1.0,
+      "target1_sell_fraction": 0.5,
+      "target2_r_multiple": 2.0,
+      "min_orb_range_pct": 0.003,
+      "chaos_orb_range_pct": 0.015,
+      "max_entries_per_day": 2,
+      "reentry_cooldown_minutes": 30,
+      "no_reentry_after_stop_loss_same_day": true
+    }
+  },
+  "filters": {
+    "max_spread_pct": 0.0015,
+    "require_volume_field": false,
+    "min_volume": 0,
+    "min_amount": 0
+  },
+  "risk": {
+    "max_daily_submitted_orders": 6,
+    "max_daily_round_trips": 3,
+    "max_daily_loss_pct": -0.02,
+    "max_daily_api_runs": 80,
+    "force_close_before_market_close": true,
+    "max_single_order_pct": 0.08,
+    "min_order_quantity": 100,
+    "quantity_lot": 100,
+    "order_type": "limit",
+    "limit_price_slippage_pct": 0.001,
+    "auto_cancel_pending": true,
+    "max_daily_cancels": 3,
+    "min_minutes_between_cancels": 30,
+    "reconcile_fills_from_trade_history": true,
+    "fill_reconciliation_min_interval_minutes": 3,
+    "kill_switch_file": "outputs/paper_trading_agent/KILL_SWITCH"
+  },
+  "outputs": {
+    "dir": "outputs/t0_intraday_agent",
+    "latest": "latest_t0_decision.json",
+    "jsonl": "t0_agent_runs.jsonl",
+    "minute_quotes_jsonl": "minute_quotes.jsonl",
+    "minute_quotes_csv": "minute_quotes.csv",
+    "state": "t0_state.json",
+    "orders": "t0_orders_planned.csv",
+    "blotter": "t0_order_blotter.csv"
+  },
+  "self_iteration": {
+    "enabled": true,
+    "mode": "diagnostic_report_only",
+    "auto_apply_changes": false,
+    "requires_human_approval": true
+  }
+}
