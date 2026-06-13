@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 import sys
 from datetime import datetime
@@ -366,7 +367,140 @@ def compute_consolidation_box(hist: list[dict[str, Any]], ccfg: dict[str, Any]) 
     }
 
 
-def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[str, Any]], lookback_minutes: int, consolidation_cfg: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def contiguous_recent_window(hist: list[dict[str, Any]], window: int, max_gap_minutes: float | None = None) -> list[dict[str, Any]]:
+    if window <= 0 or len(hist) < window:
+        return []
+    rows = hist[-window:]
+    if max_gap_minutes is None:
+        max_gap_minutes = window * 7
+    first_ts = parse_iso_dt(rows[0].get("timestamp"))
+    last_ts = parse_iso_dt(rows[-1].get("timestamp"))
+    if first_ts is None or last_ts is None:
+        return []
+    if (last_ts - first_ts).total_seconds() > max_gap_minutes * 60:
+        return []
+    return rows
+
+
+def compute_rolling_vwap(hist: list[dict[str, Any]], current_quote: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
+    if not cfg.get("enabled", True):
+        return {"available": False, "status": "disabled"}
+    window = int(as_float(cfg.get("window_snapshots", 20), 20))
+    min_points = int(as_float(cfg.get("min_points", 5), 5))
+    rows = contiguous_recent_window(hist + [current_quote], window)
+    if len(rows) < min_points:
+        return {"available": False, "status": "insufficient_history", "window_snapshots": window}
+
+    pairs = [(as_float(r.get("volume"), 0.0), as_float(r.get("amount"), 0.0)) for r in rows]
+    if not all(v > 0 and a > 0 for v, a in pairs):
+        return {"available": False, "status": "missing_volume_or_amount", "window_snapshots": window}
+
+    delta_amount = 0.0
+    delta_volume = 0.0
+    for (prev_v, prev_a), (cur_v, cur_a) in zip(pairs, pairs[1:]):
+        dv = cur_v - prev_v
+        da = cur_a - prev_a
+        if dv > 0 and da > 0:
+            delta_volume += dv
+            delta_amount += da
+    if delta_volume > 0 and delta_amount > 0:
+        vwap = delta_amount / delta_volume
+        method = "positive_cumulative_deltas"
+    else:
+        total_volume = sum(v for v, _ in pairs)
+        total_amount = sum(a for _, a in pairs)
+        if total_volume <= 0 or total_amount <= 0:
+            return {"available": False, "status": "invalid_volume_amount", "window_snapshots": window}
+        vwap = total_amount / total_volume
+        method = "sum_amount_over_sum_volume"
+
+    current = as_float(current_quote.get("currentPrice"), 0.0)
+    return {
+        "available": bool(vwap > 0),
+        "status": "available" if vwap > 0 else "invalid_vwap",
+        "vwap": vwap if vwap > 0 else None,
+        "price_above_vwap": bool(current > 0 and vwap > 0 and current >= vwap),
+        "distance_pct": (current / vwap - 1.0) if current > 0 and vwap > 0 else None,
+        "method": method,
+        "window_snapshots": window,
+    }
+
+
+def compute_atr_proxy(hist: list[dict[str, Any]], current_quote: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
+    if not cfg.get("enabled", True):
+        return {"available": False, "status": "disabled"}
+    window = int(as_float(cfg.get("window_snapshots", 20), 20))
+    rows = contiguous_recent_window(hist + [current_quote], window)
+    if len(rows) < window:
+        return {"available": False, "status": "insufficient_history", "window_snapshots": window}
+    prices = [as_float(r.get("currentPrice"), 0.0) for r in rows]
+    if any(p <= 0 for p in prices):
+        return {"available": False, "status": "invalid_price", "window_snapshots": window}
+    abs_rets = [abs(cur / prev - 1.0) for prev, cur in zip(prices, prices[1:]) if prev > 0 and cur > 0]
+    if not abs_rets:
+        return {"available": False, "status": "no_returns", "window_snapshots": window}
+    atr_pct = sum(abs_rets) / len(abs_rets)
+    multiplier = as_float(cfg.get("stop_multiplier", 1.2), 1.2)
+    min_stop_pct = as_float(cfg.get("min_stop_pct", 0.002), 0.002)
+    stop_distance_pct = max(min_stop_pct, multiplier * atr_pct)
+    return {
+        "available": True,
+        "status": "available",
+        "atr_pct": atr_pct,
+        "stop_distance_pct": stop_distance_pct,
+        "stop_multiplier": multiplier,
+        "min_stop_pct": min_stop_pct,
+        "window_snapshots": window,
+    }
+
+
+def compute_bollinger_squeeze(hist: list[dict[str, Any]], current_quote: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
+    if not cfg.get("enabled", True):
+        return {"available": False, "status": "disabled"}
+    window = int(as_float(cfg.get("window_snapshots", 20), 20))
+    rows = contiguous_recent_window(hist, window)
+    if len(rows) < window:
+        return {"available": False, "status": "insufficient_history", "window_snapshots": window}
+    prices = [as_float(r.get("currentPrice"), 0.0) for r in rows]
+    current = as_float(current_quote.get("currentPrice"), 0.0)
+    if current <= 0 or any(p <= 0 for p in prices):
+        return {"available": False, "status": "invalid_price", "window_snapshots": window}
+    mid = sum(prices) / len(prices)
+    if mid <= 0:
+        return {"available": False, "status": "invalid_mid", "window_snapshots": window}
+    variance = sum((p - mid) ** 2 for p in prices) / len(prices)
+    std = math.sqrt(variance)
+    std_mult = as_float(cfg.get("std_mult", 2.0), 2.0)
+    upper = mid + std_mult * std
+    lower = mid - std_mult * std
+    bandwidth = (upper - lower) / mid if mid > 0 else None
+    squeeze_threshold = as_float(cfg.get("squeeze_bandwidth_pct", 0.006), 0.006)
+    breakout_buffer = as_float(cfg.get("breakout_buffer_pct", 0.0005), 0.0005)
+    squeeze = bandwidth is not None and bandwidth <= squeeze_threshold
+    breakout = bool(squeeze and current > upper * (1.0 + breakout_buffer))
+    return {
+        "available": True,
+        "status": "available",
+        "mid": mid,
+        "upper": upper,
+        "lower": lower,
+        "bandwidth_pct": bandwidth,
+        "squeeze": squeeze,
+        "breakout": breakout,
+        "std_mult": std_mult,
+        "squeeze_bandwidth_pct": squeeze_threshold,
+        "breakout_buffer_pct": breakout_buffer,
+        "window_snapshots": window,
+    }
+
+
+def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[str, Any]], lookback_minutes: int, strategy_cfg: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    strategy_cfg = strategy_cfg or {}
+    if "window_snapshots" in strategy_cfg and "consolidation" not in strategy_cfg:
+        # Backward compatible path for old callers that passed only the consolidation config.
+        strategy_cfg = {"consolidation": strategy_cfg}
+    indicators_cfg = strategy_cfg.get("indicators", {}) if isinstance(strategy_cfg.get("indicators", {}), dict) else {}
+    consolidation_cfg = strategy_cfg.get("consolidation", {}) if isinstance(strategy_cfg.get("consolidation", {}), dict) else {}
     by_code: dict[str, list[dict[str, Any]]] = {}
     for row in history:
         code = str(row.get("stockCode", "")).zfill(6)
@@ -400,6 +534,24 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
                 acceleration = mom_5m_t - mom_5m_prev
         q2 = dict(q)
         q2["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
+        vwap_result = compute_rolling_vwap(hist, q, indicators_cfg.get("rolling_vwap", {}))
+        atr_result = compute_atr_proxy(hist, q, indicators_cfg.get("intraday_atr", {}))
+        bollinger_result = compute_bollinger_squeeze(hist, q, indicators_cfg.get("bollinger_squeeze", {}))
+        q2["rolling_vwap"] = vwap_result.get("vwap")
+        q2["rolling_vwap_available"] = bool(vwap_result.get("available"))
+        q2["rolling_vwap_status"] = vwap_result.get("status")
+        q2["price_above_vwap"] = vwap_result.get("price_above_vwap")
+        q2["vwap_distance_pct"] = vwap_result.get("distance_pct")
+        q2["vwap_diagnostic"] = vwap_result
+        q2["atr_pct"] = atr_result.get("atr_pct")
+        q2["atr_stop_distance_pct"] = atr_result.get("stop_distance_pct")
+        q2["atr_available"] = bool(atr_result.get("available"))
+        q2["atr_status"] = atr_result.get("status")
+        q2["atr_diagnostic"] = atr_result
+        q2["bollinger_squeeze"] = bollinger_result
+        q2["bollinger_squeeze_available"] = bool(bollinger_result.get("available"))
+        q2["bollinger_squeeze_active"] = bool(bollinger_result.get("squeeze"))
+        q2["bollinger_squeeze_breakout"] = bool(bollinger_result.get("breakout"))
         q2["lookback_minutes"] = lookback_minutes
         q2["momentum"] = momentum
         q2["momentum_available"] = momentum is not None
@@ -720,6 +872,8 @@ def score_loss_exit(
     bid_pressure_raw = q.get("bid_pressure_3m_pct") if q else None
     bid_pressure = as_float(bid_pressure_raw) if bid_pressure_raw is not None else None
     spread = q.get("spread_pct") if q else None
+    rolling_vwap_available = bool(q.get("rolling_vwap_available")) if q else False
+    price_above_vwap = q.get("price_above_vwap") if q else None
     max_spread = as_float(filters.get("max_spread_pct"), 0.0015)
     decel_threshold = as_float(strategy.get("deceleration_exit_threshold"), -0.002)
     loss_review_after = as_float(strategy.get("loss_review_after_minutes"), 15)
@@ -855,6 +1009,8 @@ def score_unified_sell(
     bid_pressure_raw = q.get("bid_pressure_3m_pct") if q else None
     bid_pressure = as_float(bid_pressure_raw) if bid_pressure_raw is not None else None
     spread = q.get("spread_pct") if q else None
+    rolling_vwap_available = bool(q.get("rolling_vwap_available")) if q else False
+    price_above_vwap = q.get("price_above_vwap") if q else None
     max_spread = as_float(filters.get("max_spread_pct"), 0.0015)
     decel_threshold = as_float(strategy.get("deceleration_exit_threshold"), -0.002)
     trailing_drawdown = as_float(strategy.get("profit_trailing_drawdown_pct"), -0.005)
@@ -888,6 +1044,9 @@ def score_unified_sell(
     liquidity_score = 0.0
     if spread is None or as_float(spread, 999.0) > max_spread:
         liquidity_score = as_float(weights.get("liquidity_deterioration", 15), 15)
+    vwap_score = 0.0
+    if rolling_vwap_available and price_above_vwap is False:
+        vwap_score = as_float(weights.get("vwap_breakdown", 15), 15)
 
     near_close_score = 0.0
     if (local_time.hour == 14 and local_time.minute >= 50) or local_time.hour >= 15:
@@ -907,6 +1066,7 @@ def score_unified_sell(
         "bid_pressure_negative": bid_score,
         "acceleration_negative": accel_score,
         "liquidity_deterioration": liquidity_score,
+        "vwap_breakdown": vwap_score,
         "near_close": near_close_score,
         "profit_drawdown": profit_drawdown_score,
     }
@@ -923,6 +1083,9 @@ def score_unified_sell(
             "acceleration": acceleration,
             "bid_pressure_3m_pct": bid_pressure,
             "spread_pct": spread,
+            "rolling_vwap": q.get("rolling_vwap") if q else None,
+            "vwap_distance_pct": q.get("vwap_distance_pct") if q else None,
+            "price_above_vwap": price_above_vwap,
             "drawdown_from_high": drawdown_from_high,
             "structure_reason": structure_reason,
             "momentum_reason": momentum_reason,
@@ -971,6 +1134,17 @@ def score_entry(
     bid_score = as_float(weights.get("bid_pressure_positive", 20), 20) if bid_pressure is not None and bid_pressure > 0 else 0.0
     accel_score = as_float(weights.get("acceleration_positive", 15), 15) if acceleration is not None and acceleration > 0 else 0.0
     spread_score = as_float(weights.get("tight_spread", 10), 10) if spread is not None and spread < max_spread * 0.5 else 0.0
+    bollinger_score = 0.0
+    bollinger_reason = "none"
+    bollinger = q.get("bollinger_squeeze") if q else None
+    if isinstance(bollinger, dict) and bollinger.get("available"):
+        if bollinger.get("squeeze") and bollinger.get("breakout") and mom > 0:
+            bollinger_score = as_float(weights.get("bollinger_squeeze_breakout", 15), 15)
+            bollinger_reason = "squeeze_breakout"
+        elif bollinger.get("squeeze"):
+            bollinger_reason = "squeeze_no_breakout"
+        else:
+            bollinger_reason = "not_squeeze"
 
     divergence_thr = as_float(strategy.get("cross_etf_divergence_threshold", 0.002), 0.002)
     divergence_score = 0.0
@@ -1001,6 +1175,7 @@ def score_entry(
         "bid_pressure_positive": bid_score,
         "acceleration_positive": accel_score,
         "tight_spread": spread_score,
+        "bollinger_squeeze_breakout": bollinger_score,
         "cross_etf_divergence": divergence_score,
         "market_breadth_positive": breadth_score,
     }
@@ -1014,6 +1189,11 @@ def score_entry(
             "bid_pressure_3m_pct": bid_pressure,
             "acceleration": acceleration,
             "spread_pct": spread,
+            "rolling_vwap": q.get("rolling_vwap") if q else None,
+            "price_above_vwap": q.get("price_above_vwap") if q else None,
+            "vwap_distance_pct": q.get("vwap_distance_pct") if q else None,
+            "bollinger_reason": bollinger_reason,
+            "bollinger_squeeze": bollinger,
             "cross_etf_divergence_pct": cross_divergence,
             "orb_reason": orb_reason,
             "orb_high": orb.get("high") if orb else None,
@@ -1109,6 +1289,7 @@ def build_decision(
     session = cn_market_session(_REPLAY_NOW)
     local_time = exchange_local_time(session)
     strategy = cfg["strategy"]
+    indicators_cfg = strategy.get("indicators", {}) if isinstance(strategy.get("indicators", {}), dict) else {}
     filters = cfg["filters"]
     risk = cfg["risk"]
     trade_date = current_dt().astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
@@ -1244,6 +1425,27 @@ def build_decision(
             q["cross_etf_divergence_pct"] = 0.0
     ranked = sorted(liquid_quotes, key=lambda x: as_float(x.get("momentum"), -999), reverse=True)
     best = ranked[0] if ranked else None
+    vwap_cfg = indicators_cfg.get("rolling_vwap", {}) if isinstance(indicators_cfg.get("rolling_vwap", {}), dict) else {}
+    vwap_filter_enabled = bool(vwap_cfg.get("require_price_above_for_entry", True))
+    if best and vwap_filter_enabled and best.get("rolling_vwap_available"):
+        vwap_entry_ok = bool(best.get("price_above_vwap"))
+        vwap_entry_detail = {
+            "stockCode": best.get("stockCode"),
+            "rolling_vwap": best.get("rolling_vwap"),
+            "currentPrice": best.get("currentPrice"),
+            "vwap_distance_pct": best.get("vwap_distance_pct"),
+            "status": "available",
+            "rule": "entry_requires_price_above_vwap",
+        }
+    else:
+        vwap_entry_ok = True
+        vwap_entry_detail = {
+            "stockCode": best.get("stockCode") if best else None,
+            "status": best.get("rolling_vwap_status") if best else "no_ranked_quote",
+            "enabled": vwap_filter_enabled,
+            "rule": "vwap_unavailable_or_disabled_does_not_block_entry",
+        }
+    add("rolling_vwap_entry_filter", vwap_entry_ok, vwap_entry_detail)
     # 统一出场: 当日T0库存与历史隔夜持仓都纳入可卖范围 (broker availableQuantity 为准)
     sellable_by_code = {}
     for code, pos in positions.items():
@@ -1426,10 +1628,13 @@ def build_decision(
             best_price > as_float(cons_box.get("high")) * (1.0 + cons_buffer) and
             as_float(best.get("momentum")) > 0
         ) if best else False
+        bollinger_breakout = bool(best and best.get("bollinger_squeeze_breakout") and as_float(best.get("momentum")) > 0)
         if best and orb_breakout:
             signal_source = "orb_breakout"
         elif cons_breakout:
             signal_source = "consolidation_breakout"
+        elif bollinger_breakout:
+            signal_source = "bollinger_squeeze_breakout"
         else:
             signal_source = "momentum_fallback"
         entry_score = score_entry(
@@ -1479,10 +1684,14 @@ def build_decision(
                 R_val = px - stop_px
                 min_orb_pct = as_float(bracket_cfg.get("min_orb_range_pct", 0.003))
                 chaos_orb_pct = as_float(bracket_cfg.get("chaos_orb_range_pct", 0.015))
+                atr_stop_distance_pct = as_float(best.get("atr_stop_distance_pct"), 0.0) if best else 0.0
+                atr_available = bool(best.get("atr_available")) if best else False
                 if stop_source == "orb_midpoint" and range_pct_entry < min_orb_pct:
                     bracket_skip_reason = f"orb_range_too_narrow:{range_pct_entry:.4f}<{min_orb_pct}"
                 elif stop_source == "consolidation_box_low" and R_val < px * 0.002:
                     bracket_skip_reason = f"consolidation_r_too_small:{R_val:.5f}"
+                elif atr_available and atr_stop_distance_pct > 0 and R_val < px * atr_stop_distance_pct:
+                    bracket_skip_reason = f"atr_r_too_small:{R_val:.5f}<{px * atr_stop_distance_pct:.5f}"
                 elif R_val < px * 0.001:
                     bracket_skip_reason = f"invalid_r_distance:{R_val:.5f}"
                 else:
@@ -1508,6 +1717,9 @@ def build_decision(
                         "risk_budget": round(risk_budget, 2),
                         "risk_pct": risk_pct_val,
                         "range_pct": round(range_pct_entry, 5),
+                        "atr_available": atr_available,
+                        "atr_pct": best.get("atr_pct") if best else None,
+                        "atr_stop_distance_pct": atr_stop_distance_pct if atr_available else None,
                         "chaos_day": is_chaos,
                     }
             else:
@@ -1525,6 +1737,8 @@ def build_decision(
                     reason = "entry_orb_breakout_passed"
                 elif cons_breakout:
                     reason = "entry_consolidation_breakout_passed"
+                elif bollinger_breakout:
+                    reason = "entry_bollinger_squeeze_breakout_passed"
                 else:
                     reason = "entry_momentum_spread_passed"
                 order = {
@@ -1541,6 +1755,12 @@ def build_decision(
                     "signal_source": signal_source,
                     "orb_high": orb["high"] if orb else None,
                     "consolidation_box": cons_box,
+                    "rolling_vwap": best.get("rolling_vwap"),
+                    "price_above_vwap": best.get("price_above_vwap"),
+                    "vwap_distance_pct": best.get("vwap_distance_pct"),
+                    "atr_pct": best.get("atr_pct"),
+                    "atr_stop_distance_pct": best.get("atr_stop_distance_pct"),
+                    "bollinger_squeeze": best.get("bollinger_squeeze"),
                     "bid_pressure_3m_pct": best.get("bid_pressure_3m_pct"),
                     "baseline_available_quantity": as_float(positions.get(str(best["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
                     "inventory_scope": "t0_intraday_inventory_only",
@@ -1569,6 +1789,7 @@ def build_decision(
             "broad_market_not_declining",
             "no_existing_non_t0_position_for_entry",
             "quote_liquidity_filter",
+            "rolling_vwap_entry_filter",
             "reentry_cooldown",
             "daily_entry_limit",
             "entry_score_gate",
@@ -1678,7 +1899,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
 
     minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
     history = load_recent_quotes(minute_path)
-    quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"].get("consolidation"))
+    quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
     for q in quotes:
         append_jsonl(minute_path, q)
     append_csv(out_dir / cfg["outputs"]["minute_quotes_csv"], quotes)

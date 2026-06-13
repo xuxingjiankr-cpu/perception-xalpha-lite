@@ -183,7 +183,6 @@ def main() -> None:
     sim = {"cash": INITIAL_CASH, "positions": {}}
     history: list[dict[str, Any]] = []
     lookback = int(cfg["strategy"]["lookback_minutes"])
-    cons_cfg = cfg["strategy"].get("consolidation")
     submit_seq = 0
     per_day: dict[str, dict[str, Any]] = {}
     fail_counter: Counter[str] = Counter()
@@ -204,7 +203,7 @@ def main() -> None:
             day["rounds"] += 1
 
             raw_quotes = [dict(q) for q in rnd]
-            quotes = agent.compute_snapshot_momentum(raw_quotes, history, lookback, cons_cfg)
+            quotes = agent.compute_snapshot_momentum(raw_quotes, history, lookback, cfg["strategy"])
             history.extend(quotes)
 
             session = {"in_regular_session": True}

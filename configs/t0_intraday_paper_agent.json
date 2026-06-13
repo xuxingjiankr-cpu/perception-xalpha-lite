@@ -50,6 +50,7 @@
       "profit_momentum_negative": 15,
       "profit_acceleration_negative": 15,
       "profit_bid_pressure_negative": 15,
+      "vwap_breakdown": 15,
       "near_close": 10
     },
     "entry_score_threshold": 50,
@@ -60,6 +61,7 @@
       "bid_pressure_positive": 20,
       "acceleration_positive": 15,
       "tight_spread": 10,
+      "bollinger_squeeze_breakout": 15,
       "cross_etf_divergence": 15,
       "market_breadth_positive": 10
     },
@@ -70,6 +72,27 @@
       "max_range_pct": 0.003,
       "breakout_buffer_pct": 0.001,
       "earliest_entry_time": "10:00"
+    },
+    "indicators": {
+      "rolling_vwap": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "min_points": 5,
+        "require_price_above_for_entry": true
+      },
+      "intraday_atr": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "stop_multiplier": 1.2,
+        "min_stop_pct": 0.002
+      },
+      "bollinger_squeeze": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "std_mult": 2.0,
+        "squeeze_bandwidth_pct": 0.006,
+        "breakout_buffer_pct": 0.0005
+      }
     },
     "skip_dates": [],
     "overnight_gap_guard_pct": 0.03,
