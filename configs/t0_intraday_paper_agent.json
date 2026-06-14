@@ -109,6 +109,7 @@
     "kelly_sizing": {
       "enabled": true,
       "f_star_for_full_risk": 0.25,
+      "edge_shrinkage_pseudo_trades": 10,
       "min_trades_for_kelly": 8,
       "floor_scale": 0.5,
       "drawdown_factor": 0.5

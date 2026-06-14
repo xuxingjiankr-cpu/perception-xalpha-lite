@@ -283,6 +283,17 @@ def t11_fractional_kelly_sizing() -> None:
     check("T11 never inflates above configured (<=1.0)", r_cap["scale"] <= 1.0, str(r_cap))
     r_mid = agent.compute_kelly_scale([120, -100, 130, -90, 110, -100, 80, -95], cfg)
     check("T11 mild edge -> between floor and 1.0", 0.5 <= r_mid["scale"] <= 1.0 and r_mid["scale"] != 0.5, str(r_mid))
+    # Bayesian/James-Stein edge shrinkage: more conservative at small n, converges with n.
+    mild = [120, -100, 130, -90, 110, -100, 80, -95]
+    no_shrink = dict(cfg, edge_shrinkage_pseudo_trades=0)
+    shrunk = dict(cfg, edge_shrinkage_pseudo_trades=10)
+    s_no = agent.compute_kelly_scale(mild, no_shrink)["scale"]
+    s_n8 = agent.compute_kelly_scale(mild, shrunk)["scale"]
+    s_n24 = agent.compute_kelly_scale(mild * 3, shrunk)["scale"]
+    check("T11 shrinkage more conservative at small n", s_n8 < s_no, f"{s_n8} !< {s_no}")
+    check("T11 shrinkage converges with more data", s_n8 <= s_n24 <= s_no, f"{s_n8},{s_n24},{s_no}")
+    check("T11 shrinkage leaves losing-sample at floor",
+          agent.compute_kelly_scale([-100] * 8, shrunk)["scale"] == 0.5)
 
 
 if __name__ == "__main__":

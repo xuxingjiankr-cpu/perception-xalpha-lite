@@ -1497,6 +1497,15 @@ def compute_kelly_scale(realized_pnls: list[float], kelly_cfg: dict[str, Any]) -
     else:
         b = avg_win / avg_loss
         f_star = win_rate - (1.0 - win_rate) / b if b > 0 else -1.0
+    # Empirical-Bayes / James-Stein shrinkage of the estimated edge toward zero with
+    # strength decreasing in sample size (arXiv:2512.25042, 1110.3460). At small n the
+    # raw f_star is noisy; shrinking it toward 0 makes a lucky win-streak size up more
+    # slowly and converges to the empirical estimate as trades accumulate. This can only
+    # reduce a positive edge (slower upsizing); a negative edge stays <=0 -> floor.
+    f_raw = f_star
+    pseudo = as_float(kelly_cfg.get("edge_shrinkage_pseudo_trades", 10))
+    if pseudo > 0:
+        f_star = f_star * (n / (n + pseudo))
     # Interpolate scale from floor (no/poor edge) up to 1.0 (configured risk) as the
     # demonstrated Kelly fraction f_star approaches f_target. Half-Kelly robustness is
     # encoded by requiring a solid edge (f_target) before allowing full configured risk,
@@ -1508,7 +1517,8 @@ def compute_kelly_scale(realized_pnls: list[float], kelly_cfg: dict[str, Any]) -
     detail.update({
         "scale": round(scale, 4), "reason": "ok", "win_rate": round(win_rate, 3),
         "avg_win": round(avg_win, 2), "avg_loss": round(avg_loss, 2),
-        "f_star": round(f_star, 4), "f_target": f_target,
+        "f_star": round(f_star, 4), "f_star_raw": round(f_raw, 4), "f_target": f_target,
+        "shrinkage_pseudo_trades": pseudo,
     })
     return detail
 
