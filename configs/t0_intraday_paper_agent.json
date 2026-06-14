@@ -130,6 +130,7 @@
   },
   "risk": {
     "max_daily_submitted_orders": 6,
+    "max_daily_sell_orders": 12,
     "max_daily_round_trips": 3,
     "max_daily_loss_pct": -0.02,
     "max_daily_api_runs": 80,
@@ -171,10 +172,11 @@
     "auto_apply_changes": true,
     "requires_human_approval": false,
     "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
-    "min_replay_trades_for_auto_apply": 2,
+    "min_replay_trades_for_auto_apply": 8,
     "min_candidate_entries": 1,
-    "min_score_improvement": 0,
-    "max_day_loss_worsening_allowed": 100,
+    "min_distinct_days": 10,
+    "min_score_improvement": 300,
+    "max_day_loss_worsening_allowed": 0,
     "blackbox_optimizer": {
       "mode": "both",
       "algorithm": "bounded_diagonal_cma_es",

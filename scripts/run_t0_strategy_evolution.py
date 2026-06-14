@@ -311,8 +311,10 @@ def summarize_candidate(name: str, overlay: dict[str, Any], summary: dict[str, A
     pnl_values = [as_float(t.get("pnl")) for t in trades if isinstance(t, dict)]
     winning = sum(1 for x in pnl_values if x > 0)
     losing = sum(1 for x in pnl_values if x < 0)
-    entries = sum(int(as_float(d.get("entries"))) for d in (summary.get("per_day", {}) or {}).values() if isinstance(d, dict))
-    max_day_loss = min([as_float(d.get("pnl")) for d in (summary.get("per_day", {}) or {}).values() if isinstance(d, dict)] or [0.0])
+    per_day = summary.get("per_day", {}) or {}
+    entries = sum(int(as_float(d.get("entries"))) for d in per_day.values() if isinstance(d, dict))
+    max_day_loss = min([as_float(d.get("pnl")) for d in per_day.values() if isinstance(d, dict)] or [0.0])
+    distinct_days = len([k for k in per_day if isinstance(per_day.get(k), dict)])
     total_pnl = as_float(summary.get("total_pnl"))
     open_count = len(summary.get("open_positions_at_end", {}) or {})
     win_rate = winning / len(pnl_values) if pnl_values else 0.0
@@ -340,6 +342,7 @@ def summarize_candidate(name: str, overlay: dict[str, Any], summary: dict[str, A
         "total_pnl": round(total_pnl, 2),
         "max_day_loss": round(max_day_loss, 2),
         "open_positions_at_end": open_count,
+        "distinct_days": distinct_days,
         "objective_score": round(score, 2),
         "replay_log_tail": log[-2000:],
     }
@@ -572,6 +575,7 @@ def main() -> None:
     if baseline and selected:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
+        min_distinct_days = int(as_float(si.get("min_distinct_days"), 0))
         min_improvement = as_float(si.get("min_score_improvement"), 100)
         max_day_loss_worsening_allowed = as_float(si.get("max_day_loss_worsening_allowed"), 0.0)
         improvement = as_float(selected.get("objective_score")) - as_float(baseline.get("objective_score"))
@@ -584,6 +588,8 @@ def main() -> None:
             decision_reason = f"selected_trades_below_min:{selected.get('trades')}<{min_trades}"
         elif int(selected.get("entries", 0)) < min_entries:
             decision_reason = f"selected_entries_below_min:{selected.get('entries')}<{min_entries}"
+        elif int(selected.get("distinct_days", 0)) < min_distinct_days:
+            decision_reason = f"sample_distinct_days_below_min:{selected.get('distinct_days')}<{min_distinct_days}"
         elif improvement < min_improvement:
             decision_reason = f"score_improvement_below_min:{improvement:.2f}<{min_improvement:.2f}"
         elif as_float(selected.get("total_pnl")) < as_float(baseline.get("total_pnl")):

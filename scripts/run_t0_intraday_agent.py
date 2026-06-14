@@ -49,6 +49,31 @@ from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 
+# Entry-oriented + BUY-budget/data checks that must NEVER block a SELL exit
+# (stop-loss / profit / liquidation). Otherwise a position is forced to carry
+# overnight exactly when risk controls fire. quote_freshness is handled
+# separately: bypassed for SELL only on unconditional exits (see check_applies).
+SELL_BYPASS_CHECKS = {
+    # entry-oriented
+    "open_quiet_period_passed",
+    "no_new_entry_afternoon_cutoff",
+    "broad_market_not_declining",
+    "no_existing_non_t0_position_for_entry",
+    "quote_liquidity_filter",
+    "rolling_vwap_entry_filter",
+    "market_correlation_stress_filter",
+    "reentry_cooldown",
+    "daily_entry_limit",
+    "entry_score_gate",
+    "skip_date_guard",
+    "kill_switch_inactive",
+    # BUY budget/count caps: gate new risk only, never block an exit
+    "daily_loss_limit",
+    "daily_order_limit",
+    "daily_round_trip_limit",
+    "no_pending_t0_orders",
+}
+
 DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS = {
     "entry_momentum_pct",
     "exit_momentum_pct",
@@ -74,6 +99,37 @@ DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS = {
     "bracket.target1_r_multiple",
     "bracket.target2_r_multiple",
     "bracket.reentry_cooldown_minutes",
+}
+
+# Apply-time hard bounds (defense-in-depth). Even though the evolution producer
+# samples within these ranges, the overlay file is an untrusted trust boundary:
+# any numeric leaf outside its [lo, hi] is rejected (not applied). Mirrors
+# PARAM_SPACE in scripts/run_t0_strategy_evolution.py. Paths absent here are
+# accepted as-is only if booleans/enumerable allowlisted leaves.
+EVOLUTION_PARAM_BOUNDS: dict[str, tuple[float, float]] = {
+    "entry_momentum_pct": (0.0012, 0.0028),
+    "exit_momentum_pct": (-0.0020, -0.0005),
+    "entry_score_threshold": (48, 72),
+    "loss_exit_score_threshold": (65, 90),
+    "profit_exit_score_threshold": (58, 84),
+    "min_profit_exit_pct": (0.002, 0.006),
+    "min_hold_minutes": (8, 35),
+    "loss_review_after_minutes": (10, 40),
+    "profit_trailing_drawdown_pct": (-0.012, -0.004),
+    "deceleration_exit_threshold": (-0.004, -0.001),
+    "cross_etf_divergence_threshold": (0.0015, 0.0035),
+    "consolidation.max_range_pct": (0.0020, 0.0040),
+    "consolidation.breakout_buffer_pct": (0.0005, 0.0020),
+    "indicators.intraday_atr.stop_multiplier": (1.0, 1.8),
+    "indicators.intraday_atr.min_stop_pct": (0.0015, 0.0035),
+    "indicators.bollinger_squeeze.squeeze_bandwidth_pct": (0.0040, 0.0080),
+    "indicators.bollinger_squeeze.breakout_buffer_pct": (0.0003, 0.0012),
+    "market_correlation_stress.avg_abs_corr_threshold": (0.60, 0.85),
+    "bracket.risk_per_trade_pct": (0.0020, 0.0045),
+    "bracket.risk_per_trade_pct_chaos_day": (0.0010, 0.0022),
+    "bracket.target1_r_multiple": (0.8, 1.4),
+    "bracket.target2_r_multiple": (1.6, 2.6),
+    "bracket.reentry_cooldown_minutes": (15, 60),
 }
 
 
@@ -176,10 +232,17 @@ def apply_evolution_overlay_if_enabled(cfg: dict[str, Any]) -> dict[str, Any]:
 
     applied: dict[str, Any] = {}
     rejected: list[str] = []
+    out_of_bounds: list[str] = []
     for path, val in _flatten_strategy_overlay(raw_overlay):
         if path not in allowed:
             rejected.append(path)
             continue
+        bounds = EVOLUTION_PARAM_BOUNDS.get(path)
+        if bounds is not None and isinstance(val, (int, float)) and not isinstance(val, bool):
+            lo, hi = bounds
+            if not (lo <= float(val) <= hi):
+                out_of_bounds.append(f"{path}={val}∉[{lo},{hi}]")
+                continue
         _set_nested_strategy_value(cfg["strategy"], path, val)
         applied[path] = val
 
@@ -190,6 +253,7 @@ def apply_evolution_overlay_if_enabled(cfg: dict[str, Any]) -> dict[str, Any]:
         "created_at": overlay.get("created_at"),
         "applied_paths": applied,
         "rejected_paths": rejected,
+        "out_of_bounds_paths": out_of_bounds,
     })
     cfg["_evolution_overlay"] = meta
     return cfg
@@ -1622,6 +1686,12 @@ def build_decision(
     daily_round_trips = daily_state_bucket(state, "round_trips_by_date", trade_date)
     add("daily_order_limit", daily_orders < int(risk["max_daily_submitted_orders"]), daily_orders)
     add("daily_round_trip_limit", daily_round_trips < int(risk["max_daily_round_trips"]), daily_round_trips)
+    # 独立的卖出额度: daily_order_limit 对 SELL 放行后, 用此项防止卖出循环滥用 (出场仍受限但额度更宽)
+    daily_sell_orders = daily_state_bucket(state, "sell_orders_by_date", trade_date)
+    add("daily_sell_order_limit", daily_sell_orders < int(risk.get("max_daily_sell_orders", 12)), {
+        "sell_orders_today": daily_sell_orders,
+        "max_daily_sell_orders": int(risk.get("max_daily_sell_orders", 12)),
+    })
     today_realized_pnl = daily_state_float_bucket(state, "today_realized_pnl", trade_date)
     max_daily_loss_pct = as_float(risk.get("max_daily_loss_pct"), -0.02)
     add("daily_loss_limit", (today_realized_pnl / total_assets) > max_daily_loss_pct if total_assets > 0 else False, {
@@ -2063,22 +2133,14 @@ def build_decision(
         add("order_built", False, reason)
 
     def check_applies(c: dict[str, Any]) -> bool:
-        # 入场导向的检查不得拦截卖单(止损/止盈/强平), 否则持仓会被迫过夜
-        if order and order.get("direction") == "sell" and c.get("name") in {
-            "open_quiet_period_passed",
-            "no_new_entry_afternoon_cutoff",
-            "broad_market_not_declining",
-            "no_existing_non_t0_position_for_entry",
-            "quote_liquidity_filter",
-            "rolling_vwap_entry_filter",
-            "market_correlation_stress_filter",
-            "reentry_cooldown",
-            "daily_entry_limit",
-            "entry_score_gate",
-            "skip_date_guard",
-            "kill_switch_inactive",
-        }:
-            return True
+        if order and order.get("direction") == "sell":
+            name = c.get("name")
+            if name in SELL_BYPASS_CHECKS:
+                return True
+            # 行情陈旧时: 仅无条件出场(emergency_stop/kill_switch/异常状态)放行, 走兜底价;
+            # 普通 sell_score 出场仍要求新鲜行情才有意义
+            if name == "quote_freshness" and bool(order.get("unconditional_exit")):
+                return True
         return bool(c.get("passed"))
 
     approved = all(check_applies(c) for c in checks) and order is not None
@@ -2274,6 +2336,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                             increment_daily_state(state, "entries_by_date", decision["trade_date"])
                         elif order.get("direction") == "sell":
                             record_t0_sell_submission(state, decision["trade_date"], order, submit)
+                            increment_daily_state(state, "sell_orders_by_date", decision["trade_date"])
                             fill_price_estimate = as_float(order.get("price"))
                             cost_price = as_float(order.get("cost_price"))
                             quantity = int(as_float(order.get("quantity")))

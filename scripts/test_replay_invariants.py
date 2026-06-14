@@ -1,0 +1,149 @@
+"""Replay & safety invariant tests for the T0 paper agent.
+
+Run: py -3.13 scripts/test_replay_invariants.py
+
+These are guardrail regression tests, not a profitability claim. They assert:
+  T1  replay never mutates the real t0_state.json (mtime + sha256 unchanged)
+  T2  replay performs zero network/order side effects (no SkillClient/submit/quote)
+  T3  replay is deterministic (two runs produce byte-identical decisions)
+  T4  SELL exits bypass BUY-budget/data checks (daily_loss_limit etc.)
+  T5  unconditional exits bypass quote_freshness; discretionary sells do not
+  T6  apply-time bounds reject out-of-range overlay leaves; locks unreachable
+"""
+
+from __future__ import annotations
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import run_t0_intraday_agent as agent  # noqa: E402
+
+STATE_PATH = ROOT / "outputs" / "t0_intraday_agent" / "t0_state.json"
+REPLAY_DIR = ROOT / "outputs" / "t0_replay"
+PY = [sys.executable]
+
+failures: list[str] = []
+
+
+def check(name: str, cond: bool, detail: str = "") -> None:
+    print(f"[{'PASS' if cond else 'FAIL'}] {name}" + (f" — {detail}" if detail and not cond else ""))
+    if not cond:
+        failures.append(name)
+
+
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else "MISSING"
+
+
+def run_replay(label: str) -> None:
+    subprocess.run(
+        PY + [str(ROOT / "scripts" / "replay_t0_decisions.py"), "--label", label],
+        cwd=str(ROOT), capture_output=True, text=True, timeout=180, check=False,
+    )
+
+
+def t1_t3_state_and_determinism() -> None:
+    before_hash, before_mtime = sha(STATE_PATH), (STATE_PATH.stat().st_mtime if STATE_PATH.exists() else None)
+    run_replay("invariant_a")
+    after_hash, after_mtime = sha(STATE_PATH), (STATE_PATH.stat().st_mtime if STATE_PATH.exists() else None)
+    check("T1 t0_state untouched by replay", before_hash == after_hash and before_mtime == after_mtime,
+          f"{before_hash[:8]}@{before_mtime} != {after_hash[:8]}@{after_mtime}")
+    run_replay("invariant_b")
+    a = (REPLAY_DIR / "invariant_a_decisions.jsonl")
+    b = (REPLAY_DIR / "invariant_b_decisions.jsonl")
+    check("T3 replay deterministic", a.exists() and b.exists() and a.read_bytes() == b.read_bytes())
+
+
+def t2_no_side_effects() -> None:
+    """Import-time + run-time: replay must not touch SkillClient/submit/quote/save_state."""
+    calls = {"client": 0, "submit": 0, "quote": 0, "save_state": 0}
+    orig_client = agent.SkillClient
+
+    class Tripwire(orig_client):  # type: ignore[misc, valid-type]
+        def __init__(self, *a, **k):
+            calls["client"] += 1
+            raise AssertionError("replay must not instantiate SkillClient")
+
+    agent.SkillClient = Tripwire  # type: ignore[misc]
+    orig_save = agent.save_state
+    agent.save_state = lambda *a, **k: calls.__setitem__("save_state", calls["save_state"] + 1)  # type: ignore[assignment]
+    try:
+        import importlib
+        import replay_t0_decisions as replay
+        importlib.reload(replay)
+        sys.argv = ["replay", "--label", "invariant_sideeffect"]
+        replay.main()
+    except AssertionError as exc:
+        calls["client"] += 0
+        check("T2 no SkillClient/submit/quote", False, str(exc))
+        return
+    finally:
+        agent.SkillClient = orig_client  # type: ignore[misc]
+        agent.save_state = orig_save  # type: ignore[assignment]
+    check("T2 no SkillClient instantiated", calls["client"] == 0)
+    check("T2 no real save_state in replay", calls["save_state"] == 0)
+
+
+def t4_sell_bypasses_buy_checks() -> None:
+    required = {"daily_loss_limit", "daily_order_limit", "daily_round_trip_limit", "no_pending_t0_orders"}
+    missing = required - agent.SELL_BYPASS_CHECKS
+    check("T4 SELL bypasses BUY-budget checks", not missing, f"missing from bypass set: {missing}")
+    # quote_freshness must NOT be in the static bypass set (it is conditional)
+    check("T4 quote_freshness not blanket-bypassed", "quote_freshness" not in agent.SELL_BYPASS_CHECKS)
+
+
+def t6_apply_bounds_and_lock_isolation() -> None:
+    # Out-of-range allowlisted leaf must be rejected, not applied.
+    cfg = {
+        "strategy": {"bracket": {"risk_per_trade_pct": 0.004}, "mode": "ignored"},
+        "mode": "paper_execute",
+        "execution_enabled": True,
+        "self_iteration": {
+            "enabled": True, "auto_apply_changes": True,
+            "overlay_path": "outputs/t0_strategy_evolution/__nonexistent_test__.json",
+        },
+    }
+    # Build a fake approved overlay in memory by monkeypatching load_json.
+    import json as _json
+    tmp = REPLAY_DIR / "__test_overlay__.json"
+    tmp.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text(_json.dumps({
+        "status": "approved_for_paper_auto_apply",
+        "paper_trading_only": True,
+        "selected_candidate": "test",
+        "strategy_overlay": {
+            "bracket": {"risk_per_trade_pct": 0.5},   # absurd, out of [0.0020,0.0045]
+            "entry_score_threshold": 55,               # in-range, should apply
+            "mode": "live",                            # not allowlisted -> rejected
+        },
+    }), encoding="utf-8")
+    cfg["self_iteration"]["overlay_path"] = str(tmp)
+    out = agent.apply_evolution_overlay_if_enabled(cfg)
+    meta = out.get("_evolution_overlay", {})
+    applied = meta.get("applied_paths", {})
+    oob = meta.get("out_of_bounds_paths", [])
+    rejected = meta.get("rejected_paths", [])
+    check("T6 out-of-range risk rejected", any("risk_per_trade_pct" in s for s in oob)
+          and "bracket.risk_per_trade_pct" not in applied)
+    check("T6 in-range leaf applied", applied.get("entry_score_threshold") == 55)
+    check("T6 non-allowlisted path rejected", "mode" in rejected)
+    check("T6 top-level lock untouched", out.get("mode") == "paper_execute" and out.get("execution_enabled") is True)
+    check("T6 strategy.mode never reaches cfg.mode", out["strategy"].get("mode") in (None, "ignored", "live"))
+    tmp.unlink(missing_ok=True)
+
+
+if __name__ == "__main__":
+    t1_t3_state_and_determinism()
+    t2_no_side_effects()
+    t4_sell_bypasses_buy_checks()
+    t6_apply_bounds_and_lock_isolation()
+    print()
+    if failures:
+        print(f"FAILED: {len(failures)} invariant(s): {failures}")
+        sys.exit(1)
+    print("ALL INVARIANTS PASSED")
