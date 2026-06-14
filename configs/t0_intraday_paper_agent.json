@@ -125,6 +125,31 @@
       "hk_etf_preferred": true,
       "reserved_api_runs": 6
     },
+    "execution_quality": {
+      "enabled": true,
+      "min_score": 60,
+      "max_expected_slippage_bps": 20,
+      "spread_penalty_per_bp": 2.0,
+      "slippage_penalty_per_bp": 1.5,
+      "negative_bid_pressure_penalty": 10,
+      "bad_quote_penalty": 100,
+      "shadow_only": false
+    },
+    "safe_policy_shield": {
+      "enabled": true,
+      "shadow_only": false,
+      "min_history_snapshots": 20,
+      "max_history_snapshots": 120,
+      "max_zscore_abs": 4.0,
+      "negative_sample_block_minutes": 60,
+      "features": [
+        "momentum",
+        "spread_pct",
+        "bid_pressure_3m_pct",
+        "vwap_distance_pct",
+        "acceleration"
+      ]
+    },
     "target_holdings": 1,
     "cash_reserve_pct": 0.85,
     "max_position_pct": 0.15,
@@ -192,7 +217,7 @@
     "auto_apply_changes": true,
     "requires_human_approval": false,
     "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
-    "required_gate_version": "dm_hln_mcs_spa_v1",
+    "required_gate_version": "dm_hln_mcs_spa_v2",
     "min_replay_trades_for_auto_apply": 8,
     "min_candidate_entries": 1,
     "min_distinct_days": 10,
@@ -208,6 +233,8 @@
     "require_spa_reject": true,
     "spa_alpha": 0.05,
     "spa_n_boot": 500,
+    "require_deflated_sharpe_significant": true,
+    "deflated_sharpe_alpha": 0.1,
     "blackbox_optimizer": {
       "mode": "both",
       "algorithm": "bounded_diagonal_cma_es",

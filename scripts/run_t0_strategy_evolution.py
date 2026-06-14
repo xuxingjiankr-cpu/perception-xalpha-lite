@@ -19,6 +19,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from statistics import NormalDist
 from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float, load_json, write_json
@@ -27,7 +28,7 @@ from run_etf_paper_trading_agent import ROOT, as_float, load_json, write_json
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 DEFAULT_OUT_DIR = ROOT / "outputs" / "t0_strategy_evolution"
 DEFAULT_REPLAY_OUT = ROOT / "outputs" / "t0_replay"
-EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v1"
+EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v2"
 
 
 PARAM_SPACE = [
@@ -237,7 +238,7 @@ def model_confidence_set(
     return result
 
 
-def reality_check_spa(
+def _legacy_reality_check_spa_v1(
     benchmark_losses: list[float],
     alt_losses: dict[str, list[float]],
     *,
@@ -301,6 +302,154 @@ def reality_check_spa(
         "t_max": round(v_obs, 6),
         "best_alt": best_alt,
         "reject": p < alpha,
+    })
+    return result
+
+
+def reality_check_spa(
+    benchmark_losses: list[float],
+    alt_losses: dict[str, list[float]],
+    *,
+    alpha: float = 0.05,
+    n_boot: int = 1000,
+    avg_block: float = 3.0,
+    seed: int = 20260616,
+) -> dict[str, Any]:
+    """Studentized Hansen SPA-lite reality check.
+
+    Replacement for the legacy conservative White-RC implementation above.
+    Positive d = benchmark loss - candidate loss means the candidate is better.
+    """
+    names = [k for k, v in alt_losses.items() if isinstance(v, list) and len(v) >= 2]
+    result: dict[str, Any] = {
+        "method": "studentized_hansen_spa_lite",
+        "p_value": 1.0,
+        "t_max": None,
+        "n_obs": 0,
+        "reject": False,
+        "best_alt": None,
+        "alpha": alpha,
+        "reason": "ok",
+        "active_alternatives": [],
+        "candidate_stats": {},
+    }
+    if not names or len(benchmark_losses) < 2:
+        result["reason"] = "insufficient_models_or_obs"
+        return result
+    n = min([len(benchmark_losses)] + [len(alt_losses[k]) for k in names])
+    if n < 2:
+        result["reason"] = "insufficient_obs"
+        return result
+    result["n_obs"] = n
+    bench = benchmark_losses[:n]
+    rng = random.Random(seed)
+    boot_idx = [_stationary_bootstrap_indices(n, avg_block, rng) for _ in range(n_boot)]
+
+    diffs: dict[str, list[float]] = {}
+    means: dict[str, float] = {}
+    sds: dict[str, float] = {}
+    stats: dict[str, float] = {}
+    for k in names:
+        d = [bench[t] - alt_losses[k][t] for t in range(n)]
+        mean = sum(d) / n
+        var = sum((x - mean) ** 2 for x in d) / max(1, n - 1)
+        sd = math.sqrt(var)
+        diffs[k] = d
+        means[k] = mean
+        sds[k] = sd
+        stats[k] = (float("inf") if mean > 0 else 0.0) if sd <= 1e-12 else math.sqrt(n) * mean / sd
+
+    active: list[str] = []
+    for k in names:
+        sd = sds[k]
+        trim_threshold = -sd / math.sqrt(n) if sd > 1e-12 else 0.0
+        if means[k] >= trim_threshold:
+            active.append(k)
+    if not active:
+        active = names[:]
+
+    v_obs = max([0.0] + [stats[k] for k in active])
+    best_alt = max(active, key=lambda k: means[k]) if active else None
+    ge = 0
+    for b in range(n_boot):
+        vmax = 0.0
+        for k in active:
+            sd = sds[k]
+            if sd <= 1e-12:
+                vb = 0.0
+            else:
+                sample_mean = sum(diffs[k][i] for i in boot_idx[b]) / n
+                vb = math.sqrt(n) * (sample_mean - means[k]) / sd
+            if vb > vmax:
+                vmax = vb
+        if vmax >= v_obs:
+            ge += 1
+    p = ge / n_boot if n_boot else 1.0
+    result.update({
+        "p_value": round(p, 4),
+        "t_max": "inf" if math.isinf(v_obs) else round(v_obs, 6),
+        "best_alt": best_alt,
+        "reject": p < alpha,
+        "active_alternatives": active,
+        "candidate_stats": {
+            k: {
+                "mean_diff": round(means[k], 6),
+                "sd_diff": round(sds[k], 6),
+                "t_stat": "inf" if math.isinf(stats[k]) else round(stats[k], 6),
+            } for k in names
+        },
+    })
+    return result
+
+
+def deflated_sharpe_diagnostic(
+    baseline_days: dict[str, Any],
+    selected_days: dict[str, Any],
+    *,
+    n_trials: int,
+    alpha: float = 0.10,
+) -> dict[str, Any]:
+    """Approximate deflated-Sharpe diagnostic on daily PnL differentials."""
+    shared = sorted(set(baseline_days or {}) & set(selected_days or {}))
+    result: dict[str, Any] = {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": False,
+        "alpha": alpha,
+        "n_days": len(shared),
+        "n_trials": max(1, int(n_trials)),
+        "reason": "ok",
+    }
+    if len(shared) < 8:
+        result["reason"] = "insufficient_shared_days"
+        return result
+    diffs = [as_float(selected_days[d]) - as_float(baseline_days[d]) for d in shared]
+    mean = sum(diffs) / len(diffs)
+    var = sum((x - mean) ** 2 for x in diffs) / max(1, len(diffs) - 1)
+    sd = math.sqrt(var)
+    if sd <= 1e-12:
+        result.update({
+            "mean_diff": round(mean, 4),
+            "std_diff": round(sd, 4),
+            "p_value": 0.0 if mean > 0 else 1.0,
+            "significant": mean > 0,
+            "reason": "zero_variance",
+        })
+        return result
+    sr = mean / sd
+    t_stat = sr * math.sqrt(len(diffs))
+    trials = max(2, int(n_trials))
+    selection_bias_t = NormalDist().inv_cdf(1.0 - 1.0 / trials)
+    deflated_t = t_stat - selection_bias_t
+    p_value = 1.0 - NormalDist().cdf(deflated_t)
+    result.update({
+        "mean_diff": round(mean, 4),
+        "std_diff": round(sd, 4),
+        "sharpe_diff_daily": round(sr, 4),
+        "t_stat": round(t_stat, 4),
+        "selection_bias_t": round(selection_bias_t, 4),
+        "deflated_t": round(deflated_t, 4),
+        "p_value": round(p_value, 4),
+        "significant": bool(mean > 0 and p_value < alpha),
     })
     return result
 
@@ -826,6 +975,7 @@ def main() -> None:
     dm_result: dict[str, Any] = {"reason": "no_valid_replay", "significant": False}
     mcs_result: dict[str, Any] = {"reason": "no_valid_replay", "mcs_set": []}
     spa_result: dict[str, Any] = {"reason": "no_valid_replay", "reject": False, "p_value": 1.0}
+    dsr_result: dict[str, Any] = {"reason": "no_valid_replay", "significant": False}
     if baseline and selected:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
@@ -889,6 +1039,12 @@ def main() -> None:
             spa_result = reality_check_spa(bench_loss, alt_loss, alpha=spa_alpha, n_boot=spa_n_boot)
         else:
             spa_result = {"reject": False, "reason": "insufficient_shared_days", "p_value": 1.0}
+        # Deflated Sharpe: repeated-search penalty on selected-vs-baseline daily
+        # PnL differentials. This is another overfit guard, not a profitability
+        # claim, and tiny samples fail closed.
+        require_dsr = bool(si.get("require_deflated_sharpe_significant", True))
+        dsr_alpha = as_float(si.get("deflated_sharpe_alpha"), 0.10)
+        dsr_result = deflated_sharpe_diagnostic(base_days, sel_days, n_trials=max(1, n_tested), alpha=dsr_alpha)
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
             selected_overlay = {}
@@ -937,6 +1093,11 @@ def main() -> None:
                 f"spa_reality_check_not_significant:"
                 f"p={spa_result.get('p_value')}>={spa_alpha}({spa_result.get('reason')})"
             )
+        elif require_dsr and not dsr_result.get("significant"):
+            decision_reason = (
+                f"deflated_sharpe_not_significant:"
+                f"p={dsr_result.get('p_value')}>={dsr_alpha}({dsr_result.get('reason')})"
+            )
         else:
             status = "approved_for_paper_auto_apply"
             decision_reason = f"selected_improved_objective_by:{improvement:.2f}"
@@ -952,6 +1113,8 @@ def main() -> None:
         "require_baseline_excluded_from_mcs": bool(si.get("require_baseline_excluded_from_mcs", True)),
         "spa_reality_check": {k: spa_result.get(k) for k in ("p_value", "reject", "best_alt", "n_obs", "reason")},
         "require_spa_reject": bool(si.get("require_spa_reject", True)),
+        "deflated_sharpe": dsr_result,
+        "require_deflated_sharpe_significant": bool(si.get("require_deflated_sharpe_significant", True)),
     }
 
     report = {

@@ -121,6 +121,7 @@ def t6_apply_bounds_and_lock_isolation() -> None:
             "require_diebold_mariano_significant": True,
             "require_baseline_excluded_from_mcs": True,
             "require_spa_reject": True,
+            "require_deflated_sharpe_significant": True,
         },
         "strategy_overlay": {
             "bracket": {"risk_per_trade_pct": 0.5},   # absurd, out of [0.0020,0.0045]
@@ -150,6 +151,7 @@ def t6_apply_bounds_and_lock_isolation() -> None:
             "require_diebold_mariano_significant": True,
             "require_baseline_excluded_from_mcs": True,
             "require_spa_reject": True,
+            "require_deflated_sharpe_significant": True,
         },
         "strategy_overlay": {"entry_score_threshold": 49},
     }), encoding="utf-8")
@@ -355,6 +357,55 @@ def t12_intraday_momentum() -> None:
           len(sells) == 1 and sells[0].get("reason") == "intraday_momentum_eod_exit", str(dec2.get("orders")))
 
 
+def t13_execution_quality_safe_shield_and_dsr() -> None:
+    """New research-inspired guards: microstructure quality blocks bad books,
+    safe shield records/blocks recent losing repeats, DSR fails small samples and
+    passes a stable edge after search penalty."""
+    import importlib
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    strategy = {
+        "execution_quality": {"enabled": True, "min_score": 60, "max_expected_slippage_bps": 20},
+        "safe_policy_shield": {"enabled": True, "negative_sample_block_minutes": 60, "min_history_snapshots": 20},
+    }
+    filters = {"max_spread_pct": 0.0015}
+    risk = {"limit_price_slippage_pct": 0.001}
+    good_q = {
+        "stockCode": "513050", "quote_ok": True, "isSuspended": False,
+        "currentPrice": 2.0, "bidPrice1": 1.999, "askPrice1": 2.001,
+        "midpoint": 2.0, "spread_pct": 0.0008, "bid_pressure_3m_pct": 0.0001,
+    }
+    bad_q = dict(good_q, bidPrice1=1.95, askPrice1=2.05, midpoint=2.0, spread_pct=0.05)
+    good_eq = agent.compute_execution_quality(good_q, filters, risk, strategy)
+    bad_eq = agent.compute_execution_quality(bad_q, filters, risk, strategy)
+    check("T13 good microstructure passes execution-quality gate", good_eq.get("passed") is True, str(good_eq))
+    check("T13 wide spread fails execution-quality gate", bad_eq.get("passed") is False, str(bad_eq))
+
+    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    state = {}
+    agent.set_replay_now(now)
+    try:
+        agent.record_negative_action_sample(state, "2026-06-15", {
+            "direction": "sell", "stockCode": "513050", "reason": "bracket_stop_loss",
+            "price": 1.98, "cost_price": 2.0, "quantity": 10000, "pnl_pct": -0.01,
+        }, -200.0)
+        shield = agent.compute_safe_policy_shield(good_q, [], state, strategy)
+    finally:
+        agent.set_replay_now(None)
+    check("T13 negative sample recorded", len(state.get("negative_action_samples", [])) == 1, str(state))
+    check("T13 recent negative sample blocks same-ETF repeat BUY", shield.get("passed") is False
+          and shield.get("status") == "recent_negative_sample_block", str(shield))
+
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    few = ev.deflated_sharpe_diagnostic({"d1": 0.0}, {"d1": 10.0}, n_trials=10, alpha=0.10)
+    check("T13 DSR fails tiny samples", few.get("significant") is False, str(few))
+    base = {f"d{i}": 0.0 for i in range(12)}
+    sel = {f"d{i}": v for i, v in enumerate([10, 12, 9, 11, 13, 10, 12, 9, 11, 14, 10, 12])}
+    dsr = ev.deflated_sharpe_diagnostic(base, sel, n_trials=4, alpha=0.10)
+    check("T13 DSR passes stable post-search edge", dsr.get("significant") is True, str(dsr))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -366,6 +417,7 @@ if __name__ == "__main__":
     t10_spa_reality_check()
     t11_fractional_kelly_sizing()
     t12_intraday_momentum()
+    t13_execution_quality_safe_shield_and_dsr()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

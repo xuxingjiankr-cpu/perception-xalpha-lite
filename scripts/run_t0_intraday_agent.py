@@ -48,7 +48,7 @@ from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
-EXPECTED_EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v1"
+EXPECTED_EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v2"
 
 # Asset classes that are managed for EXIT only and must never be ranked for a
 # new T0 BUY. bond_etf: intraday range < round-trip cost. exit_only_t1: a T+1
@@ -68,6 +68,8 @@ SELL_BYPASS_CHECKS = {
     "no_existing_non_t0_position_for_entry",
     "quote_liquidity_filter",
     "rolling_vwap_entry_filter",
+    "execution_quality_filter",
+    "safe_policy_shield",
     "market_correlation_stress_filter",
     "reentry_cooldown",
     "daily_entry_limit",
@@ -259,6 +261,7 @@ def apply_evolution_overlay_if_enabled(cfg: dict[str, Any]) -> dict[str, Any]:
         "require_diebold_mariano_significant": True,
         "require_baseline_excluded_from_mcs": True,
         "require_spa_reject": True,
+        "require_deflated_sharpe_significant": True,
     }
     missing_required_flags = [
         key for key, expected in required_diag_flags.items()
@@ -1928,6 +1931,194 @@ def get_orb(state: dict[str, Any], trade_date: str, stock_code: str | None = Non
     return {"high": high, "low": low, "midpoint": midpoint, "finalized": True}
 
 
+def compute_execution_quality(q: dict[str, Any], filters: dict[str, Any], risk: dict[str, Any], strategy: dict[str, Any]) -> dict[str, Any]:
+    """Microstructure quality gate for BUY orders.
+
+    This is deliberately a risk filter, not an alpha signal. It blocks obviously
+    bad execution states (wide spread, invalid book, high expected crossing
+    cost) while leaving SELL exits governed by their own risk path.
+    """
+    cfg = strategy.get("execution_quality", {}) if isinstance(strategy.get("execution_quality"), dict) else {}
+    if not bool(cfg.get("enabled", True)):
+        return {"enabled": False, "passed": True, "score": 100.0, "status": "disabled"}
+
+    max_spread_pct = as_float(filters.get("max_spread_pct"), 0.0015)
+    min_score = as_float(cfg.get("min_score"), 60.0)
+    max_slippage_bps = as_float(cfg.get("max_expected_slippage_bps"), 12.0)
+    shadow_only = bool(cfg.get("shadow_only", False))
+    current = as_float(q.get("currentPrice"))
+    bid = as_float(q.get("bidPrice1"))
+    ask = as_float(q.get("askPrice1"))
+    midpoint = as_float(q.get("midpoint"))
+    spread_pct = q.get("spread_pct")
+    spread = as_float(spread_pct) if spread_pct is not None else None
+    penalties: dict[str, float] = {}
+
+    if not q.get("quote_ok") or q.get("isSuspended"):
+        penalties["bad_quote"] = as_float(cfg.get("bad_quote_penalty"), 100.0)
+    if current <= 0:
+        penalties["invalid_current_price"] = 100.0
+    if bid <= 0 or ask <= 0 or ask < bid:
+        penalties["invalid_book"] = 50.0
+
+    if spread is None or spread < 0:
+        penalties["missing_spread"] = 25.0
+        spread_bps = None
+    else:
+        spread_bps = spread * 10000.0
+        excess_spread_bps = max(0.0, spread_bps - max_spread_pct * 10000.0)
+        if excess_spread_bps > 0:
+            penalties["spread_excess"] = excess_spread_bps * as_float(cfg.get("spread_penalty_per_bp"), 2.0)
+
+    mid = midpoint if midpoint > 0 else ((bid + ask) / 2.0 if bid > 0 and ask > 0 else current)
+    if mid > 0 and ask > 0:
+        half_spread_bps = max(0.0, (ask - bid) / (2.0 * mid) * 10000.0) if bid > 0 else 0.0
+        crossing_bps = max(0.0, (ask - mid) / mid * 10000.0)
+    else:
+        half_spread_bps = 999.0
+        crossing_bps = 999.0
+    expected_slippage_bps = max(half_spread_bps, crossing_bps) + as_float(risk.get("limit_price_slippage_pct"), 0.001) * 10000.0
+    if expected_slippage_bps > max_slippage_bps:
+        penalties["expected_slippage_excess"] = (expected_slippage_bps - max_slippage_bps) * as_float(cfg.get("slippage_penalty_per_bp"), 1.5)
+
+    bid_pressure = q.get("bid_pressure_3m_pct")
+    if bid_pressure is not None and as_float(bid_pressure) < 0:
+        penalties["negative_bid_pressure"] = as_float(cfg.get("negative_bid_pressure_penalty"), 10.0)
+
+    score = max(0.0, 100.0 - sum(penalties.values()))
+    would_pass = score >= min_score and expected_slippage_bps <= max_slippage_bps
+    return {
+        "enabled": True,
+        "passed": True if shadow_only else bool(would_pass),
+        "would_pass": bool(would_pass),
+        "shadow_only": shadow_only,
+        "score": round(score, 2),
+        "min_score": min_score,
+        "spread_bps": round(spread_bps, 3) if spread_bps is not None else None,
+        "expected_slippage_bps": round(expected_slippage_bps, 3),
+        "max_expected_slippage_bps": max_slippage_bps,
+        "penalties": penalties,
+        "status": "ok" if would_pass else "blocked_microstructure_cost",
+    }
+
+
+def _recent_history_for_code(history: list[dict[str, Any]], code: str, max_rows: int) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    zcode = str(code).zfill(6)
+    for row in reversed(history or []):
+        if str(row.get("stockCode", "")).zfill(6) == zcode:
+            out.append(row)
+            if len(out) >= max_rows:
+                break
+    out.reverse()
+    return out
+
+
+def compute_safe_policy_shield(
+    q: dict[str, Any] | None,
+    history: list[dict[str, Any]] | None,
+    state: dict[str, Any],
+    strategy: dict[str, Any],
+) -> dict[str, Any]:
+    """Safe offline-RL style action shield.
+
+    We do not run an RL policy live. This guard only rejects candidate BUYs that
+    are far outside the observed replay distribution or repeat a very recent
+    losing action on the same ETF.
+    """
+    cfg = strategy.get("safe_policy_shield", {}) if isinstance(strategy.get("safe_policy_shield"), dict) else {}
+    if not bool(cfg.get("enabled", True)):
+        return {"enabled": False, "passed": True, "status": "disabled"}
+    if not q:
+        return {"enabled": True, "passed": False, "status": "no_candidate"}
+
+    code = str(q.get("stockCode", "")).zfill(6)
+    min_rows = int(as_float(cfg.get("min_history_snapshots"), 20))
+    max_rows = int(as_float(cfg.get("max_history_snapshots"), 120))
+    max_abs_z_allowed = as_float(cfg.get("max_zscore_abs"), 4.0)
+    shadow_only = bool(cfg.get("shadow_only", False))
+    features = cfg.get("features")
+    if not isinstance(features, list) or not features:
+        features = ["momentum", "spread_pct", "bid_pressure_3m_pct", "vwap_distance_pct", "acceleration"]
+
+    hist_rows = _recent_history_for_code(history or [], code, max_rows)
+    zscores: dict[str, float] = {}
+    insufficient: list[str] = []
+    for feat in features:
+        cur = q.get(feat)
+        if cur is None:
+            insufficient.append(str(feat))
+            continue
+        vals = [as_float(r.get(feat)) for r in hist_rows if r.get(feat) is not None]
+        if len(vals) < min_rows:
+            insufficient.append(str(feat))
+            continue
+        mean = sum(vals) / len(vals)
+        var = sum((x - mean) ** 2 for x in vals) / max(1, len(vals) - 1)
+        sd = math.sqrt(var)
+        if sd <= 1e-12:
+            continue
+        zscores[str(feat)] = (as_float(cur) - mean) / sd
+
+    max_abs_z = max((abs(v) for v in zscores.values()), default=0.0)
+    ood_block = bool(zscores) and max_abs_z > max_abs_z_allowed
+
+    recent_loss_block = False
+    recent_losses = []
+    block_minutes = as_float(cfg.get("negative_sample_block_minutes"), 60)
+    samples = state.get("negative_action_samples")
+    if isinstance(samples, list):
+        for sample in reversed(samples[-100:]):
+            if str(sample.get("stockCode", "")).zfill(6) != code:
+                continue
+            mins = minutes_since(sample.get("timestamp"))
+            if mins is not None and mins <= block_minutes:
+                recent_loss_block = True
+                recent_losses.append({
+                    "timestamp": sample.get("timestamp"),
+                    "minutes_since": round(mins, 1),
+                    "pnl_estimate": sample.get("pnl_estimate"),
+                    "reason": sample.get("reason"),
+                })
+                break
+
+    would_pass = not ood_block and not recent_loss_block
+    return {
+        "enabled": True,
+        "passed": True if shadow_only else bool(would_pass),
+        "would_pass": bool(would_pass),
+        "shadow_only": shadow_only,
+        "status": "ok" if would_pass else ("recent_negative_sample_block" if recent_loss_block else "ood_feature_state"),
+        "stockCode": code,
+        "history_rows": len(hist_rows),
+        "min_history_snapshots": min_rows,
+        "max_abs_z": round(max_abs_z, 3),
+        "max_zscore_abs": max_abs_z_allowed,
+        "zscores": {k: round(v, 3) for k, v in zscores.items()},
+        "insufficient_features": insufficient,
+        "recent_negative_samples": recent_losses,
+    }
+
+
+def record_negative_action_sample(state: dict[str, Any], trade_date: str, order: dict[str, Any], pnl_estimate: float) -> None:
+    samples = state.get("negative_action_samples")
+    if not isinstance(samples, list):
+        samples = []
+    samples.append({
+        "timestamp": now_iso(),
+        "trade_date": trade_date,
+        "stockCode": str(order.get("stockCode", "")).zfill(6),
+        "direction": order.get("direction"),
+        "reason": order.get("reason"),
+        "pnl_estimate": round(as_float(pnl_estimate), 2),
+        "pnl_pct": order.get("pnl_pct"),
+        "cost_price": order.get("cost_price"),
+        "fill_price_estimate": order.get("price"),
+        "quantity": order.get("quantity"),
+    })
+    state["negative_action_samples"] = samples[-200:]
+
+
 def build_decision(
     cfg: dict[str, Any],
     quotes: list[dict[str, Any]],
@@ -1936,6 +2127,7 @@ def build_decision(
     pending_resp: dict[str, Any],
     state: dict[str, Any],
     market_correlation_stress: dict[str, Any] | None = None,
+    history: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     session = cn_market_session(_REPLAY_NOW)
     local_time = exchange_local_time(session)
@@ -2027,6 +2219,15 @@ def build_decision(
         "status": "available" if volume_fields_available else "unavailable_api_field",
     })
 
+    for q in quotes:
+        eq = compute_execution_quality(q, filters, risk, strategy)
+        shield = compute_safe_policy_shield(q, history or [], state, strategy)
+        q["execution_quality"] = eq
+        q["execution_quality_score"] = eq.get("score")
+        q["expected_slippage_bps"] = eq.get("expected_slippage_bps")
+        q["safe_policy_shield"] = shield
+        q["safe_policy_status"] = shield.get("status")
+
     liquid_quotes = []
     ranking_exclusions = []
     for q in quotes:
@@ -2089,6 +2290,14 @@ def build_decision(
             q["cross_etf_divergence_pct"] = 0.0
     ranked = sorted(liquid_quotes, key=lambda x: as_float(x.get("momentum"), -999), reverse=True)
     best = ranked[0] if ranked else None
+    best_execution_quality = best.get("execution_quality") if best and isinstance(best.get("execution_quality"), dict) else {
+        "enabled": True, "passed": False, "status": "no_ranked_quote"
+    }
+    add("execution_quality_filter", bool(best_execution_quality.get("passed")), best_execution_quality)
+    best_safe_policy = best.get("safe_policy_shield") if best and isinstance(best.get("safe_policy_shield"), dict) else {
+        "enabled": True, "passed": False, "status": "no_ranked_quote"
+    }
+    add("safe_policy_shield", bool(best_safe_policy.get("passed")), best_safe_policy)
     vwap_cfg = indicators_cfg.get("rolling_vwap", {}) if isinstance(indicators_cfg.get("rolling_vwap", {}), dict) else {}
     vwap_filter_enabled = bool(vwap_cfg.get("require_price_above_for_entry", True))
     if best and vwap_filter_enabled and best.get("rolling_vwap_available"):
@@ -2224,7 +2433,11 @@ def build_decision(
                 "selected": best_im.get("stockCode") if best_im else None,
                 "min_first_half_return": im_min_ret,
             })
-            if best_im is not None:
+            if best_im is not None and not bool((best_im.get("execution_quality") or {}).get("passed")):
+                reason = "blocked_execution_quality"
+            elif best_im is not None and not bool((best_im.get("safe_policy_shield") or {}).get("passed")):
+                reason = "blocked_safe_policy_shield"
+            elif best_im is not None:
                 px = round(as_float(best_im.get("askPrice1"), best_im.get("currentPrice")) * (1.0 + as_float(risk["limit_price_slippage_pct"])), 3)
                 kelly_cfg = strategy.get("kelly_sizing", {})
                 realized_pnls = state.get("realized_trade_pnls") if isinstance(state.get("realized_trade_pnls"), list) else []
@@ -2252,6 +2465,8 @@ def build_decision(
                         "first_half_hour_return": as_float(best_im.get("first_half_hour_return")),
                         "im_trade": True,
                         "im_exit_time": str(im_cfg.get("exit_time", "14:55")),
+                        "execution_quality": best_im.get("execution_quality"),
+                        "safe_policy_shield": best_im.get("safe_policy_shield"),
                         "kelly_scale": kelly_scale,
                         "baseline_available_quantity": as_float(positions.get(str(best_im["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
                         "inventory_scope": "t0_intraday_inventory_only",
@@ -2427,6 +2642,10 @@ def build_decision(
                     "atr_stop_distance_pct": best.get("atr_stop_distance_pct"),
                     "bollinger_squeeze": best.get("bollinger_squeeze"),
                     "bid_pressure_3m_pct": best.get("bid_pressure_3m_pct"),
+                    "acceleration": best.get("acceleration"),
+                    "entry_score": entry_score,
+                    "execution_quality": best.get("execution_quality"),
+                    "safe_policy_shield": best.get("safe_policy_shield"),
                     "baseline_available_quantity": as_float(positions.get(str(best["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
                     "inventory_scope": "t0_intraday_inventory_only",
                     "t0_eligible": True,
@@ -2440,6 +2659,10 @@ def build_decision(
             reason = "blocked_broad_market_declining"
         elif best and not correlation_stress_ok:
             reason = "blocked_market_correlation_stress"
+        elif best and not bool((best.get("execution_quality") or {}).get("passed")):
+            reason = "blocked_execution_quality"
+        elif best and not bool((best.get("safe_policy_shield") or {}).get("passed")):
+            reason = "blocked_safe_policy_shield"
         else:
             reason = "no_entry_signal"
 
@@ -2619,7 +2842,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             quota_status,
             quotes,
         )
-    decision = build_decision(cfg, quotes, balance, positions, pending, state, market_correlation_stress)
+    decision = build_decision(cfg, quotes, balance, positions, pending, state, market_correlation_stress, history=history)
     decision["fill_reconciliation"] = fill_reconciliation
     decision["evolution_overlay"] = cfg.get("_evolution_overlay", {"applied": False})
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))
@@ -2679,6 +2902,8 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                             quantity = int(as_float(order.get("quantity")))
                             pnl_estimate = (fill_price_estimate - cost_price) * quantity
                             add_daily_state_float(state, "today_realized_pnl", decision["trade_date"], pnl_estimate)
+                            if pnl_estimate < 0:
+                                record_negative_action_sample(state, decision["trade_date"], order, pnl_estimate)
                             # Rolling per-trade realized PnL log for fractional-Kelly sizing (capped).
                             rtp = state.get("realized_trade_pnls")
                             if not isinstance(rtp, list):

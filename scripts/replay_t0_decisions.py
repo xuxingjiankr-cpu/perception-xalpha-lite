@@ -229,6 +229,7 @@ def main() -> None:
                 FAKE_PENDING,
                 state,
                 market_correlation_stress,
+                history=history,
             )
             day["actions"][decision.get("action") or decision.get("state_machine", {}).get("action", "?")] += 1
             for c in decision.get("risk_checks", []):
