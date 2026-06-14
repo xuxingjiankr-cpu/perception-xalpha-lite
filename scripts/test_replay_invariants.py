@@ -137,11 +137,55 @@ def t6_apply_bounds_and_lock_isolation() -> None:
     tmp.unlink(missing_ok=True)
 
 
+def t7_multi_position_exit() -> None:
+    """3 held positions must ALL be evaluated and exit in one run (no starvation)."""
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))  # open session
+    ts = now.isoformat()
+    codes = [("513050", 1.092), ("513100", 2.201), ("588000", 1.744)]
+    positions = [{
+        "stockCode": c, "stockName": c, "exchange": "SH",
+        "quantity": 10000, "availableQuantity": 10000, "costPrice": cost,
+    } for c, cost in codes]
+    # current 5% below cost -> emergency_stop (unconditional) fires for all three
+    quotes = [{
+        "stockCode": c, "exchange": "SH", "name": c, "asset_class": "hk_etf",
+        "currentPrice": round(cost * 0.95, 3), "bidPrice1": round(cost * 0.949, 3),
+        "askPrice1": round(cost * 0.951, 3), "prevClose": cost, "timestamp": ts,
+        "quote_ok": True, "isSuspended": False, "momentum_available": True,
+        "momentum": -0.01, "spread_pct": 0.0008, "change_pct": -0.05,
+    } for c, cost in codes]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 600_000.0}}
+    positions_resp = {"ok": True, "data": {"positions": positions}}
+    pending_resp = {"ok": True, "data": {"orders": []}}
+
+    agent.set_replay_now(now)
+    try:
+        decision = agent.build_decision(cfg, quotes, balance, positions_resp, pending_resp, {}, None)
+    finally:
+        agent.set_replay_now(None)
+
+    orders = decision.get("orders", [])
+    sell_codes = {o.get("stockCode") for o in orders if o.get("direction") == "sell"}
+    evaluated = set(decision.get("sell_score_by_code", {}).keys())
+    check("T7 all 3 held positions evaluated for exit", evaluated >= {"513050", "513100", "588000"},
+          f"evaluated={evaluated}")
+    check("T7 all 3 produce sell orders in one run", sell_codes >= {"513050", "513100", "588000"},
+          f"sell_codes={sell_codes}")
+    check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
     t4_sell_bypasses_buy_checks()
     t6_apply_bounds_and_lock_isolation()
+    t7_multi_position_exit()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
