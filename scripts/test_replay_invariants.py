@@ -180,12 +180,29 @@ def t7_multi_position_exit() -> None:
     check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
 
 
+def t8_diebold_mariano_gate() -> None:
+    """DM-HLN test: blocks one-lucky-day overfit, passes a genuine consistent edge."""
+    import importlib
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    lucky_base = {f"d{i}": -100 for i in range(6)}
+    lucky_sel = dict(lucky_base); lucky_sel["d0"] = 200  # single lucky day
+    r_lucky = ev.diebold_mariano_hln(lucky_base, lucky_sel, alpha=0.05)
+    check("T8 one-lucky-day NOT significant", r_lucky.get("significant") is False, str(r_lucky))
+    base = {f"d{i}": v for i, v in enumerate([-100, -80, -120, -90, -110, -70, -130, -85, -95, -105, -115, -75])}
+    sel = {f"d{i}": v for i, v in enumerate([-40, -30, -55, -35, -45, -20, -60, -30, -38, -42, -50, -25])}
+    r_edge = ev.diebold_mariano_hln(base, sel, alpha=0.05)
+    check("T8 genuine consistent edge IS significant", r_edge.get("significant") is True, str(r_edge))
+    r_few = ev.diebold_mariano_hln({"d0": -100}, {"d0": -50}, alpha=0.05)
+    check("T8 single day insufficient -> not significant", r_few.get("significant") is False, str(r_few))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
     t4_sell_bypasses_buy_checks()
     t6_apply_bounds_and_lock_isolation()
     t7_multi_position_exit()
+    t8_diebold_mariano_gate()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

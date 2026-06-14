@@ -57,6 +57,73 @@ PARAM_SPACE = [
 ]
 
 
+# One-sided upper-tail Student-t critical values (P(T<=t)=1-alpha), df 1..30.
+_T_CRIT_ONE_SIDED = {
+    0.05: {1: 6.314, 2: 2.920, 3: 2.353, 4: 2.132, 5: 2.015, 6: 1.943, 7: 1.895,
+           8: 1.860, 9: 1.833, 10: 1.812, 11: 1.796, 12: 1.782, 13: 1.771, 14: 1.761,
+           15: 1.753, 16: 1.746, 17: 1.740, 18: 1.734, 19: 1.729, 20: 1.725, 21: 1.721,
+           22: 1.717, 23: 1.714, 24: 1.711, 25: 1.708, 26: 1.706, 27: 1.703, 28: 1.701,
+           29: 1.699, 30: 1.697},
+    0.10: {1: 3.078, 2: 1.886, 3: 1.638, 4: 1.533, 5: 1.476, 6: 1.440, 7: 1.415,
+           8: 1.397, 9: 1.383, 10: 1.372, 11: 1.363, 12: 1.356, 13: 1.350, 14: 1.345,
+           15: 1.341, 16: 1.337, 17: 1.333, 18: 1.330, 19: 1.328, 20: 1.325, 21: 1.323,
+           22: 1.321, 23: 1.319, 24: 1.318, 25: 1.316, 26: 1.315, 27: 1.314, 28: 1.313,
+           29: 1.311, 30: 1.310},
+}
+
+
+def _t_critical(df: int, alpha: float) -> float:
+    table = _T_CRIT_ONE_SIDED.get(alpha, _T_CRIT_ONE_SIDED[0.05])
+    if df <= 0:
+        return float("inf")
+    if df in table:
+        return table[df]
+    return 1.645 if alpha == 0.05 else 1.282  # large-df normal approximation
+
+
+def diebold_mariano_hln(
+    base_days: dict[str, Any],
+    sel_days: dict[str, Any],
+    alpha: float = 0.05,
+) -> dict[str, Any]:
+    """One-sided Diebold-Mariano test (Harvey-Leybourne-Newbold small-sample
+    correction, h=1) on the per-day PnL differential d_t = pnl_selected - pnl_baseline.
+
+    H0: candidate not better (E[d] <= 0); reject (candidate significantly better)
+    when DM* exceeds the upper-tail Student-t critical value with n-1 df.
+    Heavy tails / autocorrelation distort DM (arXiv:2605.16866, 2409.12662), so
+    this is used as a conservative ADDITIONAL gate, never the sole criterion.
+    """
+    shared = sorted(set(base_days) & set(sel_days))
+    d = [as_float(sel_days[k]) - as_float(base_days[k]) for k in shared]
+    n = len(d)
+    result = {
+        "n_days": n, "alpha": alpha, "dm_star": None, "t_critical": None,
+        "significant": False, "mean_diff": None,
+        "reason": "insufficient_days" if n < 2 else "ok",
+    }
+    if n < 2:
+        return result
+    dbar = sum(d) / n
+    gamma0 = sum((x - dbar) ** 2 for x in d) / n  # autocovariance estimator at lag 0
+    result["mean_diff"] = round(dbar, 4)
+    if gamma0 <= 0:
+        result["reason"] = "zero_variance_differential"
+        return result
+    dm = dbar / math.sqrt(gamma0 / n)
+    hln_factor = math.sqrt((n - 1) / n)  # HLN correction for h=1
+    dm_star = dm * hln_factor
+    df = n - 1
+    crit = _t_critical(df, alpha)
+    result.update({
+        "dm_star": round(dm_star, 4),
+        "t_critical": crit,
+        "df": df,
+        "significant": dm_star >= crit,
+    })
+    return result
+
+
 def deep_merge(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
     for key, val in src.items():
         if isinstance(val, dict) and isinstance(dst.get(key), dict):
@@ -575,6 +642,7 @@ def main() -> None:
     status = "diagnostic_only"
     decision_reason = "no_valid_replay"
     selected_overlay: dict[str, Any] = {}
+    dm_result: dict[str, Any] = {"reason": "no_valid_replay", "significant": False}
     if baseline and selected:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
@@ -602,6 +670,10 @@ def main() -> None:
             (as_float(base_days[d]) - as_float(sel_days[d]) for d in shared_days),
             default=0.0,
         )
+        # Diebold-Mariano (HLN-corrected) test on per-day PnL differential vs baseline.
+        require_dm = bool(si.get("require_diebold_mariano_significant", True))
+        dm_alpha = as_float(si.get("dm_one_sided_alpha"), 0.05)
+        dm_result = diebold_mariano_hln(base_days, sel_days, alpha=dm_alpha)
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
             selected_overlay = {}
@@ -634,6 +706,12 @@ def main() -> None:
             decision_reason = "selected_has_more_losing_trades_than_baseline"
         elif int(selected.get("open_positions_at_end", 0)) > int(baseline.get("open_positions_at_end", 0)):
             decision_reason = "selected_leaves_more_open_positions_than_baseline"
+        elif require_dm and not dm_result.get("significant"):
+            decision_reason = (
+                f"diebold_mariano_not_significant:"
+                f"dm*={dm_result.get('dm_star')}<crit={dm_result.get('t_critical')}"
+                f"(n={dm_result.get('n_days')},{dm_result.get('reason')})"
+            )
         else:
             status = "approved_for_paper_auto_apply"
             decision_reason = f"selected_improved_objective_by:{improvement:.2f}"
@@ -654,6 +732,8 @@ def main() -> None:
             "selection_penalty_log_coef": as_float(si.get("selection_penalty_log_coef"), 0.5),
             "max_per_day_regression_allowed": as_float(si.get("max_per_day_regression_allowed"), 0.0),
             "candidates_tested": len([r for r in rows if r.get("ok") and r.get("candidate") != "baseline_current"]),
+            "diebold_mariano": dm_result,
+            "require_diebold_mariano_significant": bool(si.get("require_diebold_mariano_significant", True)),
         },
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,

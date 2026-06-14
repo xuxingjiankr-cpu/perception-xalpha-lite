@@ -180,6 +180,8 @@
     "selection_penalty_log_coef": 0.5,
     "max_per_day_regression_allowed": 0,
     "max_day_loss_worsening_allowed": 0,
+    "require_diebold_mariano_significant": true,
+    "dm_one_sided_alpha": 0.05,
     "blackbox_optimizer": {
       "mode": "both",
       "algorithm": "bounded_diagonal_cma_es",
