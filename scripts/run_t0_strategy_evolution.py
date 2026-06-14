@@ -48,8 +48,19 @@ def flatten_overlay(obj: dict[str, Any], prefix: str = "") -> list[tuple[str, An
 
 
 def candidate_overlays() -> list[dict[str, Any]]:
-    """Predefined candidate overlays. No search over live outcomes."""
-    return [
+    """Predefined candidate overlays. No search over live outcomes.
+
+    The cs_ne_* candidates are a fixed-budget, deterministic trial inspired by
+    recent cs.NE themes:
+    - mixed categorical/continuous black-box optimization: combine discrete
+      toggles and continuous thresholds;
+    - dynamic-environment local EA: mutate only near the current policy;
+    - multi-objective evolutionary selection: keep separate precision, risk,
+      and diversity candidates instead of one opaque optimizer;
+    - CMA-ES stopping-criteria caution: small fixed budget, no repeated search
+      until more paper data arrives.
+    """
+    base = [
         {
             "name": "baseline_current",
             "description": "Current locked config.",
@@ -113,6 +124,68 @@ def candidate_overlays() -> list[dict[str, Any]]:
             },
         },
     ]
+    base.extend([
+        {
+            "name": "cs_ne_local_mutation_entry_plus",
+            "description": "Dynamic-EA style small local mutation: slightly stricter entry, same exit.",
+            "overlay": {
+                "entry_momentum_pct": 0.0017,
+                "entry_score_threshold": 56,
+                "consolidation": {"breakout_buffer_pct": 0.0012},
+                "indicators": {"bollinger_squeeze": {"breakout_buffer_pct": 0.0007}},
+            },
+        },
+        {
+            "name": "cs_ne_local_mutation_exit_plus",
+            "description": "Dynamic-EA style small local mutation: more confirmation before selling losers.",
+            "overlay": {
+                "min_hold_minutes": 15,
+                "loss_review_after_minutes": 20,
+                "loss_exit_score_threshold": 76,
+                "deceleration_exit_threshold": -0.0025,
+            },
+        },
+        {
+            "name": "cs_ne_mixed_categorical_vwap_relaxed",
+            "description": "Mixed categorical/continuous trial: relax VWAP hard gate, compensate with stronger score gate.",
+            "overlay": {
+                "entry_score_threshold": 64,
+                "entry_momentum_pct": 0.0022,
+                "indicators": {"rolling_vwap": {"require_price_above_for_entry": False}},
+                "market_correlation_stress": {"avg_abs_corr_threshold": 0.68},
+            },
+        },
+        {
+            "name": "cs_ne_quality_diversity_gold_hk",
+            "description": "Quality-diversity proxy: broader breakout criteria but lower risk budget.",
+            "overlay": {
+                "entry_score_threshold": 54,
+                "cross_etf_divergence_threshold": 0.0018,
+                "consolidation": {"max_range_pct": 0.0028},
+                "bracket": {"risk_per_trade_pct": 0.0028, "risk_per_trade_pct_chaos_day": 0.0014},
+            },
+        },
+        {
+            "name": "cs_ne_risk_first_low_budget",
+            "description": "Risk-first candidate: preserve signals but reduce position risk and widen ATR stop sanity.",
+            "overlay": {
+                "entry_score_threshold": 55,
+                "bracket": {"risk_per_trade_pct": 0.0025, "risk_per_trade_pct_chaos_day": 0.0012},
+                "indicators": {"intraday_atr": {"stop_multiplier": 1.5, "min_stop_pct": 0.0025}},
+            },
+        },
+        {
+            "name": "cs_ne_patient_profit_capture",
+            "description": "Profit-capture mutation: avoid early profit exits unless drawdown confirmation is stronger.",
+            "overlay": {
+                "profit_exit_score_threshold": 78,
+                "min_profit_exit_pct": 0.004,
+                "profit_trailing_drawdown_pct": -0.008,
+                "bracket": {"target1_r_multiple": 1.2, "target2_r_multiple": 2.2},
+            },
+        },
+    ])
+    return base
 
 
 def validate_allowed_paths(base_cfg: dict[str, Any], overlay: dict[str, Any]) -> list[str]:

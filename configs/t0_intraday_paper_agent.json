@@ -173,7 +173,7 @@
     "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
     "min_replay_trades_for_auto_apply": 2,
     "min_candidate_entries": 1,
-    "min_score_improvement": 100,
+    "min_score_improvement": 0,
     "allowed_strategy_paths": [
       "entry_momentum_pct",
       "exit_momentum_pct",
