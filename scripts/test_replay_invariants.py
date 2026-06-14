@@ -268,6 +268,23 @@ def t10_spa_reality_check() -> None:
     check("T10 tiny multi-candidate sample -> no reject (low power)", r_tiny.get("reject") is False, str(r_tiny))
 
 
+def t11_fractional_kelly_sizing() -> None:
+    """Fractional Kelly: floor on no/poor edge or few trades, full (<=1.0) only on
+    a real edge, NEVER inflates above configured risk (1.0), drawdown-aware off."""
+    cfg = {"enabled": True, "f_star_for_full_risk": 0.25, "min_trades_for_kelly": 8,
+           "floor_scale": 0.5, "drawdown_factor": 0.5}
+    r_loss = agent.compute_kelly_scale([-100, -200, -150, -300, -50, -120, -80, -90], cfg)
+    check("T11 all-losses -> floor (risk reduced)", r_loss["scale"] == 0.5, str(r_loss))
+    r_few = agent.compute_kelly_scale([-100, 50], cfg)
+    check("T11 few trades -> floor (don't trust estimate)", r_few["scale"] == 0.5, str(r_few))
+    r_strong = agent.compute_kelly_scale([200, 180, -50, 220, 190, -40, 210, 170], cfg)
+    check("T11 strong edge -> full but capped at 1.0", r_strong["scale"] == 1.0, str(r_strong))
+    r_cap = agent.compute_kelly_scale([1000] * 10, cfg)
+    check("T11 never inflates above configured (<=1.0)", r_cap["scale"] <= 1.0, str(r_cap))
+    r_mid = agent.compute_kelly_scale([120, -100, 130, -90, 110, -100, 80, -95], cfg)
+    check("T11 mild edge -> between floor and 1.0", 0.5 <= r_mid["scale"] <= 1.0 and r_mid["scale"] != 0.5, str(r_mid))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -277,6 +294,7 @@ if __name__ == "__main__":
     t8_diebold_mariano_gate()
     t9_model_confidence_set()
     t10_spa_reality_check()
+    t11_fractional_kelly_sizing()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1466,6 +1466,53 @@ def score_unified_sell(
     }
 
 
+def compute_kelly_scale(realized_pnls: list[float], kelly_cfg: dict[str, Any]) -> dict[str, Any]:
+    """Fractional-Kelly position-size multiplier in [floor, 1.0].
+
+    Decision-theoretic sizing robust to estimation error (arXiv:2107.08827,
+    1612.07194): a half/quarter Kelly fraction shrinks risk when the edge is
+    uncertain. CRITICAL SAFETY PROPERTY: this can only ever REDUCE the configured
+    risk_per_trade_pct, never inflate it on a noisy small-sample edge. With no
+    demonstrated edge (current state) it returns the floor — tiny but non-zero
+    so data keeps accumulating.
+    """
+    floor = as_float(kelly_cfg.get("floor_scale", 0.5))
+    detail: dict[str, Any] = {"scale": floor, "reason": "floor", "n_trades": len(realized_pnls)}
+    if not bool(kelly_cfg.get("enabled", True)):
+        detail.update({"scale": 1.0, "reason": "kelly_disabled"})
+        return detail
+    min_trades = int(as_float(kelly_cfg.get("min_trades_for_kelly", 8), 8))
+    n = len(realized_pnls)
+    if n < min_trades:
+        detail["reason"] = f"insufficient_trades:{n}<{min_trades}"
+        return detail
+    wins = [p for p in realized_pnls if p > 0]
+    losses = [-p for p in realized_pnls if p < 0]
+    win_rate = len(wins) / n
+    avg_win = (sum(wins) / len(wins)) if wins else 0.0
+    avg_loss = (sum(losses) / len(losses)) if losses else 0.0
+    if avg_loss <= 0:
+        # no losing trades in window -> payoff ratio unbounded; Kelly fraction = win_rate
+        f_star = win_rate
+    else:
+        b = avg_win / avg_loss
+        f_star = win_rate - (1.0 - win_rate) / b if b > 0 else -1.0
+    # Interpolate scale from floor (no/poor edge) up to 1.0 (configured risk) as the
+    # demonstrated Kelly fraction f_star approaches f_target. Half-Kelly robustness is
+    # encoded by requiring a solid edge (f_target) before allowing full configured risk,
+    # plus the hard cap at 1.0 (Kelly never inflates beyond the configured budget).
+    f_target = as_float(kelly_cfg.get("f_star_for_full_risk", 0.25))
+    progress = max(0.0, f_star) / f_target if f_target > 0 else 0.0
+    scale = floor + (1.0 - floor) * min(1.0, progress)
+    scale = max(floor, min(1.0, scale))
+    detail.update({
+        "scale": round(scale, 4), "reason": "ok", "win_rate": round(win_rate, 3),
+        "avg_win": round(avg_win, 2), "avg_loss": round(avg_loss, 2),
+        "f_star": round(f_star, 4), "f_target": f_target,
+    })
+    return detail
+
+
 def evaluate_exit_for_code(
     code: str,
     *,
@@ -2148,7 +2195,16 @@ def build_decision(
                 else:
                     is_chaos = stop_source == "orb_midpoint" and range_pct_entry > chaos_orb_pct
                     risk_pct_key = "risk_per_trade_pct_chaos_day" if is_chaos else "risk_per_trade_pct"
-                    risk_pct_val = as_float(bracket_cfg.get(risk_pct_key, 0.004)) * gap_reduce_factor
+                    # Fractional-Kelly + drawdown scaling: only ever reduces risk, never inflates.
+                    kelly_cfg = strategy.get("kelly_sizing", {})
+                    realized_pnls = state.get("realized_trade_pnls") if isinstance(state.get("realized_trade_pnls"), list) else []
+                    kelly_detail = compute_kelly_scale(realized_pnls, kelly_cfg)
+                    kelly_scale = as_float(kelly_detail.get("scale"), 1.0)
+                    dd_factor = 1.0
+                    today_pnl = daily_state_float_bucket(state, "today_realized_pnl", trade_date)
+                    if bool(kelly_cfg.get("enabled", True)) and today_pnl < 0:
+                        dd_factor = as_float(kelly_cfg.get("drawdown_factor", 0.5))
+                    risk_pct_val = as_float(bracket_cfg.get(risk_pct_key, 0.004)) * gap_reduce_factor * kelly_scale * dd_factor
                     risk_budget = total_assets * risk_pct_val
                     qty = round_lot(min(
                         risk_budget / R_val,
@@ -2172,6 +2228,9 @@ def build_decision(
                         "atr_pct": best.get("atr_pct") if best else None,
                         "atr_stop_distance_pct": atr_stop_distance_pct if atr_available else None,
                         "chaos_day": is_chaos,
+                        "kelly_scale": kelly_scale,
+                        "kelly_detail": kelly_detail,
+                        "drawdown_factor": dd_factor,
                     }
             else:
                 target_value = min(
@@ -2449,6 +2508,12 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                             quantity = int(as_float(order.get("quantity")))
                             pnl_estimate = (fill_price_estimate - cost_price) * quantity
                             add_daily_state_float(state, "today_realized_pnl", decision["trade_date"], pnl_estimate)
+                            # Rolling per-trade realized PnL log for fractional-Kelly sizing (capped).
+                            rtp = state.get("realized_trade_pnls")
+                            if not isinstance(rtp, list):
+                                rtp = []
+                            rtp.append(round(pnl_estimate, 2))
+                            state["realized_trade_pnls"] = rtp[-100:]
                             sell_code = str(order.get("stockCode", "")).zfill(6)
                             if order.get("reason") == "bracket_t1_partial_exit":
                                 inv_node = t0_inventory_for_code(state, decision["trade_date"], sell_code)

@@ -106,6 +106,13 @@
     },
     "skip_dates": [],
     "overnight_gap_guard_pct": 0.03,
+    "kelly_sizing": {
+      "enabled": true,
+      "f_star_for_full_risk": 0.25,
+      "min_trades_for_kelly": 8,
+      "floor_scale": 0.5,
+      "drawdown_factor": 0.5
+    },
     "target_holdings": 1,
     "cash_reserve_pct": 0.85,
     "max_position_pct": 0.15,
