@@ -128,6 +128,11 @@ def record_post_submit(state: dict[str, Any], cfg: dict[str, Any], decision: dic
             inv_node.setdefault("target2_price", bm.get("target2_price"))
             inv_node.setdefault("t1_filled", False)
             inv_node.setdefault("stop_moved_to_breakeven", False)
+        if order.get("im_trade"):
+            bcode = str(order.get("stockCode", "")).zfill(6)
+            inv_node = agent.t0_inventory_for_code(state, trade_date, bcode)
+            inv_node["im_trade"] = True
+            agent.increment_daily_state(state, "intraday_momentum_by_date", trade_date)
         agent.increment_daily_state(state, "entries_by_date", trade_date)
     elif order.get("direction") == "sell":
         agent.record_t0_sell_submission(state, trade_date, order, fake_submit)

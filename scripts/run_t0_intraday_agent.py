@@ -82,6 +82,16 @@ SELL_BYPASS_CHECKS = {
     "no_pending_t0_orders",
 }
 
+# Normal-momentum entry gates that an intraday-momentum BUY bypasses (it has its
+# own first-half-hour-return signal). Risk-off guards (broad market, correlation
+# stress, skip date) and budget/limit/data/session gates are deliberately NOT here.
+IM_BUY_BYPASS_CHECKS = {
+    "no_new_entry_afternoon_cutoff",
+    "entry_score_gate",
+    "rolling_vwap_entry_filter",
+    "reentry_cooldown",
+}
+
 DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS = {
     "entry_momentum_pct",
     "exit_momentum_pct",
@@ -866,6 +876,68 @@ def compute_market_correlation_stress(
     }
 
 
+def compute_first_half_hour_return(hist: list[dict[str, Any]], current_quote: dict[str, Any], im_cfg: dict[str, Any]) -> float | None:
+    """Market-intraday-momentum signal (Gao-Han-Li-Zhou 2018): first-half-hour
+    return from the previous close, r = price(~10:00) / prevClose - 1. Returns
+    None if today's pre-10:00 snapshot or prevClose is unavailable. Data-self-
+    sufficient (own price only)."""
+    if not im_cfg.get("enabled"):
+        return None
+    prev_close = as_float(current_quote.get("prevClose"))
+    if prev_close <= 0:
+        return None
+    end_hhmm = str(im_cfg.get("first_half_hour_end", "10:00"))
+    try:
+        eh, em = (int(x) for x in end_hhmm.split(":"))
+    except Exception:
+        eh, em = 10, 0
+    cutoff_minute = eh * 60 + em
+    today = current_dt().astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
+    candidates: list[tuple[int, float]] = []
+    for r in hist:
+        ts = parse_iso_dt(r.get("timestamp"))
+        if ts is None:
+            continue
+        ts_sh = ts.astimezone(ZoneInfo("Asia/Shanghai"))
+        if ts_sh.strftime("%Y-%m-%d") != today:
+            continue
+        minute = ts_sh.hour * 60 + ts_sh.minute
+        if minute <= cutoff_minute:
+            candidates.append((minute, as_float(r.get("currentPrice"))))
+    if not candidates:
+        return None
+    candidates.sort()
+    price_first = candidates[-1][1]  # snapshot closest to (and at/before) 10:00
+    if price_first <= 0:
+        return None
+    return round(price_first / prev_close - 1.0, 5)
+
+
+def _hhmm_to_minutes(value: str, default: int) -> int:
+    try:
+        h, m = (int(x) for x in str(value).split(":"))
+        return h * 60 + m
+    except Exception:
+        return default
+
+
+def im_in_entry_window(local_time: datetime, im_cfg: dict[str, Any]) -> bool:
+    """True inside the intraday-momentum entry window [entry_time, entry_time+window_minutes)."""
+    if not im_cfg.get("enabled"):
+        return False
+    start = _hhmm_to_minutes(im_cfg.get("entry_time", "14:30"), 14 * 60 + 30)
+    width = int(as_float(im_cfg.get("entry_window_minutes", 10), 10))
+    now_m = local_time.hour * 60 + local_time.minute
+    return start <= now_m < start + width
+
+
+def im_force_exit_due(local_time: datetime, im_cfg: dict[str, Any]) -> bool:
+    """True at/after the intraday-momentum exit time (IM is an intraday-only bet)."""
+    exit_m = _hhmm_to_minutes(im_cfg.get("exit_time", "14:55"), 14 * 60 + 55)
+    now_m = local_time.hour * 60 + local_time.minute
+    return now_m >= exit_m
+
+
 def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[str, Any]], lookback_minutes: int, strategy_cfg: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     strategy_cfg = strategy_cfg or {}
     if "window_snapshots" in strategy_cfg and "consolidation" not in strategy_cfg:
@@ -906,6 +978,7 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
                 acceleration = mom_5m_t - mom_5m_prev
         q2 = dict(q)
         q2["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
+        q2["first_half_hour_return"] = compute_first_half_hour_return(hist, q, strategy_cfg.get("intraday_momentum", {}) if isinstance(strategy_cfg.get("intraday_momentum", {}), dict) else {})
         vwap_result = compute_rolling_vwap(hist, q, indicators_cfg.get("rolling_vwap", {}))
         atr_result = compute_atr_proxy(hist, q, indicators_cfg.get("intraday_atr", {}))
         bollinger_result = compute_bollinger_squeeze(hist, q, indicators_cfg.get("bollinger_squeeze", {}))
@@ -1580,12 +1653,18 @@ def evaluate_exit_for_code(
     near_close_comp = as_float(sell_score_result.get("near_close_component"), 0.0)
     score_pass = sell_score_val >= sell_threshold and (sell_score_val - near_close_comp) > 0
     min_hold_passed = holding_minutes is None or holding_minutes >= min_hold_minutes
+    im_cfg = strategy.get("intraday_momentum", {}) if isinstance(strategy.get("intraday_momentum", {}), dict) else {}
+    is_im_position = bool(node.get("im_trade"))
     exit_reason = None
     unconditional_exit = False
     if current <= 0:
         exit_reason = None  # 行情坏点(价格为0/缺失)时不卖
     elif kill_switch_active:
         exit_reason = "kill_switch_liquidation"
+        unconditional_exit = True
+    elif is_im_position and im_force_exit_due(local_time, im_cfg):
+        # intraday-momentum is an intraday-only bet -> force exit by exit_time, never carry overnight
+        exit_reason = "intraday_momentum_eod_exit"
         unconditional_exit = True
     elif cost_price <= 0:
         exit_reason = "unrecognized_position_state_liquidation"
@@ -2114,6 +2193,70 @@ def build_decision(
             action = "hold"
             reason = "carry_allowed_sell_score_not_met"
     else:
+        # --- Intraday-momentum last-half-hour entry (Gao-Han-Li-Zhou 2018) ---
+        # Faithful: trades the last half-hour by the first-half-hour return sign.
+        # Long-only, at most once/day, reserved path that bypasses the 14:00 cutoff,
+        # HK ETFs preferred (concurrent-hours, clean signal). Forced out by exit_time.
+        im_cfg = strategy.get("intraday_momentum", {}) if isinstance(strategy.get("intraday_momentum", {}), dict) else {}
+        im_done = bool(daily_state_bucket(state, "intraday_momentum_by_date", trade_date))
+        im_window = im_in_entry_window(local_time, im_cfg)
+        im_reserved_runs = int(as_float(im_cfg.get("reserved_api_runs", 6), 6))
+        im_min_ret = as_float(im_cfg.get("min_first_half_return", 0.001))
+        if bool(im_cfg.get("enabled")) and im_window and not im_done:
+            hk_pref = bool(im_cfg.get("hk_etf_preferred", True))
+            im_pool = []
+            for q in liquid_quotes:
+                fhr = q.get("first_half_hour_return")
+                if fhr is None or as_float(fhr) < im_min_ret:
+                    continue
+                qcode = str(q.get("stockCode", "")).zfill(6)
+                existing_qty = as_float(positions.get(qcode, {}).get("quantity"), 0.0)
+                if existing_qty > 0:  # never mingle IM with an existing position
+                    continue
+                im_pool.append(q)
+            im_pool.sort(key=lambda x: (
+                0 if (hk_pref and x.get("asset_class") == "hk_etf") else 1,
+                -as_float(x.get("first_half_hour_return")),
+            ))
+            best_im = im_pool[0] if im_pool else None
+            add("intraday_momentum_window", True, {
+                "in_window": True, "candidates": len(im_pool),
+                "selected": best_im.get("stockCode") if best_im else None,
+                "min_first_half_return": im_min_ret,
+            })
+            if best_im is not None:
+                px = round(as_float(best_im.get("askPrice1"), best_im.get("currentPrice")) * (1.0 + as_float(risk["limit_price_slippage_pct"])), 3)
+                kelly_cfg = strategy.get("kelly_sizing", {})
+                realized_pnls = state.get("realized_trade_pnls") if isinstance(state.get("realized_trade_pnls"), list) else []
+                kelly_scale = as_float(compute_kelly_scale(realized_pnls, kelly_cfg).get("scale"), 1.0)
+                im_position_pct = as_float(im_cfg.get("position_pct", 0.05))
+                target_value = min(
+                    total_assets * im_position_pct * kelly_scale,
+                    total_assets * as_float(risk["max_single_order_pct"]),
+                    available_cash * 0.95,
+                )
+                qty = round_lot(target_value / px, lot_size) if px > 0 else 0
+                if qty >= int(risk["min_order_quantity"]) and px > 0:
+                    action = "buy"
+                    reason = "entry_intraday_momentum"
+                    order = {
+                        "direction": "buy",
+                        "stockCode": best_im["stockCode"],
+                        "exchange": best_im["exchange"],
+                        "name": best_im["name"],
+                        "quantity": qty,
+                        "orderType": risk["order_type"],
+                        "price": round(px, 3),
+                        "reason": reason,
+                        "signal_source": "intraday_momentum",
+                        "first_half_hour_return": as_float(best_im.get("first_half_hour_return")),
+                        "im_trade": True,
+                        "im_exit_time": str(im_cfg.get("exit_time", "14:55")),
+                        "kelly_scale": kelly_scale,
+                        "baseline_available_quantity": as_float(positions.get(str(best_im["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
+                        "inventory_scope": "t0_intraday_inventory_only",
+                        "t0_eligible": True,
+                    }
         orb = get_orb(state, trade_date, best.get("stockCode") if best else None)
         best_price = as_float(best.get("currentPrice")) if best else 0.0
         orb_breakout = bool(
@@ -2167,7 +2310,9 @@ def build_decision(
                 gap_reduce_factor = 0.5
             gap_detail = {"overnight_gap_guard_pct": gap_guard_pct, "best_change_abs": best_change_abs, "gap_reduce_factor": gap_reduce_factor}
         current_entry_checks_passed = all(c.get("passed") for c in checks)
-        if best and open_quiet_passed and no_new_entry_after_cutoff and current_entry_checks_passed and not today_skipped and entry_score_passed:
+        if order is not None:
+            pass  # intraday-momentum order already built above; skip normal entry chain
+        elif best and open_quiet_passed and no_new_entry_after_cutoff and current_entry_checks_passed and not today_skipped and entry_score_passed:
             px = round(as_float(best.get("askPrice1"), best.get("currentPrice")) * (1.0 + as_float(risk["limit_price_slippage_pct"])), 3)
             bracket_meta: dict[str, Any] | None = None
             bracket_skip_reason: str | None = None
@@ -2308,6 +2453,8 @@ def build_decision(
     else:
         add("order_built", False, reason)
 
+    is_im_buy = bool(orders_list) and len(orders_list) == 1 and orders_list[0].get("im_trade") and orders_list[0].get("direction") == "buy"
+
     def check_applies(c: dict[str, Any]) -> bool:
         if is_sell_batch:
             name = c.get("name")
@@ -2316,6 +2463,13 @@ def build_decision(
             # 行情陈旧时: 整批均为无条件出场才放行(已在上游过滤掉非无条件单)
             if name == "quote_freshness" and all_unconditional:
                 return True
+        # Intraday-momentum buy has its OWN signal (first-half-hour return), so it
+        # bypasses the normal-momentum entry gates and the afternoon cutoff (by design).
+        # Genuine risk-off guards still apply: broad_market_not_declining,
+        # market_correlation_stress, skip_date, daily limits, session, kill switch,
+        # data integrity, quote_freshness, no_pending, liquidity, no-mingling.
+        if is_im_buy and c.get("name") in IM_BUY_BYPASS_CHECKS:
+            return True
         return bool(c.get("passed"))
 
     approved = all(check_applies(c) for c in checks) and bool(orders_list)
@@ -2509,6 +2663,13 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                                 inv_node.setdefault("target2_price", bm.get("target2_price"))
                                 inv_node.setdefault("t1_filled", False)
                                 inv_node.setdefault("stop_moved_to_breakeven", False)
+                            if order.get("im_trade"):
+                                # tag inventory so the held branch force-exits it by exit_time,
+                                # and mark IM done so it fires at most once per day
+                                bcode = str(order.get("stockCode", "")).zfill(6)
+                                inv_node = t0_inventory_for_code(state, decision["trade_date"], bcode)
+                                inv_node["im_trade"] = True
+                                increment_daily_state(state, "intraday_momentum_by_date", decision["trade_date"])
                             increment_daily_state(state, "entries_by_date", decision["trade_date"])
                         elif order.get("direction") == "sell":
                             record_t0_sell_submission(state, decision["trade_date"], order, submit)

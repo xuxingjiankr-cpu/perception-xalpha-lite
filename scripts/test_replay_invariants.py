@@ -296,6 +296,65 @@ def t11_fractional_kelly_sizing() -> None:
           agent.compute_kelly_scale([-100] * 8, shrunk)["scale"] == 0.5)
 
 
+def t12_intraday_momentum() -> None:
+    """IM: fires a long in the 14:30 window on positive first-half-hour return
+    (HK preferred, bypassing the 14:00 cutoff), and force-exits an IM position
+    at/after exit_time."""
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    SH = ZoneInfo("Asia/Shanghai")
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+
+    # --- Entry: flat, 14:30 window, two eligible (HK + cross-border), HK preferred ---
+    now = datetime(2026, 6, 15, 14, 32, tzinfo=SH)
+    ts = now.isoformat()
+    def q(code, cls, fhr):
+        return {"stockCode": code, "exchange": "SH", "name": code, "asset_class": cls,
+                "currentPrice": 2.0, "bidPrice1": 1.999, "askPrice1": 2.001, "prevClose": 1.98,
+                "timestamp": ts, "quote_ok": True, "isSuspended": False, "momentum_available": True,
+                "momentum": 0.002, "spread_pct": 0.0008, "change_pct": 0.01,
+                "first_half_hour_return": fhr}
+    quotes = [q("513100", "cross_border_etf", 0.009), q("513050", "hk_etf", 0.004)]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    pos_resp = {"ok": True, "data": {"positions": []}}
+    pend = {"ok": True, "data": {"orders": []}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, quotes, balance, pos_resp, pend, {}, None)
+    finally:
+        agent.set_replay_now(None)
+    orders = dec.get("orders", [])
+    im = [o for o in orders if o.get("im_trade")]
+    check("T12 IM fires a buy in 14:30 window", len(im) == 1 and im[0]["direction"] == "buy", str(orders))
+    check("T12 IM prefers HK ETF (513050) over cross-border", im and im[0]["stockCode"] == "513050",
+          str(im[0]["stockCode"]) if im else "none")
+    check("T12 IM approved despite 14:00 cutoff", bool(dec.get("approved_for_submit")), dec.get("state_machine"))
+
+    # --- Force-exit: hold an IM-tagged position at 14:56 -> intraday_momentum_eod_exit ---
+    now2 = datetime(2026, 6, 15, 14, 56, tzinfo=SH)
+    ts2 = now2.isoformat()
+    code = "513050"
+    state = {"t0_inventory_by_date": {"2026-06-15": {code: {
+        "im_trade": True, "buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+        "baseline_available_quantity": 0.0, "entry_price": 2.0, "first_buy_at": ts,
+    }}}}
+    positions = [{"stockCode": code, "stockName": code, "exchange": "SH",
+                  "quantity": 10000, "availableQuantity": 10000, "costPrice": 2.0}]
+    quotes2 = [q(code, "hk_etf", 0.004)]
+    quotes2[0]["currentPrice"] = 2.01  # in profit; would normally carry, but IM must force-exit
+    quotes2[0]["timestamp"] = ts2
+    agent.set_replay_now(now2)
+    try:
+        dec2 = agent.build_decision(cfg, quotes2, balance, {"ok": True, "data": {"positions": positions}}, pend, state, None)
+    finally:
+        agent.set_replay_now(None)
+    sells = [o for o in dec2.get("orders", []) if o.get("direction") == "sell"]
+    check("T12 IM position force-exits at exit_time",
+          len(sells) == 1 and sells[0].get("reason") == "intraday_momentum_eod_exit", str(dec2.get("orders")))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -306,6 +365,7 @@ if __name__ == "__main__":
     t9_model_confidence_set()
     t10_spa_reality_check()
     t11_fractional_kelly_sizing()
+    t12_intraday_momentum()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

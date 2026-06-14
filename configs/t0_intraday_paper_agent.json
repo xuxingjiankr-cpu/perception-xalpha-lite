@@ -114,6 +114,17 @@
       "floor_scale": 0.5,
       "drawdown_factor": 0.5
     },
+    "intraday_momentum": {
+      "enabled": true,
+      "first_half_hour_end": "10:00",
+      "entry_time": "14:30",
+      "entry_window_minutes": 10,
+      "exit_time": "14:55",
+      "min_first_half_return": 0.001,
+      "position_pct": 0.05,
+      "hk_etf_preferred": true,
+      "reserved_api_runs": 6
+    },
     "target_holdings": 1,
     "cash_reserve_pct": 0.85,
     "max_position_pct": 0.15,
