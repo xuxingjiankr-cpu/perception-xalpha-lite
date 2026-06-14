@@ -49,6 +49,12 @@ from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 
+# Asset classes that are managed for EXIT only and must never be ranked for a
+# new T0 BUY. bond_etf: intraday range < round-trip cost. exit_only_t1: a T+1
+# broad-based holding parked in the T0 universe purely so the unified sell_score
+# engine can liquidate it (buying it intraday would be unsellable same day).
+ENTRY_EXCLUDED_ASSET_CLASSES = {"bond_etf", "exit_only_t1"}
+
 # Entry-oriented + BUY-budget/data checks that must NEVER block a SELL exit
 # (stop-loss / profit / liquidation). Otherwise a position is forced to carry
 # overnight exactly when risk controls fire. quote_freshness is handled
@@ -709,7 +715,7 @@ def compute_market_correlation_stress(
 
     rows = [
         r for r in (history + quotes)
-        if r.get("quote_ok") and r.get("asset_class") != "bond_etf" and as_float(r.get("currentPrice"), 0.0) > 0
+        if r.get("quote_ok") and r.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES and as_float(r.get("currentPrice"), 0.0) > 0
     ]
     snapshots: dict[str, dict[str, float]] = {}
     snapshot_times: dict[str, datetime] = {}
@@ -808,7 +814,7 @@ def compute_market_correlation_stress(
 
     avg_abs_corr = sum(abs(v) for v in pair_corrs) / len(pair_corrs)
     max_abs_corr = max(abs(v) for v in pair_corrs)
-    non_bond_quotes = [q for q in quotes if q.get("quote_ok") and q.get("asset_class") != "bond_etf"]
+    non_bond_quotes = [q for q in quotes if q.get("quote_ok") and q.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES]
     positive_count = sum(1 for q in non_bond_quotes if as_float(q.get("change_pct")) > -0.005)
     block_new_buy = avg_abs_corr > corr_threshold and positive_count <= breadth_max
     return {
@@ -1720,11 +1726,11 @@ def build_decision(
         volume_ok = True
         if volume_fields_available:
             volume_ok = as_float(q.get("volume"), 0) >= as_float(filters.get("min_volume"), 0) and as_float(q.get("amount"), 0) >= as_float(filters.get("min_amount"), 0)
-        if q.get("asset_class") == "bond_etf":
+        if q.get("asset_class") in ENTRY_EXCLUDED_ASSET_CLASSES:
             ranking_exclusions.append({
                 "stockCode": q.get("stockCode"),
                 "asset_class": q.get("asset_class"),
-                "excluded_reason": "bond_etf_t0_range_less_than_roundtrip_cost",
+                "excluded_reason": "exit_only_or_bond_not_eligible_for_t0_entry",
             })
             continue
         if q.get("quote_ok") and not q.get("isSuspended") and spread_ok and volume_ok and q.get("momentum_available"):
@@ -1736,7 +1742,7 @@ def build_decision(
         "volume_filter_status": "available" if volume_fields_available else "unavailable_api_field",
         "ranking_exclusions": ranking_exclusions,
     })
-    non_bond_quotes = [q for q in quotes if q.get("asset_class") != "bond_etf"]
+    non_bond_quotes = [q for q in quotes if q.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES]
     positive_count = sum(1 for q in non_bond_quotes if as_float(q.get("change_pct")) > -0.005)
     broad_market_not_declining = positive_count >= 1
     add("broad_market_not_declining", broad_market_not_declining, {

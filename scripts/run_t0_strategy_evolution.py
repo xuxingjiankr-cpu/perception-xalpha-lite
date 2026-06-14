@@ -13,6 +13,7 @@ import argparse
 import copy
 import csv
 import json
+import math
 import random
 import subprocess
 import sys
@@ -313,8 +314,9 @@ def summarize_candidate(name: str, overlay: dict[str, Any], summary: dict[str, A
     losing = sum(1 for x in pnl_values if x < 0)
     per_day = summary.get("per_day", {}) or {}
     entries = sum(int(as_float(d.get("entries"))) for d in per_day.values() if isinstance(d, dict))
-    max_day_loss = min([as_float(d.get("pnl")) for d in per_day.values() if isinstance(d, dict)] or [0.0])
-    distinct_days = len([k for k in per_day if isinstance(per_day.get(k), dict)])
+    per_day_pnl = {k: round(as_float(v.get("pnl")), 2) for k, v in per_day.items() if isinstance(v, dict)}
+    max_day_loss = min(list(per_day_pnl.values()) or [0.0])
+    distinct_days = len(per_day_pnl)
     total_pnl = as_float(summary.get("total_pnl"))
     open_count = len(summary.get("open_positions_at_end", {}) or {})
     win_rate = winning / len(pnl_values) if pnl_values else 0.0
@@ -343,6 +345,7 @@ def summarize_candidate(name: str, overlay: dict[str, Any], summary: dict[str, A
         "max_day_loss": round(max_day_loss, 2),
         "open_positions_at_end": open_count,
         "distinct_days": distinct_days,
+        "per_day_pnl": per_day_pnl,
         "objective_score": round(score, 2),
         "replay_log_tail": log[-2000:],
     }
@@ -581,6 +584,24 @@ def main() -> None:
         improvement = as_float(selected.get("objective_score")) - as_float(baseline.get("objective_score"))
         max_day_loss_worsening = as_float(baseline.get("max_day_loss")) - as_float(selected.get("max_day_loss"))
         selected_overlay = selected.get("overlay", {}) if isinstance(selected.get("overlay"), dict) else {}
+
+        # Small-sample selection-robustness guards (multiple-testing + per-day dominance).
+        # When the best-of-N candidate is chosen, its apparent edge is inflated by
+        # selection; require it to clear a multiplicity-scaled bar (deflated-improvement
+        # idea) AND to not regress baseline on any single shared day (Majority/walk-
+        # forward idea). These only make the gate stricter; they never auto-apply more.
+        n_tested = len([r for r in rows_ok if r["candidate"] != "baseline_current"])
+        selection_penalty_coef = as_float(si.get("selection_penalty_log_coef"), 0.5)
+        multiplicity_factor = 1.0 + selection_penalty_coef * math.log(max(1, n_tested))
+        effective_min_improvement = min_improvement * multiplicity_factor
+        max_per_day_regression_allowed = as_float(si.get("max_per_day_regression_allowed"), 0.0)
+        base_days = baseline.get("per_day_pnl", {}) if isinstance(baseline.get("per_day_pnl"), dict) else {}
+        sel_days = selected.get("per_day_pnl", {}) if isinstance(selected.get("per_day_pnl"), dict) else {}
+        shared_days = sorted(set(base_days) & set(sel_days))
+        worst_day_regression = max(
+            (as_float(base_days[d]) - as_float(sel_days[d]) for d in shared_days),
+            default=0.0,
+        )
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
             selected_overlay = {}
@@ -592,6 +613,16 @@ def main() -> None:
             decision_reason = f"sample_distinct_days_below_min:{selected.get('distinct_days')}<{min_distinct_days}"
         elif improvement < min_improvement:
             decision_reason = f"score_improvement_below_min:{improvement:.2f}<{min_improvement:.2f}"
+        elif improvement < effective_min_improvement:
+            decision_reason = (
+                f"improvement_below_multiplicity_adjusted_bar:"
+                f"{improvement:.2f}<{effective_min_improvement:.2f}(N={n_tested})"
+            )
+        elif worst_day_regression > max_per_day_regression_allowed:
+            decision_reason = (
+                f"selected_regresses_a_single_day_vs_baseline:"
+                f"{worst_day_regression:.2f}>{max_per_day_regression_allowed:.2f}"
+            )
         elif as_float(selected.get("total_pnl")) < as_float(baseline.get("total_pnl")):
             decision_reason = "selected_total_pnl_worse_than_baseline"
         elif max_day_loss_worsening > max_day_loss_worsening_allowed:
@@ -620,6 +651,9 @@ def main() -> None:
         "selected_candidate_metrics": selected,
         "auto_apply_risk_limits": {
             "max_day_loss_worsening_allowed": as_float(si.get("max_day_loss_worsening_allowed"), 0.0),
+            "selection_penalty_log_coef": as_float(si.get("selection_penalty_log_coef"), 0.5),
+            "max_per_day_regression_allowed": as_float(si.get("max_per_day_regression_allowed"), 0.0),
+            "candidates_tested": len([r for r in rows if r.get("ok") and r.get("candidate") != "baseline_current"]),
         },
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,

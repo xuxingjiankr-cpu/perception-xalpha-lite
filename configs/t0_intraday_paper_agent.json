@@ -14,7 +14,8 @@
     {"stockCode": "513100", "exchange": "SH", "name": "纳指ETF", "asset_class": "cross_border_etf"},
     {"stockCode": "513180", "exchange": "SH", "name": "恒生科技ETF", "asset_class": "hk_etf"},
     {"stockCode": "513050", "exchange": "SH", "name": "中概互联网ETF", "asset_class": "hk_etf"},
-    {"stockCode": "513330", "exchange": "SH", "name": "恒生互联网ETF", "asset_class": "hk_etf"}
+    {"stockCode": "513330", "exchange": "SH", "name": "恒生互联网ETF", "asset_class": "hk_etf"},
+    {"stockCode": "588000", "exchange": "SH", "name": "科创50ETF", "asset_class": "exit_only_t1"}
   ],
   "strategy": {
     "type": "t0_snapshot_momentum_spread_filter",
@@ -176,6 +177,8 @@
     "min_candidate_entries": 1,
     "min_distinct_days": 10,
     "min_score_improvement": 300,
+    "selection_penalty_log_coef": 0.5,
+    "max_per_day_regression_allowed": 0,
     "max_day_loss_worsening_allowed": 0,
     "blackbox_optimizer": {
       "mode": "both",
