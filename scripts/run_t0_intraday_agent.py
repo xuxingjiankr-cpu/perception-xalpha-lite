@@ -495,6 +495,149 @@ def compute_bollinger_squeeze(hist: list[dict[str, Any]], current_quote: dict[st
     }
 
 
+def compute_market_correlation_stress(
+    history: list[dict[str, Any]],
+    quotes: list[dict[str, Any]],
+    cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Diagnose high cross-ETF correlation regimes from local quote snapshots.
+
+    This is a defensive market-state filter, not an alpha signal. It only uses
+    already-collected local quote rows and current quotes. Data gaps, bad quotes,
+    and insufficient samples return an unavailable diagnostic rather than a block.
+    """
+    if not cfg.get("enabled", True):
+        return {"available": False, "status": "disabled", "block_new_buy": False}
+
+    window = int(as_float(cfg.get("window_snapshots", 30), 30))
+    min_assets = int(as_float(cfg.get("min_assets", 4), 4))
+    min_snapshots = int(as_float(cfg.get("min_snapshots", max(8, min(window, 10))), max(8, min(window, 10))))
+    corr_threshold = as_float(cfg.get("avg_abs_corr_threshold", 0.75), 0.75)
+    breadth_max = int(as_float(cfg.get("breadth_positive_count_max", 1), 1))
+    max_gap_seconds = as_float(cfg.get("max_snapshot_gap_seconds", 480), 480)
+
+    rows = [
+        r for r in (history + quotes)
+        if r.get("quote_ok") and r.get("asset_class") != "bond_etf" and as_float(r.get("currentPrice"), 0.0) > 0
+    ]
+    snapshots: dict[str, dict[str, float]] = {}
+    snapshot_times: dict[str, datetime] = {}
+    for row in rows:
+        dt = parse_iso_dt(row.get("timestamp"))
+        if dt is None:
+            continue
+        # The agent queries ETFs sequentially; grouping to the minute captures a
+        # single scan without requiring identical second-level timestamps.
+        key = dt.strftime("%Y-%m-%dT%H:%M")
+        code = str(row.get("stockCode", "")).zfill(6)
+        if not code:
+            continue
+        snapshots.setdefault(key, {})[code] = as_float(row.get("currentPrice"), 0.0)
+        snapshot_times[key] = dt
+
+    ordered_keys = sorted(snapshots, key=lambda k: snapshot_times[k])
+    if len(ordered_keys) < min_snapshots:
+        return {
+            "available": False,
+            "status": "insufficient_snapshots",
+            "block_new_buy": False,
+            "snapshots": len(ordered_keys),
+            "min_snapshots": min_snapshots,
+        }
+
+    recent_keys = ordered_keys[-window:]
+    contiguous_keys: list[str] = []
+    prev_dt: datetime | None = None
+    for key in recent_keys:
+        dt = snapshot_times[key]
+        if prev_dt is not None and (dt - prev_dt).total_seconds() > max_gap_seconds:
+            contiguous_keys = []
+        contiguous_keys.append(key)
+        prev_dt = dt
+    if len(contiguous_keys) < min_snapshots:
+        return {
+            "available": False,
+            "status": "insufficient_contiguous_snapshots",
+            "block_new_buy": False,
+            "snapshots": len(contiguous_keys),
+            "min_snapshots": min_snapshots,
+        }
+
+    common_codes = set(snapshots[contiguous_keys[0]].keys())
+    for key in contiguous_keys[1:]:
+        common_codes &= set(snapshots[key].keys())
+    common_codes = {code for code in common_codes if all(as_float(snapshots[key].get(code), 0.0) > 0 for key in contiguous_keys)}
+    if len(common_codes) < min_assets:
+        return {
+            "available": False,
+            "status": "insufficient_assets",
+            "block_new_buy": False,
+            "asset_count": len(common_codes),
+            "min_assets": min_assets,
+        }
+
+    returns_by_code: dict[str, list[float]] = {}
+    for code in sorted(common_codes):
+        prices = [as_float(snapshots[key].get(code), 0.0) for key in contiguous_keys]
+        returns = [cur / prev - 1.0 for prev, cur in zip(prices, prices[1:]) if prev > 0 and cur > 0]
+        if len(returns) >= min_snapshots - 1:
+            returns_by_code[code] = returns
+    if len(returns_by_code) < min_assets:
+        return {
+            "available": False,
+            "status": "insufficient_return_series",
+            "block_new_buy": False,
+            "asset_count": len(returns_by_code),
+            "min_assets": min_assets,
+        }
+
+    def corr(xs: list[float], ys: list[float]) -> float | None:
+        n = min(len(xs), len(ys))
+        if n < 3:
+            return None
+        x = xs[-n:]
+        y = ys[-n:]
+        mx = sum(x) / n
+        my = sum(y) / n
+        vx = sum((v - mx) ** 2 for v in x)
+        vy = sum((v - my) ** 2 for v in y)
+        if vx <= 0 or vy <= 0:
+            return None
+        return sum((a - mx) * (b - my) for a, b in zip(x, y)) / math.sqrt(vx * vy)
+
+    pair_corrs: list[float] = []
+    codes = sorted(returns_by_code)
+    for i, code_a in enumerate(codes):
+        for code_b in codes[i + 1:]:
+            val = corr(returns_by_code[code_a], returns_by_code[code_b])
+            if val is not None:
+                pair_corrs.append(val)
+    if not pair_corrs:
+        return {"available": False, "status": "no_valid_pair_correlations", "block_new_buy": False}
+
+    avg_abs_corr = sum(abs(v) for v in pair_corrs) / len(pair_corrs)
+    max_abs_corr = max(abs(v) for v in pair_corrs)
+    non_bond_quotes = [q for q in quotes if q.get("quote_ok") and q.get("asset_class") != "bond_etf"]
+    positive_count = sum(1 for q in non_bond_quotes if as_float(q.get("change_pct")) > -0.005)
+    block_new_buy = avg_abs_corr > corr_threshold and positive_count <= breadth_max
+    return {
+        "available": True,
+        "status": "available",
+        "block_new_buy": bool(block_new_buy),
+        "reason": "correlation_stress_market_beta_dominant" if block_new_buy else "correlation_stress_not_triggered",
+        "avg_abs_corr": avg_abs_corr,
+        "max_abs_corr": max_abs_corr,
+        "pair_count": len(pair_corrs),
+        "asset_count": len(codes),
+        "snapshots": len(contiguous_keys),
+        "window_snapshots": window,
+        "avg_abs_corr_threshold": corr_threshold,
+        "positive_count": positive_count,
+        "breadth_positive_count_max": breadth_max,
+        "codes": codes,
+    }
+
+
 def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[str, Any]], lookback_minutes: int, strategy_cfg: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     strategy_cfg = strategy_cfg or {}
     if "window_snapshots" in strategy_cfg and "consolidation" not in strategy_cfg:
@@ -1286,6 +1429,7 @@ def build_decision(
     positions_resp: dict[str, Any],
     pending_resp: dict[str, Any],
     state: dict[str, Any],
+    market_correlation_stress: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     session = cn_market_session(_REPLAY_NOW)
     local_time = exchange_local_time(session)
@@ -1402,6 +1546,13 @@ def build_decision(
         "positive_count": positive_count,
         "total_non_bond": len(non_bond_quotes),
     })
+    market_correlation_stress = market_correlation_stress or {
+        "available": False,
+        "status": "not_computed",
+        "block_new_buy": False,
+    }
+    correlation_stress_ok = not bool(market_correlation_stress.get("block_new_buy"))
+    add("market_correlation_stress_filter", correlation_stress_ok, market_correlation_stress)
 
     action = "hold"
     reason = "no_signal"
@@ -1774,6 +1925,8 @@ def build_decision(
             reason = "blocked_no_new_entry_after_14_30"
         elif best and not broad_market_not_declining:
             reason = "blocked_broad_market_declining"
+        elif best and not correlation_stress_ok:
+            reason = "blocked_market_correlation_stress"
         else:
             reason = "no_entry_signal"
 
@@ -1791,6 +1944,7 @@ def build_decision(
             "no_existing_non_t0_position_for_entry",
             "quote_liquidity_filter",
             "rolling_vwap_entry_filter",
+            "market_correlation_stress_filter",
             "reentry_cooldown",
             "daily_entry_limit",
             "entry_score_gate",
@@ -1831,6 +1985,7 @@ def build_decision(
             "reason": reason,
         },
         "risk_checks": checks,
+        "market_correlation_stress": market_correlation_stress,
         "approved_for_submit": bool(approved),
         "orders": [order] if order else [],
         "exit_policy": "unified_sell_score",
@@ -1901,6 +2056,11 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
     history = load_recent_quotes(minute_path)
     quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
+    market_correlation_stress = compute_market_correlation_stress(
+        history,
+        quotes,
+        cfg.get("strategy", {}).get("market_correlation_stress", {}),
+    )
     for q in quotes:
         append_jsonl(minute_path, q)
     append_csv(out_dir / cfg["outputs"]["minute_quotes_csv"], quotes)
@@ -1939,7 +2099,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             quota_status,
             quotes,
         )
-    decision = build_decision(cfg, quotes, balance, positions, pending, state)
+    decision = build_decision(cfg, quotes, balance, positions, pending, state, market_correlation_stress)
     decision["fill_reconciliation"] = fill_reconciliation
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))
     tag_order_owner(decision.get("orders", []) if isinstance(decision.get("orders"), list) else [], agent_name, decision.get("trade_date", trade_date))

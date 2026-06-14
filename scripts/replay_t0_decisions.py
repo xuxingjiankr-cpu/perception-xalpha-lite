@@ -204,6 +204,11 @@ def main() -> None:
 
             raw_quotes = [dict(q) for q in rnd]
             quotes = agent.compute_snapshot_momentum(raw_quotes, history, lookback, cfg["strategy"])
+            market_correlation_stress = agent.compute_market_correlation_stress(
+                history,
+                quotes,
+                cfg.get("strategy", {}).get("market_correlation_stress", {}),
+            )
             history.extend(quotes)
 
             session = {"in_regular_session": True}
@@ -218,6 +223,7 @@ def main() -> None:
                 fake_positions(sim["positions"]),
                 FAKE_PENDING,
                 state,
+                market_correlation_stress,
             )
             day["actions"][decision.get("action") or decision.get("state_machine", {}).get("action", "?")] += 1
             for c in decision.get("risk_checks", []):

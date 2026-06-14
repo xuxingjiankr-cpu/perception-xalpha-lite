@@ -94,6 +94,15 @@
         "breakout_buffer_pct": 0.0005
       }
     },
+    "market_correlation_stress": {
+      "enabled": true,
+      "window_snapshots": 30,
+      "min_snapshots": 10,
+      "min_assets": 4,
+      "avg_abs_corr_threshold": 0.75,
+      "breadth_positive_count_max": 1,
+      "max_snapshot_gap_seconds": 480
+    },
     "skip_dates": [],
     "overnight_gap_guard_pct": 0.03,
     "target_holdings": 1,
