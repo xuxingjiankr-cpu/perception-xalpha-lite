@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "configs" / "etf_paper_trading_agent.json"
@@ -1216,6 +1218,8 @@ def run_agent(config_path: Path, override_mode: str | None = None, execute: bool
     result["risk_report"] = gate
     result["execution_cooldown"] = cooldown
     result["zipline_lifecycle_report"] = zipline_style_lifecycle_report(cfg, mode, quotes, plan, gate)
+    agent_name = str(cfg.get("agent_name", "etf_paper_trading_agent"))
+    tag_order_owner(plan.get("orders", []) if isinstance(plan.get("orders"), list) else [], agent_name, today_str)
     result["orders"] = plan.get("orders", [])
     result["status"] = "planned" if plan.get("ok") else "blocked"
     result["reason"] = plan.get("reason")
@@ -1226,33 +1230,45 @@ def run_agent(config_path: Path, override_mode: str | None = None, execute: bool
         "attempted": False,
         "reason": "not_in_approved_paper_execute_path",
     }
-    if can_execute and plan.get("ok") and plan.get("orders"):
-        if cfg.get("cancel_pending_before_rebalance", False):
-            cancel_resp = client.cancel_all_pending()
-            result["cancel_pending_response"] = {
-                "attempted": True,
-                "ok": cancel_resp.get("ok"),
-                "error": cancel_resp.get("error"),
-            }
-            if not cancel_resp.get("ok"):
-                result["status"] = "paper_execute_blocked_cancel_pending_failed"
-                result["submit_results"] = []
-                result["execution_report"] = {
-                    "attempted": False,
-                    "submitted_count": 0,
-                    "submit_results": [],
-                    "blocked_reason": "cancel_pending_failed",
+    with SharedExecutionGuard(
+        cfg,
+        agent_name=agent_name,
+        trade_date=today_str,
+        orders=plan.get("orders", []) if isinstance(plan.get("orders"), list) else [],
+        can_execute=bool(can_execute and plan.get("ok") and plan.get("orders")),
+    ) as shared_guard:
+        result["shared_execution_guard"] = shared_guard.report
+        if can_execute and plan.get("ok") and plan.get("orders") and not shared_guard.allowed:
+            result["status"] = "paper_execute_blocked_shared_execution_guard"
+        elif can_execute and plan.get("ok") and plan.get("orders"):
+            if cfg.get("cancel_pending_before_rebalance", False):
+                cancel_resp = client.cancel_all_pending()
+                result["cancel_pending_response"] = {
+                    "attempted": True,
+                    "ok": cancel_resp.get("ok"),
+                    "error": cancel_resp.get("error"),
                 }
-                result["order_blotter_rows"] = build_blotter_rows(result, [])
-                return result
-        for order in plan["orders"]:
-            submit_results.append(client.submit_order(
-                order["direction"], order["stockCode"], order["exchange"], int(order["quantity"]), order["orderType"], order.get("price")
-            ))
-        result["status"] = "submitted"
-        mark_execution_success(cfg, output_dir, result)
-    elif mode == "paper_execute" and not can_execute:
-        result["status"] = "paper_execute_blocked_by_risk_gate"
+                if not cancel_resp.get("ok"):
+                    result["status"] = "paper_execute_blocked_cancel_pending_failed"
+                    result["submit_results"] = []
+                    result["execution_report"] = {
+                        "attempted": False,
+                        "submitted_count": 0,
+                        "submit_results": [],
+                        "blocked_reason": "cancel_pending_failed",
+                    }
+                    result["order_blotter_rows"] = build_blotter_rows(result, [])
+                    shared_guard.record_submit_results([], status=result["status"], cancel_result=result["cancel_pending_response"])
+                    return result
+            for order in plan["orders"]:
+                submit_results.append(client.submit_order(
+                    order["direction"], order["stockCode"], order["exchange"], int(order["quantity"]), order["orderType"], order.get("price")
+                ))
+            result["status"] = "submitted"
+            mark_execution_success(cfg, output_dir, result)
+            shared_guard.record_submit_results(submit_results, status=result["status"], cancel_result=result["cancel_pending_response"])
+        elif mode == "paper_execute" and not can_execute:
+            result["status"] = "paper_execute_blocked_by_risk_gate"
     result["submit_results"] = submit_results
     result["execution_report"] = {
         "attempted": bool(can_execute and plan.get("ok")),

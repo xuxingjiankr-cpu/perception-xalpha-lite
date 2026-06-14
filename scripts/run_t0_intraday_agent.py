@@ -44,6 +44,7 @@ from run_etf_paper_trading_agent import (
     write_csv,
     write_json,
 )
+from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
@@ -1940,71 +1941,84 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         )
     decision = build_decision(cfg, quotes, balance, positions, pending, state)
     decision["fill_reconciliation"] = fill_reconciliation
+    agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))
+    tag_order_owner(decision.get("orders", []) if isinstance(decision.get("orders"), list) else [], agent_name, decision.get("trade_date", trade_date))
     submit_results: list[dict[str, Any]] = []
     cancel_result = {"attempted": False, "reason": "not_needed"}
 
-    if execute and decision.get("approved_for_submit"):
-        cancel_result = maybe_cancel_pending(cfg, client, state, len(decision.get("pending_t0_orders", [])), decision)
-        if cancel_result.get("attempted") and not cancel_result.get("ok"):
-            decision["status"] = "blocked_cancel_failed"
+    with SharedExecutionGuard(
+        cfg,
+        agent_name=agent_name,
+        trade_date=decision.get("trade_date", trade_date),
+        orders=decision.get("orders", []) if isinstance(decision.get("orders"), list) else [],
+        can_execute=bool(execute and decision.get("approved_for_submit")),
+    ) as shared_guard:
+        decision["shared_execution_guard"] = shared_guard.report
+        if execute and decision.get("approved_for_submit") and not shared_guard.allowed:
+            decision["status"] = "blocked_shared_execution_guard"
+        elif execute and decision.get("approved_for_submit"):
+            cancel_result = maybe_cancel_pending(cfg, client, state, len(decision.get("pending_t0_orders", [])), decision)
+            if cancel_result.get("attempted") and not cancel_result.get("ok"):
+                decision["status"] = "blocked_cancel_failed"
+            else:
+                for order in decision["orders"]:
+                    submit_results.append(client.submit_order(order["direction"], order["stockCode"], order["exchange"], int(order["quantity"]), order["orderType"], order.get("price")))
+                decision["status"] = "submitted" if submit_results else "planned_no_submit"
+                if submit_results:
+                    increment_daily_state(state, "submitted_orders_by_date", decision["trade_date"])
+                    state["last_submit_at"] = now_iso()
+                    for order, submit in zip(decision["orders"], submit_results):
+                        if not submit.get("ok"):
+                            continue
+                        if order.get("direction") == "buy":
+                            record_t0_buy_submission(state, decision["trade_date"], order, submit)
+                            bm = order.get("bracket")
+                            if bm:
+                                bcode = str(order.get("stockCode", "")).zfill(6)
+                                inv_node = t0_inventory_for_code(state, decision["trade_date"], bcode)
+                                inv_node.setdefault("r_value", bm.get("r_value"))
+                                inv_node.setdefault("stop_price", bm.get("stop_price"))
+                                inv_node.setdefault("target1_price", bm.get("target1_price"))
+                                inv_node.setdefault("target2_price", bm.get("target2_price"))
+                                inv_node.setdefault("t1_filled", False)
+                                inv_node.setdefault("stop_moved_to_breakeven", False)
+                            increment_daily_state(state, "entries_by_date", decision["trade_date"])
+                        elif order.get("direction") == "sell":
+                            record_t0_sell_submission(state, decision["trade_date"], order, submit)
+                            fill_price_estimate = as_float(order.get("price"))
+                            cost_price = as_float(order.get("cost_price"))
+                            quantity = int(as_float(order.get("quantity")))
+                            pnl_estimate = (fill_price_estimate - cost_price) * quantity
+                            add_daily_state_float(state, "today_realized_pnl", decision["trade_date"], pnl_estimate)
+                            sell_code = str(order.get("stockCode", "")).zfill(6)
+                            if order.get("reason") == "bracket_t1_partial_exit":
+                                inv_node = t0_inventory_for_code(state, decision["trade_date"], sell_code)
+                                inv_node["t1_filled"] = True
+                                inv_node["stop_moved_to_breakeven"] = True
+                            last_sell_state = state.get("last_sell_at_by_code")
+                            if not isinstance(last_sell_state, dict):
+                                last_sell_state = {}
+                            last_sell_state[sell_code] = now_iso()
+                            state["last_sell_at_by_code"] = last_sell_state
+                            stop_reasons = {"confirmed_loss_score_exit", "emergency_stop_exit", "bracket_stop_loss", "breakeven_stop_after_t1"}
+                            reason_is_stop = order.get("reason") in stop_reasons or (
+                                order.get("reason") == "unified_sell_score_exit" and as_float(order.get("pnl_pct"), 0.0) < 0
+                            )
+                            bracket_cfg_run = cfg.get("strategy", {}).get("bracket", {})
+                            if bool(bracket_cfg_run.get("no_reentry_after_stop_loss_same_day", True)) and reason_is_stop:
+                                stopped_map = state.get("stopped_out_today_by_date")
+                                if not isinstance(stopped_map, dict):
+                                    stopped_map = {}
+                                today_stopped = stopped_map.get(decision["trade_date"], [])
+                                if not isinstance(today_stopped, list):
+                                    today_stopped = []
+                                if sell_code not in today_stopped:
+                                    today_stopped.append(sell_code)
+                                stopped_map[decision["trade_date"]] = today_stopped
+                                state["stopped_out_today_by_date"] = stopped_map
+            shared_guard.record_submit_results(submit_results, status=decision.get("status", "unknown"), cancel_result=cancel_result)
         else:
-            for order in decision["orders"]:
-                submit_results.append(client.submit_order(order["direction"], order["stockCode"], order["exchange"], int(order["quantity"]), order["orderType"], order.get("price")))
-            decision["status"] = "submitted" if submit_results else "planned_no_submit"
-            if submit_results:
-                increment_daily_state(state, "submitted_orders_by_date", decision["trade_date"])
-                state["last_submit_at"] = now_iso()
-                for order, submit in zip(decision["orders"], submit_results):
-                    if not submit.get("ok"):
-                        continue
-                    if order.get("direction") == "buy":
-                        record_t0_buy_submission(state, decision["trade_date"], order, submit)
-                        bm = order.get("bracket")
-                        if bm:
-                            bcode = str(order.get("stockCode", "")).zfill(6)
-                            inv_node = t0_inventory_for_code(state, decision["trade_date"], bcode)
-                            inv_node.setdefault("r_value", bm.get("r_value"))
-                            inv_node.setdefault("stop_price", bm.get("stop_price"))
-                            inv_node.setdefault("target1_price", bm.get("target1_price"))
-                            inv_node.setdefault("target2_price", bm.get("target2_price"))
-                            inv_node.setdefault("t1_filled", False)
-                            inv_node.setdefault("stop_moved_to_breakeven", False)
-                        increment_daily_state(state, "entries_by_date", decision["trade_date"])
-                    elif order.get("direction") == "sell":
-                        record_t0_sell_submission(state, decision["trade_date"], order, submit)
-                        fill_price_estimate = as_float(order.get("price"))
-                        cost_price = as_float(order.get("cost_price"))
-                        quantity = int(as_float(order.get("quantity")))
-                        pnl_estimate = (fill_price_estimate - cost_price) * quantity
-                        add_daily_state_float(state, "today_realized_pnl", decision["trade_date"], pnl_estimate)
-                        sell_code = str(order.get("stockCode", "")).zfill(6)
-                        if order.get("reason") == "bracket_t1_partial_exit":
-                            inv_node = t0_inventory_for_code(state, decision["trade_date"], sell_code)
-                            inv_node["t1_filled"] = True
-                            inv_node["stop_moved_to_breakeven"] = True
-                        last_sell_state = state.get("last_sell_at_by_code")
-                        if not isinstance(last_sell_state, dict):
-                            last_sell_state = {}
-                        last_sell_state[sell_code] = now_iso()
-                        state["last_sell_at_by_code"] = last_sell_state
-                        stop_reasons = {"confirmed_loss_score_exit", "emergency_stop_exit", "bracket_stop_loss", "breakeven_stop_after_t1"}
-                        reason_is_stop = order.get("reason") in stop_reasons or (
-                            order.get("reason") == "unified_sell_score_exit" and as_float(order.get("pnl_pct"), 0.0) < 0
-                        )
-                        bracket_cfg_run = cfg.get("strategy", {}).get("bracket", {})
-                        if bool(bracket_cfg_run.get("no_reentry_after_stop_loss_same_day", True)) and reason_is_stop:
-                            stopped_map = state.get("stopped_out_today_by_date")
-                            if not isinstance(stopped_map, dict):
-                                stopped_map = {}
-                            today_stopped = stopped_map.get(decision["trade_date"], [])
-                            if not isinstance(today_stopped, list):
-                                today_stopped = []
-                            if sell_code not in today_stopped:
-                                today_stopped.append(sell_code)
-                            stopped_map[decision["trade_date"]] = today_stopped
-                            state["stopped_out_today_by_date"] = stopped_map
-    else:
-        decision["status"] = "planned" if decision.get("orders") else "observe"
+            decision["status"] = "planned" if decision.get("orders") else "observe"
 
     decision["cli_execute"] = bool(execute)
     decision["cancel_result"] = cancel_result

@@ -147,6 +147,15 @@
     "orders": "t0_orders_planned.csv",
     "blotter": "t0_order_blotter.csv"
   },
+  "shared_execution": {
+    "enabled": true,
+    "dir": "outputs/shared_order_router",
+    "lock_file": "shared_execution.lock",
+    "intents_jsonl": "order_intents.jsonl",
+    "ledger": "shared_execution_ledger.json",
+    "lock_timeout_seconds": 8,
+    "stale_lock_seconds": 180
+  },
   "self_iteration": {
     "enabled": true,
     "mode": "diagnostic_report_only",

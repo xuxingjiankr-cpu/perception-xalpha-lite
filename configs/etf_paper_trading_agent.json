@@ -112,6 +112,15 @@
     "blotter": "order_blotter.csv",
     "price_history": "price_history.json"
   },
+  "shared_execution": {
+    "enabled": true,
+    "dir": "outputs/shared_order_router",
+    "lock_file": "shared_execution.lock",
+    "intents_jsonl": "order_intents.jsonl",
+    "ledger": "shared_execution_ledger.json",
+    "lock_timeout_seconds": 8,
+    "stale_lock_seconds": 180
+  },
   "execution_control": {
     "enabled": true,
     "state_file": "execution_state.json",
