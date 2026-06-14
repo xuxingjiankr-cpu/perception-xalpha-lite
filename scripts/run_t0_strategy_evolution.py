@@ -27,6 +27,7 @@ from run_etf_paper_trading_agent import ROOT, as_float, load_json, write_json
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 DEFAULT_OUT_DIR = ROOT / "outputs" / "t0_strategy_evolution"
 DEFAULT_REPLAY_OUT = ROOT / "outputs" / "t0_replay"
+EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v1"
 
 
 PARAM_SPACE = [
@@ -233,6 +234,74 @@ def model_confidence_set(
     for k in alive:
         result["p_values"].setdefault(k, 1.0)
     result["mcs_set"] = list(alive)
+    return result
+
+
+def reality_check_spa(
+    benchmark_losses: list[float],
+    alt_losses: dict[str, list[float]],
+    *,
+    alpha: float = 0.05,
+    n_boot: int = 1000,
+    avg_block: float = 3.0,
+    seed: int = 20260616,
+) -> dict[str, Any]:
+    """Studentized White Reality Check / Hansen SPA (conservative, no recentering).
+
+    Tests H0: no alternative is superior to the benchmark (baseline), correcting
+    for data-snooping across all alternatives. d_{k,t} = L_bench,t - L_alt_k,t
+    (positive mean -> alternative better). Rejects (a snooping-robust superior
+    model exists) when the bootstrap p-value < alpha. Conservative variant is
+    chosen deliberately: it errs toward NOT auto-applying.
+    """
+    names = [k for k, v in alt_losses.items() if isinstance(v, list) and len(v) >= 2]
+    result: dict[str, Any] = {"p_value": 1.0, "t_max": None, "n_obs": 0,
+                              "reject": False, "best_alt": None, "alpha": alpha, "reason": "ok"}
+    if not names or len(benchmark_losses) < 2:
+        result["reason"] = "insufficient_models_or_obs"
+        return result
+    n = min([len(benchmark_losses)] + [len(alt_losses[k]) for k in names])
+    if n < 2:
+        result["reason"] = "insufficient_obs"
+        return result
+    result["n_obs"] = n
+    bench = benchmark_losses[:n]
+    rng = random.Random(seed)
+    boot_idx = [_stationary_bootstrap_indices(n, avg_block, rng) for _ in range(n_boot)]
+
+    def bmean(vals: list[float], idx: list[int]) -> float:
+        return sum(vals[i] for i in idx) / len(idx)
+
+    # Non-studentized White Reality Check statistic V = max(0, max_k dbar_k).
+    # Avoiding division by a bootstrap sd makes it robust to near-degenerate
+    # variance (candidates almost identical to baseline), which a studentized
+    # form false-rejects on — the safe choice for an auto-apply gate.
+    dbar: dict[str, float] = {}
+    bdiff: dict[str, list[float]] = {}
+    for k in names:
+        d = [bench[t] - alt_losses[k][t] for t in range(n)]
+        dbar[k] = sum(d) / n
+        alt_k = alt_losses[k][:n]
+        bdiff[k] = [bmean(bench, bi) - bmean(alt_k, bi) for bi in boot_idx]
+
+    v_obs = max([0.0] + [dbar[k] for k in names])
+    best_alt = max(names, key=lambda k: dbar[k]) if names else None
+    ge = 0
+    for b in range(n_boot):
+        vmax = 0.0
+        for k in names:
+            vb = bdiff[k][b] - dbar[k]  # recenter by empirical mean (White RC)
+            if vb > vmax:
+                vmax = vb
+        if vmax >= v_obs:
+            ge += 1
+    p = ge / n_boot if n_boot else 1.0
+    result.update({
+        "p_value": round(p, 4),
+        "t_max": round(v_obs, 6),
+        "best_alt": best_alt,
+        "reject": p < alpha,
+    })
     return result
 
 
@@ -756,6 +825,7 @@ def main() -> None:
     selected_overlay: dict[str, Any] = {}
     dm_result: dict[str, Any] = {"reason": "no_valid_replay", "significant": False}
     mcs_result: dict[str, Any] = {"reason": "no_valid_replay", "mcs_set": []}
+    spa_result: dict[str, Any] = {"reason": "no_valid_replay", "reject": False, "p_value": 1.0}
     if baseline and selected:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
@@ -804,6 +874,21 @@ def main() -> None:
         else:
             mcs_result = {"mcs_set": [r["candidate"] for r in rows_ok], "reason": "insufficient_shared_days", "n_obs": len(mcs_shared)}
         baseline_in_mcs = "baseline_current" in mcs_result.get("mcs_set", [])
+        # SPA / White Reality Check: snooping-robust test that SOME candidate beats
+        # baseline (benchmark). This is the rigorous replacement for the ad-hoc
+        # log-multiplicity penalty above (kept as defense-in-depth).
+        require_spa = bool(si.get("require_spa_reject", True))
+        spa_alpha = as_float(si.get("spa_alpha"), 0.05)
+        spa_n_boot = int(as_float(si.get("spa_n_boot"), 500))
+        if len(mcs_shared) >= 2 and "baseline_current" in {r["candidate"] for r in rows_ok}:
+            bench_loss = [-as_float((baseline.get("per_day_pnl", {}) or {}).get(d)) for d in mcs_shared]
+            alt_loss = {
+                r["candidate"]: [-as_float((r.get("per_day_pnl", {}) or {}).get(d)) for d in mcs_shared]
+                for r in rows_ok if r["candidate"] != "baseline_current"
+            }
+            spa_result = reality_check_spa(bench_loss, alt_loss, alpha=spa_alpha, n_boot=spa_n_boot)
+        else:
+            spa_result = {"reject": False, "reason": "insufficient_shared_days", "p_value": 1.0}
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
             selected_overlay = {}
@@ -847,12 +932,31 @@ def main() -> None:
                 f"baseline_in_model_confidence_set:"
                 f"mcs_size={len(mcs_result.get('mcs_set', []))},n_obs={mcs_result.get('n_obs')}"
             )
+        elif require_spa and not spa_result.get("reject"):
+            decision_reason = (
+                f"spa_reality_check_not_significant:"
+                f"p={spa_result.get('p_value')}>={spa_alpha}({spa_result.get('reason')})"
+            )
         else:
             status = "approved_for_paper_auto_apply"
             decision_reason = f"selected_improved_objective_by:{improvement:.2f}"
 
+    selection_diagnostics = {
+        "max_day_loss_worsening_allowed": as_float(si.get("max_day_loss_worsening_allowed"), 0.0),
+        "selection_penalty_log_coef": as_float(si.get("selection_penalty_log_coef"), 0.5),
+        "max_per_day_regression_allowed": as_float(si.get("max_per_day_regression_allowed"), 0.0),
+        "candidates_tested": len([r for r in rows if r.get("ok") and r.get("candidate") != "baseline_current"]),
+        "diebold_mariano": dm_result,
+        "require_diebold_mariano_significant": bool(si.get("require_diebold_mariano_significant", True)),
+        "model_confidence_set": {k: mcs_result.get(k) for k in ("mcs_set", "n_obs", "reason", "alpha")},
+        "require_baseline_excluded_from_mcs": bool(si.get("require_baseline_excluded_from_mcs", True)),
+        "spa_reality_check": {k: spa_result.get(k) for k in ("p_value", "reject", "best_alt", "n_obs", "reason")},
+        "require_spa_reject": bool(si.get("require_spa_reject", True)),
+    }
+
     report = {
         "created_at": datetime.now().astimezone().isoformat(),
+        "gate_version": EVOLUTION_GATE_VERSION,
         "paper_trading_only": True,
         "live_ready": False,
         "formal_strategy_allowed": False,
@@ -862,16 +966,8 @@ def main() -> None:
         "selected_candidate": selected.get("candidate") if selected else None,
         "baseline_candidate": baseline,
         "selected_candidate_metrics": selected,
-        "auto_apply_risk_limits": {
-            "max_day_loss_worsening_allowed": as_float(si.get("max_day_loss_worsening_allowed"), 0.0),
-            "selection_penalty_log_coef": as_float(si.get("selection_penalty_log_coef"), 0.5),
-            "max_per_day_regression_allowed": as_float(si.get("max_per_day_regression_allowed"), 0.0),
-            "candidates_tested": len([r for r in rows if r.get("ok") and r.get("candidate") != "baseline_current"]),
-            "diebold_mariano": dm_result,
-            "require_diebold_mariano_significant": bool(si.get("require_diebold_mariano_significant", True)),
-            "model_confidence_set": {k: mcs_result.get(k) for k in ("mcs_set", "n_obs", "reason", "alpha")},
-            "require_baseline_excluded_from_mcs": bool(si.get("require_baseline_excluded_from_mcs", True)),
-        },
+        "auto_apply_risk_limits": selection_diagnostics,
+        "selection_diagnostics": selection_diagnostics,
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,
         "optimizer_mode": optimizer_mode,

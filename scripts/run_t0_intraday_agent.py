@@ -48,6 +48,7 @@ from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
+EXPECTED_EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v1"
 
 # Asset classes that are managed for EXIT only and must never be ranked for a
 # new T0 BUY. bond_etf: intraday range < round-trip cost. exit_only_t1: a T+1
@@ -74,6 +75,7 @@ SELL_BYPASS_CHECKS = {
     "skip_date_guard",
     "kill_switch_inactive",
     # BUY budget/count caps: gate new risk only, never block an exit
+    "balance_ok",
     "daily_loss_limit",
     "daily_order_limit",
     "daily_round_trip_limit",
@@ -226,6 +228,35 @@ def apply_evolution_overlay_if_enabled(cfg: dict[str, Any]) -> dict[str, Any]:
         return cfg
     if overlay.get("paper_trading_only") is not True:
         meta["reason"] = "overlay_missing_paper_trading_only"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+    required_gate_version = str(si.get("required_gate_version", EXPECTED_EVOLUTION_GATE_VERSION))
+    meta["required_gate_version"] = required_gate_version
+    if overlay.get("gate_version") != required_gate_version:
+        meta["reason"] = f"overlay_gate_version_mismatch:{overlay.get('gate_version')}!={required_gate_version}"
+        meta["selected_candidate"] = overlay.get("selected_candidate")
+        cfg["_evolution_overlay"] = meta
+        return cfg
+    diagnostics_source = "selection_diagnostics"
+    diagnostics = overlay.get("selection_diagnostics")
+    if not isinstance(diagnostics, dict):
+        diagnostics_source = "auto_apply_risk_limits"
+        diagnostics = overlay.get("auto_apply_risk_limits", {})
+    if not isinstance(diagnostics, dict):
+        diagnostics = {}
+    meta["selection_diagnostics_source"] = diagnostics_source
+    required_diag_flags = {
+        "require_diebold_mariano_significant": True,
+        "require_baseline_excluded_from_mcs": True,
+        "require_spa_reject": True,
+    }
+    missing_required_flags = [
+        key for key, expected in required_diag_flags.items()
+        if diagnostics.get(key) is not expected
+    ]
+    if missing_required_flags:
+        meta["reason"] = f"overlay_missing_required_selection_flags:{missing_required_flags}"
+        meta["selected_candidate"] = overlay.get("selected_candidate")
         cfg["_evolution_overlay"] = meta
         return cfg
 

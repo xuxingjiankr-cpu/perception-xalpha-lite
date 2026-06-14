@@ -173,6 +173,7 @@
     "auto_apply_changes": true,
     "requires_human_approval": false,
     "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
+    "required_gate_version": "dm_hln_mcs_spa_v1",
     "min_replay_trades_for_auto_apply": 8,
     "min_candidate_entries": 1,
     "min_distinct_days": 10,
@@ -185,6 +186,9 @@
     "require_baseline_excluded_from_mcs": true,
     "mcs_alpha": 0.10,
     "mcs_n_boot": 500,
+    "require_spa_reject": true,
+    "spa_alpha": 0.05,
+    "spa_n_boot": 500,
     "blackbox_optimizer": {
       "mode": "both",
       "algorithm": "bounded_diagonal_cma_es",

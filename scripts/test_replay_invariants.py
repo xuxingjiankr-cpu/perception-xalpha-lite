@@ -90,7 +90,7 @@ def t2_no_side_effects() -> None:
 
 
 def t4_sell_bypasses_buy_checks() -> None:
-    required = {"daily_loss_limit", "daily_order_limit", "daily_round_trip_limit", "no_pending_t0_orders"}
+    required = {"balance_ok", "daily_loss_limit", "daily_order_limit", "daily_round_trip_limit", "no_pending_t0_orders"}
     missing = required - agent.SELL_BYPASS_CHECKS
     check("T4 SELL bypasses BUY-budget checks", not missing, f"missing from bypass set: {missing}")
     # quote_freshness must NOT be in the static bypass set (it is conditional)
@@ -114,8 +114,14 @@ def t6_apply_bounds_and_lock_isolation() -> None:
     tmp.parent.mkdir(parents=True, exist_ok=True)
     tmp.write_text(_json.dumps({
         "status": "approved_for_paper_auto_apply",
+        "gate_version": agent.EXPECTED_EVOLUTION_GATE_VERSION,
         "paper_trading_only": True,
         "selected_candidate": "test",
+        "selection_diagnostics": {
+            "require_diebold_mariano_significant": True,
+            "require_baseline_excluded_from_mcs": True,
+            "require_spa_reject": True,
+        },
         "strategy_overlay": {
             "bracket": {"risk_per_trade_pct": 0.5},   # absurd, out of [0.0020,0.0045]
             "entry_score_threshold": 55,               # in-range, should apply
@@ -134,7 +140,31 @@ def t6_apply_bounds_and_lock_isolation() -> None:
     check("T6 non-allowlisted path rejected", "mode" in rejected)
     check("T6 top-level lock untouched", out.get("mode") == "paper_execute" and out.get("execution_enabled") is True)
     check("T6 strategy.mode never reaches cfg.mode", out["strategy"].get("mode") in (None, "ignored", "live"))
+
+    stale = REPLAY_DIR / "__stale_overlay__.json"
+    stale.write_text(_json.dumps({
+        "status": "approved_for_paper_auto_apply",
+        "paper_trading_only": True,
+        "selected_candidate": "old_gate",
+        "selection_diagnostics": {
+            "require_diebold_mariano_significant": True,
+            "require_baseline_excluded_from_mcs": True,
+            "require_spa_reject": True,
+        },
+        "strategy_overlay": {"entry_score_threshold": 49},
+    }), encoding="utf-8")
+    stale_cfg = {
+        "strategy": {"entry_score_threshold": 60},
+        "self_iteration": {
+            "enabled": True, "auto_apply_changes": True,
+            "overlay_path": str(stale),
+        },
+    }
+    stale_out = agent.apply_evolution_overlay_if_enabled(stale_cfg)
+    check("T6 stale gate-version overlay rejected", stale_out["strategy"]["entry_score_threshold"] == 60
+          and "gate_version_mismatch" in stale_out.get("_evolution_overlay", {}).get("reason", ""))
     tmp.unlink(missing_ok=True)
+    stale.unlink(missing_ok=True)
 
 
 def t7_multi_position_exit() -> None:
@@ -216,6 +246,28 @@ def t9_model_confidence_set() -> None:
     check("T9 tiny sample does NOT over-eliminate", len(r3["mcs_set"]) == 3, str(r3["mcs_set"]))
 
 
+def t10_spa_reality_check() -> None:
+    """SPA/White Reality Check: no reject under true null, reject on real edge,
+    no reject at tiny sample (low power)."""
+    import importlib
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    b = [float(i % 5) for i in range(30)]
+    r_id = ev.reality_check_spa(b, {"c1": b[:], "c2": b[:]}, alpha=0.05, n_boot=400, seed=3)
+    check("T10 identical alternatives -> no reject", r_id.get("reject") is False, str(r_id))
+    r_worse = ev.reality_check_spa(b, {"c1": [x + 1 for x in b]}, alpha=0.05, n_boot=400, seed=3)
+    check("T10 worse alternative -> no reject", r_worse.get("reject") is False, str(r_worse))
+    bench = [5 + (i % 3) for i in range(30)]
+    alts = {"c1": [2 + (i % 3) for i in range(30)], "c2": [5 + (i % 3) for i in range(30)]}
+    r_sig = ev.reality_check_spa(bench, alts, alpha=0.05, n_boot=400, seed=3)
+    check("T10 real consistent edge -> reject", r_sig.get("reject") is True and r_sig.get("best_alt") == "c1", str(r_sig))
+    r_tiny = ev.reality_check_spa(
+        [1, 2, 1, 2, 1],
+        {"c1": [0.9, 1.9, 1.1, 1.8, 1.0], "c2": [1.1, 2.1, 1.0, 2.0, 0.9]},
+        alpha=0.05, n_boot=400, seed=3,
+    )
+    check("T10 tiny multi-candidate sample -> no reject (low power)", r_tiny.get("reject") is False, str(r_tiny))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -224,6 +276,7 @@ if __name__ == "__main__":
     t7_multi_position_exit()
     t8_diebold_mariano_gate()
     t9_model_confidence_set()
+    t10_spa_reality_check()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
