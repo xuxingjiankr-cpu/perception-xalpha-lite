@@ -182,6 +182,9 @@
     "max_day_loss_worsening_allowed": 0,
     "require_diebold_mariano_significant": true,
     "dm_one_sided_alpha": 0.05,
+    "require_baseline_excluded_from_mcs": true,
+    "mcs_alpha": 0.10,
+    "mcs_n_boot": 500,
     "blackbox_optimizer": {
       "mode": "both",
       "algorithm": "bounded_diagonal_cma_es",

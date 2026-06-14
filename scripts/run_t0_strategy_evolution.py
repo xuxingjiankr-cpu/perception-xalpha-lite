@@ -124,6 +124,118 @@ def diebold_mariano_hln(
     return result
 
 
+def _stationary_bootstrap_indices(n: int, avg_block: float, rng: random.Random) -> list[int]:
+    """One stationary-bootstrap (Politis-Romano) resample of time indices 0..n-1."""
+    if n <= 0:
+        return []
+    p = 1.0 / max(1.0, avg_block)
+    idx = [rng.randrange(n)]
+    for _ in range(n - 1):
+        if rng.random() < p:
+            idx.append(rng.randrange(n))
+        else:
+            idx.append((idx[-1] + 1) % n)
+    return idx
+
+
+def model_confidence_set(
+    loss_by_model: dict[str, list[float]],
+    *,
+    alpha: float = 0.10,
+    n_boot: int = 1000,
+    avg_block: float = 3.0,
+    seed: int = 20260615,
+) -> dict[str, Any]:
+    """Hansen-Lunde-Nason (2011) Model Confidence Set via stationary bootstrap,
+    range statistic T_R. Lower loss = better. Returns the surviving set, each
+    model's MCS p-value, and elimination order.
+
+    Tiny samples have almost no power: the MCS keeps (almost) all models, which
+    correctly means "cannot single out a best model yet". Used as a conservative
+    gate (auto-apply only if baseline is EXCLUDED from the MCS).
+    """
+    names = [k for k, v in loss_by_model.items() if isinstance(v, list) and len(v) >= 2]
+    result: dict[str, Any] = {"mcs_set": list(names), "p_values": {}, "eliminated_order": [],
+                              "alpha": alpha, "n_obs": 0, "reason": "ok"}
+    if len(names) < 2:
+        result["reason"] = "fewer_than_two_models"
+        return result
+    n = min(len(loss_by_model[k]) for k in names)
+    if n < 2:
+        result["reason"] = "insufficient_obs"
+        return result
+    result["n_obs"] = n
+    L = {k: loss_by_model[k][:n] for k in names}
+
+    rng = random.Random(seed)
+    boot_idx = [_stationary_bootstrap_indices(n, avg_block, rng) for _ in range(n_boot)]
+
+    def col_mean(vals: list[float], idx: list[int]) -> float:
+        return sum(vals[i] for i in idx) / len(idx)
+
+    alive = list(names)
+    p_running = 0.0
+    while len(alive) > 1:
+        means = {k: sum(L[k]) / n for k in alive}
+        # Per-pair dbar_ij, bootstrap-mean series, and bootstrap sd of dbar_ij.
+        pairs = [(i, j) for ii, i in enumerate(alive) for j in alive[ii + 1:]]
+        dbar_p: dict[tuple, float] = {}
+        sd_p: dict[tuple, float] = {}
+        bootm_p: dict[tuple, list[float]] = {}
+        for (i, j) in pairs:
+            dbar = means[i] - means[j]
+            bms = [col_mean(L[i], bi) - col_mean(L[j], bi) for bi in boot_idx]
+            mb = sum(bms) / n_boot
+            var = sum((x - mb) ** 2 for x in bms) / n_boot
+            dbar_p[(i, j)] = dbar
+            sd_p[(i, j)] = math.sqrt(var) if var > 1e-18 else 0.0
+            bootm_p[(i, j)] = bms
+        # Studentized range statistic T_R = max |dbar_ij / sd_ij|
+        def tstat(pair: tuple) -> float:
+            sd = sd_p[pair]
+            return abs(dbar_p[pair] / sd) if sd > 0 else 0.0
+        t_range = max((tstat(p) for p in pairs), default=0.0)
+        # Bootstrap null: T_R* = max |(dbar*_ij - dbar_ij)/sd_ij|, p = P(T_R* >= T_R)
+        ge = 0
+        for b in range(n_boot):
+            tmax_b = 0.0
+            for pair in pairs:
+                sd = sd_p[pair]
+                if sd <= 0:
+                    continue
+                tb = abs((bootm_p[pair][b] - dbar_p[pair]) / sd)
+                if tb > tmax_b:
+                    tmax_b = tb
+            if tmax_b >= t_range:
+                ge += 1
+        p_val = ge / n_boot if n_boot else 1.0
+        p_running = max(p_running, p_val)
+        if p_val > alpha:
+            break  # cannot reject equal predictive ability -> remaining set is the MCS
+        # eliminate worst: highest average relative (signed) loss t-stat
+        tbar_i: dict[str, float] = {}
+        for i in alive:
+            num = 0.0
+            cnt = 0
+            for j in alive:
+                if i == j:
+                    continue
+                pair = (i, j) if (i, j) in dbar_p else (j, i)
+                sign = 1.0 if (i, j) in dbar_p else -1.0
+                sd = sd_p[pair]
+                num += (sign * dbar_p[pair] / sd) if sd > 0 else 0.0
+                cnt += 1
+            tbar_i[i] = num / cnt if cnt else 0.0
+        worst = max(tbar_i, key=lambda k: tbar_i[k])
+        result["p_values"][worst] = round(p_running, 4)
+        result["eliminated_order"].append(worst)
+        alive.remove(worst)
+    for k in alive:
+        result["p_values"].setdefault(k, 1.0)
+    result["mcs_set"] = list(alive)
+    return result
+
+
 def deep_merge(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
     for key, val in src.items():
         if isinstance(val, dict) and isinstance(dst.get(key), dict):
@@ -643,6 +755,7 @@ def main() -> None:
     decision_reason = "no_valid_replay"
     selected_overlay: dict[str, Any] = {}
     dm_result: dict[str, Any] = {"reason": "no_valid_replay", "significant": False}
+    mcs_result: dict[str, Any] = {"reason": "no_valid_replay", "mcs_set": []}
     if baseline and selected:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
@@ -674,6 +787,23 @@ def main() -> None:
         require_dm = bool(si.get("require_diebold_mariano_significant", True))
         dm_alpha = as_float(si.get("dm_one_sided_alpha"), 0.05)
         dm_result = diebold_mariano_hln(base_days, sel_days, alpha=dm_alpha)
+        # Model Confidence Set across ALL candidates (family-wise multiple comparison).
+        # Loss = -pnl over days shared by every OK candidate; auto-apply only if
+        # baseline is statistically EXCLUDED from the MCS (dominated by the set).
+        require_mcs = bool(si.get("require_baseline_excluded_from_mcs", True))
+        mcs_alpha = as_float(si.get("mcs_alpha"), 0.10)
+        mcs_n_boot = int(as_float(si.get("mcs_n_boot"), 500))
+        all_day_keys = [set(r.get("per_day_pnl", {}) or {}) for r in rows_ok]
+        mcs_shared = sorted(set.intersection(*all_day_keys)) if all_day_keys else []
+        if len(mcs_shared) >= 2:
+            loss_by_model = {
+                r["candidate"]: [-as_float((r.get("per_day_pnl", {}) or {}).get(d)) for d in mcs_shared]
+                for r in rows_ok
+            }
+            mcs_result = model_confidence_set(loss_by_model, alpha=mcs_alpha, n_boot=mcs_n_boot)
+        else:
+            mcs_result = {"mcs_set": [r["candidate"] for r in rows_ok], "reason": "insufficient_shared_days", "n_obs": len(mcs_shared)}
+        baseline_in_mcs = "baseline_current" in mcs_result.get("mcs_set", [])
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
             selected_overlay = {}
@@ -712,6 +842,11 @@ def main() -> None:
                 f"dm*={dm_result.get('dm_star')}<crit={dm_result.get('t_critical')}"
                 f"(n={dm_result.get('n_days')},{dm_result.get('reason')})"
             )
+        elif require_mcs and baseline_in_mcs:
+            decision_reason = (
+                f"baseline_in_model_confidence_set:"
+                f"mcs_size={len(mcs_result.get('mcs_set', []))},n_obs={mcs_result.get('n_obs')}"
+            )
         else:
             status = "approved_for_paper_auto_apply"
             decision_reason = f"selected_improved_objective_by:{improvement:.2f}"
@@ -734,6 +869,8 @@ def main() -> None:
             "candidates_tested": len([r for r in rows if r.get("ok") and r.get("candidate") != "baseline_current"]),
             "diebold_mariano": dm_result,
             "require_diebold_mariano_significant": bool(si.get("require_diebold_mariano_significant", True)),
+            "model_confidence_set": {k: mcs_result.get(k) for k in ("mcs_set", "n_obs", "reason", "alpha")},
+            "require_baseline_excluded_from_mcs": bool(si.get("require_baseline_excluded_from_mcs", True)),
         },
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,

@@ -196,6 +196,26 @@ def t8_diebold_mariano_gate() -> None:
     check("T8 single day insufficient -> not significant", r_few.get("significant") is False, str(r_few))
 
 
+def t9_model_confidence_set() -> None:
+    """MCS: keeps all when indistinguishable, excludes baseline only on a real
+    consistent edge, and does NOT over-eliminate at tiny samples (regression)."""
+    import importlib, random
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    rng = random.Random(1); m = 30
+    a = [rng.gauss(0, 1) for _ in range(m)]
+    no_diff = {"baseline": a[:], "c1": [x + rng.gauss(0, 0.01) for x in a], "c2": [x + rng.gauss(0, 0.01) for x in a]}
+    r1 = ev.model_confidence_set(no_diff, alpha=0.10, n_boot=400, seed=7)
+    check("T9 no-difference keeps all models", len(r1["mcs_set"]) == 3, str(r1["mcs_set"]))
+    dom = {"baseline": [5 + rng.gauss(0, 1) for _ in range(m)],
+           "c1": [0 + rng.gauss(0, 1) for _ in range(m)],
+           "c2": [5 + rng.gauss(0, 1) for _ in range(m)]}
+    r2 = ev.model_confidence_set(dom, alpha=0.10, n_boot=400, seed=7)
+    check("T9 dominant candidate excludes baseline", "baseline" not in r2["mcs_set"], str(r2["mcs_set"]))
+    tiny = {"baseline": [1, 2, 1, 2, 1], "c1": [0.9, 1.9, 1.1, 1.8, 1.0], "c2": [1.1, 2.1, 1.0, 2.0, 0.9]}
+    r3 = ev.model_confidence_set(tiny, alpha=0.10, n_boot=400, seed=7)
+    check("T9 tiny sample does NOT over-eliminate", len(r3["mcs_set"]) == 3, str(r3["mcs_set"]))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -203,6 +223,7 @@ if __name__ == "__main__":
     t6_apply_bounds_and_lock_isolation()
     t7_multi_position_exit()
     t8_diebold_mariano_gate()
+    t9_model_confidence_set()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
