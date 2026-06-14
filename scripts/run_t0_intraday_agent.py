@@ -49,6 +49,33 @@ from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 
+DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS = {
+    "entry_momentum_pct",
+    "exit_momentum_pct",
+    "min_profit_exit_pct",
+    "min_hold_minutes",
+    "loss_review_after_minutes",
+    "loss_exit_score_threshold",
+    "profit_exit_score_threshold",
+    "profit_trailing_drawdown_pct",
+    "deceleration_exit_threshold",
+    "entry_score_threshold",
+    "cross_etf_divergence_threshold",
+    "consolidation.max_range_pct",
+    "consolidation.breakout_buffer_pct",
+    "indicators.rolling_vwap.require_price_above_for_entry",
+    "indicators.intraday_atr.stop_multiplier",
+    "indicators.intraday_atr.min_stop_pct",
+    "indicators.bollinger_squeeze.squeeze_bandwidth_pct",
+    "indicators.bollinger_squeeze.breakout_buffer_pct",
+    "market_correlation_stress.avg_abs_corr_threshold",
+    "bracket.risk_per_trade_pct",
+    "bracket.risk_per_trade_pct_chaos_day",
+    "bracket.target1_r_multiple",
+    "bracket.target2_r_multiple",
+    "bracket.reentry_cooldown_minutes",
+}
+
 
 # Virtual clock for offline replay (scripts/replay_t0_decisions.py).
 # The live agent never calls set_replay_now, so real-path behavior is unchanged.
@@ -66,6 +93,106 @@ def current_dt() -> datetime:
 
 def now_iso() -> str:
     return current_dt().isoformat()
+
+
+def _flatten_strategy_overlay(obj: dict[str, Any], prefix: str = "") -> list[tuple[str, Any]]:
+    leaves: list[tuple[str, Any]] = []
+    for key, val in obj.items():
+        path = f"{prefix}.{key}" if prefix else str(key)
+        if isinstance(val, dict):
+            leaves.extend(_flatten_strategy_overlay(val, path))
+        else:
+            leaves.append((path, val))
+    return leaves
+
+
+def _set_nested_strategy_value(strategy: dict[str, Any], dotted_path: str, val: Any) -> None:
+    cur = strategy
+    parts = dotted_path.split(".")
+    for part in parts[:-1]:
+        node = cur.get(part)
+        if not isinstance(node, dict):
+            node = {}
+            cur[part] = node
+        cur = node
+    cur[parts[-1]] = val
+
+
+def apply_evolution_overlay_if_enabled(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Apply a post-close paper-only strategy overlay.
+
+    This deliberately permits only strategy-parameter leaves from an allowlist.
+    Execution mode, execution_enabled, risk limits, order routing, and safety
+    locks are not writable through the overlay.
+    """
+    si = cfg.get("self_iteration", {})
+    meta: dict[str, Any] = {
+        "enabled": bool(si.get("enabled", False)),
+        "auto_apply_changes": bool(si.get("auto_apply_changes", False)),
+        "applied": False,
+        "reason": "not_enabled",
+    }
+    if not meta["enabled"]:
+        cfg["_evolution_overlay"] = meta
+        return cfg
+    if not meta["auto_apply_changes"]:
+        meta["reason"] = "auto_apply_disabled"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+
+    overlay_rel = si.get("overlay_path", "outputs/t0_strategy_evolution/latest_strategy_overlay.json")
+    overlay_path = Path(str(overlay_rel))
+    if not overlay_path.is_absolute():
+        overlay_path = ROOT / overlay_path
+    meta["overlay_path"] = str(overlay_path)
+    if not overlay_path.exists():
+        meta["reason"] = "overlay_missing"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+
+    try:
+        overlay = load_json(overlay_path)
+    except Exception as exc:
+        meta["reason"] = f"overlay_read_failed:{exc}"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+
+    if overlay.get("status") != "approved_for_paper_auto_apply":
+        meta["reason"] = f"overlay_status_not_approved:{overlay.get('status')}"
+        meta["selected_candidate"] = overlay.get("selected_candidate")
+        cfg["_evolution_overlay"] = meta
+        return cfg
+    if overlay.get("paper_trading_only") is not True:
+        meta["reason"] = "overlay_missing_paper_trading_only"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+
+    allowed = set(si.get("allowed_strategy_paths") or DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS)
+    raw_overlay = overlay.get("strategy_overlay", {})
+    if not isinstance(raw_overlay, dict):
+        meta["reason"] = "strategy_overlay_not_object"
+        cfg["_evolution_overlay"] = meta
+        return cfg
+
+    applied: dict[str, Any] = {}
+    rejected: list[str] = []
+    for path, val in _flatten_strategy_overlay(raw_overlay):
+        if path not in allowed:
+            rejected.append(path)
+            continue
+        _set_nested_strategy_value(cfg["strategy"], path, val)
+        applied[path] = val
+
+    meta.update({
+        "applied": bool(applied),
+        "reason": "applied" if applied else "no_allowed_changes",
+        "selected_candidate": overlay.get("selected_candidate"),
+        "created_at": overlay.get("created_at"),
+        "applied_paths": applied,
+        "rejected_paths": rejected,
+    })
+    cfg["_evolution_overlay"] = meta
+    return cfg
 
 
 def append_jsonl(path: Path, obj: dict[str, Any]) -> None:
@@ -2015,6 +2142,7 @@ def maybe_cancel_pending(cfg: dict[str, Any], client: SkillClient, state: dict[s
 
 def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     cfg = load_json(config_path)
+    cfg = apply_evolution_overlay_if_enabled(cfg)
     out_dir = ROOT / cfg["outputs"]["dir"]
     out_dir.mkdir(parents=True, exist_ok=True)
     client = SkillClient(python_cmd_from_config(cfg["skill"].get("python", sys.executable)), expand_path(cfg["skill"]["script"]))
@@ -2101,6 +2229,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         )
     decision = build_decision(cfg, quotes, balance, positions, pending, state, market_correlation_stress)
     decision["fill_reconciliation"] = fill_reconciliation
+    decision["evolution_overlay"] = cfg.get("_evolution_overlay", {"applied": False})
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))
     tag_order_owner(decision.get("orders", []) if isinstance(decision.get("orders"), list) else [], agent_name, decision.get("trade_date", trade_date))
     submit_results: list[dict[str, Any]] = []

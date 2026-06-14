@@ -167,8 +167,38 @@
   },
   "self_iteration": {
     "enabled": true,
-    "mode": "diagnostic_report_only",
-    "auto_apply_changes": false,
-    "requires_human_approval": true
+    "mode": "paper_safe_auto_overlay",
+    "auto_apply_changes": true,
+    "requires_human_approval": false,
+    "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
+    "min_replay_trades_for_auto_apply": 2,
+    "min_candidate_entries": 1,
+    "min_score_improvement": 100,
+    "allowed_strategy_paths": [
+      "entry_momentum_pct",
+      "exit_momentum_pct",
+      "min_profit_exit_pct",
+      "min_hold_minutes",
+      "loss_review_after_minutes",
+      "loss_exit_score_threshold",
+      "profit_exit_score_threshold",
+      "profit_trailing_drawdown_pct",
+      "deceleration_exit_threshold",
+      "entry_score_threshold",
+      "cross_etf_divergence_threshold",
+      "consolidation.max_range_pct",
+      "consolidation.breakout_buffer_pct",
+      "indicators.rolling_vwap.require_price_above_for_entry",
+      "indicators.intraday_atr.stop_multiplier",
+      "indicators.intraday_atr.min_stop_pct",
+      "indicators.bollinger_squeeze.squeeze_bandwidth_pct",
+      "indicators.bollinger_squeeze.breakout_buffer_pct",
+      "market_correlation_stress.avg_abs_corr_threshold",
+      "bracket.risk_per_trade_pct",
+      "bracket.risk_per_trade_pct_chaos_day",
+      "bracket.target1_r_multiple",
+      "bracket.target2_r_multiple",
+      "bracket.reentry_cooldown_minutes"
+    ]
   }
 }
