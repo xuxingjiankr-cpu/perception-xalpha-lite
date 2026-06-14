@@ -6,7 +6,7 @@
 
 ## 摘要
 
-本文描述一个用于 A 股 ETF 模拟交易竞赛的 paper trading agent 系统。系统目标不是构建可实盘部署策略，而是在严格安全约束下，验证日内 ETF 交易信号、风控门禁、多 agent 共享执行守卫、离线回放和收盘后参数进化的组合是否能提高 paper trading 决策质量。系统由 T+0 日内 ETF agent、低频 ETF paper agent、共享执行守卫、离线回放器、风险审计脚本和参数进化器组成。核心设计原则是：盘中只执行已锁定规则；参数迭代只在收盘后基于历史分钟快照离线回放；任何自动 overlay 只能覆盖白名单内的 `strategy` 参数，不能覆盖执行锁、风控硬门槛或下单路径。当前回放样本显示，最新一轮 cs.NE 风格候选参数没有优于 baseline，因此系统保留原参数并将进化结果标记为 `diagnostic_only`。本文最后列出已知局限、审查重点和后续研究方向。
+本文描述一个用于 A 股 ETF 模拟交易竞赛的 paper trading agent 系统。系统目标不是构建可实盘部署策略，而是在严格安全约束下，验证日内 ETF 交易信号、风控门禁、多 agent 共享执行守卫、离线回放和收盘后参数进化的组合是否能提高 paper trading 决策质量。系统由 T+0 日内 ETF agent、低频 ETF paper agent、共享执行守卫、离线回放器、风险审计脚本和参数进化器组成。核心设计原则是：盘中只执行已锁定规则；参数迭代只在收盘后基于历史分钟快照离线回放；任何自动 overlay 只能覆盖白名单内的 `strategy` 参数，不能覆盖执行锁、风控硬门槛或下单路径。最新版本已经实际接入 bounded diagonal CMA-ES 黑盒优化器：优化器在 24 维白名单参数空间内采样、回放、选择精英并更新搜索分布。当前回放中 CMA-ES 候选 `cmaes_g01_i02` 相对 baseline 改善 objective score，因此生成 `approved_for_paper_auto_apply` overlay，但其结论仍只适用于 paper trading research。本文最后列出已知局限、审查重点和后续研究方向。
 
 关键词：ETF paper trading；T+0；日内动量；ORB；sell score；离线回放；参数进化；执行安全；A 股模拟交易
 
@@ -350,7 +350,7 @@ reason = carry_allowed_sell_score_not_met
 
 ## 8. 离线参数进化
 
-参数进化器借鉴 recent cs.NE 中几类思想，但没有引入不可解释黑盒优化器。
+参数进化器分为固定候选层和真实黑盒优化层。固定候选层用于保持可解释对照；黑盒优化层使用 bounded diagonal CMA-ES，在白名单参数空间内执行小预算离线优化。
 
 ### 8.1 理念来源
 
@@ -360,10 +360,11 @@ reason = carry_allowed_sell_score_not_met
 - dynamic environment EA：只在当前策略附近做小幅突变。
 - multi-objective evolutionary selection：同时看 PnL、亏损交易、最大日亏、未平仓风险。
 - CMA-ES stopping criteria caution：样本小时固定预算，不无限搜索。
+- Bounded diagonal CMA-ES：当前实现使用真实分布式采样、精英选择、均值更新和逐维方差更新，但限制在 allowlist 参数空间内。
 
-### 8.2 候选集合
+### 8.2 候选集合与黑盒参数空间
 
-当前候选包括：
+固定候选包括：
 
 - `baseline_current`
 - `precision_entry_gate`
@@ -377,6 +378,40 @@ reason = carry_allowed_sell_score_not_met
 - `cs_ne_quality_diversity_gold_hk`
 - `cs_ne_risk_first_low_budget`
 - `cs_ne_patient_profit_capture`
+
+CMA-ES 黑盒优化额外覆盖 24 个参数维度，包括：
+
+- `entry_momentum_pct`
+- `exit_momentum_pct`
+- `entry_score_threshold`
+- `loss_exit_score_threshold`
+- `profit_exit_score_threshold`
+- `min_profit_exit_pct`
+- `min_hold_minutes`
+- `loss_review_after_minutes`
+- `profit_trailing_drawdown_pct`
+- `deceleration_exit_threshold`
+- `cross_etf_divergence_threshold`
+- `consolidation.max_range_pct`
+- `consolidation.breakout_buffer_pct`
+- `indicators.rolling_vwap.require_price_above_for_entry`
+- `indicators.intraday_atr.stop_multiplier`
+- `indicators.intraday_atr.min_stop_pct`
+- `indicators.bollinger_squeeze.squeeze_bandwidth_pct`
+- `indicators.bollinger_squeeze.breakout_buffer_pct`
+- `market_correlation_stress.avg_abs_corr_threshold`
+- `bracket.risk_per_trade_pct`
+- `bracket.risk_per_trade_pct_chaos_day`
+- `bracket.target1_r_multiple`
+- `bracket.target2_r_multiple`
+- `bracket.reentry_cooldown_minutes`
+
+当前默认优化预算：
+
+- `generations = 2`
+- `population_size = 4`
+- `sigma0 = 0.22`
+- `seed = 20260614`
 
 ### 8.3 自动应用条件
 
@@ -427,10 +462,11 @@ status = diagnostic_only
 
 ## 9. 当前实验结果
 
-最新 NE-style 进化回放基于已有 `minute_quotes.jsonl`，共 717 轮历史快照。
+最新固定候选 + CMA-ES 进化回放基于已有 `minute_quotes.jsonl`，共 717 轮历史快照。
 
 | Candidate | Entries | Trades | Win Rate | Total PnL | Max Day Loss | Open Positions | Objective |
 |---|---:|---:|---:|---:|---:|---:|---:|
+| cmaes_g01_i02 | 3 | 3 | 0.00% | -1607.80 | -1237.80 | 0 | -3368.04 |
 | baseline_current | 3 | 3 | 0.00% | -1719.60 | -1201.60 | 0 | -3450.88 |
 | cs_ne_patient_profit_capture | 3 | 3 | 0.00% | -1719.60 | -1201.60 | 0 | -3450.88 |
 | balanced_precision | 2 | 1 | 0.00% | -1739.00 | -1739.00 | 1 | -3480.20 |
@@ -439,11 +475,13 @@ status = diagnostic_only
 
 主要结论：
 
-- 当前样本中 baseline 仍最优。
-- `cs_ne_patient_profit_capture` 仅与 baseline 打平，不足以切换。
+- 当前样本中 CMA-ES 候选 `cmaes_g01_i02` 在 objective score 上优于 baseline。
+- 其 total PnL 从 `-1719.60` 改善到 `-1607.80`。
+- 其 trades、losing trades 和 open positions 未劣化。
+- 其最大单日亏损从 `-1201.60` 变为 `-1237.80`，略有劣化，需在下一轮审查中重点观察。
 - 更耐心出场候选可能留下未平仓，风险评分更差。
-- 当前 overlay 状态为 `diagnostic_only`。
-- 次日不会自动修改参数。
+- 当前 overlay 状态为 `approved_for_paper_auto_apply`。
+- 次日 agent 会在启动时尝试加载该 overlay，但仍只能覆盖白名单 `strategy` 参数。
 
 ## 10. 已修复的重要缺陷
 
@@ -522,7 +560,7 @@ status = diagnostic_only
 
 ## 14. 结论
 
-本文描述的 ETF paper trading agent 是一个以安全执行和可审计迭代为核心的模拟交易系统。系统已经具备实时 quote 采集、T+0 日内信号、统一 sell score 出场、多 agent 共享执行守卫、离线回放和收盘后参数进化能力。当前数据尚不足以证明盈利能力，且最新 NE-style 参数候选没有优于 baseline，因此系统没有自动切换参数。这一行为符合安全优先原则。
+本文描述的 ETF paper trading agent 是一个以安全执行和可审计迭代为核心的模拟交易系统。系统已经具备实时 quote 采集、T+0 日内信号、统一 sell score 出场、多 agent 共享执行守卫、离线回放、固定候选参数比较和 bounded diagonal CMA-ES 黑盒优化能力。当前数据尚不足以证明盈利能力，但 CMA-ES 已在离线回放中找到一个相对 baseline 改善 objective score 的候选，并生成 paper-only overlay。该结果只能说明当前历史快照下的 paper replay 表现改善，不能被解释为实盘有效性证明。
 
 最终结论：
 
@@ -571,4 +609,3 @@ db99c15 Add market correlation stress filter
 ```text
 monday-wip-active-20260615
 ```
-

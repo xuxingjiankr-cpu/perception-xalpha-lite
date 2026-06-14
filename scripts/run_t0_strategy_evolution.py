@@ -13,6 +13,7 @@ import argparse
 import copy
 import csv
 import json
+import random
 import subprocess
 import sys
 from datetime import datetime
@@ -25,6 +26,34 @@ from run_etf_paper_trading_agent import ROOT, as_float, load_json, write_json
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 DEFAULT_OUT_DIR = ROOT / "outputs" / "t0_strategy_evolution"
 DEFAULT_REPLAY_OUT = ROOT / "outputs" / "t0_replay"
+
+
+PARAM_SPACE = [
+    {"path": "entry_momentum_pct", "type": "float", "lo": 0.0012, "hi": 0.0028},
+    {"path": "exit_momentum_pct", "type": "float", "lo": -0.0020, "hi": -0.0005},
+    {"path": "entry_score_threshold", "type": "int", "lo": 48, "hi": 72},
+    {"path": "loss_exit_score_threshold", "type": "int", "lo": 65, "hi": 90},
+    {"path": "profit_exit_score_threshold", "type": "int", "lo": 58, "hi": 84},
+    {"path": "min_profit_exit_pct", "type": "float", "lo": 0.002, "hi": 0.006},
+    {"path": "min_hold_minutes", "type": "int", "lo": 8, "hi": 35},
+    {"path": "loss_review_after_minutes", "type": "int", "lo": 10, "hi": 40},
+    {"path": "profit_trailing_drawdown_pct", "type": "float", "lo": -0.012, "hi": -0.004},
+    {"path": "deceleration_exit_threshold", "type": "float", "lo": -0.004, "hi": -0.001},
+    {"path": "cross_etf_divergence_threshold", "type": "float", "lo": 0.0015, "hi": 0.0035},
+    {"path": "consolidation.max_range_pct", "type": "float", "lo": 0.0020, "hi": 0.0040},
+    {"path": "consolidation.breakout_buffer_pct", "type": "float", "lo": 0.0005, "hi": 0.0020},
+    {"path": "indicators.rolling_vwap.require_price_above_for_entry", "type": "bool", "lo": 0.0, "hi": 1.0},
+    {"path": "indicators.intraday_atr.stop_multiplier", "type": "float", "lo": 1.0, "hi": 1.8},
+    {"path": "indicators.intraday_atr.min_stop_pct", "type": "float", "lo": 0.0015, "hi": 0.0035},
+    {"path": "indicators.bollinger_squeeze.squeeze_bandwidth_pct", "type": "float", "lo": 0.0040, "hi": 0.0080},
+    {"path": "indicators.bollinger_squeeze.breakout_buffer_pct", "type": "float", "lo": 0.0003, "hi": 0.0012},
+    {"path": "market_correlation_stress.avg_abs_corr_threshold", "type": "float", "lo": 0.60, "hi": 0.85},
+    {"path": "bracket.risk_per_trade_pct", "type": "float", "lo": 0.0020, "hi": 0.0045},
+    {"path": "bracket.risk_per_trade_pct_chaos_day", "type": "float", "lo": 0.0010, "hi": 0.0022},
+    {"path": "bracket.target1_r_multiple", "type": "float", "lo": 0.8, "hi": 1.4},
+    {"path": "bracket.target2_r_multiple", "type": "float", "lo": 1.6, "hi": 2.6},
+    {"path": "bracket.reentry_cooldown_minutes", "type": "int", "lo": 15, "hi": 60},
+]
 
 
 def deep_merge(dst: dict[str, Any], src: dict[str, Any]) -> dict[str, Any]:
@@ -45,6 +74,67 @@ def flatten_overlay(obj: dict[str, Any], prefix: str = "") -> list[tuple[str, An
         else:
             out.append((path, val))
     return out
+
+
+def get_nested(obj: dict[str, Any], dotted_path: str, default: Any = None) -> Any:
+    cur: Any = obj
+    for part in dotted_path.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return default
+        cur = cur[part]
+    return cur
+
+
+def set_nested(obj: dict[str, Any], dotted_path: str, value: Any) -> None:
+    cur = obj
+    parts = dotted_path.split(".")
+    for part in parts[:-1]:
+        node = cur.get(part)
+        if not isinstance(node, dict):
+            node = {}
+            cur[part] = node
+        cur = node
+    cur[parts[-1]] = value
+
+
+def normalize_param(value: Any, spec: dict[str, Any]) -> float:
+    typ = spec["type"]
+    if typ == "bool":
+        return 1.0 if bool(value) else 0.0
+    lo = as_float(spec["lo"])
+    hi = as_float(spec["hi"])
+    val = as_float(value, (lo + hi) / 2.0)
+    if hi == lo:
+        return 0.5
+    return max(0.0, min(1.0, (val - lo) / (hi - lo)))
+
+
+def denormalize_param(x: float, spec: dict[str, Any]) -> Any:
+    x = max(0.0, min(1.0, x))
+    typ = spec["type"]
+    if typ == "bool":
+        return bool(x >= 0.5)
+    lo = as_float(spec["lo"])
+    hi = as_float(spec["hi"])
+    val = lo + x * (hi - lo)
+    if typ == "int":
+        return int(round(val))
+    return round(val, 6)
+
+
+def overlay_from_vector(vec: list[float]) -> dict[str, Any]:
+    overlay: dict[str, Any] = {}
+    for x, spec in zip(vec, PARAM_SPACE):
+        set_nested(overlay, spec["path"], denormalize_param(x, spec))
+    return overlay
+
+
+def vector_from_strategy(strategy: dict[str, Any]) -> list[float]:
+    vec: list[float] = []
+    for spec in PARAM_SPACE:
+        default_val = denormalize_param(0.5, spec)
+        vec.append(normalize_param(get_nested(strategy, spec["path"], default_val), spec))
+    return vec
 
 
 def candidate_overlays() -> list[dict[str, Any]]:
@@ -255,12 +345,113 @@ def summarize_candidate(name: str, overlay: dict[str, Any], summary: dict[str, A
     }
 
 
+def evaluate_candidate(
+    base_cfg: dict[str, Any],
+    cfg_dir: Path,
+    prefix: str,
+    name: str,
+    overlay: dict[str, Any],
+    date_filter: str | None,
+) -> dict[str, Any]:
+    bad_paths = validate_allowed_paths(base_cfg, overlay)
+    if bad_paths:
+        return {
+            "candidate": name,
+            "ok": False,
+            "overlay": overlay,
+            "rounds_total": 0,
+            "entries": 0,
+            "trades": 0,
+            "winning_trades": 0,
+            "losing_trades": 0,
+            "win_rate": 0.0,
+            "total_pnl": 0.0,
+            "max_day_loss": 0.0,
+            "open_positions_at_end": 0,
+            "objective_score": -1_000_000.0,
+            "replay_log_tail": f"invalid overlay paths: {bad_paths}",
+            "invalid_overlay_paths": bad_paths,
+        }
+    cfg_path = cfg_dir / f"{prefix}_{name}.json"
+    write_candidate_config(base_cfg, overlay, cfg_path)
+    label = f"{prefix}_{name}"
+    ok, log = run_replay(cfg_path, label, date_filter)
+    summary = load_replay_summary(label) if ok else {}
+    return summarize_candidate(name, overlay, summary, ok, log)
+
+
+def cma_es_blackbox_candidates(
+    base_cfg: dict[str, Any],
+    cfg_dir: Path,
+    prefix: str,
+    date_filter: str | None,
+    generations: int,
+    population_size: int,
+    seed: int,
+    sigma0: float,
+) -> list[dict[str, Any]]:
+    """Run a bounded diagonal CMA-ES black-box optimization over allowlisted strategy params.
+
+    This is deliberately offline and small-budget. It is a real distributional
+    optimizer: samples a population, evaluates by replay, selects elites, and
+    adapts the search mean and per-dimension variance across generations.
+    """
+    rng = random.Random(seed)
+    mean = vector_from_strategy(base_cfg.get("strategy", {}))
+    dim = len(mean)
+    variance = [1.0 for _ in range(dim)]
+    rows: list[dict[str, Any]] = []
+    mu = max(2, population_size // 2)
+
+    for gen in range(generations):
+        gen_rows: list[dict[str, Any]] = []
+        sigma = sigma0 * (0.85 ** gen)
+        for idx in range(population_size):
+            vec = [
+                max(0.0, min(1.0, mean[j] + rng.gauss(0.0, sigma * (variance[j] ** 0.5))))
+                for j in range(dim)
+            ]
+            overlay = overlay_from_vector(vec)
+            name = f"cmaes_g{gen + 1:02d}_i{idx + 1:02d}"
+            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, overlay, date_filter)
+            row["optimizer"] = "bounded_diagonal_cma_es"
+            row["generation"] = gen + 1
+            gen_rows.append(row)
+            rows.append(row)
+
+        elites = sorted(
+            [r for r in gen_rows if r.get("ok")],
+            key=lambda r: as_float(r.get("objective_score")),
+            reverse=True,
+        )[:mu]
+        if not elites:
+            break
+
+        elite_vecs = [vector_from_overlay(row.get("overlay", {}), base_cfg.get("strategy", {})) for row in elites]
+        new_mean = [sum(v[j] for v in elite_vecs) / len(elite_vecs) for j in range(dim)]
+        new_variance: list[float] = []
+        for j in range(dim):
+            centered = [(v[j] - new_mean[j]) ** 2 for v in elite_vecs]
+            # Keep non-zero exploration while shrinking noisy dimensions.
+            new_variance.append(max(0.05, min(1.5, sum(centered) / len(centered) + 0.10 * variance[j])))
+        mean = [0.65 * mean[j] + 0.35 * new_mean[j] for j in range(dim)]
+        variance = new_variance
+
+    return rows
+
+
+def vector_from_overlay(overlay: dict[str, Any], base_strategy: dict[str, Any]) -> list[float]:
+    merged = copy.deepcopy(base_strategy)
+    deep_merge(merged, overlay)
+    return vector_from_strategy(merged)
+
+
 def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
         return
     fields = [
-        "candidate", "ok", "rounds_total", "entries", "trades", "winning_trades",
+        "candidate", "optimizer", "generation", "ok", "rounds_total", "entries", "trades", "winning_trades",
         "losing_trades", "win_rate", "total_pnl", "max_day_loss",
         "open_positions_at_end", "objective_score",
     ]
@@ -285,12 +476,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "",
         "## Candidate Replay Results",
         "",
-        "| candidate | entries | trades | win_rate | total_pnl | max_day_loss | open | score |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "| candidate | optimizer | entries | trades | win_rate | total_pnl | max_day_loss | open | score |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in sorted(rows, key=lambda x: as_float(x.get("objective_score")), reverse=True):
         lines.append(
-            f"| {row['candidate']} | {row['entries']} | {row['trades']} | {row['win_rate']:.2%} | "
+            f"| {row['candidate']} | {row.get('optimizer', 'fixed_grid')} | {row['entries']} | {row['trades']} | {row['win_rate']:.2%} | "
             f"{row['total_pnl']:.2f} | {row['max_day_loss']:.2f} | {row['open_positions_at_end']} | "
             f"{row['objective_score']:.2f} |"
         )
@@ -307,6 +498,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "- Only allowlisted `strategy` paths can be auto-applied by the agent.",
         "- `mode`, `execution_enabled`, `risk`, shared execution guard, and order submission locks are not writable through this overlay.",
         "- Evidence gates can downgrade the result to `diagnostic_only`; in that case the agent ignores the overlay.",
+        "- CMA-ES candidates are evaluated offline by replay only; they never call the paper-trading API.",
     ])
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -316,6 +508,11 @@ def main() -> None:
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
     parser.add_argument("--date", default=None, help="optional YYYY-MM-DD replay subset")
     parser.add_argument("--label-prefix", default=None)
+    parser.add_argument("--optimizer", choices=["fixed", "cmaes", "both"], default=None)
+    parser.add_argument("--cma-generations", type=int, default=None)
+    parser.add_argument("--cma-population", type=int, default=None)
+    parser.add_argument("--cma-seed", type=int, default=None)
+    parser.add_argument("--cma-sigma", type=float, default=None)
     args = parser.parse_args()
 
     base_cfg = load_json(Path(args.config))
@@ -330,35 +527,40 @@ def main() -> None:
     rows: list[dict[str, Any]] = []
     invalid: dict[str, list[str]] = {}
 
-    for cand in candidate_overlays():
-        name = cand["name"]
-        overlay = cand["overlay"]
-        bad_paths = validate_allowed_paths(base_cfg, overlay)
-        if bad_paths:
-            invalid[name] = bad_paths
-            rows.append({
-                "candidate": name,
-                "ok": False,
-                "overlay": overlay,
-                "rounds_total": 0,
-                "entries": 0,
-                "trades": 0,
-                "winning_trades": 0,
-                "losing_trades": 0,
-                "win_rate": 0.0,
-                "total_pnl": 0.0,
-                "max_day_loss": 0.0,
-                "open_positions_at_end": 0,
-                "objective_score": -1_000_000.0,
-                "replay_log_tail": f"invalid overlay paths: {bad_paths}",
-            })
-            continue
-        cfg_path = cfg_dir / f"{prefix}_{name}.json"
-        write_candidate_config(base_cfg, overlay, cfg_path)
-        label = f"{prefix}_{name}"
-        ok, log = run_replay(cfg_path, label, args.date)
-        summary = load_replay_summary(label) if ok else {}
-        rows.append(summarize_candidate(name, overlay, summary, ok, log))
+    optimizer_cfg = si.get("blackbox_optimizer", {}) if isinstance(si.get("blackbox_optimizer", {}), dict) else {}
+    optimizer_mode = args.optimizer or str(optimizer_cfg.get("mode", "both"))
+
+    if optimizer_mode in {"fixed", "both"}:
+        fixed_candidates = candidate_overlays()
+    elif optimizer_mode == "cmaes":
+        fixed_candidates = [candidate_overlays()[0]]
+    else:
+        fixed_candidates = []
+
+    if fixed_candidates:
+        for cand in fixed_candidates:
+            name = cand["name"]
+            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, cand["overlay"], args.date)
+            row["optimizer"] = "fixed_grid"
+            if row.get("invalid_overlay_paths"):
+                invalid[name] = row["invalid_overlay_paths"]
+            rows.append(row)
+
+    if optimizer_mode in {"cmaes", "both"}:
+        cma_rows = cma_es_blackbox_candidates(
+            base_cfg=base_cfg,
+            cfg_dir=cfg_dir,
+            prefix=prefix,
+            date_filter=args.date,
+            generations=args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),
+            population_size=args.cma_population or int(as_float(optimizer_cfg.get("population_size"), 4)),
+            seed=args.cma_seed or int(as_float(optimizer_cfg.get("seed"), 20260614)),
+            sigma0=args.cma_sigma if args.cma_sigma is not None else as_float(optimizer_cfg.get("sigma0"), 0.22),
+        )
+        for row in cma_rows:
+            if row.get("invalid_overlay_paths"):
+                invalid[row["candidate"]] = row["invalid_overlay_paths"]
+        rows.extend(cma_rows)
 
     rows_ok = [r for r in rows if r.get("ok")]
     baseline = next((r for r in rows_ok if r["candidate"] == "baseline_current"), None)
@@ -371,7 +573,9 @@ def main() -> None:
         min_trades = int(as_float(si.get("min_replay_trades_for_auto_apply"), 2))
         min_entries = int(as_float(si.get("min_candidate_entries"), 1))
         min_improvement = as_float(si.get("min_score_improvement"), 100)
+        max_day_loss_worsening_allowed = as_float(si.get("max_day_loss_worsening_allowed"), 0.0)
         improvement = as_float(selected.get("objective_score")) - as_float(baseline.get("objective_score"))
+        max_day_loss_worsening = as_float(baseline.get("max_day_loss")) - as_float(selected.get("max_day_loss"))
         selected_overlay = selected.get("overlay", {}) if isinstance(selected.get("overlay"), dict) else {}
         if selected["candidate"] == "baseline_current":
             decision_reason = "baseline_ranked_best"
@@ -384,6 +588,11 @@ def main() -> None:
             decision_reason = f"score_improvement_below_min:{improvement:.2f}<{min_improvement:.2f}"
         elif as_float(selected.get("total_pnl")) < as_float(baseline.get("total_pnl")):
             decision_reason = "selected_total_pnl_worse_than_baseline"
+        elif max_day_loss_worsening > max_day_loss_worsening_allowed:
+            decision_reason = (
+                f"selected_max_day_loss_worsening_too_large:"
+                f"{max_day_loss_worsening:.2f}>{max_day_loss_worsening_allowed:.2f}"
+            )
         elif int(selected.get("losing_trades", 0)) > int(baseline.get("losing_trades", 0)):
             decision_reason = "selected_has_more_losing_trades_than_baseline"
         elif int(selected.get("open_positions_at_end", 0)) > int(baseline.get("open_positions_at_end", 0)):
@@ -403,8 +612,21 @@ def main() -> None:
         "selected_candidate": selected.get("candidate") if selected else None,
         "baseline_candidate": baseline,
         "selected_candidate_metrics": selected,
+        "auto_apply_risk_limits": {
+            "max_day_loss_worsening_allowed": as_float(si.get("max_day_loss_worsening_allowed"), 0.0),
+        },
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,
+        "optimizer_mode": optimizer_mode,
+        "cma_es": {
+            "enabled": optimizer_mode in {"cmaes", "both"},
+            "generations": args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),
+            "population_size": args.cma_population or int(as_float(optimizer_cfg.get("population_size"), 4)),
+            "seed": args.cma_seed or int(as_float(optimizer_cfg.get("seed"), 20260614)),
+            "sigma0": args.cma_sigma if args.cma_sigma is not None else as_float(optimizer_cfg.get("sigma0"), 0.22),
+            "param_space_size": len(PARAM_SPACE),
+            "implementation": "bounded_diagonal_cma_es_offline_replay",
+        },
         "invalid_overlay_paths": invalid,
         "candidates": rows,
         "note": "Offline replay over historical snapshots; small sample is not a profitability claim.",

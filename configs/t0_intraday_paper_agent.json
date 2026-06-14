@@ -174,6 +174,16 @@
     "min_replay_trades_for_auto_apply": 2,
     "min_candidate_entries": 1,
     "min_score_improvement": 0,
+    "max_day_loss_worsening_allowed": 100,
+    "blackbox_optimizer": {
+      "mode": "both",
+      "algorithm": "bounded_diagonal_cma_es",
+      "generations": 2,
+      "population_size": 4,
+      "sigma0": 0.22,
+      "seed": 20260614,
+      "offline_replay_only": true
+    },
     "allowed_strategy_paths": [
       "entry_momentum_pct",
       "exit_momentum_pct",
