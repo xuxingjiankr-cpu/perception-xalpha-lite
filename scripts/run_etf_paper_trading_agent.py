@@ -409,6 +409,117 @@ def fetch_eastmoney_quotes(
     return responses, meta
 
 
+def cn_symbol_prefixed(etf: dict[str, Any]) -> str:
+    """Sina/Tencent A-share symbol, e.g. sh513050 / sz159915."""
+    ex = str(etf.get("exchange", "SH")).lower()
+    if ex not in {"sh", "sz", "bj"}:
+        ex = "sh"
+    return f"{ex}{str(etf.get('stockCode', '')).zfill(6)}"
+
+
+def _thirdparty_quote_response(etf: dict[str, Any], parsed: dict[str, Any] | None, provider: str, error: Any = None) -> dict[str, Any]:
+    """Build a Huatai-shaped quote response from a parsed Sina/Tencent record.
+
+    Defensive: a record with non-positive current/prevClose or a crossed/missing
+    book is marked not-ok so the caller falls through to the next provider rather
+    than trading on garbage. bid/ask default to current when a side is missing.
+    """
+    if not parsed:
+        return {"ok": False, "data": None, "error": error or {"category": "market_data", "message": f"{provider} quote missing"},
+                "_cmd_tool": f"{provider}_quote", "_returncode": 1, "_market_data_provider": provider}
+    current = as_float(parsed.get("current"), 0.0)
+    prev_close = as_float(parsed.get("prevClose"), 0.0)
+    bid1 = as_float(parsed.get("bid1"), current)
+    ask1 = as_float(parsed.get("ask1"), current)
+    if current <= 0 or prev_close <= 0:
+        return {"ok": False, "data": None, "error": {"category": "market_data", "message": f"{provider} invalid price"},
+                "_cmd_tool": f"{provider}_quote", "_returncode": 1, "_market_data_provider": provider}
+    if bid1 <= 0:
+        bid1 = current
+    if ask1 <= 0:
+        ask1 = current
+    data = {
+        "stockName": parsed.get("name") or etf.get("name"),
+        "currentPrice": current,
+        "prevClose": prev_close,
+        "limitUp": None,
+        "limitDown": None,
+        "bidPrice1": bid1,
+        "askPrice1": ask1,
+        "change": round(current / prev_close - 1.0, 6) if prev_close > 0 else 0.0,
+        "isSuspended": current <= 0,
+        "open": as_float(parsed.get("open"), 0.0),
+        "source": provider,
+        "source_quote_time": parsed.get("time"),
+    }
+    return {"ok": True, "data": data, "error": None, "_cmd_tool": f"{provider}_quote",
+            "_returncode": 0, "_market_data_provider": provider}
+
+
+def _fetch_cn_text(url: str, *, referer: str | None, timeout_seconds: float) -> str:
+    headers = {"User-Agent": "Mozilla/5.0"}
+    if referer:
+        headers["Referer"] = referer
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+        return resp.read().decode("gbk", errors="replace")  # Sina/Tencent are GBK-encoded
+
+
+def fetch_tencent_quotes(universe: list[dict[str, Any]], *, timeout_seconds: float = 6.0) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Level-1 ETF quotes from Tencent (qt.gtimg.cn). Fields verified GBK-decoded:
+    [3]=current [4]=prevClose [5]=open [9]=bid1 [19]=ask1 [30]=time(YYYYMMDDHHMMSS)."""
+    meta: dict[str, Any] = {"provider": "tencent", "attempted": True, "ok": False, "requested_count": len(universe)}
+    by_code: dict[str, dict[str, Any]] = {}
+    try:
+        url = "https://qt.gtimg.cn/q=" + ",".join(cn_symbol_prefixed(x) for x in universe)
+        text = _fetch_cn_text(url, referer="https://gu.qq.com", timeout_seconds=timeout_seconds)
+        for line in text.strip().split("\n"):
+            if "=" not in line:
+                continue
+            body = line.split("=", 1)[1].strip().strip(";").strip('"')
+            f = body.split("~")
+            if len(f) < 31 or not f[2]:
+                continue
+            by_code[str(f[2]).zfill(6)] = {
+                "name": f[1], "current": f[3], "prevClose": f[4], "open": f[5],
+                "bid1": f[9], "ask1": f[19], "time": f[30],
+            }
+    except Exception as exc:
+        meta["error"] = {"category": "network", "message": str(exc)}
+    responses = [_thirdparty_quote_response(etf, by_code.get(str(etf.get("stockCode", "")).zfill(6)), "tencent") for etf in universe]
+    ok_count = sum(1 for x in responses if x.get("ok"))
+    meta.update({"ok": ok_count > 0, "ok_count": ok_count, "fetched_at": now_iso()})
+    return responses, meta
+
+
+def fetch_sina_quotes(universe: list[dict[str, Any]], *, timeout_seconds: float = 6.0) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Level-1 ETF quotes from Sina (hq.sinajs.cn, requires Referer). Fields verified
+    GBK-decoded: [1]=open [2]=prevClose [3]=current [6]=bid1(竞买) [7]=ask1(竞卖) [30]=date [31]=time."""
+    meta: dict[str, Any] = {"provider": "sina", "attempted": True, "ok": False, "requested_count": len(universe)}
+    by_code: dict[str, dict[str, Any]] = {}
+    try:
+        url = "https://hq.sinajs.cn/list=" + ",".join(cn_symbol_prefixed(x) for x in universe)
+        text = _fetch_cn_text(url, referer="https://finance.sina.com.cn", timeout_seconds=timeout_seconds)
+        for line in text.strip().split("\n"):
+            if '="' not in line:
+                continue
+            head, body = line.split('="', 1)
+            code = head.split("hq_str_")[-1][2:].zfill(6) if "hq_str_" in head else ""
+            f = body.strip().strip(";").strip('"').split(",")
+            if len(f) < 32 or not code:
+                continue
+            by_code[code] = {
+                "name": f[0], "open": f[1], "prevClose": f[2], "current": f[3],
+                "bid1": f[6], "ask1": f[7], "time": f"{f[30]} {f[31]}",
+            }
+    except Exception as exc:
+        meta["error"] = {"category": "network", "message": str(exc)}
+    responses = [_thirdparty_quote_response(etf, by_code.get(str(etf.get("stockCode", "")).zfill(6)), "sina") for etf in universe]
+    ok_count = sum(1 for x in responses if x.get("ok"))
+    meta.update({"ok": ok_count > 0, "ok_count": ok_count, "fetched_at": now_iso()})
+    return responses, meta
+
+
 def quote_provider_config(cfg: dict[str, Any]) -> dict[str, Any]:
     md = cfg.get("market_data")
     if not isinstance(md, dict):
@@ -417,8 +528,11 @@ def quote_provider_config(cfg: dict[str, Any]) -> dict[str, Any]:
     return {
         "quote_provider": provider,
         "eastmoney_enabled": bool(md.get("eastmoney_enabled", provider.startswith("eastmoney"))),
+        "sina_enabled": bool(md.get("sina_enabled", provider.startswith("eastmoney"))),
+        "tencent_enabled": bool(md.get("tencent_enabled", provider.startswith("eastmoney"))),
         "huatai_quote_fallback": bool(md.get("huatai_quote_fallback", provider == "huatai")),
         "eastmoney_timeout_seconds": as_float(md.get("eastmoney_timeout_seconds"), 6.0),
+        "thirdparty_timeout_seconds": as_float(md.get("thirdparty_timeout_seconds"), md.get("eastmoney_timeout_seconds", 6.0)),
         "preferred_quote_interval_seconds": int(as_float(md.get("preferred_quote_interval_seconds"), 60)),
     }
 
@@ -430,18 +544,36 @@ def fetch_quote_responses(
     md = quote_provider_config(cfg)
     universe = cfg.get("universe", [])
     if md["eastmoney_enabled"] and md["quote_provider"] in {"eastmoney", "eastmoney_primary"}:
-        responses, meta = fetch_eastmoney_quotes(universe, timeout_seconds=md["eastmoney_timeout_seconds"])
-        meta["preferred_quote_interval_seconds"] = md["preferred_quote_interval_seconds"]
-        if meta.get("ok") or not md["huatai_quote_fallback"]:
+        # Free-source fallback chain (all carry bid/ask, none consume Huatai quota):
+        # Eastmoney -> Sina -> Tencent -> Huatai broker (only if still failing).
+        chain: list[tuple[str, Any]] = [("eastmoney", lambda: fetch_eastmoney_quotes(universe, timeout_seconds=md["eastmoney_timeout_seconds"]))]
+        if md["sina_enabled"]:
+            chain.append(("sina", lambda: fetch_sina_quotes(universe, timeout_seconds=md["thirdparty_timeout_seconds"])))
+        if md["tencent_enabled"]:
+            chain.append(("tencent", lambda: fetch_tencent_quotes(universe, timeout_seconds=md["thirdparty_timeout_seconds"])))
+        provider_attempts: list[dict[str, Any]] = []
+        for name, fn in chain:
+            responses, meta = fn()
+            provider_attempts.append({"provider": name, "ok": meta.get("ok"), "ok_count": meta.get("ok_count")})
+            if meta.get("ok"):
+                meta["preferred_quote_interval_seconds"] = md["preferred_quote_interval_seconds"]
+                meta["provider_attempts"] = provider_attempts
+                meta["huatai_quote_calls"] = 0
+                return responses, meta
+        if not md["huatai_quote_fallback"]:
+            meta["preferred_quote_interval_seconds"] = md["preferred_quote_interval_seconds"]
+            meta["provider_attempts"] = provider_attempts
             meta["huatai_quote_calls"] = 0
             return responses, meta
         fallback_responses = [client.get_quote(etf["stockCode"], etf["exchange"]) for etf in universe]
-        meta.update({
-            "fallback_provider": "huatai",
-            "huatai_quote_calls": len(fallback_responses),
-            "fallback_reason": "eastmoney_unavailable",
-        })
-        return fallback_responses, meta
+        return fallback_responses, {
+            "provider": "huatai", "attempted": True,
+            "ok": any(x.get("ok") for x in fallback_responses),
+            "fallback_provider": "huatai", "huatai_quote_calls": len(fallback_responses),
+            "fallback_reason": "all_free_providers_unavailable",
+            "provider_attempts": provider_attempts,
+            "preferred_quote_interval_seconds": md["preferred_quote_interval_seconds"],
+        }
     responses = [client.get_quote(etf["stockCode"], etf["exchange"]) for etf in universe]
     return responses, {
         "provider": "huatai",

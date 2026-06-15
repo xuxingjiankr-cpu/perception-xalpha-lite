@@ -520,6 +520,41 @@ def t14_513100_entry_blocked_but_sell_allowed() -> None:
     check("T14 513100 is not bought even with highest momentum", "513100" not in order_codes, str(dec.get("orders")))
 
 
+def t16_quote_fallback_chain() -> None:
+    """Sina/Tencent fallback: bad records rejected (no trading on garbage); the
+    chain falls Eastmoney->Sina->Tencent->Huatai and never burns Huatai quota
+    while a free source is up."""
+    import importlib
+    lf = importlib.import_module("run_etf_paper_trading_agent")
+    etf = {"stockCode": "513050", "exchange": "SH", "name": "x"}
+    good = lf._thirdparty_quote_response(etf, {"current": 1.086, "prevClose": 1.082, "bid1": 1.085, "ask1": 1.087}, "sina")
+    check("T16 valid record -> ok with bid/ask", good["ok"] and good["data"]["bidPrice1"] == 1.085 and good["data"]["askPrice1"] == 1.087, str(good))
+    bad_price = lf._thirdparty_quote_response(etf, {"current": 0, "prevClose": 1.0}, "sina")
+    check("T16 zero current rejected (no garbage trading)", bad_price["ok"] is False, str(bad_price))
+    bad_prev = lf._thirdparty_quote_response(etf, {"current": 1.0, "prevClose": 0}, "sina")
+    check("T16 zero prevClose rejected", bad_prev["ok"] is False, str(bad_prev))
+    miss_book = lf._thirdparty_quote_response(etf, {"current": 1.5, "prevClose": 1.4}, "tencent")
+    check("T16 missing book defaults bid/ask to current", miss_book["ok"] and miss_book["data"]["bidPrice1"] == 1.5, str(miss_book))
+
+    cfg = {"universe": [{"stockCode": "513050", "exchange": "SH", "name": "x"}],
+           "market_data": {"quote_provider": "eastmoney_primary", "eastmoney_enabled": True,
+                           "sina_enabled": True, "tencent_enabled": True, "huatai_quote_fallback": True}}
+    orig_e, orig_s = lf.fetch_eastmoney_quotes, lf.fetch_sina_quotes
+    lf.fetch_eastmoney_quotes = lambda uni, **k: ([lf.eastmoney_quote_response(e, None, {"message": "fail"}) for e in uni], {"provider": "eastmoney", "ok": False, "ok_count": 0})
+    lf.fetch_sina_quotes = lambda uni, **k: ([lf._thirdparty_quote_response(e, {"current": 1.1, "prevClose": 1.0, "bid1": 1.1, "ask1": 1.1}, "sina") for e in uni], {"provider": "sina", "ok": True, "ok_count": len(uni)})
+
+    class _NoQuoteClient:
+        def get_quote(self, c, e):
+            raise AssertionError("Huatai must NOT be called while a free source is up")
+
+    try:
+        resp, meta = lf.fetch_quote_responses(cfg, _NoQuoteClient())
+    finally:
+        lf.fetch_eastmoney_quotes, lf.fetch_sina_quotes = orig_e, orig_s
+    check("T16 chain falls Eastmoney->Sina", meta.get("provider") == "sina" and resp[0]["ok"], str(meta.get("provider")))
+    check("T16 no Huatai quota burned when free source up", int(meta.get("huatai_quote_calls", -1)) == 0, str(meta.get("huatai_quote_calls")))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -531,6 +566,7 @@ if __name__ == "__main__":
     t10_spa_reality_check()
     t11_fractional_kelly_sizing()
     t12_intraday_momentum()
+    t16_quote_fallback_chain()
     t13_execution_quality_safe_shield_and_dsr()
     t14_513100_entry_blocked_but_sell_allowed()
     t15_emergency_sells_bypass_throttle()

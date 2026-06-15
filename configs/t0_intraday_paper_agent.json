@@ -11,8 +11,11 @@
   "market_data": {
     "quote_provider": "eastmoney_primary",
     "eastmoney_enabled": true,
-    "huatai_quote_fallback": false,
+    "sina_enabled": true,
+    "tencent_enabled": true,
+    "huatai_quote_fallback": true,
     "eastmoney_timeout_seconds": 6,
+    "thirdparty_timeout_seconds": 6,
     "preferred_quote_interval_seconds": 60,
     "huatai_broker_query_min_interval_seconds": 300
   },
