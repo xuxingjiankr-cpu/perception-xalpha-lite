@@ -94,6 +94,13 @@ IM_BUY_BYPASS_CHECKS = {
     "reentry_cooldown",
 }
 
+DEFAULT_SELL_THROTTLE_BYPASS_REASONS = {
+    "kill_switch_liquidation",
+    "emergency_stop_exit",
+    "unrecognized_position_state_liquidation",
+    "intraday_momentum_eod_exit",
+}
+
 DEFAULT_EVOLUTION_ALLOWED_STRATEGY_PATHS = {
     "entry_momentum_pct",
     "exit_momentum_pct",
@@ -2412,6 +2419,12 @@ def build_decision(
                 sell_orders.append(o)
         if sell_orders:
             max_sell_orders_per_run = max(1, int(as_float(strategy.get("max_sell_orders_per_run"), 1)))
+            sell_throttle_interval_minutes = max(0.0, as_float(strategy.get("sell_throttle_interval_minutes"), 5))
+            raw_bypass_reasons = strategy.get("sell_throttle_bypass_reasons")
+            if isinstance(raw_bypass_reasons, list):
+                sell_throttle_bypass_reasons = {str(x) for x in raw_bypass_reasons}
+            else:
+                sell_throttle_bypass_reasons = set(DEFAULT_SELL_THROTTLE_BYPASS_REASONS)
 
             def sell_order_priority(o: dict[str, Any]) -> tuple[float, float, float]:
                 reason_rank = {
@@ -2426,24 +2439,65 @@ def build_decision(
                 return (reason_rank, as_float(o.get("sell_score"), 0.0), loss_urgency)
 
             ranked_sell_orders = sorted(sell_orders, key=sell_order_priority, reverse=True)
-            sell_orders = ranked_sell_orders[:max_sell_orders_per_run]
-            deferred_sell_orders = ranked_sell_orders[max_sell_orders_per_run:]
+            bypass_sell_orders = [
+                o for o in ranked_sell_orders
+                if str(o.get("reason")) in sell_throttle_bypass_reasons or bool(o.get("sell_throttle_bypass"))
+            ]
+            bypass_order_ids = {id(o) for o in bypass_sell_orders}
+            regular_sell_orders = [o for o in ranked_sell_orders if id(o) not in bypass_order_ids]
+            for o in bypass_sell_orders:
+                o["sell_throttle_bypass"] = True
+                o["sell_throttle_bypass_reason"] = "emergency_or_forced_exit"
+            last_sell_bucket = state.get("last_throttled_sell_at_by_date")
+            if not isinstance(last_sell_bucket, dict):
+                last_sell_bucket = {}
+            last_throttled_sell_at = last_sell_bucket.get(trade_date)
+            last_throttled_dt = parse_iso_dt(last_throttled_sell_at)
+            minutes_since_throttled_sell = None
+            if last_throttled_dt is not None:
+                minutes_since_throttled_sell = (local_time - last_throttled_dt).total_seconds() / 60.0
+            interval_active = (
+                minutes_since_throttled_sell is not None
+                and sell_throttle_interval_minutes > 0
+                and minutes_since_throttled_sell < sell_throttle_interval_minutes
+            )
+            if interval_active:
+                selected_regular_orders = []
+                interval_deferred_orders = regular_sell_orders
+            else:
+                selected_regular_orders = regular_sell_orders[:max_sell_orders_per_run]
+                interval_deferred_orders = regular_sell_orders[max_sell_orders_per_run:]
+            for o in selected_regular_orders:
+                o["sell_throttle_bypass"] = False
+            sell_orders = bypass_sell_orders + selected_regular_orders
+            deferred_sell_orders = interval_deferred_orders
             sell_throttle_detail = {
                 "enabled": True,
                 "max_sell_orders_per_run": max_sell_orders_per_run,
+                "sell_throttle_interval_minutes": sell_throttle_interval_minutes,
+                "bypass_reasons": sorted(sell_throttle_bypass_reasons),
+                "interval_active": interval_active,
+                "last_throttled_sell_at": last_throttled_sell_at,
+                "minutes_since_last_throttled_sell": round(minutes_since_throttled_sell, 2) if minutes_since_throttled_sell is not None else None,
                 "eligible_sell_orders": len(ranked_sell_orders),
+                "bypass_sell_orders_count": len(bypass_sell_orders),
+                "regular_sell_orders_count": len(regular_sell_orders),
                 "selected_sell_orders": [
-                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct")}
+                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct"), "sell_throttle_bypass": o.get("sell_throttle_bypass")}
                     for o in sell_orders
                 ],
                 "deferred_sell_orders": [
-                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct")}
+                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct"), "deferred_reason": "sell_throttle_interval_active" if interval_active else "max_sell_orders_per_run"}
                     for o in deferred_sell_orders
                 ],
-                "policy": "per_position_exit_conditions_then_one_sell_per_run",
+                "policy": "emergency_sells_bypass_regular_sells_one_per_interval",
             }
-            action = "sell"
-            reason = sell_orders[0].get("reason")
+            if sell_orders:
+                action = "sell"
+                reason = sell_orders[0].get("reason")
+            else:
+                action = "hold"
+                reason = "sell_throttle_interval_active"
         else:
             action = "hold"
             reason = "carry_allowed_sell_score_not_met"
@@ -2968,6 +3022,12 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                                 last_sell_state = {}
                             last_sell_state[sell_code] = now_iso()
                             state["last_sell_at_by_code"] = last_sell_state
+                            if not bool(order.get("sell_throttle_bypass")):
+                                last_throttled_bucket = state.get("last_throttled_sell_at_by_date")
+                                if not isinstance(last_throttled_bucket, dict):
+                                    last_throttled_bucket = {}
+                                last_throttled_bucket[decision["trade_date"]] = now_iso()
+                                state["last_throttled_sell_at_by_date"] = last_throttled_bucket
                             stop_reasons = {"confirmed_loss_score_exit", "emergency_stop_exit", "bracket_stop_loss", "breakeven_stop_after_t1"}
                             reason_is_stop = order.get("reason") in stop_reasons or (
                                 order.get("reason") == "unified_sell_score_exit" and as_float(order.get("pnl_pct"), 0.0) < 0

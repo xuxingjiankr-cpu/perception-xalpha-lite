@@ -171,21 +171,100 @@ def t6_apply_bounds_and_lock_isolation() -> None:
 
 def t7_multi_position_exit() -> None:
     """3 held positions must ALL be evaluated, but sell submission is throttled
-    to one per run so positions are not liquidated together."""
+    to one regular sell per interval so positions are not liquidated together."""
+    import io as _io
+    import json as _json
+    import copy as _copy
+    from datetime import timedelta
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["profit_exit_score_threshold"] = 65
+    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))  # open session
+    ts = now.isoformat()
+    codes = [("513050", 1.000), ("513100", 1.000), ("588000", 1.000)]
+    positions = [{
+        "stockCode": c, "stockName": c, "exchange": "SH",
+        "quantity": 10000, "availableQuantity": 10000, "costPrice": cost,
+    } for c, cost in codes]
+    # Profitable but deteriorating positions -> normal unified_sell_score_exit.
+    quotes = [{
+        "stockCode": c, "exchange": "SH", "name": c, "asset_class": "hk_etf",
+        "currentPrice": 1.010, "bidPrice1": 1.009,
+        "askPrice1": 1.011, "prevClose": cost, "timestamp": ts,
+        "quote_ok": True, "isSuspended": False, "momentum_available": True,
+        "momentum": -0.003, "spread_pct": 0.0008, "change_pct": 0.01,
+        "acceleration": -0.003, "bid_pressure_3m_pct": -0.001,
+    } for c, cost in codes]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 600_000.0}}
+    positions_resp = {"ok": True, "data": {"positions": positions}}
+    pending_resp = {"ok": True, "data": {"orders": []}}
+    trade_date = "2026-06-15"
+    base_state = {
+        "t0_inventory_by_date": {
+            trade_date: {
+                c: {
+                    "buy_quantity_submitted": 10000,
+                    "sell_quantity_submitted": 0,
+                    "baseline_available_quantity": 0,
+                    "entry_price": cost,
+                    "last_buy_price": cost,
+                    "first_buy_at": (now - timedelta(minutes=30)).isoformat(),
+                    "highest_price_since_entry": 1.020,
+                }
+                for c, cost in codes
+            }
+        }
+    }
+
+    agent.set_replay_now(now)
+    try:
+        decision = agent.build_decision(cfg, quotes, balance, positions_resp, pending_resp, _copy.deepcopy(base_state), None)
+    finally:
+        agent.set_replay_now(None)
+
+    orders = decision.get("orders", [])
+    sell_codes = {o.get("stockCode") for o in orders if o.get("direction") == "sell"}
+    evaluated = set(decision.get("sell_score_by_code", {}).keys())
+    check("T7 all 3 held positions evaluated for exit", evaluated >= {"513050", "513100", "588000"},
+          f"evaluated={evaluated}")
+    deferred = decision.get("deferred_sell_orders", [])
+    check("T7 only one sell order is submitted per run", len(sell_codes) == 1,
+          f"sell_codes={sell_codes}, deferred={deferred}")
+    check("T7 other qualified sells are deferred, not lost", len(deferred) == 2, str(deferred))
+    check("T7 regular sell is not marked as throttle bypass", all(not o.get("sell_throttle_bypass") for o in orders),
+          str(orders))
+    check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
+
+    interval_state = _copy.deepcopy(base_state)
+    interval_state["last_throttled_sell_at_by_date"] = {trade_date: (now - timedelta(minutes=2)).isoformat()}
+    agent.set_replay_now(now)
+    try:
+        interval_decision = agent.build_decision(cfg, quotes, balance, positions_resp, pending_resp, interval_state, None)
+    finally:
+        agent.set_replay_now(None)
+    check("T7 regular sells are blocked during 5-minute interval", len(interval_decision.get("orders", [])) == 0
+          and len(interval_decision.get("deferred_sell_orders", [])) == 3
+          and interval_decision.get("sell_throttle", {}).get("interval_active") is True,
+          str(interval_decision.get("sell_throttle")))
+
+
+def t15_emergency_sells_bypass_throttle() -> None:
+    """Emergency exits bypass regular sell throttling."""
     import io as _io
     import json as _json
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
-    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))  # open session
+    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
     ts = now.isoformat()
     codes = [("513050", 1.092), ("513100", 2.201), ("588000", 1.744)]
     positions = [{
         "stockCode": c, "stockName": c, "exchange": "SH",
         "quantity": 10000, "availableQuantity": 10000, "costPrice": cost,
     } for c, cost in codes]
-    # current 5% below cost -> emergency_stop (unconditional) fires for all three
     quotes = [{
         "stockCode": c, "exchange": "SH", "name": c, "asset_class": "hk_etf",
         "currentPrice": round(cost * 0.95, 3), "bidPrice1": round(cost * 0.949, 3),
@@ -202,17 +281,10 @@ def t7_multi_position_exit() -> None:
         decision = agent.build_decision(cfg, quotes, balance, positions_resp, pending_resp, {}, None)
     finally:
         agent.set_replay_now(None)
-
     orders = decision.get("orders", [])
     sell_codes = {o.get("stockCode") for o in orders if o.get("direction") == "sell"}
-    evaluated = set(decision.get("sell_score_by_code", {}).keys())
-    check("T7 all 3 held positions evaluated for exit", evaluated >= {"513050", "513100", "588000"},
-          f"evaluated={evaluated}")
-    deferred = decision.get("deferred_sell_orders", [])
-    check("T7 only one sell order is submitted per run", len(sell_codes) == 1,
-          f"sell_codes={sell_codes}, deferred={deferred}")
-    check("T7 other qualified sells are deferred, not lost", len(deferred) == 2, str(deferred))
-    check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
+    check("T15 all emergency sell orders bypass throttle", sell_codes >= {"513050", "513100", "588000"}
+          and all(o.get("sell_throttle_bypass") for o in orders), str(decision.get("sell_throttle")))
 
 
 def t8_diebold_mariano_gate() -> None:
@@ -461,6 +533,7 @@ if __name__ == "__main__":
     t12_intraday_momentum()
     t13_execution_quality_safe_shield_and_dsr()
     t14_513100_entry_blocked_but_sell_allowed()
+    t15_emergency_sells_bypass_throttle()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

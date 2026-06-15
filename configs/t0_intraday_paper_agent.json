@@ -25,6 +25,13 @@
     "stop_loss_pct": -0.012,
     "take_profit_pct": 0.018,
     "max_sell_orders_per_run": 1,
+    "sell_throttle_interval_minutes": 5,
+    "sell_throttle_bypass_reasons": [
+      "kill_switch_liquidation",
+      "emergency_stop_exit",
+      "unrecognized_position_state_liquidation",
+      "intraday_momentum_eod_exit"
+    ],
     "min_profit_exit_pct": 0.003,
     "min_hold_minutes": 10,
     "loss_review_after_minutes": 15,
