@@ -691,10 +691,12 @@ def write_candidate_config(base_cfg: dict[str, Any], overlay: dict[str, Any], pa
     write_json(path, cfg)
 
 
-def run_replay(config_path: Path, label: str, date_filter: str | None) -> tuple[bool, str]:
+def run_replay(config_path: Path, label: str, date_filter: str | None, quotes_path: str | None = None) -> tuple[bool, str]:
     cmd = [sys.executable, str(ROOT / "scripts" / "replay_t0_decisions.py"), "--config", str(config_path), "--label", label]
     if date_filter:
         cmd.extend(["--date", date_filter])
+    if quotes_path:
+        cmd.extend(["--quotes", quotes_path])
     proc = subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True, timeout=120)
     return proc.returncode == 0, (proc.stdout + "\n" + proc.stderr).strip()
 
@@ -755,6 +757,7 @@ def evaluate_candidate(
     name: str,
     overlay: dict[str, Any],
     date_filter: str | None,
+    quotes_path: str | None = None,
 ) -> dict[str, Any]:
     bad_paths = validate_allowed_paths(base_cfg, overlay)
     if bad_paths:
@@ -778,7 +781,7 @@ def evaluate_candidate(
     cfg_path = cfg_dir / f"{prefix}_{name}.json"
     write_candidate_config(base_cfg, overlay, cfg_path)
     label = f"{prefix}_{name}"
-    ok, log = run_replay(cfg_path, label, date_filter)
+    ok, log = run_replay(cfg_path, label, date_filter, quotes_path)
     summary = load_replay_summary(label) if ok else {}
     return summarize_candidate(name, overlay, summary, ok, log)
 
@@ -788,6 +791,7 @@ def cma_es_blackbox_candidates(
     cfg_dir: Path,
     prefix: str,
     date_filter: str | None,
+    quotes_path: str | None,
     generations: int,
     population_size: int,
     seed: int,
@@ -816,7 +820,7 @@ def cma_es_blackbox_candidates(
             ]
             overlay = overlay_from_vector(vec)
             name = f"cmaes_g{gen + 1:02d}_i{idx + 1:02d}"
-            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, overlay, date_filter)
+            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, overlay, date_filter, quotes_path)
             row["optimizer"] = "bounded_diagonal_cma_es"
             row["generation"] = gen + 1
             gen_rows.append(row)
@@ -909,6 +913,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Paper-only T0 strategy evolution via offline replay")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG))
+    parser.add_argument("--quotes", default=None, help="optional replay quote jsonl path")
     parser.add_argument("--date", default=None, help="optional YYYY-MM-DD replay subset")
     parser.add_argument("--label-prefix", default=None)
     parser.add_argument("--optimizer", choices=["fixed", "cmaes", "both"], default=None)
@@ -943,7 +948,7 @@ def main() -> None:
     if fixed_candidates:
         for cand in fixed_candidates:
             name = cand["name"]
-            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, cand["overlay"], args.date)
+            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, cand["overlay"], args.date, args.quotes)
             row["optimizer"] = "fixed_grid"
             if row.get("invalid_overlay_paths"):
                 invalid[name] = row["invalid_overlay_paths"]
@@ -955,6 +960,7 @@ def main() -> None:
             cfg_dir=cfg_dir,
             prefix=prefix,
             date_filter=args.date,
+            quotes_path=args.quotes,
             generations=args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),
             population_size=args.cma_population or int(as_float(optimizer_cfg.get("population_size"), 4)),
             seed=args.cma_seed or int(as_float(optimizer_cfg.get("seed"), 20260614)),

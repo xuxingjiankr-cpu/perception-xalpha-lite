@@ -38,6 +38,7 @@ KLINE_ENDPOINTS = [
     "https://push2his.eastmoney.com/api/qt/stock/kline/get",
     "http://push2his.eastmoney.com/api/qt/stock/kline/get",
 ]
+SINA_KLINE_ENDPOINT = "https://quotes.sina.cn/cn/api/openapi.php/CN_MarketDataService.getKLineData"
 
 FS_MAP = {
     "ashare": "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23",
@@ -546,6 +547,93 @@ def fetch_minute_kline(secid: str, begin: str, end: str, timeout_seconds: float)
     return klines, meta
 
 
+def sina_symbol(sec: dict[str, Any]) -> str:
+    prefix = "sh" if str(sec.get("market")) == "1" else "sz"
+    return prefix + str(sec.get("stockCode", "")).zfill(6)
+
+
+def fetch_sina_minute_rows(
+    sec: dict[str, Any],
+    begin: str,
+    end: str,
+    timeout_seconds: float,
+    datalen: int = 1023,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    params = {
+        "symbol": sina_symbol(sec),
+        "scale": "1",
+        "ma": "no",
+        "datalen": str(datalen),
+    }
+    encoded = urllib.parse.urlencode(params)
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://finance.sina.com.cn",
+    }
+    meta: dict[str, Any] = {
+        "provider": "sina",
+        "symbol": params["symbol"],
+        "secid": sec.get("secid"),
+        "stockCode": sec.get("stockCode"),
+        "datalen": datalen,
+    }
+    try:
+        req = urllib.request.Request(SINA_KLINE_ENDPOINT + "?" + encoded, headers=headers)
+        with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+        payload = json.loads(raw)
+        raw_rows = ((payload.get("result") or {}).get("data") or [])
+        if not isinstance(raw_rows, list):
+            raw_rows = []
+    except Exception as exc:
+        meta.update({"ok": False, "error": {"category": "network", "message": str(exc)}, "row_count": 0})
+        return [], meta
+
+    rows: list[dict[str, Any]] = []
+    prev_close: float | None = None
+    for raw_row in raw_rows:
+        if not isinstance(raw_row, dict):
+            continue
+        dt = str(raw_row.get("day") or "")
+        ymd = dt[:10].replace("-", "")
+        if ymd < begin or ymd > end:
+            continue
+        close_px = as_float(raw_row.get("close"))
+        open_px = as_float(raw_row.get("open"))
+        high_px = as_float(raw_row.get("high"))
+        low_px = as_float(raw_row.get("low"))
+        change_abs = 0.0 if prev_close in (None, 0) else close_px - prev_close
+        change_pct = 0.0 if prev_close in (None, 0) else (change_abs / prev_close) * 100.0
+        rows.append({
+            "datetime": dt,
+            "secid": sec["secid"],
+            "market": sec["market"],
+            "stockCode": sec["stockCode"],
+            "name": sec.get("name", ""),
+            "open": open_px,
+            "close": close_px,
+            "high": high_px,
+            "low": low_px,
+            "volume": as_float(raw_row.get("volume")),
+            "amount": as_float(raw_row.get("amount")),
+            "amplitude_pct": 0.0,
+            "change_pct": round(change_pct, 6),
+            "change_abs": round(change_abs, 6),
+            "turnover_pct": 0.0,
+            "source": "sina",
+        })
+        if close_px > 0:
+            prev_close = close_px
+    meta.update({
+        "ok": True,
+        "raw_row_count": len(raw_rows),
+        "row_count": len(rows),
+        "first_datetime": rows[0]["datetime"] if rows else None,
+        "last_datetime": rows[-1]["datetime"] if rows else None,
+    })
+    return rows, meta
+
+
 def parse_kline_row(line: str, sec: dict[str, Any]) -> dict[str, Any]:
     parts = line.split(",")
     while len(parts) < 11:
@@ -643,17 +731,33 @@ def backfill_minute(args: argparse.Namespace) -> dict[str, Any]:
             skipped += 1
             runs.append({"secid": sec["secid"], "status": "skipped_exists", "output_file": str(out_file)})
             continue
+        provider = str(getattr(args, "kline_provider", "eastmoney"))
         klines: list[str] = []
+        rows: list[dict[str, Any]] = []
         meta: dict[str, Any] = {}
-        for attempt_no in range(1, max(1, int(getattr(args, "kline_retries", 1))) + 1):
-            klines, meta = fetch_minute_kline(sec["secid"], begin, end, args.timeout_seconds)
-            meta["kline_attempt_no"] = attempt_no
-            if klines or meta.get("ok"):
-                break
-            if attempt_no < int(getattr(args, "kline_retries", 1)) and as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)) > 0:
-                time.sleep(as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)))
-        if klines:
-            rows = [parse_kline_row(x, sec) for x in klines]
+        if provider in {"eastmoney", "eastmoney_then_sina"}:
+            for attempt_no in range(1, max(1, int(getattr(args, "kline_retries", 1))) + 1):
+                klines, meta = fetch_minute_kline(sec["secid"], begin, end, args.timeout_seconds)
+                meta["kline_attempt_no"] = attempt_no
+                if klines or meta.get("ok"):
+                    break
+                if attempt_no < int(getattr(args, "kline_retries", 1)) and as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)) > 0:
+                    time.sleep(as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)))
+            if klines:
+                rows = [parse_kline_row(x, sec) for x in klines]
+                meta["provider_used"] = "eastmoney"
+        if not rows and provider in {"sina", "eastmoney_then_sina"}:
+            sina_rows, sina_meta = fetch_sina_minute_rows(
+                sec,
+                begin,
+                end,
+                args.timeout_seconds,
+                int(getattr(args, "sina_datalen", 1023)),
+            )
+            if sina_rows:
+                rows = sina_rows
+            meta = {"eastmoney_meta": meta, "sina_meta": sina_meta, "provider_used": "sina" if rows else None}
+        if rows:
             write_csv_gz(out_file, rows, MINUTE_COLUMNS)
             ok += 1
             rows_total += len(rows)
@@ -668,7 +772,7 @@ def backfill_minute(args: argparse.Namespace) -> dict[str, Any]:
             "stockCode": sec["stockCode"],
             "name": sec.get("name"),
             "status": status,
-            "row_count": meta.get("row_count", 0),
+            "row_count": len(rows) if status == "ok" else meta.get("row_count", 0),
             "output_file": str(out_file) if status == "ok" else None,
             "request_meta": meta,
             "created_at": now_iso(),
@@ -694,6 +798,7 @@ def backfill_minute(args: argparse.Namespace) -> dict[str, Any]:
         "row_count": rows_total,
         "output_dir": str(base_dir),
         "source": "eastmoney",
+        "kline_provider": str(getattr(args, "kline_provider", "eastmoney")),
         "huatai_api_used": False,
         "paper_trading_only": True,
         "live_ready": False,
@@ -737,6 +842,8 @@ def build_parser() -> argparse.ArgumentParser:
     backfill.add_argument("--timeout-seconds", type=float, default=8.0)
     backfill.add_argument("--page-retries", type=int, default=3)
     backfill.add_argument("--retry-sleep-seconds", type=float, default=0.5)
+    backfill.add_argument("--kline-provider", choices=["eastmoney", "sina", "eastmoney_then_sina"], default="eastmoney")
+    backfill.add_argument("--sina-datalen", type=int, default=1023)
     backfill.add_argument("--kline-retries", type=int, default=1)
     backfill.add_argument("--kline-retry-sleep-seconds", type=float, default=0.5)
     backfill.add_argument("--sleep-seconds", type=float, default=0.15)
