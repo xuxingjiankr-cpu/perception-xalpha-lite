@@ -2230,12 +2230,25 @@ def build_decision(
 
     liquid_quotes = []
     ranking_exclusions = []
+    raw_blocked_codes = strategy.get("entry_blocked_codes") or []
+    entry_blocked_codes = {str(x).zfill(6) for x in raw_blocked_codes if str(x).strip()}
+    blocked_code_reasons = strategy.get("entry_blocked_code_reasons", {})
+    if not isinstance(blocked_code_reasons, dict):
+        blocked_code_reasons = {}
     for q in quotes:
         spread = q.get("spread_pct")
         spread_ok = spread is not None and spread >= 0 and spread <= as_float(filters.get("max_spread_pct"), 0.0015)
         volume_ok = True
         if volume_fields_available:
             volume_ok = as_float(q.get("volume"), 0) >= as_float(filters.get("min_volume"), 0) and as_float(q.get("amount"), 0) >= as_float(filters.get("min_amount"), 0)
+        qcode = str(q.get("stockCode", "")).zfill(6)
+        if qcode in entry_blocked_codes:
+            ranking_exclusions.append({
+                "stockCode": q.get("stockCode"),
+                "asset_class": q.get("asset_class"),
+                "excluded_reason": blocked_code_reasons.get(qcode, "entry_blocked_by_config"),
+            })
+            continue
         if q.get("asset_class") in ENTRY_EXCLUDED_ASSET_CLASSES:
             ranking_exclusions.append({
                 "stockCode": q.get("stockCode"),
@@ -2363,9 +2376,11 @@ def build_decision(
     entries_today = daily_state_bucket(state, "entries_by_date", trade_date)
     add("daily_entry_limit", entries_today < max_entries_per_day, {"entries_today": entries_today, "max_entries_per_day": max_entries_per_day})
 
-    # 统一 sell_score 出场引擎: 遍历所有持仓, 每仓独立评估, 一轮可产出多个卖单
-    # (避免单仓饥饿: 隔夜多仓时不会因首仓不卖而让其他仓连 emergency_stop 都过不了)
+    # 统一 sell_score 出场引擎: 遍历所有持仓, 每仓独立评估。
+    # 订单提交层再按 max_sell_orders_per_run 节流，避免同一轮把多仓一起卖出。
     sell_orders: list[dict[str, Any]] = []
+    deferred_sell_orders: list[dict[str, Any]] = []
+    sell_throttle_detail: dict[str, Any] = {"enabled": False}
     sell_score_by_code: dict[str, Any] = {}
     carry_allowed_by_code: dict[str, bool] = {}
     quote_stale = any(not c.get("passed") for c in checks if c.get("name") == "quote_freshness")
@@ -2396,6 +2411,37 @@ def build_decision(
                     continue
                 sell_orders.append(o)
         if sell_orders:
+            max_sell_orders_per_run = max(1, int(as_float(strategy.get("max_sell_orders_per_run"), 1)))
+
+            def sell_order_priority(o: dict[str, Any]) -> tuple[float, float, float]:
+                reason_rank = {
+                    "kill_switch_liquidation": 100.0,
+                    "emergency_stop_exit": 95.0,
+                    "unrecognized_position_state_liquidation": 90.0,
+                    "intraday_momentum_eod_exit": 85.0,
+                    "unified_sell_score_exit": 50.0,
+                }.get(str(o.get("reason")), 10.0)
+                pnl_pct = as_float(o.get("pnl_pct"), 0.0)
+                loss_urgency = max(0.0, -pnl_pct) * 1000.0
+                return (reason_rank, as_float(o.get("sell_score"), 0.0), loss_urgency)
+
+            ranked_sell_orders = sorted(sell_orders, key=sell_order_priority, reverse=True)
+            sell_orders = ranked_sell_orders[:max_sell_orders_per_run]
+            deferred_sell_orders = ranked_sell_orders[max_sell_orders_per_run:]
+            sell_throttle_detail = {
+                "enabled": True,
+                "max_sell_orders_per_run": max_sell_orders_per_run,
+                "eligible_sell_orders": len(ranked_sell_orders),
+                "selected_sell_orders": [
+                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct")}
+                    for o in sell_orders
+                ],
+                "deferred_sell_orders": [
+                    {"stockCode": o.get("stockCode"), "reason": o.get("reason"), "sell_score": o.get("sell_score"), "pnl_pct": o.get("pnl_pct")}
+                    for o in deferred_sell_orders
+                ],
+                "policy": "per_position_exit_conditions_then_one_sell_per_run",
+            }
             action = "sell"
             reason = sell_orders[0].get("reason")
         else:
@@ -2666,7 +2712,7 @@ def build_decision(
         else:
             reason = "no_entry_signal"
 
-    # A decision is EITHER one BUY (when flat) OR N SELLs (one per held position).
+    # A decision is EITHER one BUY (when flat) OR throttled SELLs (normally one per run).
     orders_list: list[dict[str, Any]] = sell_orders if held_codes else ([order] if order else [])
     is_sell_batch = bool(orders_list) and all(o.get("direction") == "sell" for o in orders_list)
     all_unconditional = is_sell_batch and all(bool(o.get("unconditional_exit")) for o in orders_list)
@@ -2733,6 +2779,8 @@ def build_decision(
         "held_codes": held_codes,
         "sell_score_by_code": sell_score_by_code,
         "carry_allowed_by_code": carry_allowed_by_code,
+        "sell_throttle": sell_throttle_detail,
+        "deferred_sell_orders": deferred_sell_orders,
         "carry_allowed": (all(carry_allowed_by_code.values()) if carry_allowed_by_code else None),
     }
 

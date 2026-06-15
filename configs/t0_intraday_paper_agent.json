@@ -24,6 +24,7 @@
     "exit_momentum_pct": -0.001,
     "stop_loss_pct": -0.012,
     "take_profit_pct": 0.018,
+    "max_sell_orders_per_run": 1,
     "min_profit_exit_pct": 0.003,
     "min_hold_minutes": 10,
     "loss_review_after_minutes": 15,
@@ -67,6 +68,12 @@
       "market_breadth_positive": 10
     },
     "cross_etf_divergence_threshold": 0.002,
+    "entry_blocked_codes": [
+      "513100"
+    ],
+    "entry_blocked_code_reasons": {
+      "513100": "recent_replay_negative_contribution_strict_control"
+    },
     "consolidation": {
       "enabled": true,
       "window_snapshots": 6,

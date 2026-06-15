@@ -170,7 +170,8 @@ def t6_apply_bounds_and_lock_isolation() -> None:
 
 
 def t7_multi_position_exit() -> None:
-    """3 held positions must ALL be evaluated and exit in one run (no starvation)."""
+    """3 held positions must ALL be evaluated, but sell submission is throttled
+    to one per run so positions are not liquidated together."""
     import io as _io
     import json as _json
     from datetime import datetime
@@ -207,8 +208,10 @@ def t7_multi_position_exit() -> None:
     evaluated = set(decision.get("sell_score_by_code", {}).keys())
     check("T7 all 3 held positions evaluated for exit", evaluated >= {"513050", "513100", "588000"},
           f"evaluated={evaluated}")
-    check("T7 all 3 produce sell orders in one run", sell_codes >= {"513050", "513100", "588000"},
-          f"sell_codes={sell_codes}")
+    deferred = decision.get("deferred_sell_orders", [])
+    check("T7 only one sell order is submitted per run", len(sell_codes) == 1,
+          f"sell_codes={sell_codes}, deferred={deferred}")
+    check("T7 other qualified sells are deferred, not lost", len(deferred) == 2, str(deferred))
     check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
 
 
@@ -406,6 +409,45 @@ def t13_execution_quality_safe_shield_and_dsr() -> None:
     check("T13 DSR passes stable post-search edge", dsr.get("significant") is True, str(dsr))
 
 
+def t14_513100_entry_blocked_but_sell_allowed() -> None:
+    """513100 is quote-collected and sellable, but excluded from new BUY ranking."""
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    ts = now.isoformat()
+    quotes = [
+        {"stockCode": "513100", "exchange": "SH", "name": "513100", "asset_class": "cross_border_etf",
+         "currentPrice": 2.20, "bidPrice1": 2.199, "askPrice1": 2.201, "midpoint": 2.20,
+         "prevClose": 2.18, "timestamp": ts, "quote_ok": True, "isSuspended": False,
+         "momentum_available": True, "momentum": 0.01, "spread_pct": 0.0008, "change_pct": 0.01,
+         "bid_pressure_3m_pct": 0.001, "acceleration": 0.002},
+        {"stockCode": "513050", "exchange": "SH", "name": "513050", "asset_class": "hk_etf",
+         "currentPrice": 1.10, "bidPrice1": 1.099, "askPrice1": 1.101, "midpoint": 1.10,
+         "prevClose": 1.09, "timestamp": ts, "quote_ok": True, "isSuspended": False,
+         "momentum_available": True, "momentum": 0.004, "spread_pct": 0.0008, "change_pct": 0.01,
+         "bid_pressure_3m_pct": 0.001, "acceleration": 0.002},
+    ]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, quotes, balance, {"ok": True, "data": {"positions": []}}, {"ok": True, "data": {"orders": []}}, {}, None)
+    finally:
+        agent.set_replay_now(None)
+    ranked_codes = [str(q.get("stockCode")).zfill(6) for q in dec.get("ranked", [])]
+    exclusions = []
+    for chk in dec.get("risk_checks", []):
+        if chk.get("name") == "quote_liquidity_filter":
+            exclusions = (chk.get("detail") or {}).get("ranking_exclusions") or []
+    order_codes = [str(o.get("stockCode")).zfill(6) for o in dec.get("orders", []) if o.get("direction") == "buy"]
+    check("T14 513100 excluded from new BUY ranking", "513100" not in ranked_codes
+          and any(str(x.get("stockCode")).zfill(6) == "513100" for x in exclusions), str(dec.get("ranked")))
+    check("T14 513100 is not bought even with highest momentum", "513100" not in order_codes, str(dec.get("orders")))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -418,6 +460,7 @@ if __name__ == "__main__":
     t11_fractional_kelly_sizing()
     t12_intraday_momentum()
     t13_execution_quality_safe_shield_and_dsr()
+    t14_513100_entry_blocked_but_sell_allowed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
