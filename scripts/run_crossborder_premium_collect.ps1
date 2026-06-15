@@ -10,12 +10,14 @@ New-Item -ItemType Directory -Force -Path (Split-Path $Log) | Out-Null
 Set-Location $Root
 $env:PYTHONIOENCODING = "utf-8"
 
-$Now = Get-Date
-$Minutes = $Now.Hour * 60 + $Now.Minute
-$IsWeekday = [int]$Now.DayOfWeek -ge 1 -and [int]$Now.DayOfWeek -le 5
+# Gate on Shanghai time (A-share session), not machine-local time (machine is KST/+9).
+$Sh = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), 'China Standard Time')
+$Minutes = $Sh.Hour * 60 + $Sh.Minute
+$IsWeekday = [int]$Sh.DayOfWeek -ge 1 -and [int]$Sh.DayOfWeek -le 5
 $InMorning = $Minutes -ge (9 * 60 + 30) -and $Minutes -le (11 * 60 + 30)
 $InAfternoon = $Minutes -ge (13 * 60) -and $Minutes -le (15 * 60)
 $stamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
+$stamp = "$stamp SH=$($Sh.ToString('HH:mm'))"
 
 if (-not ($IsWeekday -and ($InMorning -or $InAfternoon))) {
     Add-Content -Path $Log -Value "[$stamp] outside A-share session; skip" -Encoding UTF8
