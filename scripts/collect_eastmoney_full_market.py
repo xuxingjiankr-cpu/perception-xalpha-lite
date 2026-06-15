@@ -158,6 +158,34 @@ def clean(value: Any, default: Any = None) -> Any:
     return default if value in (None, "", "-") else value
 
 
+MONEY_FUND_NAME_KEYWORDS = (
+    "\u8d27\u5e01",       # currency / money market
+    "\u73b0\u91d1",       # cash
+    "\u4fdd\u8bc1\u91d1", # margin/collateral cash fund
+    "\u5feb\u7ebf",       # cash quick line
+    "\u5feb\u94b1",       # cash money fund names
+    "\u65e5\u5229",       # daily yield cash fund
+    "\u6dfb\u76ca",       # cash-income style ETF names
+    "\u7406\u8d22",       # cash management
+)
+
+
+def is_money_market_fund(row: dict[str, Any]) -> bool:
+    name = str(row.get("name") or row.get("f14") or "")
+    return any(keyword in name for keyword in MONEY_FUND_NAME_KEYWORDS)
+
+
+def filter_money_market_funds(universe: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    kept: list[dict[str, Any]] = []
+    excluded: list[dict[str, Any]] = []
+    for row in universe:
+        if is_money_market_fund(row):
+            excluded.append({**row, "excluded_reason": "money_market_fund_name_keyword"})
+        else:
+            kept.append(row)
+    return kept, excluded
+
+
 def eastmoney_quote_time(value: Any) -> str | None:
     try:
         ts = int(float(value))
@@ -556,6 +584,12 @@ def universe_for_backfill(args: argparse.Namespace) -> list[dict[str, Any]]:
             page_retries=args.page_retries,
             retry_sleep_seconds=args.retry_sleep_seconds,
         )
+    if getattr(args, "exclude_money_funds", False):
+        universe, excluded = filter_money_market_funds(universe)
+        excluded_file = DATA_ROOT / "universe" / f"eastmoney_excluded_money_funds_{args.scope}_{now_cn().strftime('%Y%m%d')}.jsonl"
+        write_jsonl(excluded_file, excluded)
+        setattr(args, "_excluded_money_funds_count", len(excluded))
+        setattr(args, "_excluded_money_funds_file", str(excluded_file))
     if args.max_codes:
         universe = universe[:args.max_codes]
     return universe
@@ -574,6 +608,9 @@ def plan_backfill(args: argparse.Namespace) -> dict[str, Any]:
         "begin": begin,
         "end": end,
         "security_count": len(universe),
+        "exclude_money_funds": bool(getattr(args, "exclude_money_funds", False)),
+        "excluded_money_funds_count": int(getattr(args, "_excluded_money_funds_count", 0)),
+        "excluded_money_funds_file": getattr(args, "_excluded_money_funds_file", None),
         "universe_file": str(universe_file),
         "estimated_requests": len(universe),
         "sleep_seconds": args.sleep_seconds,
@@ -606,7 +643,15 @@ def backfill_minute(args: argparse.Namespace) -> dict[str, Any]:
             skipped += 1
             runs.append({"secid": sec["secid"], "status": "skipped_exists", "output_file": str(out_file)})
             continue
-        klines, meta = fetch_minute_kline(sec["secid"], begin, end, args.timeout_seconds)
+        klines: list[str] = []
+        meta: dict[str, Any] = {}
+        for attempt_no in range(1, max(1, int(getattr(args, "kline_retries", 1))) + 1):
+            klines, meta = fetch_minute_kline(sec["secid"], begin, end, args.timeout_seconds)
+            meta["kline_attempt_no"] = attempt_no
+            if klines or meta.get("ok"):
+                break
+            if attempt_no < int(getattr(args, "kline_retries", 1)) and as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)) > 0:
+                time.sleep(as_float(getattr(args, "kline_retry_sleep_seconds", 0.0)))
         if klines:
             rows = [parse_kline_row(x, sec) for x in klines]
             write_csv_gz(out_file, rows, MINUTE_COLUMNS)
@@ -640,6 +685,9 @@ def backfill_minute(args: argparse.Namespace) -> dict[str, Any]:
         "begin": begin,
         "end": end,
         "security_count": len(universe),
+        "exclude_money_funds": bool(getattr(args, "exclude_money_funds", False)),
+        "excluded_money_funds_count": int(getattr(args, "_excluded_money_funds_count", 0)),
+        "excluded_money_funds_file": getattr(args, "_excluded_money_funds_file", None),
         "ok_count": ok,
         "skipped_count": skipped,
         "failed_count": failed,
@@ -680,6 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--sleep-seconds", type=float, default=0.15)
     plan.add_argument("--max-codes", type=int, default=0)
     plan.add_argument("--universe-file", default="")
+    plan.add_argument("--exclude-money-funds", action="store_true")
 
     backfill = sub.add_parser("backfill-minute")
     backfill.add_argument("--scope", choices=["tracked", "etf", "ashare", "all"], default="tracked")
@@ -688,9 +737,12 @@ def build_parser() -> argparse.ArgumentParser:
     backfill.add_argument("--timeout-seconds", type=float, default=8.0)
     backfill.add_argument("--page-retries", type=int, default=3)
     backfill.add_argument("--retry-sleep-seconds", type=float, default=0.5)
+    backfill.add_argument("--kline-retries", type=int, default=1)
+    backfill.add_argument("--kline-retry-sleep-seconds", type=float, default=0.5)
     backfill.add_argument("--sleep-seconds", type=float, default=0.15)
     backfill.add_argument("--max-codes", type=int, default=0)
     backfill.add_argument("--universe-file", default="")
+    backfill.add_argument("--exclude-money-funds", action="store_true")
     backfill.add_argument("--overwrite", action="store_true")
     return parser
 

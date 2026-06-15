@@ -62,8 +62,8 @@
       "time_confirmation": 10,
       "liquidity_deterioration": 15,
       "acceleration_negative": 15,
-      "near_close_1420": 20,
-      "near_close_1450": 35,
+      "near_close_1420": 0,
+      "near_close_1450": 0,
       "profit_drawdown": 25,
       "profit_floor": 20,
       "drawdown_from_high": 25,
@@ -71,7 +71,7 @@
       "profit_acceleration_negative": 15,
       "profit_bid_pressure_negative": 15,
       "vwap_breakdown": 15,
-      "near_close": 10
+      "near_close": 0
     },
     "entry_score_threshold": 50,
     "entry_score_weights": {
