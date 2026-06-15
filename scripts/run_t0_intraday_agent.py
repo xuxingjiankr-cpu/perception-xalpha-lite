@@ -29,6 +29,7 @@ from run_etf_paper_trading_agent import (
     cn_market_session,
     expand_path,
     extract_data,
+    fetch_quote_responses,
     is_quota_exhausted_response,
     load_json,
     load_state,
@@ -537,6 +538,67 @@ def t0_api_budget_result(
     }
 
 
+def t0_quote_only_broker_query_throttled_result(
+    cfg: dict[str, Any],
+    execute: bool,
+    out_dir: Path,
+    trade_date: str,
+    session: dict[str, Any],
+    quotes: list[dict[str, Any]],
+    market_data_report: dict[str, Any],
+    throttle_detail: dict[str, Any],
+) -> dict[str, Any]:
+    local_time = exchange_local_time(session)
+    return {
+        "timestamp": now_iso(),
+        "agent_name": cfg.get("agent_name"),
+        "mode": cfg.get("mode", "paper_dry_run"),
+        "execution_enabled": bool(cfg.get("execution_enabled")),
+        "cli_execute": bool(execute),
+        "asset_type": cfg.get("asset_type"),
+        "paper_trading_only": True,
+        "live_ready": False,
+        "formal_strategy_allowed": False,
+        "investment_recommendation": False,
+        "status": "quote_only_broker_query_throttled",
+        "reason": "huatai_broker_query_interval_active",
+        "trade_date": trade_date,
+        "session": session,
+        "system_time": {
+            "system_timezone": "Asia/Seoul",
+            "system_local_time": system_local_time().isoformat(),
+            "exchange_timezone": "Asia/Shanghai",
+            "exchange_local_time": local_time.isoformat(),
+            "time_guard_basis": "exchange_local_time",
+        },
+        "quotes": quotes,
+        "market_data_report": market_data_report,
+        "broker_query_throttle": throttle_detail,
+        "ranked": [],
+        "positions_t0": {},
+        "t0_inventory": {},
+        "t0_sellable_by_code": {},
+        "pending_t0_orders": [],
+        "volume_filter_status": "eastmoney_quote_only",
+        "state_machine": {
+            "state": "quote_only",
+            "action": "hold",
+            "reason": "huatai_broker_query_interval_active",
+        },
+        "risk_checks": [{
+            "name": "huatai_broker_query_interval_clear",
+            "passed": False,
+            "detail": throttle_detail,
+        }],
+        "approved_for_submit": False,
+        "orders": [],
+        "submit_results": [],
+        "cancel_result": {"attempted": False, "reason": "broker_query_throttled"},
+        "fill_reconciliation": {"attempted": False, "reason": "broker_query_throttled"},
+        "output_dir": str(out_dir),
+    }
+
+
 def normalize_quote(etf: dict[str, Any], resp: dict[str, Any]) -> dict[str, Any]:
     data = extract_data(resp)
     current = as_float(data.get("currentPrice"))
@@ -566,6 +628,8 @@ def normalize_quote(etf: dict[str, Any], resp: dict[str, Any]) -> dict[str, Any]
         "raw_has_volume_field": volume is not None,
         "raw_has_amount_field": amount is not None,
         "quote_error": None if resp.get("ok") else resp.get("error"),
+        "quote_source": data.get("source") or resp.get("_market_data_provider") or resp.get("_cmd_tool"),
+        "source_quote_time": data.get("source_quote_time"),
     }
 
 
@@ -2875,13 +2939,30 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     quota_path = quota_state_path(out_dir, cfg)
     quota_status = quota_backoff_status(quota_path, trade_date)
     if quota_status.get("active"):
-        return t0_quota_backoff_result(
+        quote_responses, market_data_report = fetch_quote_responses(cfg, client)
+        quotes = [
+            normalize_quote(etf, resp)
+            for etf, resp in zip(cfg["universe"], quote_responses)
+        ]
+        minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
+        history = load_recent_quotes(minute_path)
+        quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
+        for q in quotes:
+            append_jsonl(minute_path, q)
+        append_csv(out_dir / cfg["outputs"]["minute_quotes_csv"], quotes)
+        local_time = exchange_local_time(session)
+        update_orb_state(state, trade_date, quotes, local_time, bool(session.get("in_regular_session")))
+        save_state(state_path, state)
+        out = t0_quota_backoff_result(
             cfg,
             execute,
             out_dir,
             "quota_exhausted_backoff_active",
             quota_status,
+            quotes,
         )
+        out["market_data_report"] = market_data_report
+        return out
 
     max_api_runs = int(cfg.get("risk", {}).get("max_daily_api_runs", 80))
     api_runs_today = daily_state_bucket(state, "api_runs_by_date", trade_date)
@@ -2891,12 +2972,11 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     increment_daily_state(state, "api_runs_by_date", trade_date)
     save_state(state_path, state)
 
-    quotes = []
-    quote_responses = []
-    for etf in cfg["universe"]:
-        resp = client.get_quote(etf["stockCode"], etf["exchange"])
-        quote_responses.append(resp)
-        quotes.append(normalize_quote(etf, resp))
+    quote_responses, market_data_report = fetch_quote_responses(cfg, client)
+    quotes = [
+        normalize_quote(etf, resp)
+        for etf, resp in zip(cfg["universe"], quote_responses)
+    ]
 
     minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
     history = load_recent_quotes(minute_path)
@@ -2925,10 +3005,44 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     local_time = exchange_local_time(session)
     update_orb_state(state, trade_date, quotes, local_time, bool(session.get("in_regular_session")))
 
+    md_cfg = cfg.get("market_data", {}) if isinstance(cfg.get("market_data"), dict) else {}
+    broker_query_interval = max(0.0, as_float(md_cfg.get("huatai_broker_query_min_interval_seconds"), 0.0))
+    last_broker_query_at = state.get("last_huatai_broker_query_at")
+    last_broker_dt = parse_iso_dt(last_broker_query_at)
+    seconds_since_broker_query = None
+    if last_broker_dt is not None:
+        seconds_since_broker_query = (local_time - last_broker_dt).total_seconds()
+    broker_query_throttled = (
+        broker_query_interval > 0
+        and seconds_since_broker_query is not None
+        and seconds_since_broker_query < broker_query_interval
+    )
+    broker_query_throttle_detail = {
+        "enabled": broker_query_interval > 0,
+        "min_interval_seconds": broker_query_interval,
+        "last_huatai_broker_query_at": last_broker_query_at,
+        "seconds_since_last_query": round(seconds_since_broker_query, 2) if seconds_since_broker_query is not None else None,
+        "market_data_provider": market_data_report.get("provider"),
+        "policy": "eastmoney_quotes_every_run_huatai_broker_query_interval",
+    }
+    if broker_query_throttled:
+        save_state(state_path, state)
+        return t0_quote_only_broker_query_throttled_result(
+            cfg,
+            execute,
+            out_dir,
+            trade_date,
+            session,
+            quotes,
+            market_data_report,
+            {**broker_query_throttle_detail, "throttled": True},
+        )
+
     balance = client.get_balance()
     positions = client.get_positions()
     pending = call_pending_orders(client)
     fill_reconciliation = maybe_reconcile_t0_fills(cfg, client, state, trade_date)
+    state["last_huatai_broker_query_at"] = local_time.isoformat()
     api_responses = [balance, positions, pending]
     if isinstance(fill_reconciliation, dict) and fill_reconciliation.get("ok") is False:
         api_responses.append({"error": fill_reconciliation.get("error")})
@@ -2945,6 +3059,8 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             quotes,
         )
     decision = build_decision(cfg, quotes, balance, positions, pending, state, market_correlation_stress, history=history)
+    decision["market_data_report"] = market_data_report
+    decision["broker_query_throttle"] = {**broker_query_throttle_detail, "throttled": False}
     decision["fill_reconciliation"] = fill_reconciliation
     decision["evolution_overlay"] = cfg.get("_evolution_overlay", {"applied": False})
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))

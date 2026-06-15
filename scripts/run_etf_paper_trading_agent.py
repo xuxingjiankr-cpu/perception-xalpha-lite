@@ -15,6 +15,8 @@ import json
 import os
 import subprocess
 import sys
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -254,6 +256,202 @@ def extract_data(resp: dict[str, Any]) -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def eastmoney_market_prefix(exchange: str) -> str:
+    ex = str(exchange or "").upper()
+    if ex == "SH":
+        return "1"
+    if ex in {"SZ", "BJ"}:
+        return "0"
+    return "1"
+
+
+def eastmoney_secid(etf: dict[str, Any]) -> str:
+    return f"{eastmoney_market_prefix(str(etf.get('exchange', 'SH')))}.{str(etf.get('stockCode', '')).zfill(6)}"
+
+
+def eastmoney_quote_time(value: Any) -> str | None:
+    try:
+        ts = int(float(value))
+    except Exception:
+        return None
+    if ts <= 0:
+        return None
+    return datetime.fromtimestamp(ts, ZoneInfo("Asia/Shanghai")).isoformat()
+
+
+def eastmoney_quote_response(etf: dict[str, Any], item: dict[str, Any] | None, error: Any = None) -> dict[str, Any]:
+    if not item:
+        return {
+            "ok": False,
+            "data": None,
+            "error": error or {"category": "market_data", "message": "eastmoney quote missing"},
+            "_cmd_tool": "eastmoney_quote",
+            "_returncode": 1,
+            "_market_data_provider": "eastmoney",
+        }
+
+    def clean(v: Any, default: Any = None) -> Any:
+        return default if v in (None, "", "-") else v
+
+    current = as_float(clean(item.get("f2")), 0.0)
+    prev_close = as_float(clean(item.get("f18")), 0.0)
+    bid1 = as_float(clean(item.get("f31")), current)
+    ask1 = as_float(clean(item.get("f32")), current)
+    suspended = current <= 0
+    data = {
+        "stockName": clean(item.get("f14"), etf.get("name")),
+        "currentPrice": current,
+        "prevClose": prev_close,
+        "limitUp": None,
+        "limitDown": None,
+        "bidPrice1": bid1,
+        "askPrice1": ask1,
+        "change": as_float(clean(item.get("f3")), 0.0),
+        "isSuspended": suspended,
+        "volume": as_float(clean(item.get("f5")), 0.0),
+        "amount": as_float(clean(item.get("f6")), 0.0),
+        "open": as_float(clean(item.get("f17")), 0.0),
+        "high": as_float(clean(item.get("f15")), 0.0),
+        "low": as_float(clean(item.get("f16")), 0.0),
+        "source": "eastmoney",
+        "source_quote_time": eastmoney_quote_time(item.get("f124")),
+    }
+    return {
+        "ok": True,
+        "data": data,
+        "error": None,
+        "_cmd_tool": "eastmoney_quote",
+        "_returncode": 0,
+        "_market_data_provider": "eastmoney",
+    }
+
+
+def fetch_eastmoney_quotes(
+    universe: list[dict[str, Any]],
+    *,
+    timeout_seconds: float = 6.0,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Fetch level-1 ETF quotes from Eastmoney in one HTTP request.
+
+    This is market data only. It never touches account, order, cancel, or
+    simulated trading state, and is used to preserve Huatai paper-trading quota
+    for execution and account/position queries.
+    """
+    secids = ",".join(eastmoney_secid(x) for x in universe)
+    fields = ",".join([
+        "f1", "f2", "f3", "f4", "f5", "f6", "f12", "f13", "f14",
+        "f15", "f16", "f17", "f18", "f31", "f32", "f124",
+    ])
+    params = urllib.parse.urlencode({
+        "fltt": "2",
+        "invt": "2",
+        "fields": fields,
+        "secids": secids,
+        "ut": "fa5fd1943c7b386f172d6893dbfba10b",
+        "_": str(int(datetime.now().timestamp() * 1000)),
+    })
+    endpoints = [
+        "https://push2.eastmoney.com/api/qt/ulist.np/get",
+        "https://push2his.eastmoney.com/api/qt/ulist.np/get",
+        "http://push2his.eastmoney.com/api/qt/ulist.np/get",
+    ]
+    meta: dict[str, Any] = {
+        "provider": "eastmoney",
+        "attempted": True,
+        "ok": False,
+        "requested_count": len(universe),
+        "url_hosts": [urllib.parse.urlparse(x).netloc for x in endpoints],
+    }
+    attempts: list[dict[str, Any]] = []
+    last_error: dict[str, Any] | None = None
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://quote.eastmoney.com/",
+    }
+    for endpoint in endpoints:
+        url = endpoint + "?" + params
+        endpoint_meta = {
+            "url_host": urllib.parse.urlparse(endpoint).netloc,
+            "scheme": urllib.parse.urlparse(endpoint).scheme,
+        }
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout_seconds) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+            payload = json.loads(raw)
+            diff = payload.get("data", {}).get("diff", [])
+            if not isinstance(diff, list):
+                diff = []
+            by_code = {str(x.get("f12")).zfill(6): x for x in diff if x.get("f12")}
+            responses = [eastmoney_quote_response(etf, by_code.get(str(etf.get("stockCode", "")).zfill(6))) for etf in universe]
+            ok_count = sum(1 for x in responses if x.get("ok"))
+            endpoint_meta.update({"ok": ok_count > 0, "response_count": len(diff), "ok_count": ok_count})
+            attempts.append(endpoint_meta)
+            if ok_count > 0:
+                meta.update({
+                    "ok": True,
+                    "endpoint_used": endpoint,
+                    "url_host": endpoint_meta["url_host"],
+                    "response_count": len(diff),
+                    "ok_count": ok_count,
+                    "attempts": attempts,
+                    "fetched_at": now_iso(),
+                })
+                return responses, meta
+            last_error = {"category": "market_data", "message": "eastmoney endpoint returned no usable quotes"}
+        except Exception as exc:
+            last_error = {"category": "network", "message": str(exc)}
+            endpoint_meta.update({"ok": False, "error": last_error})
+            attempts.append(endpoint_meta)
+    err = last_error or {"category": "network", "message": "all eastmoney endpoints failed"}
+    responses = [eastmoney_quote_response(etf, None, err) for etf in universe]
+    meta.update({"ok": False, "error": err, "attempts": attempts, "fetched_at": now_iso()})
+    return responses, meta
+
+
+def quote_provider_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    md = cfg.get("market_data")
+    if not isinstance(md, dict):
+        md = {}
+    provider = str(md.get("quote_provider", "huatai")).lower()
+    return {
+        "quote_provider": provider,
+        "eastmoney_enabled": bool(md.get("eastmoney_enabled", provider.startswith("eastmoney"))),
+        "huatai_quote_fallback": bool(md.get("huatai_quote_fallback", provider == "huatai")),
+        "eastmoney_timeout_seconds": as_float(md.get("eastmoney_timeout_seconds"), 6.0),
+        "preferred_quote_interval_seconds": int(as_float(md.get("preferred_quote_interval_seconds"), 60)),
+    }
+
+
+def fetch_quote_responses(
+    cfg: dict[str, Any],
+    client: SkillClient,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    md = quote_provider_config(cfg)
+    universe = cfg.get("universe", [])
+    if md["eastmoney_enabled"] and md["quote_provider"] in {"eastmoney", "eastmoney_primary"}:
+        responses, meta = fetch_eastmoney_quotes(universe, timeout_seconds=md["eastmoney_timeout_seconds"])
+        meta["preferred_quote_interval_seconds"] = md["preferred_quote_interval_seconds"]
+        if meta.get("ok") or not md["huatai_quote_fallback"]:
+            meta["huatai_quote_calls"] = 0
+            return responses, meta
+        fallback_responses = [client.get_quote(etf["stockCode"], etf["exchange"]) for etf in universe]
+        meta.update({
+            "fallback_provider": "huatai",
+            "huatai_quote_calls": len(fallback_responses),
+            "fallback_reason": "eastmoney_unavailable",
+        })
+        return fallback_responses, meta
+    responses = [client.get_quote(etf["stockCode"], etf["exchange"]) for etf in universe]
+    return responses, {
+        "provider": "huatai",
+        "attempted": True,
+        "ok": any(x.get("ok") for x in responses),
+        "huatai_quote_calls": len(responses),
+        "preferred_quote_interval_seconds": md["preferred_quote_interval_seconds"],
+    }
+
+
 def trade_date_cn() -> str:
     return datetime.now(tz=ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
 
@@ -416,6 +614,8 @@ def normalize_quote(etf: dict[str, Any], resp: dict[str, Any],
         "score": signal if not is_suspended else -999.0,
         "quote_ok": bool(resp.get("ok")),
         "quote_error": None if resp.get("ok") else resp.get("error"),
+        "quote_source": data.get("source") or resp.get("_market_data_provider") or resp.get("_cmd_tool"),
+        "source_quote_time": data.get("source_quote_time"),
     }
 
 
@@ -1122,14 +1322,22 @@ def run_agent(config_path: Path, override_mode: str | None = None, execute: bool
     quota_status = quota_backoff_status(quota_path, today_str)
     result["quota_backoff"] = quota_status
     if quota_status.get("active"):
-        return quota_backoff_result(
+        quote_responses, market_data_report = fetch_quote_responses(cfg, client)
+        quotes = [
+            normalize_quote(etf, resp, price_history if "price_history" in locals() else None, momentum_days if "momentum_days" in locals() else 0)
+            for etf, resp in zip(cfg["universe"], quote_responses)
+        ]
+        out = quota_backoff_result(
             cfg,
             mode,
             execute,
             output_dir,
             "quota_exhausted_backoff_active",
             quota_status,
+            quotes,
         )
+        out["market_data_report"] = market_data_report
+        return out
 
     # --- Price history (for momentum signal) ---
     price_history_path = output_dir / cfg["outputs"].get("price_history", "price_history.json")
@@ -1163,12 +1371,12 @@ def run_agent(config_path: Path, override_mode: str | None = None, execute: bool
         })
         return result
 
-    quotes = []
-    quote_responses = []
-    for etf in cfg["universe"]:
-        resp = client.get_quote(etf["stockCode"], etf["exchange"])
-        quote_responses.append(resp)
-        quotes.append(normalize_quote(etf, resp, price_history, momentum_days))
+    quote_responses, market_data_report = fetch_quote_responses(cfg, client)
+    quotes = [
+        normalize_quote(etf, resp, price_history, momentum_days)
+        for etf, resp in zip(cfg["universe"], quote_responses)
+    ]
+    result["market_data_report"] = market_data_report
     if any_quota_exhausted(quote_responses):
         quota_resp = next((x for x in quote_responses if is_quota_exhausted_response(x)), None)
         quota_status = mark_quota_exhausted(quota_path, today_str, "quote_query", quota_resp)

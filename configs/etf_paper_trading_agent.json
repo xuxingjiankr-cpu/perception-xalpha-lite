@@ -9,6 +9,13 @@
     "python": "py -3.13",
     "script": "%USERPROFILE%\\.codex\\skills\\a-share-paper-trading\\a_share_paper_trading.py"
   },
+  "market_data": {
+    "quote_provider": "eastmoney_primary",
+    "eastmoney_enabled": true,
+    "huatai_quote_fallback": false,
+    "eastmoney_timeout_seconds": 6,
+    "preferred_quote_interval_seconds": 60
+  },
   "universe": [
     {
       "stockCode": "510300",
