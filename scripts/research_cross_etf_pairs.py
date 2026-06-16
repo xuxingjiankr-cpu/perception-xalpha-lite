@@ -100,6 +100,30 @@ def ou_mean_reversion(spread: list[float]) -> dict[str, Any]:
     }
 
 
+def reversion_vs_cost(res: dict[str, Any], entry_z: float = 1.5, leg_roundtrip_cost_pct: float = 0.25) -> dict[str, Any]:
+    """Compare the capturable spread reversion to real round-trip cost.
+
+    A market-neutral pair trade (long cheap leg, short rich leg) entered at
+    +/-entry_z captures ~entry_z * spread_sd of spread reversion, but pays
+    round-trip cost on BOTH legs. Crucially we CANNOT short, so this 'short-
+    enabled' figure is an UPPER BOUND; long-only captures only a fraction
+    (the directional tilt of buying the cheap leg), so if it fails to clear
+    cost even short-enabled, it is definitely untradable for us."""
+    sd = res.get("spread_sd")
+    if not sd:
+        return {"verdict": "n/a"}
+    capturable_pct = entry_z * sd * 100.0
+    two_leg_cost = 2.0 * leg_roundtrip_cost_pct
+    net = capturable_pct - two_leg_cost
+    return {
+        "capturable_at_%.1fz_pct" % entry_z: round(capturable_pct, 3),
+        "market_neutral_roundtrip_cost_pct": two_leg_cost,
+        "net_short_enabled_pct": round(net, 3),
+        "verdict": ("clears_cost_if_shortable" if net > 0 else "below_cost_even_shortable"),
+        "long_only_note": "we cannot short -> only a fraction of this is harvestable",
+    }
+
+
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     rows = load_aligned(QUOTES)
@@ -112,11 +136,15 @@ def main() -> None:
         res = ou_mean_reversion(spread)
         tag = "READY" if res.get("ready") else f"thin(n={res.get('points')}, need>=40)"
         if res.get("points", 0) >= 5:
-            print(f"  {a}<->{b} {label}: {res['interpretation']} | OU_coef={res.get('ou_coef')} "
-                  f"half_life={res.get('half_life_steps')} steps | current_z={res.get('current_z')} | {tag}")
+            c = reversion_vs_cost(res)
+            print(f"  {a}<->{b} {label}: {res['interpretation']} | half_life={res.get('half_life_steps')} steps "
+                  f"| current_z={res.get('current_z')} | {tag}")
+            print(f"      cost check: capturable@1.5z={c.get('capturable_at_1.5z_pct')}% vs 2-leg cost "
+                  f"{c.get('market_neutral_roundtrip_cost_pct')}% -> net(short-enabled)={c.get('net_short_enabled_pct')}% "
+                  f"[{c.get('verdict')}]  (long-only: only a fraction is harvestable)")
         else:
             print(f"  {a}<->{b} {label}: insufficient overlap (n={res.get('points')})")
-    print("note: log-price spread; OU_coef<0 => reverting. Trust needs >=40 aligned points / multiple days.")
+    print("note: log-spread; OU_coef<0 => reverting. We cannot short, so the spread edge is at best a long-only tilt.")
 
 
 if __name__ == "__main__":

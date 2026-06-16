@@ -113,10 +113,19 @@ def load_log() -> list[dict[str, Any]]:
     return rows
 
 
-def analyze_mean_reversion(history: list[dict[str, Any]], etf: str, min_points: int = 40, min_days: int = 8) -> dict[str, Any]:
-    """Test intraday mean-reversion of the premium using session-open-relative
-    returns derived purely from logged levels. Correlation between premium_drift(t)
-    and the NEXT-step ETF excess return; negative => mean-reverting (tradable fade).
+def analyze_mean_reversion(history: list[dict[str, Any]], etf: str, *, min_points: int = 40, min_days: int = 8,
+                           discount_threshold_pct: float = 0.3, roundtrip_cost_pct: float = 0.25) -> dict[str, Any]:
+    """LONG-ONLY, COST-AWARE test of the premium edge.
+
+    We cannot short, so the only executable trade is the DISCOUNT side: when the
+    ETF is cheap vs its futures+FX fair value (premium_drift < 0), BUY and profit
+    as it converges UP. This is a clean long-only single-instrument trade (the
+    'fair value' is a synthetic reference, not a leg you must short).
+
+    Reports: (1) full drift<->next-return correlation (diagnostic);
+    (2) DISCOUNT-side conditional edge: average forward ETF return after entering
+    at a discount beyond discount_threshold_pct; (3) that edge NET of round-trip
+    cost. A premium-side (drift>0) signal is logged but flagged NOT executable.
     """
     by_day: dict[str, list[dict[str, Any]]] = {}
     for snap in history:
@@ -126,7 +135,9 @@ def analyze_mean_reversion(history: list[dict[str, Any]], etf: str, min_points: 
             by_day.setdefault(snap["trade_date"], []).append({"t": snap["timestamp"], **r})
     drifts: list[float] = []
     next_excess: list[float] = []
+    disc_fwd: list[float] = []   # forward ETF return after a DISCOUNT entry (long-only P&L proxy)
     days_used = 0
+    dthr = discount_threshold_pct / 100.0
     for day, recs in by_day.items():
         recs = [r for r in recs if r["etf_price"] > 0 and r["fut_price"] > 0]
         if len(recs) < 3:
@@ -138,23 +149,36 @@ def analyze_mean_reversion(history: list[dict[str, Any]], etf: str, min_points: 
             etf_ret = r["etf_price"] / e0 - 1.0
             fut_ret = r["fut_price"] / f0 - 1.0
             fx_ret = (r["cnh"] / c0 - 1.0) if c0 else 0.0
-            series.append({"etf_ret": etf_ret, "drift": etf_ret - fut_ret - fx_ret})
+            series.append({"etf_ret": etf_ret, "drift": etf_ret - fut_ret - fx_ret, "px": r["etf_price"]})
         for i in range(len(series) - 1):
             drifts.append(series[i]["drift"])
             next_excess.append(series[i + 1]["etf_ret"] - series[i]["etf_ret"])
+            # discount entry: ETF cheap vs fair -> long-only forward P&L = next-step ETF price return
+            if series[i]["drift"] <= -dthr:
+                disc_fwd.append(series[i + 1]["px"] / series[i]["px"] - 1.0)
     n = len(drifts)
     result = {"etf": etf, "points": n, "days": days_used, "ready": n >= min_points and days_used >= min_days}
     if n >= 3:
-        md = sum(drifts) / n
-        mn = sum(next_excess) / n
+        md, mn = sum(drifts) / n, sum(next_excess) / n
         cov = sum((drifts[i] - md) * (next_excess[i] - mn) for i in range(n)) / n
         sd_d = (sum((x - md) ** 2 for x in drifts) / n) ** 0.5
         sd_n = (sum((x - mn) ** 2 for x in next_excess) / n) ** 0.5
         corr = cov / (sd_d * sd_n) if sd_d > 0 and sd_n > 0 else 0.0
+        result["drift_next_return_corr"] = round(corr, 4)
+        nd = len(disc_fwd)
+        avg_disc = (sum(disc_fwd) / nd) if nd else None
+        hit = (sum(1 for x in disc_fwd if x > 0) / nd) if nd else None
+        net = (avg_disc * 100 - roundtrip_cost_pct) if avg_disc is not None else None
         result.update({
-            "drift_next_return_corr": round(corr, 4),
-            "interpretation": "mean_reverting(fade)" if corr < -0.05 else ("momentum" if corr > 0.05 else "no_signal"),
-            "note": "negative corr => premium reverts (candidate fade); needs >=8 days to trust",
+            "discount_entries": nd,
+            "discount_avg_forward_pct": round(avg_disc * 100, 4) if avg_disc is not None else None,
+            "discount_hit_rate": round(hit, 3) if hit is not None else None,
+            "roundtrip_cost_pct": roundtrip_cost_pct,
+            "discount_edge_net_of_cost_pct": round(net, 4) if net is not None else None,
+            "executable_long_only": "discount_side_only (cannot short the premium side)",
+            "interpretation": ("tradable_discount_edge" if (net is not None and net > 0)
+                               else "discount_edge_below_cost" if net is not None else "insufficient_discount_entries"),
+            "note": "long-only buys the discount; needs net>0 AND >=8 days to trust",
         })
     return result
 
@@ -181,8 +205,9 @@ def main() -> None:
     for p in PAIRS:
         a = analyze_mean_reversion(history, p["etf"])
         if a.get("ready"):
-            print(f"  {p['etf']}: corr(drift, next_ret)={a.get('drift_next_return_corr')} -> {a.get('interpretation')} "
-                  f"(points={a['points']}, days={a['days']})")
+            print(f"  {p['etf']} [DISCOUNT side, long-only]: net_of_cost={a.get('discount_edge_net_of_cost_pct')}% "
+                  f"(avg_fwd={a.get('discount_avg_forward_pct')}% - cost={a.get('roundtrip_cost_pct')}%, "
+                  f"hit={a.get('discount_hit_rate')}, entries={a.get('discount_entries')}) -> {a.get('interpretation')}")
         else:
             print(f"  {p['etf']}: NOT READY (points={a['points']}, days={a['days']}; need >=40 points / >=8 days)")
     print(f"log: {LOG_PATH}")
