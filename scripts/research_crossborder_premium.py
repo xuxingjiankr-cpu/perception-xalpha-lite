@@ -114,13 +114,24 @@ def load_log() -> list[dict[str, Any]]:
 
 
 def analyze_mean_reversion(history: list[dict[str, Any]], etf: str, *, min_points: int = 40, min_days: int = 8,
-                           discount_threshold_pct: float = 0.3, roundtrip_cost_pct: float = 0.25) -> dict[str, Any]:
+                           discount_threshold_pct: float = 0.3, roundtrip_cost_pct: float = 0.12) -> dict[str, Any]:
     """LONG-ONLY, COST-AWARE test of the premium edge.
 
     We cannot short, so the only executable trade is the DISCOUNT side: when the
     ETF is cheap vs its futures+FX fair value (premium_drift < 0), BUY and profit
     as it converges UP. This is a clean long-only single-instrument trade (the
     'fair value' is a synthetic reference, not a leg you must short).
+
+    GPY (Garleanu-Panageas-Yu 2019) caveat: the ABSOLUTE QDII premium is largely a
+    STRUCTURAL 'implicit tax' (quota-constrained access to overseas assets) and does
+    NOT revert -- do not trade the level. We therefore measure premium_drift as the
+    INTRADAY deviation from each day's open (the structural level differences out),
+    so we trade only the cyclical/sentiment deviation (LST), not the structural tax.
+
+    Cost note: round-trip default 0.12% reflects the MEASURED cross-border ETF cost
+    (513500/513100 spread ~4-5 bps one-way + ~3-5 bps impact at our size), not the
+    wider HK-ETF spread. Market impact is small for us (orders ~0.02% of ADV); the
+    spread dominates, so passive limit execution would lower this further.
 
     Reports: (1) full drift<->next-return correlation (diagnostic);
     (2) DISCOUNT-side conditional edge: average forward ETF return after entering
