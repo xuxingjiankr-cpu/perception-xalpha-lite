@@ -131,6 +131,11 @@
     },
     "skip_dates": [],
     "overnight_gap_guard_pct": 0.03,
+    "execution": {
+      "passive_entry_enabled": true,
+      "passive_offset_ticks": 0,
+      "tick_size": 0.001
+    },
     "kelly_sizing": {
       "enabled": true,
       "f_star_for_full_risk": 0.25,

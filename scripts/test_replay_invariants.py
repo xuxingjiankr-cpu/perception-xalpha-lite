@@ -555,6 +555,25 @@ def t16_quote_fallback_chain() -> None:
     check("T16 no Huatai quota burned when free source up", int(meta.get("huatai_quote_calls", -1)) == 0, str(meta.get("huatai_quote_calls")))
 
 
+def t17_passive_entry_pricing() -> None:
+    """Passive entry posts at the bid (earns the spread); falls back to the
+    aggressive cross whenever the book is missing/locked or passive is disabled,
+    and NEVER returns a price at/through the ask."""
+    risk = {"limit_price_slippage_pct": 0.001}
+    on = {"passive_entry_enabled": True, "tick_size": 0.001, "passive_offset_ticks": 0}
+    off = {"passive_entry_enabled": False}
+    q = {"bidPrice1": 2.000, "askPrice1": 2.004, "currentPrice": 2.002}
+    px_p, style_p, _ = agent.passive_entry_price(q, risk, on)
+    check("T17 passive entry posts at bid", style_p == "passive" and px_p == 2.0, f"{px_p},{style_p}")
+    check("T17 passive price stays below ask", px_p < q["askPrice1"])
+    px_o, style_o, _ = agent.passive_entry_price(q, risk, off)
+    check("T17 disabled -> aggressive cross", style_o == "aggressive" and px_o > q["askPrice1"], f"{px_o},{style_o}")
+    _, style_nb, _ = agent.passive_entry_price({"bidPrice1": 0, "askPrice1": 2.004, "currentPrice": 2.0}, risk, on)
+    check("T17 no bid -> aggressive", style_nb == "aggressive")
+    _, style_lk, _ = agent.passive_entry_price({"bidPrice1": 2.004, "askPrice1": 2.004, "currentPrice": 2.004}, risk, on)
+    check("T17 locked book -> aggressive", style_lk == "aggressive")
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -570,6 +589,7 @@ if __name__ == "__main__":
     t13_execution_quality_safe_shield_and_dsr()
     t14_513100_entry_blocked_but_sell_allowed()
     t15_emergency_sells_bypass_throttle()
+    t17_passive_entry_pricing()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

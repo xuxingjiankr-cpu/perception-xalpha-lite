@@ -695,6 +695,28 @@ def contiguous_recent_window(hist: list[dict[str, Any]], window: int, max_gap_mi
     return rows
 
 
+def passive_entry_price(q: dict[str, Any], risk: dict[str, Any], exec_cfg: dict[str, Any]) -> tuple[float, str, float]:
+    """Entry limit price. Passive (post at the bid -> EARN the spread instead of
+    paying it; ~5-26 bps for our universe) when enabled and a valid book exists.
+    Falls back to the aggressive cross (ask x (1+slippage)) otherwise. Returns
+    (price, execution_style, mid). Entries are optional so non-fill has no downside;
+    exits stay aggressive (handled separately) for fill certainty."""
+    ask = as_float(q.get("askPrice1"), q.get("currentPrice"))
+    bid = as_float(q.get("bidPrice1"), 0.0)
+    slip = as_float(risk.get("limit_price_slippage_pct"), 0.001)
+    aggressive = round(ask * (1.0 + slip), 3)
+    mid = (bid + ask) / 2.0 if bid > 0 and ask > 0 else ask
+    if not bool(exec_cfg.get("passive_entry_enabled", True)) or bid <= 0 or ask <= 0 or ask <= bid:
+        return aggressive, "aggressive", mid
+    tick = as_float(exec_cfg.get("tick_size", 0.001), 0.001)
+    offset = int(as_float(exec_cfg.get("passive_offset_ticks", 0), 0))
+    passive = bid + offset * tick
+    passive = min(passive, ask - tick)  # must stay strictly passive (below the ask)
+    if passive <= 0:
+        return aggressive, "aggressive", mid
+    return round(passive, 3), "passive", mid
+
+
 def compute_rolling_vwap(hist: list[dict[str, Any]], current_quote: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
     if not cfg.get("enabled", True):
         return {"available": False, "status": "disabled"}
@@ -1784,6 +1806,8 @@ def evaluate_exit_for_code(
             "t0_inventory_sellable_qty": available_qty,
             "sell_scope": "unified_sell_score_all_held",
             "t0_eligible": True,
+            "execution_style": "aggressive",  # exits always cross for fill certainty (passive exits are v2)
+            "submission_mid": round((as_float(q.get("bidPrice1"), current) + as_float(q.get("askPrice1"), current)) / 2.0, 4) if q else round(current, 4),
         }
         hold_reason = exit_reason
     else:
@@ -2602,7 +2626,7 @@ def build_decision(
             elif best_im is not None and not bool((best_im.get("safe_policy_shield") or {}).get("passed")):
                 reason = "blocked_safe_policy_shield"
             elif best_im is not None:
-                px = round(as_float(best_im.get("askPrice1"), best_im.get("currentPrice")) * (1.0 + as_float(risk["limit_price_slippage_pct"])), 3)
+                px, im_exec_style, im_mid = passive_entry_price(best_im, risk, strategy.get("execution", {}))
                 kelly_cfg = strategy.get("kelly_sizing", {})
                 realized_pnls = state.get("realized_trade_pnls") if isinstance(state.get("realized_trade_pnls"), list) else []
                 kelly_scale = as_float(compute_kelly_scale(realized_pnls, kelly_cfg).get("scale"), 1.0)
@@ -2635,6 +2659,8 @@ def build_decision(
                         "baseline_available_quantity": as_float(positions.get(str(best_im["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
                         "inventory_scope": "t0_intraday_inventory_only",
                         "t0_eligible": True,
+                        "execution_style": im_exec_style,
+                        "submission_mid": round(im_mid, 4),
                     }
         orb = get_orb(state, trade_date, best.get("stockCode") if best else None)
         best_price = as_float(best.get("currentPrice")) if best else 0.0
@@ -2692,7 +2718,7 @@ def build_decision(
         if order is not None:
             pass  # intraday-momentum order already built above; skip normal entry chain
         elif best and open_quiet_passed and no_new_entry_after_cutoff and current_entry_checks_passed and not today_skipped and entry_score_passed:
-            px = round(as_float(best.get("askPrice1"), best.get("currentPrice")) * (1.0 + as_float(risk["limit_price_slippage_pct"])), 3)
+            px, entry_exec_style, entry_mid = passive_entry_price(best, risk, strategy.get("execution", {}))
             bracket_meta: dict[str, Any] | None = None
             bracket_skip_reason: str | None = None
             orb_for_best = get_orb(state, trade_date, best.get("stockCode"))
@@ -2814,6 +2840,8 @@ def build_decision(
                     "inventory_scope": "t0_intraday_inventory_only",
                     "t0_eligible": True,
                     "bracket": bracket_meta,
+                    "execution_style": entry_exec_style,
+                    "submission_mid": round(entry_mid, 4),
                 }
         elif best and not open_quiet_passed:
             reason = "blocked_open_quiet_period"
