@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -113,7 +114,9 @@ def apply_buy_fill(sim: dict[str, Any], order: dict[str, Any]) -> None:
     code = str(order.get("stockCode", "")).zfill(6)
     qty = int(as_float(order.get("quantity")))
     px = as_float(order.get("price"))
-    sim["cash"] -= px * qty
+    notional = px * qty
+    sim["cash"] -= notional
+    sim["buy_notional"] = as_float(sim.get("buy_notional")) + notional
     pos = sim["positions"].get(code)
     if pos is None:
         pos = {"stockCode": code, "stockName": order.get("name"), "exchange": order.get("exchange", "SH"),
@@ -123,13 +126,16 @@ def apply_buy_fill(sim: dict[str, Any], order: dict[str, Any]) -> None:
     pos["costPrice"] = (as_float(pos.get("costPrice")) * prev_qty + px * qty) / (prev_qty + qty) if prev_qty + qty > 0 else px
     pos["quantity"] = prev_qty + qty
     pos["availableQuantity"] = int(as_float(pos.get("availableQuantity"))) + qty
+    sim["_last_fill"] = {"notional": notional, "quantity": float(qty), "price": px}
 
 
 def apply_sell_fill(sim: dict[str, Any], order: dict[str, Any]) -> float:
     code = str(order.get("stockCode", "")).zfill(6)
     qty = int(as_float(order.get("quantity")))
     px = as_float(order.get("price"))
-    sim["cash"] += px * qty
+    notional = px * qty
+    sim["cash"] += notional
+    sim["sell_notional"] = as_float(sim.get("sell_notional")) + notional
     pos = sim["positions"].get(code)
     pnl = 0.0
     if pos:
@@ -139,6 +145,14 @@ def apply_sell_fill(sim: dict[str, Any], order: dict[str, Any]) -> float:
         pos["availableQuantity"] = max(0, int(as_float(pos.get("availableQuantity"))) - qty)
         if pos["quantity"] <= 0:
             del sim["positions"][code]
+    sim["_last_fill"] = {
+        "gross_pnl": pnl,
+        "quantity": float(qty),
+        "entry_price": cost if pos else 0.0,
+        "exit_price": px,
+        "entry_notional": cost * qty if pos else 0.0,
+        "exit_notional": notional,
+    }
     return pnl
 
 
@@ -205,6 +219,8 @@ def main() -> None:
     parser.add_argument("--start-date", default=None, help="inclusive replay start date YYYY-MM-DD")
     parser.add_argument("--end-date", default=None, help="inclusive replay end date YYYY-MM-DD")
     parser.add_argument("--label", default="replay", help="suffix for output filenames")
+    parser.add_argument("--output-detail", choices=["summary", "full"], default="full",
+                        help="summary skips per-round decisions JSONL; full preserves legacy output")
     args = parser.parse_args()
 
     cfg = load_json(Path(args.config))
@@ -213,10 +229,11 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     decisions_path = OUT_DIR / f"{args.label}_decisions.jsonl"
     summary_path = OUT_DIR / f"{args.label}_summary.json"
-    decisions_path.write_text("", encoding="utf-8")
+    if args.output_detail == "full":
+        decisions_path.write_text("", encoding="utf-8")
 
     state: dict[str, Any] = {}
-    sim = {"cash": INITIAL_CASH, "positions": {}}
+    sim = {"cash": INITIAL_CASH, "positions": {}, "buy_notional": 0.0, "sell_notional": 0.0}
     history: list[dict[str, Any]] = []
     history_trade_date: str | None = None
     history_universe_max = 0
@@ -231,6 +248,11 @@ def main() -> None:
     per_day: dict[str, dict[str, Any]] = {}
     fail_counter: Counter[str] = Counter()
     trades: list[dict[str, Any]] = []
+    rows_processed = 0
+    feature_seconds = 0.0
+    signal_seconds = 0.0
+    file_write_seconds = 0.0
+    replay_started = time.perf_counter()
 
     try:
         for rnd in round_iter:
@@ -247,16 +269,20 @@ def main() -> None:
             day = per_day.setdefault(trade_date, {
                 "rounds": 0, "entries": 0, "exits": Counter(), "pnl": 0.0,
                 "entry_score_pass": 0, "actions": Counter(),
+                "buy_notional": 0.0, "sell_notional": 0.0,
             })
             day["rounds"] += 1
+            rows_processed += len(rnd)
 
             raw_quotes = [dict(q) for q in rnd]
+            feature_started = time.perf_counter()
             quotes = agent.compute_snapshot_momentum(raw_quotes, history, lookback, cfg["strategy"])
             market_correlation_stress = agent.compute_market_correlation_stress(
                 history,
                 quotes,
                 cfg.get("strategy", {}).get("market_correlation_stress", {}),
             )
+            feature_seconds += time.perf_counter() - feature_started
             history.extend(quotes)
             history_universe_max = max(history_universe_max, len(quotes))
             history_row_cap = max_history_snapshots * max(1, history_universe_max)
@@ -269,6 +295,7 @@ def main() -> None:
             total_assets = sim["cash"] + sum(
                 as_float(p.get("costPrice")) * as_float(p.get("quantity")) for p in sim["positions"].values()
             )
+            signal_started = time.perf_counter()
             decision = agent.build_decision(
                 cfg, quotes,
                 fake_balance(total_assets, sim["cash"]),
@@ -278,6 +305,7 @@ def main() -> None:
                 market_correlation_stress,
                 history=history,
             )
+            signal_seconds += time.perf_counter() - signal_started
             day["actions"][decision.get("action") or decision.get("state_machine", {}).get("action", "?")] += 1
             for c in decision.get("risk_checks", []):
                 if not c.get("passed"):
@@ -291,9 +319,13 @@ def main() -> None:
                     submit_seq += 1
                     if order.get("direction") == "buy":
                         apply_buy_fill(sim, order)
+                        fill = sim["_last_fill"]
+                        day["buy_notional"] += fill["notional"]
                         day["entries"] += 1
                     else:
                         pnl = apply_sell_fill(sim, order)
+                        fill = sim["_last_fill"]
+                        day["sell_notional"] += fill["exit_notional"]
                         day["pnl"] += pnl
                         day["exits"][order.get("reason", "?")] += 1
                         trades.append({
@@ -301,20 +333,29 @@ def main() -> None:
                             "stockCode": order.get("stockCode"),
                             "reason": order.get("reason"),
                             "pnl": round(pnl, 2),
+                            "gross_pnl": round(pnl, 2),
+                            "quantity": int(fill["quantity"]),
+                            "entry_price": round(fill["entry_price"], 6),
+                            "exit_price": round(fill["exit_price"], 6),
+                            "entry_notional": round(fill["entry_notional"], 2),
+                            "exit_notional": round(fill["exit_notional"], 2),
                             "r_multiple": order.get("r_multiple"),
                         })
                     record_post_submit(state, cfg, decision, order, submit_seq)
 
-            agent.append_jsonl(decisions_path, {
-                "timestamp": replay_now.isoformat(),
-                "action": orders[0]["direction"] if orders else "hold",
-                "reason": orders[0].get("reason") if orders else decision.get("state_machine", {}).get("reason"),
-                "approved": bool(decision.get("approved_for_submit")),
-                "sell_score": decision.get("sell_score"),
-                "carry_allowed": decision.get("carry_allowed"),
-                "failed_checks": [c.get("name") for c in decision.get("risk_checks", []) if not c.get("passed")],
-                "orders": orders,
-            })
+            if args.output_detail == "full":
+                write_started = time.perf_counter()
+                agent.append_jsonl(decisions_path, {
+                    "timestamp": replay_now.isoformat(),
+                    "action": orders[0]["direction"] if orders else "hold",
+                    "reason": orders[0].get("reason") if orders else decision.get("state_machine", {}).get("reason"),
+                    "approved": bool(decision.get("approved_for_submit")),
+                    "sell_score": decision.get("sell_score"),
+                    "carry_allowed": decision.get("carry_allowed"),
+                    "failed_checks": [c.get("name") for c in decision.get("risk_checks", []) if not c.get("passed")],
+                    "orders": orders,
+                })
+                file_write_seconds += time.perf_counter() - write_started
     finally:
         agent.set_replay_now(None)
 
@@ -335,14 +376,32 @@ def main() -> None:
                 "entry_score_pass_rounds": d["entry_score_pass"],
                 "exits": dict(d["exits"]),
                 "pnl": round(d["pnl"], 2),
+                "gross_pnl": round(d["pnl"], 2),
+                "buy_notional": round(d["buy_notional"], 2),
+                "sell_notional": round(d["sell_notional"], 2),
             } for td, d in sorted(per_day.items())
         },
         "trades": trades,
         "r_multiples": [t["r_multiple"] for t in trades if t.get("r_multiple") is not None],
         "total_pnl": round(sum(d["pnl"] for d in per_day.values()), 2),
+        "gross_pnl": round(sum(d["pnl"] for d in per_day.values()), 2),
+        "buy_notional": round(as_float(sim.get("buy_notional")), 2),
+        "sell_notional": round(as_float(sim.get("sell_notional")), 2),
+        "turnover": round(
+            (as_float(sim.get("buy_notional")) + as_float(sim.get("sell_notional"))) / (2.0 * INITIAL_CASH),
+            6,
+        ),
         "final_assets": round(final_assets, 2),
         "open_positions_at_end": {c: int(as_float(p.get("quantity"))) for c, p in sim["positions"].items()},
         "top_blocking_checks": fail_counter.most_common(10),
+        "runtime_profile": {
+            "total_runtime_seconds": round(time.perf_counter() - replay_started, 6),
+            "feature_calculation_seconds": round(feature_seconds, 6),
+            "signal_generation_seconds": round(signal_seconds, 6),
+            "file_write_seconds": round(file_write_seconds, 6),
+            "rows_processed": rows_processed,
+            "output_detail": args.output_detail,
+        },
         "note": "simulated fills at limit price; small sample; not a profitability claim",
     }
     agent.write_json(summary_path, summary)

@@ -1059,6 +1059,86 @@ def t27_dynamic_gate_replay_cache() -> None:
               meta.get("eligible_codes_by_date", {}).get("2026-06-18") == 1, str(meta))
 
 
+def t28_layered_backtest_pipeline() -> None:
+    """P0 pipeline fails closed on incomplete dates, preserves frozen OOS
+    boundaries, and computes explicit cost sensitivity without changing the
+    legacy fill helper contract."""
+    import importlib
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    pipeline = importlib.import_module("run_t0_backtest_pipeline")
+    replay = importlib.import_module("replay_t0_decisions")
+    sim = {"cash": 100_000.0, "positions": {}, "buy_notional": 0.0, "sell_notional": 0.0}
+    buy = {"stockCode": "510300", "exchange": "SH", "quantity": 1000, "price": 4.0}
+    sell = {"stockCode": "510300", "exchange": "SH", "quantity": 1000, "price": 4.1}
+    replay.apply_buy_fill(sim, buy)
+    pnl = replay.apply_sell_fill(sim, sell)
+    check("T28 legacy sell fill still returns numeric PnL", abs(pnl - 100.0) < 1e-9, str(pnl))
+    check("T28 replay fill captures transaction notionals for cost audit",
+          sim.get("buy_notional") == 4000.0 and sim.get("sell_notional") == 4100.0,
+          str(sim.get("_last_fill")))
+
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        source = root / "quotes"
+        source.mkdir()
+
+        def make_day(day: str, codes: list[str]) -> None:
+            rows = []
+            for minute in range(200):
+                hour = 9 + (30 + minute) // 60
+                mm = (30 + minute) % 60
+                ts = f"{day}T{hour:02d}:{mm:02d}:00+08:00"
+                for code in codes:
+                    rows.append({"timestamp": ts, "stockCode": code})
+            (source / f"{day}.jsonl").write_text(
+                "\n".join(_json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+            )
+
+        make_day("2026-06-15", ["510300", "510500", "159915", "512100"])
+        make_day("2026-06-16", ["510300"])
+        old_out = pipeline.DEFAULT_OUT
+        pipeline.DEFAULT_OUT = root / "pipeline"
+        try:
+            audit = pipeline.audit_quote_directory(source, {
+                "min_rounds_per_complete_day": 200,
+                "min_median_codes_per_round": 1,
+                "min_cross_section_ratio_to_best_day": 0.5,
+                "max_duplicate_timestamp_code_ratio": 0.001,
+            })
+        finally:
+            pipeline.DEFAULT_OUT = old_out
+        check("T28 data audit accepts complete cross-section day",
+              "2026-06-15" in audit.get("complete_dates", []), str(audit))
+        check("T28 data audit rejects collapsed cross-section day",
+              "2026-06-16" in audit.get("incomplete_dates", []), str(audit))
+
+        lock = root / "locked.json"
+        overlay = {"entry_score_threshold": 60}
+        lock.write_text(_json.dumps({
+            "frozen": True,
+            "promotion_status": "promoted",
+            "overlay": overlay,
+            "parameter_hash": pipeline.stable_hash(overlay),
+            "in_sample_end": "2026-06-15",
+        }), encoding="utf-8")
+        _, overlap_reasons = pipeline.validate_locked_parameters(lock, "2026-06-15")
+        _, clean_reasons = pipeline.validate_locked_parameters(lock, "2026-06-16")
+        check("T28 OOS overlap fails closed", any("oos_overlaps_in_sample" in x for x in overlap_reasons), str(overlap_reasons))
+        check("T28 frozen non-overlapping OOS is accepted", clean_reasons == [], str(clean_reasons))
+
+    metrics = pipeline.replay_metrics({
+        "gross_pnl": 100.0,
+        "buy_notional": 4000.0,
+        "sell_notional": 4100.0,
+        "per_day": {"2026-06-15": {"gross_pnl": 100.0, "buy_notional": 4000.0, "sell_notional": 4100.0}},
+        "trades": [{"stockCode": "510300", "gross_pnl": 100.0, "entry_notional": 4000.0, "exit_notional": 4100.0}],
+    }, "stress", 20.0)
+    check("T28 explicit costs reduce net PnL", 91.8 < metrics["net_pnl"] < 92.0, str(metrics))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1085,6 +1165,7 @@ if __name__ == "__main__":
     t25_daily_minute_quote_paths()
     t26_daily_replay_cache_and_directory_reader()
     t27_dynamic_gate_replay_cache()
+    t28_layered_backtest_pipeline()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

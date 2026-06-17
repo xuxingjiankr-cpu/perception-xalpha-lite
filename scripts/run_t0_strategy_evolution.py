@@ -936,7 +936,13 @@ def run_replay(
     start_date: str | None = None,
     end_date: str | None = None,
 ) -> tuple[bool, str]:
-    cmd = [sys.executable, str(ROOT / "scripts" / "replay_t0_decisions.py"), "--config", str(config_path), "--label", label]
+    cmd = [
+        sys.executable,
+        str(ROOT / "scripts" / "replay_t0_decisions.py"),
+        "--config", str(config_path),
+        "--label", label,
+        "--output-detail", "summary",
+    ]
     if date_filter:
         cmd.extend(["--date", date_filter])
     if start_date:
@@ -1191,6 +1197,8 @@ def main() -> None:
     parser.add_argument("--cma-population", type=int, default=None)
     parser.add_argument("--cma-seed", type=int, default=None)
     parser.add_argument("--cma-sigma", type=float, default=None)
+    parser.add_argument("--no-update-latest-overlay", action="store_true",
+                        help="write run-scoped research outputs without touching the agent-facing latest overlay")
     args = parser.parse_args()
 
     base_cfg = load_json(Path(args.config))
@@ -1542,17 +1550,18 @@ def main() -> None:
         "note": "Offline replay over historical snapshots; small sample is not a profitability claim.",
     }
 
-    write_json(out_dir / "latest_strategy_overlay.json", report)
     write_json(out_dir / f"{prefix}_summary.json", report)
     write_csv_rows(out_dir / f"{prefix}_candidate_results.csv", rows)
     write_markdown(out_dir / f"{prefix}_summary.md", report)
-    write_markdown(out_dir / "latest_strategy_evolution.md", report)
+    if not args.no_update_latest_overlay:
+        write_json(out_dir / "latest_strategy_overlay.json", report)
+        write_markdown(out_dir / "latest_strategy_evolution.md", report)
 
     print(json.dumps({
         "status": status,
         "selected_candidate": report["selected_candidate"],
         "decision_reason": decision_reason,
-        "overlay": str(out_dir / "latest_strategy_overlay.json"),
+        "overlay": None if args.no_update_latest_overlay else str(out_dir / "latest_strategy_overlay.json"),
         "live_ready": False,
         "formal_strategy_allowed": False,
     }, ensure_ascii=False, indent=2))

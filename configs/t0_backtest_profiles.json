@@ -1,0 +1,65 @@
+{
+  "paper_trading_only": true,
+  "live_ready": false,
+  "formal_strategy_allowed": false,
+  "investment_advice": false,
+  "data_quality": {
+    "min_rounds_per_complete_day": 200,
+    "min_median_codes_per_round": 10,
+    "min_cross_section_ratio_to_best_day": 0.5,
+    "max_duplicate_timestamp_code_ratio": 0.001
+  },
+  "cost_scenarios": {
+    "simple_cost": {
+      "roundtrip_cost_bps": 6.0
+    },
+    "medium_cost": {
+      "roundtrip_cost_bps": 12.0
+    },
+    "stress_cost": {
+      "roundtrip_cost_bps": 20.0
+    }
+  },
+  "profiles": {
+    "smoke_test": {
+      "min_complete_days": 1,
+      "max_days": 1,
+      "require_complete_dates": false,
+      "run_candidate_search": false,
+      "output_detail": "summary"
+    },
+    "fast_screening": {
+      "min_complete_days": 3,
+      "max_days": 3,
+      "require_complete_dates": true,
+      "run_candidate_search": true,
+      "fast_top_k": 3,
+      "output_detail": "summary"
+    },
+    "medium_screening": {
+      "min_complete_days": 5,
+      "max_days": 10,
+      "require_complete_dates": true,
+      "run_candidate_search": true,
+      "fast_top_k": 3,
+      "output_detail": "summary"
+    },
+    "full_replay": {
+      "min_complete_days": 10,
+      "max_days": 0,
+      "require_complete_dates": true,
+      "require_locked_parameters": true,
+      "run_candidate_search": false,
+      "output_detail": "full"
+    },
+    "oos_replay": {
+      "min_complete_days": 5,
+      "max_days": 0,
+      "require_complete_dates": true,
+      "require_locked_parameters": true,
+      "require_explicit_date_range": true,
+      "run_candidate_search": false,
+      "output_detail": "full"
+    }
+  }
+}
