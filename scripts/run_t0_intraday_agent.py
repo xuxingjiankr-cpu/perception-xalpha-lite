@@ -2447,7 +2447,19 @@ def build_decision(
         else:
             q["cross_etf_divergence_pct"] = 0.0
     ranked = sorted(liquid_quotes, key=lambda x: as_float(x.get("momentum"), -999), reverse=True)
-    best = ranked[0] if ranked else None
+    # Holdings first, so the entry candidate excludes names we already hold: with
+    # target_holdings>1 we add a NEW name each entry run, up to the cap.
+    sellable_by_code = {}
+    for code, pos in positions.items():
+        t0_qty = t0_sellable_quantity(state, trade_date, code, pos, lot_size)
+        overnight_qty = round_lot(as_float(pos.get("availableQuantity"), 0.0), lot_size)
+        sellable_by_code[code] = max(t0_qty, overnight_qty)
+    held_codes = [code for code, qty in sellable_by_code.items() if qty >= int(risk["min_order_quantity"])]
+    held_code = held_codes[0] if held_codes else None
+    held_pos = positions.get(held_code) if held_code else None
+    target_holdings = max(1, int(as_float(strategy.get("target_holdings"), 1)))
+    # entry candidate = highest-momentum liquid quote NOT already held
+    best = next((q for q in ranked if str(q.get("stockCode", "")).zfill(6) not in held_codes), None)
     best_execution_quality = best.get("execution_quality") if best and isinstance(best.get("execution_quality"), dict) else {
         "enabled": True, "passed": False, "status": "no_ranked_quote"
     }
@@ -2477,15 +2489,6 @@ def build_decision(
             "rule": "vwap_unavailable_or_disabled_does_not_block_entry",
         }
     add("rolling_vwap_entry_filter", vwap_entry_ok, vwap_entry_detail)
-    # 统一出场: 当日T0库存与历史隔夜持仓都纳入可卖范围 (broker availableQuantity 为准)
-    sellable_by_code = {}
-    for code, pos in positions.items():
-        t0_qty = t0_sellable_quantity(state, trade_date, code, pos, lot_size)
-        overnight_qty = round_lot(as_float(pos.get("availableQuantity"), 0.0), lot_size)
-        sellable_by_code[code] = max(t0_qty, overnight_qty)
-    held_codes = [code for code, qty in sellable_by_code.items() if qty >= int(risk["min_order_quantity"])]
-    held_code = held_codes[0] if held_codes else None
-    held_pos = positions.get(held_code) if held_code else None
     best_code = str(best.get("stockCode", "")).zfill(6) if best else None
     best_existing_position_qty = as_float(positions.get(best_code, {}).get("quantity"), 0.0) if best_code else 0.0
     best_t0_remaining_qty = t0_inventory_remaining_qty(state, trade_date, best_code) if best_code else 0
@@ -2636,10 +2639,10 @@ def build_decision(
             else:
                 action = "hold"
                 reason = "sell_throttle_interval_active"
-        else:
-            action = "hold"
-            reason = "carry_allowed_sell_score_not_met"
-    else:
+    # Entry-or-hold: enter a NEW name only when nothing is selling/deferred this
+    # run AND we are under target_holdings AND a non-held candidate exists. This
+    # is how concurrent holdings build up (one new name per entry run).
+    if (not sell_orders) and (not deferred_sell_orders) and best is not None and len(held_codes) < target_holdings:
         # --- Intraday-momentum last-half-hour entry (Gao-Han-Li-Zhou 2018) ---
         # Faithful: trades the last half-hour by the first-half-hour return sign.
         # Long-only, at most once/day, reserved path that bypasses the 14:00 cutoff,
@@ -2907,9 +2910,18 @@ def build_decision(
             reason = "blocked_safe_policy_shield"
         else:
             reason = "no_entry_signal"
+    elif action != "sell" and not deferred_sell_orders:
+        # Not entering and nothing pending to sell: explain why we hold. (When a
+        # sell is throttle-deferred we keep the throttle reason set above.)
+        action = "hold"
+        reason = (
+            "at_target_holdings_capacity" if len(held_codes) >= target_holdings
+            else "carry_allowed_sell_score_not_met" if held_codes
+            else "no_entry_candidate"
+        )
 
-    # A decision is EITHER one BUY (when flat) OR throttled SELLs (normally one per run).
-    orders_list: list[dict[str, Any]] = sell_orders if held_codes else ([order] if order else [])
+    # A decision is EITHER one BUY (when adding) OR throttled SELLs (one+ per run).
+    orders_list: list[dict[str, Any]] = sell_orders if sell_orders else ([order] if order else [])
     is_sell_batch = bool(orders_list) and all(o.get("direction") == "sell" for o in orders_list)
     all_unconditional = is_sell_batch and all(bool(o.get("unconditional_exit")) for o in orders_list)
 

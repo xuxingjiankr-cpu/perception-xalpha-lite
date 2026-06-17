@@ -35,7 +35,7 @@
     "exit_momentum_pct": -0.001,
     "stop_loss_pct": -0.012,
     "take_profit_pct": 0.018,
-    "max_sell_orders_per_run": 1,
+    "max_sell_orders_per_run": 5,
     "sell_throttle_interval_minutes": 5,
     "sell_throttle_bypass_reasons": [
       "kill_switch_liquidation",
@@ -180,7 +180,7 @@
         "acceleration"
       ]
     },
-    "target_holdings": 1,
+    "target_holdings": 5,
     "cash_reserve_pct": 0.85,
     "max_position_pct": 0.15,
     "bracket": {
@@ -204,7 +204,7 @@
     "min_amount": 0
   },
   "risk": {
-    "max_daily_submitted_orders": 6,
+    "max_daily_submitted_orders": 12,
     "max_daily_sell_orders": 12,
     "max_daily_round_trips": 3,
     "max_daily_loss_pct": -0.02,

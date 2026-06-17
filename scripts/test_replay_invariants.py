@@ -230,9 +230,11 @@ def t7_multi_position_exit() -> None:
     check("T7 all 3 held positions evaluated for exit", evaluated >= {"513050", "513100", "588000"},
           f"evaluated={evaluated}")
     deferred = decision.get("deferred_sell_orders", [])
-    check("T7 only one sell order is submitted per run", len(sell_codes) == 1,
+    # Policy: simultaneous exits allowed up to max_sell_orders_per_run (5); the
+    # 3 qualifying sells all submit together in one run, none deferred.
+    check("T7 all qualifying sells submit simultaneously (<= per-run cap)", len(sell_codes) == 3,
           f"sell_codes={sell_codes}, deferred={deferred}")
-    check("T7 other qualified sells are deferred, not lost", len(deferred) == 2, str(deferred))
+    check("T7 nothing deferred when within per-run cap", len(deferred) == 0, str(deferred))
     check("T7 regular sell is not marked as throttle bypass", all(not o.get("sell_throttle_bypass") for o in orders),
           str(orders))
     check("T7 588000 exit-only never bought", all(o.get("direction") == "sell" for o in orders))
@@ -599,6 +601,61 @@ def t18_pre_sell_position_verification() -> None:
     check("T18 unverified: discretionary sell dropped", "513100" not in out2)
 
 
+def t19_multi_holding_entry_while_carrying() -> None:
+    """With target_holdings>1, holding one carrying position must NOT block a NEW
+    entry: in the 14:30 IM window the agent buys a fresh non-held name while the
+    existing holding (no exit signal) is carried -- and the buy survives orders_list."""
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    SH = ZoneInfo("Asia/Shanghai")
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["target_holdings"] = 5  # ensure room regardless of config drift
+
+    now = datetime(2026, 6, 15, 14, 32, tzinfo=SH)
+    ts = now.isoformat()
+    trade_date = "2026-06-15"
+    # Held, carrying: gold ETF, modestly in profit, stable/positive -> no exit signal.
+    held = {"stockCode": "518880", "exchange": "SH", "name": "518880", "asset_class": "gold_etf",
+            "currentPrice": 5.05, "bidPrice1": 5.049, "askPrice1": 5.051, "prevClose": 5.00,
+            "timestamp": ts, "quote_ok": True, "isSuspended": False, "momentum_available": True,
+            "momentum": 0.001, "spread_pct": 0.0004, "change_pct": 0.01,
+            "acceleration": 0.0005, "bid_pressure_3m_pct": 0.002, "first_half_hour_return": 0.0}
+    # Fresh IM candidate, not held: HK ETF with strong first-half-hour return.
+    cand = {"stockCode": "513050", "exchange": "SH", "name": "513050", "asset_class": "hk_etf",
+            "currentPrice": 2.0, "bidPrice1": 1.999, "askPrice1": 2.001, "prevClose": 1.98,
+            "timestamp": ts, "quote_ok": True, "isSuspended": False, "momentum_available": True,
+            "momentum": 0.002, "spread_pct": 0.0008, "change_pct": 0.01,
+            "first_half_hour_return": 0.004}
+    quotes = [held, cand]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    positions = [{"stockCode": "518880", "stockName": "518880", "exchange": "SH",
+                  "quantity": 10000, "availableQuantity": 10000, "costPrice": 5.00}]
+    pos_resp = {"ok": True, "data": {"positions": positions}}
+    pend = {"ok": True, "data": {"orders": []}}
+    state = {"t0_inventory_by_date": {trade_date: {"518880": {
+        "buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+        "baseline_available_quantity": 10000, "entry_price": 5.00, "last_buy_price": 5.00,
+        "first_buy_at": (now.replace(hour=10, minute=0)).isoformat(),
+        "highest_price_since_entry": 5.06,
+    }}}}
+
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, quotes, balance, pos_resp, pend, state, None)
+    finally:
+        agent.set_replay_now(None)
+    orders = dec.get("orders", [])
+    sells = [o for o in orders if o.get("direction") == "sell"]
+    buys = [o for o in orders if o.get("direction") == "buy"]
+    check("T19 carrying holding emits no sell", len(sells) == 0, str(orders))
+    check("T19 new name bought while already holding (multi-holding)",
+          len(buys) == 1 and buys[0].get("stockCode") == "513050", str(orders))
+    check("T19 entry candidate excludes the held name",
+          str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -616,6 +673,7 @@ if __name__ == "__main__":
     t15_emergency_sells_bypass_throttle()
     t17_passive_entry_pricing()
     t18_pre_sell_position_verification()
+    t19_multi_holding_entry_while_carrying()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
