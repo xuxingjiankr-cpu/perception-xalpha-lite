@@ -991,6 +991,74 @@ def t25_daily_minute_quote_paths() -> None:
               [r.get("stockCode") for r in rows] == ["NEW"], str(rows))
 
 
+def t26_daily_replay_cache_and_directory_reader() -> None:
+    """Evolution splits large replay jsonl into date files; replay reader can
+    consume the date directory without scanning unrelated days."""
+    import importlib
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    replay = importlib.import_module("replay_t0_decisions")
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        src = root / "quotes.jsonl"
+        rows = [
+            {"timestamp": "2026-06-17T10:00:00+08:00", "stockCode": "510300"},
+            {"timestamp": "2026-06-18T10:00:00+08:00", "stockCode": "159915"},
+        ]
+        src.write_text("\n".join(_json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+        meta = ev.prepare_daily_quote_cache(str(src), cache_root=root / "cache")
+        cache_dir = _Path(meta["cache_dir"])
+        read_18 = list(replay.iter_quote_rows(cache_dir, date_filter="2026-06-18"))
+        check("T26 daily replay cache creates one file per date",
+              (cache_dir / "2026-06-17.jsonl").exists() and (cache_dir / "2026-06-18.jsonl").exists(),
+              str(meta))
+        check("T26 replay directory reader filters by date",
+              [r.get("stockCode") for r in read_18] == ["159915"], str(read_18))
+
+
+def t27_dynamic_gate_replay_cache() -> None:
+    """Dynamic replay cache retains complete intraday history for any code that
+    becomes eligible, and removes codes that never pass the live gates."""
+    import importlib
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+
+    ev = importlib.import_module("run_t0_strategy_evolution")
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        daily = root / "daily"
+        daily.mkdir()
+        rows = [
+            {"timestamp": "2026-06-18T09:31:00+08:00", "stockCode": "510300", "name": "ETF-A",
+             "currentPrice": 4.0, "bidPrice1": 3.999, "askPrice1": 4.001, "amount": 10_000},
+            {"timestamp": "2026-06-18T10:30:00+08:00", "stockCode": "510300", "name": "ETF-A",
+             "currentPrice": 4.0, "bidPrice1": 3.999, "askPrice1": 4.001, "amount": 30_000_000},
+            {"timestamp": "2026-06-18T10:30:00+08:00", "stockCode": "159999", "name": "ETF-B",
+             "currentPrice": 1.0, "bidPrice1": 0.95, "askPrice1": 1.05, "amount": 100_000_000},
+        ]
+        (daily / "2026-06-18.jsonl").write_text(
+            "\n".join(_json.dumps(r) for r in rows) + "\n", encoding="utf-8"
+        )
+        meta = ev.prepare_dynamic_gate_cache(
+            str(daily),
+            {"min_amount_yuan": 50_000_000, "max_spread_pct": 0.004, "min_price": 0.3,
+             "name_exclude_keywords": ["货币"]},
+            cache_root=root / "cache",
+        )
+        out_rows = [
+            _json.loads(line)
+            for line in (_Path(meta["cache_dir"]) / "2026-06-18.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
+        check("T27 dynamic gate retains full history for eligible code",
+              [r.get("stockCode") for r in out_rows] == ["510300", "510300"], str(out_rows))
+        check("T27 dynamic gate removes never-eligible wide-spread code",
+              meta.get("eligible_codes_by_date", {}).get("2026-06-18") == 1, str(meta))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1015,6 +1083,8 @@ if __name__ == "__main__":
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
     t25_daily_minute_quote_paths()
+    t26_daily_replay_cache_and_directory_reader()
+    t27_dynamic_gate_replay_cache()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -691,19 +691,266 @@ def write_candidate_config(base_cfg: dict[str, Any], overlay: dict[str, Any], pa
     write_json(path, cfg)
 
 
+def _date_allowed(trade_date: str, date_filter: str | None, start_date: str | None, end_date: str | None) -> bool:
+    if date_filter and trade_date != date_filter:
+        return False
+    if start_date and trade_date < start_date:
+        return False
+    if end_date and trade_date > end_date:
+        return False
+    return True
+
+
+def prepare_daily_quote_cache(
+    quotes_path: str | None,
+    *,
+    date_filter: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    cache_root: Path | None = None,
+) -> dict[str, Any]:
+    """Split a large replay jsonl into per-day files and return the cache dir.
+
+    Replaying all ETF quotes repeatedly is dominated by scanning the same large
+    monthly jsonl for every candidate. This one-time split keeps candidate
+    evaluation deterministic while making each replay read only the needed dates.
+    """
+    if not quotes_path:
+        return {"quotes_arg": None, "cache_used": False, "reason": "no_quotes_path"}
+    source = Path(quotes_path)
+    if not source.exists():
+        return {"quotes_arg": str(source), "cache_used": False, "reason": "source_missing"}
+    if source.is_dir():
+        return {"quotes_arg": str(source), "cache_used": True, "cache_dir": str(source), "reason": "source_is_directory"}
+
+    cache_base = cache_root or (DEFAULT_REPLAY_OUT / "quote_cache")
+    cache_dir = cache_base / f"{source.stem}_by_date"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = cache_dir / "manifest.json"
+    source_sig = {
+        "source": str(source.resolve()),
+        "size": source.stat().st_size,
+        "mtime": source.stat().st_mtime,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+    existing = load_json(manifest_path) if manifest_path.exists() else {}
+    existing_dates = existing.get("dates", []) if isinstance(existing.get("dates"), list) else []
+    if existing.get("source_signature") == source_sig and all((cache_dir / f"{d}.jsonl").exists() for d in existing_dates):
+        return {
+            "quotes_arg": str(cache_dir),
+            "cache_used": True,
+            "cache_dir": str(cache_dir),
+            "dates": existing_dates,
+            "reason": "cache_hit",
+        }
+
+    for stale_file in cache_dir.glob("*.jsonl"):
+        stale_file.unlink()
+    handles: dict[str, Any] = {}
+    counts: dict[str, int] = {}
+    try:
+        with source.open("r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(obj, dict) or not obj.get("timestamp"):
+                    continue
+                trade_date = str(obj["timestamp"])[:10]
+                if not _date_allowed(trade_date, date_filter, start_date, end_date):
+                    continue
+                if trade_date not in handles:
+                    out_path = cache_dir / f"{trade_date}.jsonl"
+                    handles[trade_date] = out_path.open("w", encoding="utf-8")
+                    counts[trade_date] = 0
+                handles[trade_date].write(line if line.endswith("\n") else line + "\n")
+                counts[trade_date] += 1
+    finally:
+        for handle in handles.values():
+            handle.close()
+
+    dates = sorted(counts)
+    write_json(manifest_path, {
+        "source_signature": source_sig,
+        "created_at": datetime.now().astimezone().isoformat(),
+        "dates": dates,
+        "rows_by_date": counts,
+    })
+    return {
+        "quotes_arg": str(cache_dir),
+        "cache_used": True,
+        "cache_dir": str(cache_dir),
+        "dates": dates,
+        "rows_by_date": counts,
+        "reason": "cache_created",
+    }
+
+
+def _session_fraction_from_timestamp(ts_text: str) -> float:
+    try:
+        hour = int(ts_text[11:13])
+        minute = int(ts_text[14:16])
+    except (TypeError, ValueError):
+        return 1.0
+    now_min = hour * 60 + minute
+    morning_start = 9 * 60 + 30
+    morning_end = 11 * 60 + 30
+    afternoon_start = 13 * 60
+    afternoon_end = 15 * 60
+    if now_min <= morning_start:
+        elapsed = 0
+    elif now_min <= morning_end:
+        elapsed = now_min - morning_start
+    elif now_min <= afternoon_start:
+        elapsed = 120
+    elif now_min <= afternoon_end:
+        elapsed = 120 + now_min - afternoon_start
+    else:
+        elapsed = 240
+    return max(0.05, min(1.0, elapsed / 240.0))
+
+
+def _passes_dynamic_replay_gate(row: dict[str, Any], dyn_cfg: dict[str, Any]) -> bool:
+    name = str(row.get("name") or "")
+    for keyword in dyn_cfg.get("name_exclude_keywords", []):
+        if keyword and str(keyword) in name:
+            return False
+    price = as_float(row.get("currentPrice"), 0.0)
+    bid = as_float(row.get("bidPrice1"), 0.0)
+    ask = as_float(row.get("askPrice1"), 0.0)
+    if price <= as_float(dyn_cfg.get("min_price"), 0.3) or bid <= 0 or ask <= bid:
+        return False
+    mid = (bid + ask) / 2.0
+    spread = (ask - bid) / mid if mid > 0 else float("inf")
+    if spread > as_float(dyn_cfg.get("max_spread_pct"), 0.004):
+        return False
+    min_amount = as_float(dyn_cfg.get("min_amount_yuan"), 50_000_000.0)
+    fraction = _session_fraction_from_timestamp(str(row.get("timestamp") or ""))
+    return as_float(row.get("amount"), 0.0) >= min_amount * fraction
+
+
+def prepare_dynamic_gate_cache(
+    daily_quotes_dir: str | None,
+    dyn_cfg: dict[str, Any],
+    *,
+    cache_root: Path | None = None,
+) -> dict[str, Any]:
+    """Keep the full intraday history for codes that pass the live universe gates.
+
+    Eligibility is evaluated at every snapshot, but once a code is eligible on a
+    date all of its rows for that date are retained. That preserves exit safety
+    and indicator warm-up while avoiding deep calculations on permanently
+    illiquid ETFs.
+    """
+    if not daily_quotes_dir:
+        return {"quotes_arg": daily_quotes_dir, "gate_cache_used": False, "reason": "no_daily_cache"}
+    source_dir = Path(daily_quotes_dir)
+    if not source_dir.is_dir():
+        return {"quotes_arg": daily_quotes_dir, "gate_cache_used": False, "reason": "source_not_directory"}
+    cache_base = cache_root or (DEFAULT_REPLAY_OUT / "quote_cache")
+    cache_dir = cache_base / f"{source_dir.name}_dynamic_gate"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = cache_dir / "manifest.json"
+    source_manifest = load_json(source_dir / "manifest.json") if (source_dir / "manifest.json").exists() else {}
+    gate_signature = {
+        "source_dir": str(source_dir.resolve()),
+        "source_manifest": source_manifest,
+        "dynamic_gate": {
+            "min_amount_yuan": dyn_cfg.get("min_amount_yuan"),
+            "max_spread_pct": dyn_cfg.get("max_spread_pct"),
+            "min_price": dyn_cfg.get("min_price"),
+            "name_exclude_keywords": dyn_cfg.get("name_exclude_keywords", []),
+        },
+    }
+    existing = load_json(manifest_path) if manifest_path.exists() else {}
+    existing_dates = existing.get("dates", []) if isinstance(existing.get("dates"), list) else []
+    if existing.get("gate_signature") == gate_signature and all((cache_dir / f"{d}.jsonl").exists() for d in existing_dates):
+        return {
+            "quotes_arg": str(cache_dir),
+            "gate_cache_used": True,
+            "cache_dir": str(cache_dir),
+            "dates": existing_dates,
+            "eligible_codes_by_date": existing.get("eligible_codes_by_date", {}),
+            "rows_by_date": existing.get("rows_by_date", {}),
+            "reason": "gate_cache_hit",
+        }
+
+    for stale_file in cache_dir.glob("*.jsonl"):
+        stale_file.unlink()
+    eligible_counts: dict[str, int] = {}
+    rows_by_date: dict[str, int] = {}
+    for source in sorted(source_dir.glob("*.jsonl")):
+        trade_date = source.stem[:10]
+        eligible_codes: set[str] = set()
+        with source.open("r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    row = json.loads(line)
+                except Exception:
+                    continue
+                if isinstance(row, dict) and _passes_dynamic_replay_gate(row, dyn_cfg):
+                    eligible_codes.add(str(row.get("stockCode", "")).zfill(6))
+        out_path = cache_dir / f"{trade_date}.jsonl"
+        written = 0
+        with source.open("r", encoding="utf-8") as f, out_path.open("w", encoding="utf-8") as out:
+            for line in f:
+                try:
+                    row = json.loads(line)
+                except Exception:
+                    continue
+                if str(row.get("stockCode", "")).zfill(6) in eligible_codes:
+                    out.write(line if line.endswith("\n") else line + "\n")
+                    written += 1
+        eligible_counts[trade_date] = len(eligible_codes)
+        rows_by_date[trade_date] = written
+
+    dates = sorted(eligible_counts)
+    write_json(manifest_path, {
+        "gate_signature": gate_signature,
+        "created_at": datetime.now().astimezone().isoformat(),
+        "dates": dates,
+        "eligible_codes_by_date": eligible_counts,
+        "rows_by_date": rows_by_date,
+        "policy": "retain_all_intraday_rows_for_any_code_eligible_during_date",
+    })
+    return {
+        "quotes_arg": str(cache_dir),
+        "gate_cache_used": True,
+        "cache_dir": str(cache_dir),
+        "dates": dates,
+        "eligible_codes_by_date": eligible_counts,
+        "rows_by_date": rows_by_date,
+        "reason": "gate_cache_created",
+    }
+
+
 def run_replay(
     config_path: Path,
     label: str,
     date_filter: str | None,
     quotes_path: str | None = None,
     timeout_seconds: int = 120,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ) -> tuple[bool, str]:
     cmd = [sys.executable, str(ROOT / "scripts" / "replay_t0_decisions.py"), "--config", str(config_path), "--label", label]
     if date_filter:
         cmd.extend(["--date", date_filter])
+    if start_date:
+        cmd.extend(["--start-date", start_date])
+    if end_date:
+        cmd.extend(["--end-date", end_date])
     if quotes_path:
         cmd.extend(["--quotes", quotes_path])
-    proc = subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True, timeout=timeout_seconds)
+    try:
+        proc = subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True, timeout=timeout_seconds)
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        return False, (stdout + "\n" + stderr + f"\nreplay_timeout_after_seconds={timeout_seconds}").strip()
     return proc.returncode == 0, (proc.stdout + "\n" + proc.stderr).strip()
 
 
@@ -765,6 +1012,8 @@ def evaluate_candidate(
     date_filter: str | None,
     quotes_path: str | None = None,
     replay_timeout_seconds: int = 120,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ) -> dict[str, Any]:
     bad_paths = validate_allowed_paths(base_cfg, overlay)
     if bad_paths:
@@ -788,7 +1037,7 @@ def evaluate_candidate(
     cfg_path = cfg_dir / f"{prefix}_{name}.json"
     write_candidate_config(base_cfg, overlay, cfg_path)
     label = f"{prefix}_{name}"
-    ok, log = run_replay(cfg_path, label, date_filter, quotes_path, replay_timeout_seconds)
+    ok, log = run_replay(cfg_path, label, date_filter, quotes_path, replay_timeout_seconds, start_date, end_date)
     summary = load_replay_summary(label) if ok else {}
     return summarize_candidate(name, overlay, summary, ok, log)
 
@@ -804,6 +1053,8 @@ def cma_es_blackbox_candidates(
     population_size: int,
     seed: int,
     sigma0: float,
+    start_date: str | None = None,
+    end_date: str | None = None,
 ) -> list[dict[str, Any]]:
     """Run a bounded diagonal CMA-ES black-box optimization over allowlisted strategy params.
 
@@ -828,7 +1079,10 @@ def cma_es_blackbox_candidates(
             ]
             overlay = overlay_from_vector(vec)
             name = f"cmaes_g{gen + 1:02d}_i{idx + 1:02d}"
-            row = evaluate_candidate(base_cfg, cfg_dir, prefix, name, overlay, date_filter, quotes_path, replay_timeout_seconds)
+            row = evaluate_candidate(
+                base_cfg, cfg_dir, prefix, name, overlay, date_filter, quotes_path,
+                replay_timeout_seconds, start_date, end_date
+            )
             row["optimizer"] = "bounded_diagonal_cma_es"
             row["generation"] = gen + 1
             gen_rows.append(row)
@@ -924,6 +1178,13 @@ def main() -> None:
     parser.add_argument("--quotes", default=None, help="optional replay quote jsonl path")
     parser.add_argument("--replay-timeout-seconds", type=int, default=120)
     parser.add_argument("--date", default=None, help="optional YYYY-MM-DD replay subset")
+    parser.add_argument("--start-date", default=None, help="optional inclusive validation start date YYYY-MM-DD")
+    parser.add_argument("--end-date", default=None, help="optional inclusive validation end date YYYY-MM-DD")
+    parser.add_argument("--fast-top-k", type=int, default=0,
+                        help="two-stage mode: screen all candidates on --stage1-date, validate baseline+top K on final dates")
+    parser.add_argument("--stage1-date", default=None, help="single date for two-stage fast screening")
+    parser.add_argument("--dynamic-gate-cache", action="store_true",
+                        help="replay only codes passing live dynamic-universe liquidity/spread/price gates")
     parser.add_argument("--label-prefix", default=None)
     parser.add_argument("--optimizer", choices=["fixed", "cmaes", "both"], default=None)
     parser.add_argument("--cma-generations", type=int, default=None)
@@ -942,7 +1203,20 @@ def main() -> None:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     prefix = args.label_prefix or f"evolution_{stamp}"
     rows: list[dict[str, Any]] = []
+    stage1_rows: list[dict[str, Any]] = []
     invalid: dict[str, list[str]] = {}
+    cache_meta = prepare_daily_quote_cache(
+        args.quotes,
+        date_filter=args.date,
+        start_date=args.start_date,
+        end_date=args.end_date,
+    )
+    quotes_arg = cache_meta.get("quotes_arg")
+    dynamic_gate_meta: dict[str, Any] = {"gate_cache_used": False, "reason": "disabled"}
+    if args.dynamic_gate_cache:
+        dyn_cfg = base_cfg.get("dynamic_universe", {}) if isinstance(base_cfg.get("dynamic_universe"), dict) else {}
+        dynamic_gate_meta = prepare_dynamic_gate_cache(quotes_arg, dyn_cfg)
+        quotes_arg = dynamic_gate_meta.get("quotes_arg")
 
     optimizer_cfg = si.get("blackbox_optimizer", {}) if isinstance(si.get("blackbox_optimizer", {}), dict) else {}
     optimizer_mode = args.optimizer or str(optimizer_cfg.get("mode", "both"))
@@ -954,7 +1228,87 @@ def main() -> None:
     else:
         fixed_candidates = []
 
-    if fixed_candidates:
+    if args.fast_top_k > 0 and not args.stage1_date:
+        stage_dates = cache_meta.get("dates", []) if isinstance(cache_meta.get("dates"), list) else []
+        args.stage1_date = stage_dates[-1] if stage_dates else args.date
+
+    if args.fast_top_k > 0 and args.stage1_date:
+        stage1_prefix = f"{prefix}_stage1"
+        if fixed_candidates:
+            for cand in fixed_candidates:
+                name = cand["name"]
+                row = evaluate_candidate(
+                    base_cfg,
+                    cfg_dir,
+                    stage1_prefix,
+                    name,
+                    cand["overlay"],
+                    args.stage1_date,
+                    quotes_arg,
+                    args.replay_timeout_seconds,
+                )
+                row["optimizer"] = "fixed_grid"
+                row["screening_stage"] = "stage1"
+                if row.get("invalid_overlay_paths"):
+                    invalid[name] = row["invalid_overlay_paths"]
+                stage1_rows.append(row)
+
+        if optimizer_mode in {"cmaes", "both"}:
+            cma_stage1_rows = cma_es_blackbox_candidates(
+                base_cfg=base_cfg,
+                cfg_dir=cfg_dir,
+                prefix=stage1_prefix,
+                date_filter=args.stage1_date,
+                quotes_path=quotes_arg,
+                replay_timeout_seconds=args.replay_timeout_seconds,
+                generations=args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),
+                population_size=args.cma_population or int(as_float(optimizer_cfg.get("population_size"), 4)),
+                seed=args.cma_seed or int(as_float(optimizer_cfg.get("seed"), 20260614)),
+                sigma0=args.cma_sigma if args.cma_sigma is not None else as_float(optimizer_cfg.get("sigma0"), 0.22),
+            )
+            for row in cma_stage1_rows:
+                row["screening_stage"] = "stage1"
+                if row.get("invalid_overlay_paths"):
+                    invalid[row["candidate"]] = row["invalid_overlay_paths"]
+            stage1_rows.extend(cma_stage1_rows)
+
+        stage1_ok = [r for r in stage1_rows if r.get("ok")]
+        baseline_stage1 = next((r for r in stage1_ok if r["candidate"] == "baseline_current"), None)
+        top_rows = sorted(
+            [r for r in stage1_ok if r["candidate"] != "baseline_current"],
+            key=lambda x: as_float(x.get("objective_score")),
+            reverse=True,
+        )[:max(0, args.fast_top_k)]
+        final_specs: list[dict[str, Any]] = []
+        if baseline_stage1:
+            final_specs.append({"name": "baseline_current", "overlay": {}, "optimizer": "fixed_grid"})
+        final_specs.extend({
+            "name": r["candidate"],
+            "overlay": r.get("overlay", {}) if isinstance(r.get("overlay"), dict) else {},
+            "optimizer": r.get("optimizer", "stage1_selected"),
+            "generation": r.get("generation"),
+        } for r in top_rows)
+
+        final_prefix = f"{prefix}_final"
+        for spec in final_specs:
+            row = evaluate_candidate(
+                base_cfg,
+                cfg_dir,
+                final_prefix,
+                spec["name"],
+                spec["overlay"],
+                args.date,
+                quotes_arg,
+                args.replay_timeout_seconds,
+                args.start_date,
+                args.end_date,
+            )
+            row["optimizer"] = spec.get("optimizer", "stage1_selected")
+            row["generation"] = spec.get("generation")
+            row["screening_stage"] = "final_validation"
+            rows.append(row)
+
+    elif fixed_candidates:
         for cand in fixed_candidates:
             name = cand["name"]
             row = evaluate_candidate(
@@ -964,26 +1318,30 @@ def main() -> None:
                 name,
                 cand["overlay"],
                 args.date,
-                args.quotes,
+                quotes_arg,
                 args.replay_timeout_seconds,
+                args.start_date,
+                args.end_date,
             )
             row["optimizer"] = "fixed_grid"
             if row.get("invalid_overlay_paths"):
                 invalid[name] = row["invalid_overlay_paths"]
             rows.append(row)
 
-    if optimizer_mode in {"cmaes", "both"}:
+    if args.fast_top_k <= 0 and optimizer_mode in {"cmaes", "both"}:
         cma_rows = cma_es_blackbox_candidates(
             base_cfg=base_cfg,
             cfg_dir=cfg_dir,
             prefix=prefix,
             date_filter=args.date,
-            quotes_path=args.quotes,
+            quotes_path=quotes_arg,
             replay_timeout_seconds=args.replay_timeout_seconds,
             generations=args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),
             population_size=args.cma_population or int(as_float(optimizer_cfg.get("population_size"), 4)),
             seed=args.cma_seed or int(as_float(optimizer_cfg.get("seed"), 20260614)),
             sigma0=args.cma_sigma if args.cma_sigma is not None else as_float(optimizer_cfg.get("sigma0"), 0.22),
+            start_date=args.start_date,
+            end_date=args.end_date,
         )
         for row in cma_rows:
             if row.get("invalid_overlay_paths"):
@@ -1159,6 +1517,17 @@ def main() -> None:
         "strategy_overlay": selected_overlay if status == "approved_for_paper_auto_apply" else {},
         "suggested_strategy_overlay": selected_overlay,
         "optimizer_mode": optimizer_mode,
+        "quote_cache": cache_meta,
+        "dynamic_gate_cache": dynamic_gate_meta,
+        "validation_date_filter": args.date,
+        "validation_start_date": args.start_date,
+        "validation_end_date": args.end_date,
+        "two_stage_fast_screen": {
+            "enabled": args.fast_top_k > 0,
+            "stage1_date": args.stage1_date,
+            "fast_top_k": args.fast_top_k,
+            "stage1_candidates": stage1_rows,
+        },
         "cma_es": {
             "enabled": optimizer_mode in {"cmaes", "both"},
             "generations": args.cma_generations or int(as_float(optimizer_cfg.get("generations"), 2)),

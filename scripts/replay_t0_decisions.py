@@ -13,7 +13,7 @@ import json
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from zoneinfo import ZoneInfo
 
 from run_etf_paper_trading_agent import ROOT, as_float, load_json
@@ -25,26 +25,56 @@ OUT_DIR = ROOT / "outputs" / "t0_replay"
 INITIAL_CASH = 1_000_000.0
 
 
-def load_rows(path: Path, date_filter: str | None) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+def _date_allowed(ts_text: str, date_filter: str | None, start_date: str | None, end_date: str | None) -> bool:
+    trade_date = ts_text[:10]
+    if date_filter and trade_date != date_filter:
+        return False
+    if start_date and trade_date < start_date:
+        return False
+    if end_date and trade_date > end_date:
+        return False
+    return True
+
+
+def quote_source_paths(path: Path, date_filter: str | None = None) -> list[Path]:
     if not path.exists():
-        return rows
-    for line in path.read_text(encoding="utf-8").splitlines():
-        try:
-            obj = json.loads(line)
-        except Exception:
-            continue
-        if not isinstance(obj, dict) or not obj.get("timestamp"):
-            continue
-        if date_filter and not str(obj["timestamp"]).startswith(date_filter):
-            continue
-        rows.append(obj)
-    return rows
+        return []
+    if path.is_dir():
+        if date_filter:
+            matched = sorted(path.glob(f"*{date_filter}*.jsonl"))
+            if matched:
+                return matched
+        return sorted(path.glob("*.jsonl"))
+    return [path]
 
 
-def group_rounds(rows: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+def iter_quote_rows(
+    path: Path,
+    date_filter: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> Iterator[dict[str, Any]]:
+    for source in quote_source_paths(path, date_filter):
+        with source.open("r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(obj, dict) or not obj.get("timestamp"):
+                    continue
+                ts_text = str(obj["timestamp"])
+                if not _date_allowed(ts_text, date_filter, start_date, end_date):
+                    continue
+                yield obj
+
+
+def load_rows(path: Path, date_filter: str | None) -> list[dict[str, Any]]:
+    return list(iter_quote_rows(path, date_filter))
+
+
+def iter_rounds(rows: Iterator[dict[str, Any]]) -> Iterator[list[dict[str, Any]]]:
     """Rows are appended per agent run; start a new round on code repeat or >60s gap."""
-    rounds: list[list[dict[str, Any]]] = []
     current: list[dict[str, Any]] = []
     seen: set[str] = set()
     last_ts: datetime | None = None
@@ -53,7 +83,7 @@ def group_rounds(rows: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         code = str(row.get("stockCode", "")).zfill(6)
         gap = (ts - last_ts).total_seconds() if ts and last_ts else 0.0
         if current and (code in seen or gap > 60):
-            rounds.append(current)
+            yield current
             current = []
             seen = set()
         current.append(row)
@@ -61,8 +91,11 @@ def group_rounds(rows: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
         if ts:
             last_ts = ts
     if current:
-        rounds.append(current)
-    return rounds
+        yield current
+
+
+def group_rounds(rows: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    return list(iter_rounds(iter(rows)))
 
 
 def fake_balance(total: float, cash: float) -> dict[str, Any]:
@@ -169,15 +202,13 @@ def main() -> None:
     parser.add_argument("--config", default=str(agent.DEFAULT_CONFIG))
     parser.add_argument("--quotes", default=str(DEFAULT_QUOTES))
     parser.add_argument("--date", default=None, help="replay a single trade date YYYY-MM-DD")
+    parser.add_argument("--start-date", default=None, help="inclusive replay start date YYYY-MM-DD")
+    parser.add_argument("--end-date", default=None, help="inclusive replay end date YYYY-MM-DD")
     parser.add_argument("--label", default="replay", help="suffix for output filenames")
     args = parser.parse_args()
 
     cfg = load_json(Path(args.config))
-    rows = load_rows(Path(args.quotes), args.date)
-    rounds = group_rounds(rows)
-    if not rounds:
-        print("no quote rounds found")
-        return
+    round_iter = iter_rounds(iter_quote_rows(Path(args.quotes), args.date, args.start_date, args.end_date))
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     decisions_path = OUT_DIR / f"{args.label}_decisions.jsonl"
@@ -187,20 +218,32 @@ def main() -> None:
     state: dict[str, Any] = {}
     sim = {"cash": INITIAL_CASH, "positions": {}}
     history: list[dict[str, Any]] = []
+    history_trade_date: str | None = None
+    history_universe_max = 0
     lookback = int(cfg["strategy"]["lookback_minutes"])
+    indicator_windows = [
+        lookback,
+        120,
+        int(as_float(cfg.get("strategy", {}).get("market_correlation_stress", {}).get("window_snapshots"), 30)),
+    ]
+    max_history_snapshots = max(indicator_windows)
     submit_seq = 0
     per_day: dict[str, dict[str, Any]] = {}
     fail_counter: Counter[str] = Counter()
     trades: list[dict[str, Any]] = []
 
     try:
-        for rnd in rounds:
+        for rnd in round_iter:
             ts = agent.parse_iso_dt(rnd[-1].get("timestamp"))
             if ts is None:
                 continue
             replay_now = ts.astimezone(ZoneInfo("Asia/Shanghai"))
             agent.set_replay_now(replay_now)
             trade_date = replay_now.strftime("%Y-%m-%d")
+            if history_trade_date != trade_date:
+                history = []
+                history_trade_date = trade_date
+                history_universe_max = 0
             day = per_day.setdefault(trade_date, {
                 "rounds": 0, "entries": 0, "exits": Counter(), "pnl": 0.0,
                 "entry_score_pass": 0, "actions": Counter(),
@@ -215,6 +258,10 @@ def main() -> None:
                 cfg.get("strategy", {}).get("market_correlation_stress", {}),
             )
             history.extend(quotes)
+            history_universe_max = max(history_universe_max, len(quotes))
+            history_row_cap = max_history_snapshots * max(1, history_universe_max)
+            if len(history) > history_row_cap:
+                history = history[-history_row_cap:]
 
             session = {"in_regular_session": True}
             agent.update_orb_state(state, trade_date, quotes, replay_now, True)
@@ -270,6 +317,10 @@ def main() -> None:
             })
     finally:
         agent.set_replay_now(None)
+
+    if not per_day:
+        print("no quote rounds found")
+        return
 
     final_assets = sim["cash"] + sum(
         as_float(p.get("costPrice")) * as_float(p.get("quantity")) for p in sim["positions"].values()

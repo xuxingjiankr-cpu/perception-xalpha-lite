@@ -18,6 +18,11 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover - production fallback when NumPy is absent
+    np = None
+
 from run_etf_paper_trading_agent import (
     ROOT,
     SkillClient,
@@ -967,12 +972,21 @@ def compute_market_correlation_stress(
     snapshots: dict[str, dict[str, float]] = {}
     snapshot_times: dict[str, datetime] = {}
     for row in rows:
-        dt = parse_iso_dt(row.get("timestamp"))
-        if dt is None:
-            continue
+        ts_text = str(row.get("timestamp") or "")
+        key = ts_text[:16] if len(ts_text) >= 16 and ts_text[10:11] == "T" else ""
+        if not key:
+            dt = parse_iso_dt(ts_text)
+            if dt is None:
+                continue
+            key = dt.strftime("%Y-%m-%dT%H:%M")
+        else:
+            dt = snapshot_times.get(key)
+            if dt is None:
+                dt = parse_iso_dt(ts_text)
+                if dt is None:
+                    continue
         # The agent queries ETFs sequentially; grouping to the minute captures a
         # single scan without requiring identical second-level timestamps.
-        key = dt.strftime("%Y-%m-%dT%H:%M")
         code = str(row.get("stockCode", "")).zfill(6)
         if not code:
             continue
@@ -1049,18 +1063,28 @@ def compute_market_correlation_stress(
             return None
         return sum((a - mx) * (b - my) for a, b in zip(x, y)) / math.sqrt(vx * vy)
 
-    pair_corrs: list[float] = []
     codes = sorted(returns_by_code)
-    for i, code_a in enumerate(codes):
-        for code_b in codes[i + 1:]:
-            val = corr(returns_by_code[code_a], returns_by_code[code_b])
-            if val is not None:
-                pair_corrs.append(val)
+    pair_corrs: list[float] = []
+    correlation_engine = "python_pairwise"
+    if np is not None and len(codes) >= 2:
+        matrix = np.asarray([returns_by_code[code] for code in codes], dtype=float)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            corr_matrix = np.corrcoef(matrix)
+        upper = np.abs(corr_matrix[np.triu_indices(len(codes), k=1)])
+        finite = upper[np.isfinite(upper)]
+        pair_corrs = finite.tolist()
+        correlation_engine = "numpy_exact_matrix"
+    else:
+        for i, code_a in enumerate(codes):
+            for code_b in codes[i + 1:]:
+                val = corr(returns_by_code[code_a], returns_by_code[code_b])
+                if val is not None:
+                    pair_corrs.append(abs(val))
     if not pair_corrs:
         return {"available": False, "status": "no_valid_pair_correlations", "block_new_buy": False}
 
-    avg_abs_corr = sum(abs(v) for v in pair_corrs) / len(pair_corrs)
-    max_abs_corr = max(abs(v) for v in pair_corrs)
+    avg_abs_corr = sum(pair_corrs) / len(pair_corrs)
+    max_abs_corr = max(pair_corrs)
     non_bond_quotes = [q for q in quotes if q.get("quote_ok") and q.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES]
     positive_count = sum(1 for q in non_bond_quotes if as_float(q.get("change_pct")) > -0.005)
     block_new_buy = avg_abs_corr > corr_threshold and positive_count <= breadth_max
@@ -1072,6 +1096,7 @@ def compute_market_correlation_stress(
         "avg_abs_corr": avg_abs_corr,
         "max_abs_corr": max_abs_corr,
         "pair_count": len(pair_corrs),
+        "correlation_engine": correlation_engine,
         "asset_count": len(codes),
         "snapshots": len(contiguous_keys),
         "window_snapshots": window,
@@ -1101,15 +1126,20 @@ def compute_first_half_hour_return(hist: list[dict[str, Any]], current_quote: di
     today = current_dt().astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     candidates: list[tuple[int, float]] = []
     for r in hist:
-        ts = parse_iso_dt(r.get("timestamp"))
-        if ts is None:
+        ts_text = str(r.get("timestamp") or "")
+        if ts_text[:10] != today:
             continue
-        ts_sh = ts.astimezone(ZoneInfo("Asia/Shanghai"))
-        if ts_sh.strftime("%Y-%m-%d") != today:
+        try:
+            minute = int(ts_text[11:13]) * 60 + int(ts_text[14:16])
+        except (TypeError, ValueError):
+            ts = parse_iso_dt(ts_text)
+            if ts is None:
+                continue
+            ts_sh = ts.astimezone(ZoneInfo("Asia/Shanghai"))
+            minute = ts_sh.hour * 60 + ts_sh.minute
+        if minute > cutoff_minute:
             continue
-        minute = ts_sh.hour * 60 + ts_sh.minute
-        if minute <= cutoff_minute:
-            candidates.append((minute, as_float(r.get("currentPrice"))))
+        candidates.append((minute, as_float(r.get("currentPrice"))))
     if not candidates:
         return None
     candidates.sort()
@@ -1136,10 +1166,8 @@ def compute_alpha101_conviction(hist: list[dict[str, Any]], current_quote: dict[
     today = current_dt().astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
     prices: list[float] = []
     for r in hist:
-        ts = parse_iso_dt(r.get("timestamp"))
-        if ts is None:
-            continue
-        if ts.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d") != today:
+        ts_text = str(r.get("timestamp") or "")
+        if ts_text[:10] != today:
             continue
         p = as_float(r.get("currentPrice"))
         if p > 0:
@@ -2283,8 +2311,13 @@ def compute_execution_quality(q: dict[str, Any], filters: dict[str, Any], risk: 
 
 
 def _recent_history_for_code(history: list[dict[str, Any]], code: str, max_rows: int) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
     zcode = str(code).zfill(6)
+    if history:
+        first_code = str(history[0].get("stockCode", "")).zfill(6)
+        last_code = str(history[-1].get("stockCode", "")).zfill(6)
+        if first_code == zcode and last_code == zcode:
+            return history[-max_rows:]
+    out: list[dict[str, Any]] = []
     for row in reversed(history or []):
         if str(row.get("stockCode", "")).zfill(6) == zcode:
             out.append(row)
@@ -2499,14 +2532,29 @@ def build_decision(
         "status": "available" if volume_fields_available else "unavailable_api_field",
     })
 
+    history_by_code: dict[str, list[dict[str, Any]]] = {}
+    for row in history or []:
+        hcode = str(row.get("stockCode", "")).zfill(6)
+        if hcode:
+            history_by_code.setdefault(hcode, []).append(row)
+
+    def ensure_entry_diagnostics(q: dict[str, Any] | None) -> None:
+        if not q:
+            return
+        if not isinstance(q.get("execution_quality"), dict):
+            eq = compute_execution_quality(q, filters, risk, strategy)
+            q["execution_quality"] = eq
+            q["execution_quality_score"] = eq.get("score")
+            q["expected_slippage_bps"] = eq.get("expected_slippage_bps")
+        if not isinstance(q.get("safe_policy_shield"), dict):
+            qcode = str(q.get("stockCode", "")).zfill(6)
+            shield = compute_safe_policy_shield(q, history_by_code.get(qcode, []), state, strategy)
+            q["safe_policy_shield"] = shield
+            q["safe_policy_status"] = shield.get("status")
+
     for q in quotes:
-        eq = compute_execution_quality(q, filters, risk, strategy)
-        shield = compute_safe_policy_shield(q, history or [], state, strategy)
-        q["execution_quality"] = eq
-        q["execution_quality_score"] = eq.get("score")
-        q["expected_slippage_bps"] = eq.get("expected_slippage_bps")
-        q["safe_policy_shield"] = shield
-        q["safe_policy_status"] = shield.get("status")
+        q.setdefault("execution_quality", None)
+        q.setdefault("safe_policy_shield", None)
 
     liquid_quotes = []
     ranking_exclusions = []
@@ -2684,6 +2732,7 @@ def build_decision(
         or best is not None
     )
     add("sector_diversification_entry_filter", sector_entry_ok, sector_diversification_detail)
+    ensure_entry_diagnostics(best)
     best_execution_quality = best.get("execution_quality") if best and isinstance(best.get("execution_quality"), dict) else {
         "enabled": True, "passed": False, "status": "no_ranked_quote"
     }
@@ -2901,6 +2950,7 @@ def build_decision(
                 "selected": best_im.get("stockCode") if best_im else None,
                 "min_first_half_return": im_min_ret,
             })
+            ensure_entry_diagnostics(best_im)
             if best_im is not None and not bool((best_im.get("execution_quality") or {}).get("passed")):
                 reason = "blocked_execution_quality"
             elif best_im is not None and not bool((best_im.get("safe_policy_shield") or {}).get("passed")):
