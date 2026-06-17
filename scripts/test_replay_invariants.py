@@ -821,6 +821,176 @@ def t22_dynamic_universe_selection() -> None:
           meta_off.get("mode") == "static" and len(uni_off) == 1, str(meta_off))
 
 
+def t23_sector_diversification_entry_filter() -> None:
+    """Entry diversification: when two semi ETFs are already held, a third semi
+    candidate is skipped and the next eligible sector can be bought."""
+    import copy as _copy
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    SH = ZoneInfo("Asia/Shanghai")
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["intraday_momentum"]["enabled"] = False
+    cfg["strategy"]["target_holdings"] = 5
+    cfg["sector_diversification"] = {
+        "enabled": True,
+        "max_per_sector": 2,
+        "unlimited_sectors": ["other"],
+        "keyword_map": {"\u534a\u5bfc\u4f53": "semi", "\u82af\u7247": "semi", "\u533b\u836f": "pharma"},
+    }
+    cfg["universe"] = [
+        {"stockCode": "512760", "exchange": "SH", "name": "\u534a\u5bfc\u4f53ETF-A", "asset_class": "equity_etf"},
+        {"stockCode": "512480", "exchange": "SH", "name": "\u82af\u7247ETF-B", "asset_class": "equity_etf"},
+        {"stockCode": "512761", "exchange": "SH", "name": "\u534a\u5bfc\u4f53ETF-C", "asset_class": "equity_etf"},
+        {"stockCode": "159929", "exchange": "SZ", "name": "\u533b\u836fETF", "asset_class": "equity_etf"},
+    ]
+    now = datetime(2026, 6, 18, 10, 30, tzinfo=SH)
+    ts = now.isoformat()
+    trade_date = "2026-06-18"
+
+    def q(code, name, px, mom):
+        return {"stockCode": code, "exchange": "SH", "name": name, "asset_class": "equity_etf",
+                "currentPrice": px, "bidPrice1": px - 0.001, "askPrice1": px + 0.001,
+                "midpoint": px, "prevClose": px * 0.99, "timestamp": ts, "quote_ok": True,
+                "isSuspended": False, "momentum_available": True, "momentum": mom,
+                "spread_pct": 0.0008, "change_pct": 0.01, "bid_pressure_3m_pct": 0.001,
+                "acceleration": 0.001}
+
+    quotes = [
+        q("512760", "\u534a\u5bfc\u4f53ETF-A", 1.01, 0.002),
+        q("512480", "\u82af\u7247ETF-B", 1.02, 0.002),
+        q("512761", "\u534a\u5bfc\u4f53ETF-C", 1.03, 0.030),  # top momentum, blocked by sector
+        q("159929", "\u533b\u836fETF", 1.04, 0.020),          # next eligible
+    ]
+    positions = [
+        {"stockCode": "512760", "stockName": "\u534a\u5bfc\u4f53ETF-A", "exchange": "SH",
+         "quantity": 10000, "availableQuantity": 10000, "costPrice": 1.00},
+        {"stockCode": "512480", "stockName": "\u82af\u7247ETF-B", "exchange": "SH",
+         "quantity": 10000, "availableQuantity": 10000, "costPrice": 1.00},
+    ]
+    state = {"t0_inventory_by_date": {trade_date: {
+        "512760": {"buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+                   "baseline_available_quantity": 10000, "entry_price": 1.00,
+                   "first_buy_at": now.replace(hour=10, minute=0).isoformat(),
+                   "highest_price_since_entry": 1.02},
+        "512480": {"buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+                   "baseline_available_quantity": 10000, "entry_price": 1.00,
+                   "first_buy_at": now.replace(hour=10, minute=0).isoformat(),
+                   "highest_price_since_entry": 1.03},
+    }}}
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, quotes, balance, {"ok": True, "data": {"positions": positions}},
+                                   {"ok": True, "data": {"orders": []}}, _copy.deepcopy(state), None)
+    finally:
+        agent.set_replay_now(None)
+    buys = [o for o in dec.get("orders", []) if o.get("direction") == "buy"]
+    blocked = dec.get("sector_diversification", {}).get("blocked_candidates", [])
+    blocked_codes = {str(x.get("stockCode")).zfill(6) for x in blocked}
+    check("T23 sector classifier maps semi/pharma",
+          agent.classify_etf_sector("\u534a\u5bfc\u4f53ETF", cfg["sector_diversification"]["keyword_map"]) == "semi"
+          and agent.classify_etf_sector("\u533b\u836fETF", cfg["sector_diversification"]["keyword_map"]) == "pharma")
+    check("T23 third same-sector entry candidate is blocked", "512761" in blocked_codes, str(blocked))
+    check("T23 next non-blocked sector can be selected",
+          len(buys) == 1 and str(buys[0].get("stockCode")).zfill(6) == "159929", str(dec.get("orders")))
+
+
+def t24_sector_limit_never_blocks_sells() -> None:
+    """Even when the entry sector filter fails, held positions remain sellable."""
+    import io as _io
+    import json as _json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    SH = ZoneInfo("Asia/Shanghai")
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["intraday_momentum"]["enabled"] = False
+    cfg["strategy"]["target_holdings"] = 5
+    cfg["sector_diversification"] = {
+        "enabled": True,
+        "max_per_sector": 1,
+        "unlimited_sectors": ["other"],
+        "keyword_map": {"\u534a\u5bfc\u4f53": "semi", "\u82af\u7247": "semi"},
+    }
+    cfg["universe"] = [
+        {"stockCode": "512760", "exchange": "SH", "name": "\u534a\u5bfc\u4f53ETF-A", "asset_class": "equity_etf"},
+        {"stockCode": "512480", "exchange": "SH", "name": "\u82af\u7247ETF-B", "asset_class": "equity_etf"},
+        {"stockCode": "512761", "exchange": "SH", "name": "\u534a\u5bfc\u4f53ETF-C", "asset_class": "equity_etf"},
+    ]
+    now = datetime(2026, 6, 18, 10, 30, tzinfo=SH)
+    ts = now.isoformat()
+    trade_date = "2026-06-18"
+
+    def q(code, name, px, mom):
+        return {"stockCode": code, "exchange": "SH", "name": name, "asset_class": "equity_etf",
+                "currentPrice": px, "bidPrice1": max(0.001, px - 0.001), "askPrice1": px + 0.001,
+                "midpoint": px, "prevClose": px * 1.02, "timestamp": ts, "quote_ok": True,
+                "isSuspended": False, "momentum_available": True, "momentum": mom,
+                "spread_pct": 0.0008, "change_pct": -0.02, "bid_pressure_3m_pct": -0.001,
+                "acceleration": -0.003}
+
+    quotes = [
+        q("512760", "\u534a\u5bfc\u4f53ETF-A", 0.95, -0.02),
+        q("512480", "\u82af\u7247ETF-B", 0.95, -0.02),
+        q("512761", "\u534a\u5bfc\u4f53ETF-C", 1.03, 0.03),  # would be blocked if entering
+    ]
+    positions = [
+        {"stockCode": "512760", "stockName": "\u534a\u5bfc\u4f53ETF-A", "exchange": "SH",
+         "quantity": 10000, "availableQuantity": 10000, "costPrice": 1.00},
+        {"stockCode": "512480", "stockName": "\u82af\u7247ETF-B", "exchange": "SH",
+         "quantity": 10000, "availableQuantity": 10000, "costPrice": 1.00},
+    ]
+    state = {"t0_inventory_by_date": {trade_date: {
+        "512760": {"buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+                   "baseline_available_quantity": 10000, "entry_price": 1.00,
+                   "first_buy_at": now.replace(hour=10, minute=0).isoformat(),
+                   "highest_price_since_entry": 1.00},
+        "512480": {"buy_quantity_submitted": 10000, "sell_quantity_submitted": 0,
+                   "baseline_available_quantity": 10000, "entry_price": 1.00,
+                   "first_buy_at": now.replace(hour=10, minute=0).isoformat(),
+                   "highest_price_since_entry": 1.00},
+    }}}
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, quotes, balance, {"ok": True, "data": {"positions": positions}},
+                                   {"ok": True, "data": {"orders": []}}, state, None)
+    finally:
+        agent.set_replay_now(None)
+    sells = [o for o in dec.get("orders", []) if o.get("direction") == "sell"]
+    sector_check = next((c for c in dec.get("risk_checks", []) if c.get("name") == "sector_diversification_entry_filter"), {})
+    check("T24 sector entry filter can fail while held exits remain evaluated", sector_check.get("passed") is False,
+          str(sector_check))
+    check("T24 sell orders still built despite sector concentration",
+          len(sells) >= 1 and dec.get("approved_for_submit") is True, str(dec.get("orders")))
+    check("T24 sector filter is in SELL bypass set", "sector_diversification_entry_filter" in agent.SELL_BYPASS_CHECKS)
+
+
+def t25_daily_minute_quote_paths() -> None:
+    """Minute quote history rolls by trading day and same-day loads do not read
+    the prior day's file."""
+    import tempfile
+    from pathlib import Path as _Path
+
+    with tempfile.TemporaryDirectory() as td:
+        out_dir = _Path(td)
+        p17 = agent.dated_output_path(out_dir, "minute_quotes_{trade_date}.jsonl", "2026-06-17")
+        p18 = agent.dated_output_path(out_dir, "minute_quotes_{trade_date}.jsonl", "2026-06-18")
+        p_legacy = agent.dated_output_path(out_dir, "minute_quotes.jsonl", "2026-06-18")
+        agent.append_jsonl(p17, {"stockCode": "OLD", "timestamp": "2026-06-17T10:00:00+08:00"})
+        agent.append_jsonl(p18, {"stockCode": "NEW", "timestamp": "2026-06-18T10:00:00+08:00"})
+        rows = agent.load_recent_quotes(p18)
+        check("T25 date-template output path resolves per day",
+              p17.name == "minute_quotes_2026-06-17.jsonl" and p18.name == "minute_quotes_2026-06-18.jsonl",
+              f"{p17.name},{p18.name}")
+        check("T25 legacy filename rolls before extension", p_legacy.name == "minute_quotes_2026-06-18.jsonl", p_legacy.name)
+        check("T25 same-day load excludes prior-day rows",
+              [r.get("stockCode") for r in rows] == ["NEW"], str(rows))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -842,6 +1012,9 @@ if __name__ == "__main__":
     t20_alpha101_conviction()
     t21_inventory_aware_passive_skew()
     t22_dynamic_universe_selection()
+    t23_sector_diversification_entry_filter()
+    t24_sector_limit_never_blocks_sells()
+    t25_daily_minute_quote_paths()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

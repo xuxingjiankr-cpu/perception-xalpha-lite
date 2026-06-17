@@ -73,6 +73,7 @@ SELL_BYPASS_CHECKS = {
     "execution_quality_filter",
     "safe_policy_shield",
     "market_correlation_stress_filter",
+    "sector_diversification_entry_filter",
     "reentry_cooldown",
     "daily_entry_limit",
     "entry_score_gate",
@@ -657,6 +658,38 @@ def load_recent_quotes(path: Path, lookback_rows: int = 2000, *, universe_size: 
         except Exception:
             continue
     return rows
+
+
+def dated_output_path(out_dir: Path, template: Any, trade_date: str) -> Path:
+    """Resolve an output filename for a trading day.
+
+    New configs should use a ``{trade_date}`` placeholder. Legacy filenames are
+    still rolled by appending the date before the extension, so an old
+    ``minute_quotes.jsonl`` setting becomes ``minute_quotes_YYYY-MM-DD.jsonl``.
+    """
+    name = str(template or "").strip()
+    if not name:
+        raise ValueError("empty output filename template")
+    if "{trade_date}" in name:
+        return out_dir / name.format(trade_date=trade_date)
+    path = out_dir / name
+    if path.suffix:
+        return path.with_name(f"{path.stem}_{trade_date}{path.suffix}")
+    return path.with_name(f"{path.name}_{trade_date}")
+
+
+def classify_etf_sector(name: Any, keyword_map: dict[str, Any] | None = None) -> str:
+    """Classify an ETF name into a coarse sector bucket using configured keywords."""
+    text = str(name or "")
+    if not text:
+        return "other"
+    if isinstance(keyword_map, dict):
+        for keyword, sector in keyword_map.items():
+            kw = str(keyword or "").strip()
+            if kw and kw in text:
+                sec = str(sector or "other").strip()
+                return sec or "other"
+    return "other"
 
 
 def compute_consolidation_box(hist: list[dict[str, Any]], ccfg: dict[str, Any]) -> dict[str, Any] | None:
@@ -2535,6 +2568,18 @@ def build_decision(
         "513050": "513330", "513330": "513050",
     }
     quote_by_code: dict[str, dict[str, Any]] = {str(q.get("stockCode", "")).zfill(6): q for q in quotes}
+    name_by_code: dict[str, str] = {}
+    for etf in cfg.get("universe", []):
+        code = str(etf.get("stockCode", "")).zfill(6)
+        if code:
+            name_by_code[code] = str(etf.get("name") or code)
+    for code, q in quote_by_code.items():
+        if q.get("name"):
+            name_by_code[code] = str(q.get("name"))
+    for code, pos in positions.items():
+        pos_name = pos.get("stockName") or pos.get("name") or pos.get("securityName")
+        if pos_name:
+            name_by_code[code] = str(pos_name)
     for q in liquid_quotes:
         code = str(q.get("stockCode", "")).zfill(6)
         partner_code = cross_pairs.get(code)
@@ -2560,8 +2605,85 @@ def build_decision(
     held_code = held_codes[0] if held_codes else None
     held_pos = positions.get(held_code) if held_code else None
     target_holdings = max(1, int(as_float(strategy.get("target_holdings"), 1)))
-    # entry candidate = highest-momentum liquid quote NOT already held
-    best = next((q for q in ranked if str(q.get("stockCode", "")).zfill(6) not in held_codes), None)
+    sector_cfg = cfg.get("sector_diversification", {})
+    if not isinstance(sector_cfg, dict):
+        sector_cfg = {}
+    sector_enabled = bool(sector_cfg.get("enabled", False))
+    sector_keyword_map = sector_cfg.get("keyword_map") if isinstance(sector_cfg.get("keyword_map"), dict) else {}
+    sector_max_per_sector = max(0, int(as_float(sector_cfg.get("max_per_sector"), 2)))
+    raw_unlimited = sector_cfg.get("unlimited_sectors", ["other"])
+    if isinstance(raw_unlimited, list):
+        unlimited_sectors = {str(x) for x in raw_unlimited}
+    else:
+        unlimited_sectors = {"other"}
+    held_sector_counts: dict[str, int] = {}
+    held_sector_details: list[dict[str, Any]] = []
+    for code in held_codes:
+        name = name_by_code.get(code, code)
+        sector = classify_etf_sector(name, sector_keyword_map)
+        held_sector_counts[sector] = held_sector_counts.get(sector, 0) + 1
+        held_sector_details.append({"stockCode": code, "name": name, "sector": sector})
+    sector_blocked_candidates: list[dict[str, Any]] = []
+    sector_blocked_codes: set[str] = set()
+
+    def entry_sector_status(q: dict[str, Any], *, record: bool = True) -> tuple[bool, str]:
+        code = str(q.get("stockCode", "")).zfill(6)
+        name = str(q.get("name") or name_by_code.get(code, code))
+        sector = classify_etf_sector(name, sector_keyword_map)
+        held_count = int(held_sector_counts.get(sector, 0))
+        limit_applies = (
+            sector_enabled
+            and sector_max_per_sector > 0
+            and sector not in unlimited_sectors
+        )
+        blocked = bool(limit_applies and held_count >= sector_max_per_sector)
+        if blocked and record and code not in sector_blocked_codes:
+            sector_blocked_codes.add(code)
+            sector_blocked_candidates.append({
+                "stockCode": code,
+                "name": name,
+                "sector": sector,
+                "held_sector_count": held_count,
+                "max_per_sector": sector_max_per_sector,
+                "blocked_reason": "blocked_sector_concentration",
+            })
+        return blocked, sector
+
+    # entry candidate = highest-momentum liquid quote NOT already held and not
+    # blocked by current holding sector concentration. This is entry-only; held
+    # names are still evaluated by the sell engine above.
+    nonheld_ranked_count = 0
+    best = None
+    best_sector = None
+    for q in ranked:
+        qcode = str(q.get("stockCode", "")).zfill(6)
+        if qcode in held_codes:
+            continue
+        nonheld_ranked_count += 1
+        blocked, qsector = entry_sector_status(q)
+        if blocked:
+            continue
+        best = q
+        best_sector = qsector
+        break
+    sector_diversification_detail = {
+        "enabled": sector_enabled,
+        "max_per_sector": sector_max_per_sector,
+        "unlimited_sectors": sorted(unlimited_sectors),
+        "held_sector_counts": held_sector_counts,
+        "held_sector_details": held_sector_details,
+        "nonheld_ranked_count": nonheld_ranked_count,
+        "blocked_candidates": sector_blocked_candidates,
+        "selected_stockCode": best.get("stockCode") if best else None,
+        "selected_sector": best_sector,
+    }
+    sector_entry_ok = (
+        (not sector_enabled)
+        or len(held_codes) >= target_holdings
+        or nonheld_ranked_count == 0
+        or best is not None
+    )
+    add("sector_diversification_entry_filter", sector_entry_ok, sector_diversification_detail)
     best_execution_quality = best.get("execution_quality") if best and isinstance(best.get("execution_quality"), dict) else {
         "enabled": True, "passed": False, "status": "no_ranked_quote"
     }
@@ -2764,6 +2886,9 @@ def build_decision(
                 qcode = str(q.get("stockCode", "")).zfill(6)
                 existing_qty = as_float(positions.get(qcode, {}).get("quantity"), 0.0)
                 if existing_qty > 0:  # never mingle IM with an existing position
+                    continue
+                blocked_by_sector, _sector = entry_sector_status(q)
+                if blocked_by_sector:
                     continue
                 im_pool.append(q)
             im_pool.sort(key=lambda x: (
@@ -3016,6 +3141,8 @@ def build_decision(
             reason = "blocked_broad_market_declining"
         elif best and not correlation_stress_ok:
             reason = "blocked_market_correlation_stress"
+        elif not best and sector_enabled and sector_blocked_candidates and len(held_codes) < target_holdings:
+            reason = "blocked_sector_concentration"
         elif best and not bool((best.get("execution_quality") or {}).get("passed")):
             reason = "blocked_execution_quality"
         elif best and not bool((best.get("safe_policy_shield") or {}).get("passed")):
@@ -3028,6 +3155,7 @@ def build_decision(
         action = "hold"
         reason = (
             "at_target_holdings_capacity" if len(held_codes) >= target_holdings
+            else "blocked_sector_concentration" if sector_enabled and sector_blocked_candidates
             else "carry_allowed_sell_score_not_met" if held_codes
             else "no_entry_candidate"
         )
@@ -3093,6 +3221,7 @@ def build_decision(
         },
         "risk_checks": checks,
         "market_correlation_stress": market_correlation_stress,
+        "sector_diversification": sector_diversification_detail,
         "approved_for_submit": bool(approved),
         "orders": orders_list,
         "exit_policy": "unified_sell_score",
@@ -3155,12 +3284,13 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             normalize_quote(etf, resp)
             for etf, resp in zip(cfg["universe"], quote_responses)
         ]
-        minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
+        minute_path = dated_output_path(out_dir, cfg["outputs"]["minute_quotes_jsonl"], trade_date)
+        minute_csv_path = dated_output_path(out_dir, cfg["outputs"]["minute_quotes_csv"], trade_date)
         history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
         quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
         for q in quotes:
             append_jsonl(minute_path, q)
-        append_csv(out_dir / cfg["outputs"]["minute_quotes_csv"], quotes)
+        append_csv(minute_csv_path, quotes)
         local_time = exchange_local_time(session)
         update_orb_state(state, trade_date, quotes, local_time, bool(session.get("in_regular_session")))
         save_state(state_path, state)
@@ -3189,7 +3319,8 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         for etf, resp in zip(cfg["universe"], quote_responses)
     ]
 
-    minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
+    minute_path = dated_output_path(out_dir, cfg["outputs"]["minute_quotes_jsonl"], trade_date)
+    minute_csv_path = dated_output_path(out_dir, cfg["outputs"]["minute_quotes_csv"], trade_date)
     history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
     quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
     market_correlation_stress = compute_market_correlation_stress(
@@ -3199,7 +3330,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     )
     for q in quotes:
         append_jsonl(minute_path, q)
-    append_csv(out_dir / cfg["outputs"]["minute_quotes_csv"], quotes)
+    append_csv(minute_csv_path, quotes)
     if any_quota_exhausted(quote_responses):
         quota_resp = next((x for x in quote_responses if is_quota_exhausted_response(x)), None)
         quota_status = mark_quota_exhausted(quota_path, trade_date, "t0_quote_query", quota_resp)
