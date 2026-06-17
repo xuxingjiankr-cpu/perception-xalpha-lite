@@ -574,6 +574,31 @@ def t17_passive_entry_pricing() -> None:
     check("T17 locked book -> aggressive", style_lk == "aggressive")
 
 
+def t18_pre_sell_position_verification() -> None:
+    """Pre-submit sell verification: drop a sell for a phantom (broker holds 0),
+    cap an oversized sell to broker available, pass valid sells & buys; when
+    positions can't be fetched, only unconditional exits go through."""
+    avail = {"513050": 10000.0}  # broker holds 513050 only
+    orders = [
+        {"direction": "buy", "stockCode": "513500", "quantity": 1000},
+        {"direction": "sell", "stockCode": "513100", "quantity": 45000},  # phantom -> drop
+        {"direction": "sell", "stockCode": "513050", "quantity": 99999},  # oversized -> cap to 10000
+    ]
+    out = agent.verify_sell_orders_against_broker(orders, avail, True, 100, 100)
+    codes = {o["stockCode"]: o for o in out}
+    check("T18 buy passes through", "513500" in codes)
+    check("T18 phantom sell (broker holds 0) dropped", "513100" not in codes)
+    check("T18 oversized sell capped to broker available", codes.get("513050", {}).get("quantity") == 10000)
+    # positions unavailable: only unconditional exits go through
+    o2 = [
+        {"direction": "sell", "stockCode": "513050", "quantity": 1000, "unconditional_exit": True},
+        {"direction": "sell", "stockCode": "513100", "quantity": 1000, "unconditional_exit": False},
+    ]
+    out2 = {o["stockCode"] for o in agent.verify_sell_orders_against_broker(o2, {}, False, 100, 100)}
+    check("T18 unverified: unconditional exit allowed", "513050" in out2)
+    check("T18 unverified: discretionary sell dropped", "513100" not in out2)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -590,6 +615,7 @@ if __name__ == "__main__":
     t14_513100_entry_blocked_but_sell_allowed()
     t15_emergency_sells_bypass_throttle()
     t17_passive_entry_pricing()
+    t18_pre_sell_position_verification()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

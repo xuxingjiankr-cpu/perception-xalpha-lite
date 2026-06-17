@@ -717,6 +717,35 @@ def passive_entry_price(q: dict[str, Any], risk: dict[str, Any], exec_cfg: dict[
     return round(passive, 3), "passive", mid
 
 
+def verify_sell_orders_against_broker(orders: list[dict[str, Any]], broker_avail: dict[str, float],
+                                      pos_ok: bool, min_qty: int, lot: int) -> list[dict[str, Any]]:
+    """Drop/cap SELL orders against the broker's ACTUAL availableQuantity before
+    submission, so we never queue a stuck pending order for phantom local
+    inventory. Buys pass through. If positions could not be fetched, only
+    unconditional exits (emergency/kill_switch/IM-eod) are allowed through."""
+    out: list[dict[str, Any]] = []
+    for o in orders:
+        if o.get("direction") != "sell":
+            out.append(o)
+            continue
+        code = str(o.get("stockCode", "")).zfill(6)
+        if not pos_ok:
+            if bool(o.get("unconditional_exit")):
+                out.append(o)
+            else:
+                o["skipped_reason"] = "position_unverified"
+            continue
+        avail = broker_avail.get(code, 0.0)
+        if avail < min_qty:
+            o["skipped_reason"] = f"broker_holds_insufficient:{avail}"
+            continue
+        if int(as_float(o.get("quantity"))) > avail:
+            o["quantity"] = round_lot(avail, lot)
+            o["quantity_capped_to_broker_available"] = True
+        out.append(o)
+    return out
+
+
 def compute_rolling_vwap(hist: list[dict[str, Any]], current_quote: dict[str, Any], cfg: dict[str, Any]) -> dict[str, Any]:
     if not cfg.get("enabled", True):
         return {"available": False, "status": "disabled"}
@@ -3132,9 +3161,25 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             if cancel_result.get("attempted") and not cancel_result.get("ok"):
                 decision["status"] = "blocked_cancel_failed"
             else:
+                # Quota-efficient pre-SELL verification: confirm the broker actually
+                # holds the position before submitting a sell, so we never queue a
+                # stuck pending order against phantom local inventory (today's 513100).
+                # One getPositions, ONLY on runs that submit a sell.
+                risk_cfg = cfg["risk"]
+                if any(o.get("direction") == "sell" for o in decision["orders"]):
+                    pos_resp = client.get_positions()
+                    decision["pre_sell_position_check"] = {"attempted": True, "ok": bool(pos_resp.get("ok"))}
+                    broker_avail = {
+                        str(p.get("stockCode", "")).zfill(6): as_float(p.get("availableQuantity"), 0.0)
+                        for p in (extract_data(pos_resp).get("positions") or [])
+                    } if pos_resp.get("ok") else {}
+                    decision["orders"] = verify_sell_orders_against_broker(
+                        decision["orders"], broker_avail, bool(pos_resp.get("ok")),
+                        int(risk_cfg["min_order_quantity"]), int(risk_cfg["quantity_lot"]),
+                    )
                 for order in decision["orders"]:
                     submit_results.append(client.submit_order(order["direction"], order["stockCode"], order["exchange"], int(order["quantity"]), order["orderType"], order.get("price")))
-                decision["status"] = "submitted" if submit_results else "planned_no_submit"
+                decision["status"] = "submitted" if submit_results else ("no_submit_after_position_check" if not decision["orders"] else "planned_no_submit")
                 if submit_results:
                     increment_daily_state(state, "submitted_orders_by_date", decision["trade_date"])
                     state["last_submit_at"] = now_iso()
@@ -3205,6 +3250,14 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                                     today_stopped.append(sell_code)
                                 stopped_map[decision["trade_date"]] = today_stopped
                                 state["stopped_out_today_by_date"] = stopped_map
+            # After a BUY fills the order book, refresh the broker balance so the
+            # same-day available cash is known (quota-efficient: only after a buy).
+            if any(o.get("direction") == "buy" for o, s in zip(decision["orders"], submit_results) if s.get("ok")):
+                bal = client.get_balance()
+                if bal.get("ok"):
+                    ta, av = account_assets(bal)
+                    state["last_known_balance"] = {"total_assets": ta, "available_cash": av, "at": now_iso()}
+                    decision["post_buy_balance"] = state["last_known_balance"]
             shared_guard.record_submit_results(submit_results, status=decision.get("status", "unknown"), cancel_result=cancel_result)
         else:
             decision["status"] = "planned" if decision.get("orders") else "observe"
