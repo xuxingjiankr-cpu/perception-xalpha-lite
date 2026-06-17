@@ -138,6 +138,7 @@ EVOLUTION_PARAM_BOUNDS: dict[str, tuple[float, float]] = {
     "entry_momentum_pct": (0.0012, 0.0028),
     "exit_momentum_pct": (-0.0020, -0.0005),
     "entry_score_threshold": (48, 72),
+    "alpha101_conviction_threshold": (0.3, 0.8),
     "loss_exit_score_threshold": (65, 90),
     "profit_exit_score_threshold": (58, 84),
     "min_profit_exit_pct": (0.002, 0.006),
@@ -695,12 +696,46 @@ def contiguous_recent_window(hist: list[dict[str, Any]], window: int, max_gap_mi
     return rows
 
 
-def passive_entry_price(q: dict[str, Any], risk: dict[str, Any], exec_cfg: dict[str, Any]) -> tuple[float, str, float]:
+def inventory_skew_ticks(exec_cfg: dict[str, Any], inventory_ratio: float, volatility: float,
+                         minutes_to_close: float | None) -> int:
+    """Avellaneda-Stoikov (2006) inventory term, adapted long-only and tick-quantized.
+
+    A-S skews a dealer's reservation price away from inventory by q*gamma*sigma^2*(T-t).
+    We are a LONG-ONLY buyer, so the only actionable direction is to post our passive
+    BUY *lower* (less eager to add) as our book fills up. The raw A-S term is sub-tick
+    at intraday ETF scale, so we express it as a small, bounded number of TICKS that
+    grows with: inventory_ratio (q, how full vs target_holdings), volatility (sigma,
+    via ATR%), and time-to-close (T-t, more remaining horizon => more inventory risk).
+    Returns 0 (no skew) when the feature is disabled or inventory is empty. This only
+    ever lowers fill probability on an OPTIONAL entry, so it carries no downside risk;
+    by design it stays ~0 for the first holdings and only bites near capacity."""
+    skew_cfg = exec_cfg.get("inventory_skew", {}) if isinstance(exec_cfg.get("inventory_skew"), dict) else {}
+    if not bool(skew_cfg.get("enabled", False)) or inventory_ratio <= 0:
+        return 0
+    gamma = as_float(skew_cfg.get("risk_aversion", 2.0), 2.0)
+    ref_sigma = as_float(skew_cfg.get("reference_volatility", 0.01), 0.01)
+    vol_cap = as_float(skew_cfg.get("vol_multiplier_cap", 3.0), 3.0)
+    max_skew = int(as_float(skew_cfg.get("max_skew_ticks", 2), 2))
+    session_minutes = as_float(skew_cfg.get("session_minutes", 240.0), 240.0)
+    vol_mult = min(volatility / ref_sigma, vol_cap) if ref_sigma > 0 and volatility > 0 else 1.0
+    time_frac = max(0.0, min(1.0, minutes_to_close / session_minutes)) if minutes_to_close is not None and session_minutes > 0 else 1.0
+    skew_raw = gamma * min(1.0, inventory_ratio) * vol_mult * time_frac
+    return max(0, min(max_skew, int(round(skew_raw))))
+
+
+def passive_entry_price(q: dict[str, Any], risk: dict[str, Any], exec_cfg: dict[str, Any], *,
+                        inventory_ratio: float = 0.0, volatility: float = 0.0,
+                        minutes_to_close: float | None = None) -> tuple[float, str, float]:
     """Entry limit price. Passive (post at the bid -> EARN the spread instead of
     paying it; ~5-26 bps for our universe) when enabled and a valid book exists.
     Falls back to the aggressive cross (ask x (1+slippage)) otherwise. Returns
     (price, execution_style, mid). Entries are optional so non-fill has no downside;
-    exits stay aggressive (handled separately) for fill certainty."""
+    exits stay aggressive (handled separately) for fill certainty.
+
+    When execution.inventory_skew is enabled, the passive bid is pushed down by an
+    Avellaneda-Stoikov inventory term (see inventory_skew_ticks): the fuller our book
+    (vs target_holdings) and the more volatile/early the session, the more conservative
+    we post -- never above the ask, never below zero."""
     ask = as_float(q.get("askPrice1"), q.get("currentPrice"))
     bid = as_float(q.get("bidPrice1"), 0.0)
     slip = as_float(risk.get("limit_price_slippage_pct"), 0.001)
@@ -712,6 +747,9 @@ def passive_entry_price(q: dict[str, Any], risk: dict[str, Any], exec_cfg: dict[
     offset = int(as_float(exec_cfg.get("passive_offset_ticks", 0), 0))
     passive = bid + offset * tick
     passive = min(passive, ask - tick)  # must stay strictly passive (below the ask)
+    skew_ticks = inventory_skew_ticks(exec_cfg, inventory_ratio, volatility, minutes_to_close)
+    if skew_ticks > 0:
+        passive = passive - skew_ticks * tick
     if passive <= 0:
         return aggressive, "aggressive", mid
     return round(passive, 3), "passive", mid
@@ -1038,6 +1076,41 @@ def compute_first_half_hour_return(hist: list[dict[str, Any]], current_quote: di
     return round(price_first / prev_close - 1.0, 5)
 
 
+def compute_alpha101_conviction(hist: list[dict[str, Any]], current_quote: dict[str, Any]) -> float | None:
+    """Alpha#101 (Kakushadze 2015), single-name and adapted to the live session:
+    (close - open) / (high - low + eps). We map close=current price, open=first
+    snapshot today, high/low=intraday extrema (incl. current). Range ~[-1, 1]:
+    +1 = opened at the low and now at the high (strong up-conviction), -1 the reverse.
+
+    We use ONLY this non-cross-sectional formula from the 101: the paper's alphas are
+    overwhelmingly rank()-based across a broad universe, which is meaningless at our
+    N=7 ETF breadth. This is a long-only momentum CONFIRMATION feature (orthogonal to
+    short-window momentum: it captures intraday directional persistence), not a
+    standalone signal. Returns None when today's session history is too thin."""
+    cur = as_float(current_quote.get("currentPrice"))
+    if cur <= 0:
+        return None
+    today = current_dt().astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d")
+    prices: list[float] = []
+    for r in hist:
+        ts = parse_iso_dt(r.get("timestamp"))
+        if ts is None:
+            continue
+        if ts.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d") != today:
+            continue
+        p = as_float(r.get("currentPrice"))
+        if p > 0:
+            prices.append(p)
+    prices.append(cur)
+    if len(prices) < 3:
+        return None
+    session_open = prices[0]
+    rng = max(prices) - min(prices)
+    if rng <= 0:
+        return 0.0
+    return round((cur - session_open) / (rng + 1e-9), 4)
+
+
 def _hhmm_to_minutes(value: str, default: int) -> int:
     try:
         h, m = (int(x) for x in str(value).split(":"))
@@ -1104,6 +1177,7 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
         q2 = dict(q)
         q2["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
         q2["first_half_hour_return"] = compute_first_half_hour_return(hist, q, strategy_cfg.get("intraday_momentum", {}) if isinstance(strategy_cfg.get("intraday_momentum", {}), dict) else {})
+        q2["alpha101_conviction"] = compute_alpha101_conviction(hist, q)
         vwap_result = compute_rolling_vwap(hist, q, indicators_cfg.get("rolling_vwap", {}))
         atr_result = compute_atr_proxy(hist, q, indicators_cfg.get("intraday_atr", {}))
         bollinger_result = compute_bollinger_squeeze(hist, q, indicators_cfg.get("bollinger_squeeze", {}))
@@ -1954,6 +2028,21 @@ def score_entry(
 
     breadth_score = as_float(weights.get("market_breadth_positive", 10), 10) if broad_market_not_declining else 0.0
 
+    # Alpha#101 intraday conviction (single-name, long-only momentum confirmation).
+    conviction_raw = q.get("alpha101_conviction") if q else None
+    conviction = as_float(conviction_raw) if conviction_raw is not None else None
+    conv_thr = as_float(strategy.get("alpha101_conviction_threshold", 0.5), 0.5)
+    conv_weight = as_float(weights.get("alpha101_intraday_conviction", 0), 0)
+    conviction_score = 0.0
+    conviction_reason = "none"
+    if conviction is not None and conv_thr > 0 and conv_weight > 0 and mom > 0:
+        if conviction >= conv_thr:
+            conviction_score = conv_weight
+            conviction_reason = "strong_intraday_conviction"
+        elif conviction > 0:
+            conviction_score = conv_weight * (conviction / conv_thr)
+            conviction_reason = "weak_intraday_conviction"
+
     cons_cfg = strategy.get("consolidation", {})
     box = q.get("consolidation_box") if q else None
     cons_score = 0.0
@@ -1976,6 +2065,7 @@ def score_entry(
         "bollinger_squeeze_breakout": bollinger_score,
         "cross_etf_divergence": divergence_score,
         "market_breadth_positive": breadth_score,
+        "alpha101_intraday_conviction": conviction_score,
     }
     total = sum(as_float(x, 0.0) for x in components.values())
     return {
@@ -1997,6 +2087,8 @@ def score_entry(
             "orb_high": orb.get("high") if orb else None,
             "consolidation_reason": cons_reason,
             "consolidation_box": box,
+            "alpha101_conviction": conviction,
+            "alpha101_conviction_reason": conviction_reason,
         },
     }
 
@@ -2679,7 +2771,12 @@ def build_decision(
             elif best_im is not None and not bool((best_im.get("safe_policy_shield") or {}).get("passed")):
                 reason = "blocked_safe_policy_shield"
             elif best_im is not None:
-                px, im_exec_style, im_mid = passive_entry_price(best_im, risk, strategy.get("execution", {}))
+                im_inv_ratio = (len(held_codes) / target_holdings) if target_holdings > 0 else 0.0
+                im_mins_to_close = max(0.0, 15 * 60 - (local_time.hour * 60 + local_time.minute))
+                px, im_exec_style, im_mid = passive_entry_price(
+                    best_im, risk, strategy.get("execution", {}),
+                    inventory_ratio=im_inv_ratio, volatility=as_float(best_im.get("atr_pct"), 0.0),
+                    minutes_to_close=im_mins_to_close)
                 kelly_cfg = strategy.get("kelly_sizing", {})
                 realized_pnls = state.get("realized_trade_pnls") if isinstance(state.get("realized_trade_pnls"), list) else []
                 kelly_scale = as_float(compute_kelly_scale(realized_pnls, kelly_cfg).get("scale"), 1.0)
@@ -2771,7 +2868,12 @@ def build_decision(
         if order is not None:
             pass  # intraday-momentum order already built above; skip normal entry chain
         elif best and open_quiet_passed and no_new_entry_after_cutoff and current_entry_checks_passed and not today_skipped and entry_score_passed:
-            px, entry_exec_style, entry_mid = passive_entry_price(best, risk, strategy.get("execution", {}))
+            inv_ratio = (len(held_codes) / target_holdings) if target_holdings > 0 else 0.0
+            mins_to_close = max(0.0, 15 * 60 - (local_time.hour * 60 + local_time.minute))
+            px, entry_exec_style, entry_mid = passive_entry_price(
+                best, risk, strategy.get("execution", {}),
+                inventory_ratio=inv_ratio, volatility=as_float(best.get("atr_pct"), 0.0),
+                minutes_to_close=mins_to_close)
             bracket_meta: dict[str, Any] | None = None
             bracket_skip_reason: str | None = None
             orb_for_best = get_orb(state, trade_date, best.get("stockCode"))

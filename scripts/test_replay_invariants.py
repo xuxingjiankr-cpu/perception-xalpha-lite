@@ -576,6 +576,81 @@ def t17_passive_entry_pricing() -> None:
     check("T17 locked book -> aggressive", style_lk == "aggressive")
 
 
+def t20_alpha101_conviction() -> None:
+    """Alpha#101 (Kakushadze) single-name intraday conviction = (close-open)/(high-low):
+    +1 when the session opened at the low and is now at the high; ~0 on a flat session;
+    feeds entry scoring as a long-only momentum CONFIRMATION (only with mom>0)."""
+    import io as _io
+    import json as _json
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    SH = ZoneInfo("Asia/Shanghai")
+    now = datetime(2026, 6, 15, 11, 0, tzinfo=SH)
+    agent.set_replay_now(now)
+    try:
+        def bar(mins_ago, px):
+            return {"timestamp": (now - timedelta(minutes=mins_ago)).isoformat(), "currentPrice": px}
+        # opened at 1.00 (the low), climbed to 1.05 (now=the high) -> conviction ~ +1
+        up_hist = [bar(50, 1.00), bar(40, 1.01), bar(30, 1.02), bar(20, 1.03), bar(10, 1.04)]
+        up_now = {"currentPrice": 1.05}
+        conv_up = agent.compute_alpha101_conviction(up_hist, up_now)
+        check("T20 strong up session -> conviction near +1", conv_up is not None and conv_up > 0.95, str(conv_up))
+        # flat session -> ~0
+        flat_hist = [bar(30, 1.00), bar(20, 1.00), bar(10, 1.00)]
+        conv_flat = agent.compute_alpha101_conviction(flat_hist, {"currentPrice": 1.00})
+        check("T20 flat session -> conviction 0", conv_flat == 0.0, str(conv_flat))
+        # too little history -> None
+        conv_thin = agent.compute_alpha101_conviction([bar(5, 1.0)], {"currentPrice": 1.0})
+        check("T20 thin history -> None", conv_thin is None, str(conv_thin))
+    finally:
+        agent.set_replay_now(None)
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    strat = cfg["strategy"]
+    # high conviction + positive momentum -> full conviction weight in entry score
+    q_hi = {"momentum": 0.01, "alpha101_conviction": 0.9, "spread_pct": 0.0008, "currentPrice": 1.0}
+    s_hi = agent.score_entry(strategy=strat, filters=cfg["filters"], q=q_hi, orb=None,
+                             broad_market_not_declining=True)
+    w = strat["entry_score_weights"]["alpha101_intraday_conviction"]
+    check("T20 strong conviction earns full weight",
+          s_hi["components"]["alpha101_intraday_conviction"] == w, str(s_hi["components"]))
+    # conviction without momentum (mom<=0) -> no conviction reward (long-only confirmation)
+    q_nomom = {"momentum": -0.01, "alpha101_conviction": 0.9, "spread_pct": 0.0008, "currentPrice": 1.0}
+    s_nomom = agent.score_entry(strategy=strat, filters=cfg["filters"], q=q_nomom, orb=None,
+                                broad_market_not_declining=True)
+    check("T20 conviction gated by positive momentum",
+          s_nomom["components"]["alpha101_intraday_conviction"] == 0.0, str(s_nomom["components"]))
+
+
+def t21_inventory_aware_passive_skew() -> None:
+    """Avellaneda-Stoikov inventory skew: passive BUY posts LOWER as the book fills
+    (vs target_holdings) and with higher volatility / more time to close, bounded by
+    max_skew_ticks, never above the ask, never aggressive unless it would go <= 0.
+    Empty inventory or disabled config => identical to the plain passive bid."""
+    risk = {"limit_price_slippage_pct": 0.001}
+    tick = 0.001
+    skew_on = {"passive_entry_enabled": True, "tick_size": tick, "passive_offset_ticks": 0,
+               "inventory_skew": {"enabled": True, "risk_aversion": 2.0, "reference_volatility": 0.01,
+                                  "vol_multiplier_cap": 3.0, "max_skew_ticks": 2, "session_minutes": 240.0}}
+    skew_off = dict(skew_on); skew_off = {**skew_on, "inventory_skew": {"enabled": False}}
+    q = {"bidPrice1": 2.000, "askPrice1": 2.010, "currentPrice": 2.005}
+
+    # empty book (ratio 0) -> no skew, posts at bid
+    px0, st0, _ = agent.passive_entry_price(q, risk, skew_on, inventory_ratio=0.0, volatility=0.02, minutes_to_close=200)
+    check("T21 empty inventory -> posts at bid (no skew)", st0 == "passive" and px0 == 2.000, f"{px0}")
+    # one of five held, low vol, early -> sub-tick skew rounds to 0 (don't hurt early fills)
+    px_low, _, _ = agent.passive_entry_price(q, risk, skew_on, inventory_ratio=0.2, volatility=0.01, minutes_to_close=190)
+    check("T21 low inventory -> no drag on fills", px_low == 2.000, f"{px_low}")
+    # nearly full + elevated vol + much time -> skews down, capped at 2 ticks, still passive
+    px_full, st_full, _ = agent.passive_entry_price(q, risk, skew_on, inventory_ratio=0.8, volatility=0.02, minutes_to_close=200)
+    check("T21 full book skews bid down (capped at max_skew_ticks)",
+          st_full == "passive" and 1.997 <= px_full <= 1.999, f"{px_full}")
+    check("T21 skew never reaches/through ask", px_full < q["askPrice1"])
+    # disabled config -> identical to plain bid even at high inventory
+    px_disabled, _, _ = agent.passive_entry_price(q, risk, skew_off, inventory_ratio=1.0, volatility=0.03, minutes_to_close=240)
+    check("T21 disabled skew -> plain passive bid", px_disabled == 2.000, f"{px_disabled}")
+
+
 def t18_pre_sell_position_verification() -> None:
     """Pre-submit sell verification: drop a sell for a phantom (broker holds 0),
     cap an oversized sell to broker available, pass valid sells & buys; when
@@ -674,6 +749,8 @@ if __name__ == "__main__":
     t17_passive_entry_pricing()
     t18_pre_sell_position_verification()
     t19_multi_holding_entry_while_carrying()
+    t20_alpha101_conviction()
+    t21_inventory_aware_passive_skew()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

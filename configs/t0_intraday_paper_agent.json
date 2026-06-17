@@ -83,8 +83,10 @@
       "tight_spread": 10,
       "bollinger_squeeze_breakout": 15,
       "cross_etf_divergence": 15,
-      "market_breadth_positive": 10
+      "market_breadth_positive": 10,
+      "alpha101_intraday_conviction": 10
     },
+    "alpha101_conviction_threshold": 0.5,
     "cross_etf_divergence_threshold": 0.002,
     "entry_blocked_codes": [
       "513100"
@@ -134,7 +136,15 @@
     "execution": {
       "passive_entry_enabled": true,
       "passive_offset_ticks": 0,
-      "tick_size": 0.001
+      "tick_size": 0.001,
+      "inventory_skew": {
+        "enabled": true,
+        "risk_aversion": 2.0,
+        "reference_volatility": 0.01,
+        "vol_multiplier_cap": 3.0,
+        "max_skew_ticks": 2,
+        "session_minutes": 240.0
+      }
     },
     "kelly_sizing": {
       "enabled": true,
@@ -285,6 +295,7 @@
       "profit_trailing_drawdown_pct",
       "deceleration_exit_threshold",
       "entry_score_threshold",
+      "alpha101_conviction_threshold",
       "cross_etf_divergence_threshold",
       "consolidation.max_range_pct",
       "consolidation.breakout_buffer_pct",
