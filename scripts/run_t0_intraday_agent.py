@@ -635,10 +635,19 @@ def normalize_quote(etf: dict[str, Any], resp: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def load_recent_quotes(path: Path, lookback_rows: int = 2000) -> list[dict[str, Any]]:
+def load_recent_quotes(path: Path, lookback_rows: int = 2000, *, universe_size: int = 0,
+                       min_per_code: int = 60) -> list[dict[str, Any]]:
+    """Load recent minute-quote rows. The row budget scales with universe size so
+    per-code history depth stays sufficient for the indicators (rolling VWAP 5+,
+    ATR/Bollinger 20, correlation-stress 30) -- a fixed 2000-row cap would starve
+    them once the dynamic universe grows to hundreds of names (~7 rows/code).
+    Reads via a bounded tail (deque) so memory stays O(budget), not O(filesize)."""
     if not path.exists():
         return []
-    lines = path.read_text(encoding="utf-8").splitlines()[-lookback_rows:]
+    from collections import deque
+    effective = max(lookback_rows, int(universe_size) * int(min_per_code))
+    with path.open("r", encoding="utf-8") as fh:
+        lines = deque(fh, maxlen=effective)
     rows: list[dict[str, Any]] = []
     for line in lines:
         try:
@@ -3147,7 +3156,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
             for etf, resp in zip(cfg["universe"], quote_responses)
         ]
         minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
-        history = load_recent_quotes(minute_path)
+        history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
         quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
         for q in quotes:
             append_jsonl(minute_path, q)
@@ -3181,7 +3190,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     ]
 
     minute_path = out_dir / cfg["outputs"]["minute_quotes_jsonl"]
-    history = load_recent_quotes(minute_path)
+    history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
     quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
     market_correlation_stress = compute_market_correlation_stress(
         history,
