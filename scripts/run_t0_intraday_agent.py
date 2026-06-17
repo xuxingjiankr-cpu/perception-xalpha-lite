@@ -1295,6 +1295,27 @@ def reconcile_t0_inventory_from_trade_history(state: dict[str, Any], trade_date:
         node["matched_trade_order_ids"] = sorted(set(matched_order_ids))
         node["fill_reconciliation_ok"] = True
         node["fill_reconciled_at"] = now_iso()
+        # Book realized PnL ONLY on the newly-confirmed filled sell quantity (true
+        # fills, not submissions). Idempotent via realized_booked_sell_qty.
+        booked = int(as_float(node.get("realized_booked_sell_qty"), 0.0))
+        newly = sell_qty - booked
+        sell_vwap = node.get("filled_sell_vwap")
+        cost_basis = (
+            as_float(node.get("realization_cost_price"), 0.0)
+            or as_float(node.get("filled_buy_vwap"), 0.0)
+            or as_float(node.get("entry_price"), 0.0)
+        )
+        if newly > 0 and sell_vwap and cost_basis > 0:
+            realized = (as_float(sell_vwap) - cost_basis) * newly
+            add_daily_state_float(state, "today_realized_pnl", trade_date, realized)
+            if realized < 0:
+                record_negative_action_sample(state, trade_date, {"stockCode": code, "direction": "sell", "reason": "fill_confirmed_loss"}, realized)
+            rtp = state.get("realized_trade_pnls")
+            if not isinstance(rtp, list):
+                rtp = []
+            rtp.append(round(realized, 2))
+            state["realized_trade_pnls"] = rtp[-100:]
+            node["realized_booked_sell_qty"] = sell_qty
         reconciled_codes.append(str(code).zfill(6))
 
     result = {
@@ -3143,20 +3164,16 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
                         elif order.get("direction") == "sell":
                             record_t0_sell_submission(state, decision["trade_date"], order, submit)
                             increment_daily_state(state, "sell_orders_by_date", decision["trade_date"])
-                            fill_price_estimate = as_float(order.get("price"))
-                            cost_price = as_float(order.get("cost_price"))
-                            quantity = int(as_float(order.get("quantity")))
-                            pnl_estimate = (fill_price_estimate - cost_price) * quantity
-                            add_daily_state_float(state, "today_realized_pnl", decision["trade_date"], pnl_estimate)
-                            if pnl_estimate < 0:
-                                record_negative_action_sample(state, decision["trade_date"], order, pnl_estimate)
-                            # Rolling per-trade realized PnL log for fractional-Kelly sizing (capped).
-                            rtp = state.get("realized_trade_pnls")
-                            if not isinstance(rtp, list):
-                                rtp = []
-                            rtp.append(round(pnl_estimate, 2))
-                            state["realized_trade_pnls"] = rtp[-100:]
+                            # Realized PnL is booked ONLY on confirmed fills (see
+                            # reconcile_t0_inventory_from_trade_history). A submitted
+                            # limit order is NOT a fill -- booking it here produced
+                            # phantom PnL when the order did not execute. Store the
+                            # cost basis so fill reconciliation can compute true PnL.
                             sell_code = str(order.get("stockCode", "")).zfill(6)
+                            _inv = t0_inventory_for_code(state, decision["trade_date"], sell_code)
+                            _inv["realization_cost_price"] = as_float(order.get("cost_price"))
+                            est = (as_float(order.get("price")) - as_float(order.get("cost_price"))) * int(as_float(order.get("quantity")))
+                            add_daily_state_float(state, "today_estimated_pnl_submitted", decision["trade_date"], est)
                             if order.get("reason") == "bracket_t1_partial_exit":
                                 inv_node = t0_inventory_for_code(state, decision["trade_date"], sell_code)
                                 inv_node["t1_filled"] = True
