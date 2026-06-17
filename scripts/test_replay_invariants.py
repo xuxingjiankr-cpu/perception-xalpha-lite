@@ -731,6 +731,96 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t22_dynamic_universe_selection() -> None:
+    """Dynamic universe: liquidity/spread/price/money-fund gates drop the untradable;
+    cross-sectional momentum+conviction ranks the survivors; resolve_agent_universe
+    unions ranked picks with the static seed AND held codes (exit safety) and falls
+    back to static when disabled."""
+    import csv as _csv
+    import gzip as _gzip
+    import io as _io
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+    import select_t0_universe as sel
+
+    cols = ["collected_at", "trade_date", "source_quote_time", "scope", "secid", "market",
+            "stockCode", "name", "currentPrice", "change_pct", "change_abs", "volume", "amount",
+            "amplitude_pct", "turnover_pct", "open", "high", "low", "prevClose", "bidPrice1", "askPrice1", "source"]
+
+    def row(code, market, name, price, chg, amount, op, hi, lo, bid, ask):
+        return {**{c: "" for c in cols}, "collected_at": "2026-06-17T15:00:42+09:00",
+                "trade_date": "2026-06-17", "market": market, "stockCode": code, "name": name,
+                "currentPrice": price, "change_pct": chg, "amount": amount, "open": op, "high": hi,
+                "low": lo, "prevClose": op, "bidPrice1": bid, "askPrice1": ask, "source": "eastmoney"}
+
+    rows = [
+        # liquid, strong up, opened low/closed high -> should rank #1
+        row("512760", "1", "芯片ETF", 1.10, 7.0, 8e8, 1.00, 1.10, 1.00, 1.099, 1.101),
+        # liquid, mild up -> ranks below
+        row("513500", "1", "标普500ETF", 2.00, 1.0, 6e8, 1.99, 2.01, 1.98, 1.999, 2.001),
+        # liquid, down -> ranks last
+        row("159915", "0", "创业板ETF", 1.00, -3.0, 5e8, 1.03, 1.04, 1.00, 0.999, 1.001),
+        # illiquid -> rejected
+        row("159001", "0", "薄ETF", 1.00, 5.0, 1e6, 0.98, 1.01, 0.98, 0.999, 1.001),
+        # wide spread -> rejected
+        row("511111", "1", "宽价差ETF", 1.00, 5.0, 9e8, 0.98, 1.02, 0.98, 0.95, 1.05),
+        # money fund by name -> rejected
+        row("511990", "1", "华宝添益货币ETF", 100.0, 0.0, 9e9, 100.0, 100.0, 100.0, 99.99, 100.01),
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        snap_dir = _Path(td) / "snapshots"
+        day_dir = snap_dir / "2026-06-17"
+        day_dir.mkdir(parents=True)
+        gz = day_dir / "eastmoney_full_market_20260617_150042_etf.csv.gz"
+        with _gzip.open(gz, "wt", encoding="utf-8", newline="") as fh:
+            w = _csv.DictWriter(fh, fieldnames=cols)
+            w.writeheader()
+            for r in rows:
+                w.writerow(r)
+        dyn_cfg = {"top_n": 3, "min_amount_yuan": 50_000_000, "max_spread_pct": 0.004,
+                   "min_price": 0.3, "momentum_weight": 1.0, "conviction_weight": 0.5,
+                   "name_exclude_keywords": ["货币", "现金", "理财"]}
+        res = sel.select_dynamic_universe(snap_dir, _Path(td) / "universe", "2026-06-17", dyn_cfg)
+        meta = res["meta"]
+        codes = [s["stockCode"] for s in res["selected"]]
+        check("T22 selection ok", meta.get("ok") is True, str(meta))
+        check("T22 only liquid/tradable survive gates", meta.get("eligible") == 3, str(meta))
+        check("T22 illiquid/wide-spread/money-fund rejected",
+              meta["rejects"].get("illiquid") == 1 and meta["rejects"].get("spread_too_wide") == 1
+              and meta["rejects"].get("name_excluded") == 1, str(meta["rejects"]))
+        check("T22 strongest cross-sectional momentum ranks first", codes[0] == "512760", str(codes))
+        check("T22 exchange derived from market code",
+              res["selected"][0]["exchange"] == "SH" and any(s["exchange"] == "SZ" for s in res["selected"]), str(res["selected"]))
+
+        # top_n <= 0 => all eligible, still ranked (full tradable cross-section)
+        res_all = sel.select_dynamic_universe(snap_dir, _Path(td) / "universe", "2026-06-17", {**dyn_cfg, "top_n": 0})
+        check("T22 top_n=0 returns all eligible, ranked",
+              len(res_all["selected"]) == 3 and res_all["selected"][0]["stockCode"] == "512760"
+              and res_all["meta"]["selection_scope"] == "all_eligible_after_gates", str(res_all["meta"]))
+
+        # resolve union: ranked picks + static seed + held code (exit safety)
+        cfg = {"dynamic_universe": {"enabled": True, "snapshot_dir": "snapshots",
+                                    "universe_dir": "universe", "output": None, **dyn_cfg},
+               "universe": [{"stockCode": "518880", "exchange": "SH", "name": "黄金ETF", "asset_class": "gold_etf"}]}
+        # point ROOT-relative dirs at the temp dir by absolute paths
+        cfg["dynamic_universe"]["snapshot_dir"] = str(snap_dir)
+        cfg["dynamic_universe"]["universe_dir"] = str(_Path(td) / "universe")
+        # monkeypatch ROOT join: resolve uses ROOT / path; pass absolute so ROOT/abs == abs
+        state = {"t0_inventory_by_date": {"2026-06-17": {"588000": {"buy_quantity_submitted": 10000, "sell_quantity_submitted": 0}}}}
+        uni, umeta = sel.resolve_agent_universe(cfg, state, "2026-06-17")
+        ucodes = {u["stockCode"] for u in uni}
+        check("T22 union keeps static seed (exit safety)", "518880" in ucodes, str(ucodes))
+        check("T22 union keeps held code outside ranking (exit safety)", "588000" in ucodes, str(ucodes))
+        check("T22 union includes ranked picks", "512760" in ucodes, str(ucodes))
+
+    # disabled -> static fallback, untouched
+    cfg_off = {"dynamic_universe": {"enabled": False}, "universe": [{"stockCode": "518880", "exchange": "SH"}]}
+    uni_off, meta_off = sel.resolve_agent_universe(cfg_off, {}, "2026-06-17")
+    check("T22 disabled -> static universe unchanged",
+          meta_off.get("mode") == "static" and len(uni_off) == 1, str(meta_off))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -751,6 +841,7 @@ if __name__ == "__main__":
     t19_multi_holding_entry_while_carrying()
     t20_alpha101_conviction()
     t21_inventory_aware_passive_skew()
+    t22_dynamic_universe_selection()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

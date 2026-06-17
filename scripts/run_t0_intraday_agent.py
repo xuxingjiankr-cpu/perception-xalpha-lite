@@ -46,6 +46,7 @@ from run_etf_paper_trading_agent import (
     write_json,
 )
 from shared_paper_trading_guard import SharedExecutionGuard, tag_order_owner
+from select_t0_universe import resolve_agent_universe
 
 
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
@@ -3127,6 +3128,15 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     if cfg.get("trading_hours_only", True) and not session.get("in_regular_session"):
         save_state(state_path, state)
         return t0_market_closed_no_api_result(cfg, execute, out_dir, session)
+
+    # Widen the tradable universe data-driven from the full-market snapshot (top-N
+    # by cross-sectional liquidity+momentum) UNION held codes (never orphan an exit).
+    # Falls back to the static config universe if selection is unavailable. This only
+    # changes WHICH names are considered; all safety/risk gates downstream are intact.
+    if cfg.get("dynamic_universe", {}).get("enabled"):
+        resolved_universe, universe_meta = resolve_agent_universe(cfg, state, trade_date)
+        cfg["universe"] = resolved_universe
+        state["last_universe_selection"] = universe_meta
 
     quota_path = quota_state_path(out_dir, cfg)
     quota_status = quota_backoff_status(quota_path, trade_date)

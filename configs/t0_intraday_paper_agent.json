@@ -13,7 +13,7 @@
     "eastmoney_enabled": true,
     "sina_enabled": true,
     "tencent_enabled": true,
-    "huatai_quote_fallback": true,
+    "huatai_quote_fallback": false,
     "eastmoney_timeout_seconds": 6,
     "thirdparty_timeout_seconds": 6,
     "preferred_quote_interval_seconds": 60,
@@ -28,6 +28,20 @@
     {"stockCode": "513330", "exchange": "SH", "name": "恒生互联网ETF", "asset_class": "hk_etf"},
     {"stockCode": "588000", "exchange": "SH", "name": "科创50ETF", "asset_class": "exit_only_t1"}
   ],
+  "dynamic_universe": {
+    "enabled": true,
+    "snapshot_dir": "data/market/eastmoney/full_market/snapshots",
+    "universe_dir": "data/market/eastmoney/universe",
+    "output": "outputs/t0_intraday_agent/latest_dynamic_universe.json",
+    "top_n": 0,
+    "min_amount_yuan": 50000000,
+    "max_spread_pct": 0.004,
+    "min_price": 0.3,
+    "momentum_weight": 1.0,
+    "conviction_weight": 0.5,
+    "name_exclude_keywords": ["货币", "现金", "理财"],
+    "exclude_codes": []
+  },
   "strategy": {
     "type": "t0_snapshot_momentum_spread_filter",
     "lookback_minutes": 5,
