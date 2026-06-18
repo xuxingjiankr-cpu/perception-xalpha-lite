@@ -10,10 +10,12 @@ strategy paths are allowlisted in configs/t0_intraday_paper_agent.json.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import copy
 import csv
 import json
 import math
+import os
 import random
 import subprocess
 import sys
@@ -816,7 +818,8 @@ def _session_fraction_from_timestamp(ts_text: str) -> float:
 def _passes_dynamic_replay_gate(row: dict[str, Any], dyn_cfg: dict[str, Any]) -> bool:
     name = str(row.get("name") or "")
     for keyword in dyn_cfg.get("name_exclude_keywords", []):
-        if keyword and str(keyword) in name:
+        keyword = str(keyword)
+        if keyword and keyword in name and not (keyword == "现金" and "现金流" in name):
             return False
     price = as_float(row.get("currentPrice"), 0.0)
     bid = as_float(row.get("bidPrice1"), 0.0)
@@ -952,7 +955,11 @@ def run_replay(
     if quotes_path:
         cmd.extend(["--quotes", quotes_path])
     try:
-        proc = subprocess.run(cmd, cwd=str(ROOT), text=True, capture_output=True, timeout=timeout_seconds)
+        env = os.environ.copy()
+        env.setdefault("OPENBLAS_NUM_THREADS", "1")
+        env.setdefault("OMP_NUM_THREADS", "1")
+        env.setdefault("MKL_NUM_THREADS", "1")
+        proc = subprocess.run(cmd, cwd=str(ROOT), env=env, text=True, capture_output=True, timeout=timeout_seconds)
     except subprocess.TimeoutExpired as exc:
         stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
         stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
@@ -1046,6 +1053,47 @@ def evaluate_candidate(
     ok, log = run_replay(cfg_path, label, date_filter, quotes_path, replay_timeout_seconds, start_date, end_date)
     summary = load_replay_summary(label) if ok else {}
     return summarize_candidate(name, overlay, summary, ok, log)
+
+
+def evaluate_fixed_candidates(
+    candidates: list[dict[str, Any]],
+    *,
+    base_cfg: dict[str, Any],
+    cfg_dir: Path,
+    prefix: str,
+    date_filter: str | None,
+    quotes_path: str | None,
+    replay_timeout_seconds: int,
+    start_date: str | None,
+    end_date: str | None,
+    workers: int,
+) -> list[dict[str, Any]]:
+    def evaluate(cand: dict[str, Any]) -> dict[str, Any]:
+        row = evaluate_candidate(
+            base_cfg,
+            cfg_dir,
+            prefix,
+            cand["name"],
+            cand["overlay"],
+            date_filter,
+            quotes_path,
+            replay_timeout_seconds,
+            start_date,
+            end_date,
+        )
+        row["optimizer"] = cand.get("optimizer", "fixed_grid")
+        if cand.get("generation") is not None:
+            row["generation"] = cand.get("generation")
+        return row
+
+    if workers <= 1 or len(candidates) <= 1:
+        return [evaluate(cand) for cand in candidates]
+    ordered: list[dict[str, Any] | None] = [None] * len(candidates)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        future_to_idx = {pool.submit(evaluate, cand): idx for idx, cand in enumerate(candidates)}
+        for future in concurrent.futures.as_completed(future_to_idx):
+            ordered[future_to_idx[future]] = future.result()
+    return [row for row in ordered if row is not None]
 
 
 def cma_es_blackbox_candidates(
@@ -1189,6 +1237,10 @@ def main() -> None:
     parser.add_argument("--fast-top-k", type=int, default=0,
                         help="two-stage mode: screen all candidates on --stage1-date, validate baseline+top K on final dates")
     parser.add_argument("--stage1-date", default=None, help="single date for two-stage fast screening")
+    parser.add_argument("--stage1-start-date", default=None, help="inclusive screening range start")
+    parser.add_argument("--stage1-end-date", default=None, help="inclusive screening range end")
+    parser.add_argument("--parallel-candidates", type=int, default=1,
+                        help="parallel fixed-candidate replay subprocesses")
     parser.add_argument("--dynamic-gate-cache", action="store_true",
                         help="replay only codes passing live dynamic-universe liquidity/spread/price gates")
     parser.add_argument("--label-prefix", default=None)
@@ -1236,26 +1288,27 @@ def main() -> None:
     else:
         fixed_candidates = []
 
-    if args.fast_top_k > 0 and not args.stage1_date:
+    if args.fast_top_k > 0 and not (args.stage1_date or args.stage1_start_date or args.stage1_end_date):
         stage_dates = cache_meta.get("dates", []) if isinstance(cache_meta.get("dates"), list) else []
         args.stage1_date = stage_dates[-1] if stage_dates else args.date
 
-    if args.fast_top_k > 0 and args.stage1_date:
+    if args.fast_top_k > 0 and (args.stage1_date or args.stage1_start_date or args.stage1_end_date):
         stage1_prefix = f"{prefix}_stage1"
         if fixed_candidates:
-            for cand in fixed_candidates:
-                name = cand["name"]
-                row = evaluate_candidate(
-                    base_cfg,
-                    cfg_dir,
-                    stage1_prefix,
-                    name,
-                    cand["overlay"],
-                    args.stage1_date,
-                    quotes_arg,
-                    args.replay_timeout_seconds,
-                )
-                row["optimizer"] = "fixed_grid"
+            fixed_stage1 = evaluate_fixed_candidates(
+                fixed_candidates,
+                base_cfg=base_cfg,
+                cfg_dir=cfg_dir,
+                prefix=stage1_prefix,
+                date_filter=args.stage1_date,
+                quotes_path=quotes_arg,
+                replay_timeout_seconds=args.replay_timeout_seconds,
+                start_date=args.stage1_start_date,
+                end_date=args.stage1_end_date,
+                workers=max(1, args.parallel_candidates),
+            )
+            for row in fixed_stage1:
+                name = row["candidate"]
                 row["screening_stage"] = "stage1"
                 if row.get("invalid_overlay_paths"):
                     invalid[name] = row["invalid_overlay_paths"]
@@ -1298,40 +1351,37 @@ def main() -> None:
         } for r in top_rows)
 
         final_prefix = f"{prefix}_final"
-        for spec in final_specs:
-            row = evaluate_candidate(
-                base_cfg,
-                cfg_dir,
-                final_prefix,
-                spec["name"],
-                spec["overlay"],
-                args.date,
-                quotes_arg,
-                args.replay_timeout_seconds,
-                args.start_date,
-                args.end_date,
-            )
-            row["optimizer"] = spec.get("optimizer", "stage1_selected")
-            row["generation"] = spec.get("generation")
+        final_rows = evaluate_fixed_candidates(
+            final_specs,
+            base_cfg=base_cfg,
+            cfg_dir=cfg_dir,
+            prefix=final_prefix,
+            date_filter=args.date,
+            quotes_path=quotes_arg,
+            replay_timeout_seconds=args.replay_timeout_seconds,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            workers=max(1, args.parallel_candidates),
+        )
+        for row in final_rows:
             row["screening_stage"] = "final_validation"
             rows.append(row)
 
     elif fixed_candidates:
-        for cand in fixed_candidates:
-            name = cand["name"]
-            row = evaluate_candidate(
-                base_cfg,
-                cfg_dir,
-                prefix,
-                name,
-                cand["overlay"],
-                args.date,
-                quotes_arg,
-                args.replay_timeout_seconds,
-                args.start_date,
-                args.end_date,
-            )
-            row["optimizer"] = "fixed_grid"
+        fixed_rows = evaluate_fixed_candidates(
+            fixed_candidates,
+            base_cfg=base_cfg,
+            cfg_dir=cfg_dir,
+            prefix=prefix,
+            date_filter=args.date,
+            quotes_path=quotes_arg,
+            replay_timeout_seconds=args.replay_timeout_seconds,
+            start_date=args.start_date,
+            end_date=args.end_date,
+            workers=max(1, args.parallel_candidates),
+        )
+        for row in fixed_rows:
+            name = row["candidate"]
             if row.get("invalid_overlay_paths"):
                 invalid[name] = row["invalid_overlay_paths"]
             rows.append(row)
@@ -1533,6 +1583,8 @@ def main() -> None:
         "two_stage_fast_screen": {
             "enabled": args.fast_top_k > 0,
             "stage1_date": args.stage1_date,
+            "stage1_start_date": args.stage1_start_date,
+            "stage1_end_date": args.stage1_end_date,
             "fast_top_k": args.fast_top_k,
             "stage1_candidates": stage1_rows,
         },

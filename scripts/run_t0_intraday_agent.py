@@ -948,6 +948,7 @@ def compute_market_correlation_stress(
     history: list[dict[str, Any]],
     quotes: list[dict[str, Any]],
     cfg: dict[str, Any],
+    history_by_code: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     """Diagnose high cross-ETF correlation regimes from local quote snapshots.
 
@@ -965,8 +966,19 @@ def compute_market_correlation_stress(
     breadth_max = int(as_float(cfg.get("breadth_positive_count_max", 1), 1))
     max_gap_seconds = as_float(cfg.get("max_snapshot_gap_seconds", 480), 480)
 
+    if history_by_code is None:
+        source_rows = history + quotes
+    else:
+        # Replay optimization: the caller already owns an equivalent per-code
+        # index, so avoid rebuilding/scanning the full cross-sectional history
+        # on every minute. Live callers keep using the legacy list path.
+        source_rows = []
+        for quote in quotes:
+            code = str(quote.get("stockCode", "")).zfill(6)
+            source_rows.extend(history_by_code.get(code, [])[-window:])
+            source_rows.append(quote)
     rows = [
-        r for r in (history + quotes)
+        r for r in source_rows
         if r.get("quote_ok") and r.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES and as_float(r.get("currentPrice"), 0.0) > 0
     ]
     snapshots: dict[str, dict[str, float]] = {}
@@ -1236,18 +1248,63 @@ def im_force_exit_due(local_time: datetime, im_cfg: dict[str, Any]) -> bool:
     return now_m >= exit_m
 
 
-def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[str, Any]], lookback_minutes: int, strategy_cfg: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+def enrich_snapshot_features(
+    quote: dict[str, Any],
+    hist: list[dict[str, Any]],
+    strategy_cfg: dict[str, Any],
+) -> dict[str, Any]:
+    indicators_cfg = strategy_cfg.get("indicators", {}) if isinstance(strategy_cfg.get("indicators", {}), dict) else {}
+    consolidation_cfg = strategy_cfg.get("consolidation", {}) if isinstance(strategy_cfg.get("consolidation", {}), dict) else {}
+    quote["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
+    quote["first_half_hour_return"] = compute_first_half_hour_return(
+        hist,
+        quote,
+        strategy_cfg.get("intraday_momentum", {}) if isinstance(strategy_cfg.get("intraday_momentum", {}), dict) else {},
+    )
+    quote["alpha101_conviction"] = compute_alpha101_conviction(hist, quote)
+    quote["volume_surge"] = compute_volume_surge(hist, quote)
+    vwap_result = compute_rolling_vwap(hist, quote, indicators_cfg.get("rolling_vwap", {}))
+    atr_result = compute_atr_proxy(hist, quote, indicators_cfg.get("intraday_atr", {}))
+    bollinger_result = compute_bollinger_squeeze(hist, quote, indicators_cfg.get("bollinger_squeeze", {}))
+    quote["rolling_vwap"] = vwap_result.get("vwap")
+    quote["rolling_vwap_available"] = bool(vwap_result.get("available"))
+    quote["rolling_vwap_status"] = vwap_result.get("status")
+    quote["price_above_vwap"] = vwap_result.get("price_above_vwap")
+    quote["vwap_distance_pct"] = vwap_result.get("distance_pct")
+    quote["vwap_diagnostic"] = vwap_result
+    quote["atr_pct"] = atr_result.get("atr_pct")
+    quote["atr_stop_distance_pct"] = atr_result.get("stop_distance_pct")
+    quote["atr_available"] = bool(atr_result.get("available"))
+    quote["atr_status"] = atr_result.get("status")
+    quote["atr_diagnostic"] = atr_result
+    quote["bollinger_squeeze"] = bollinger_result
+    quote["bollinger_squeeze_available"] = bool(bollinger_result.get("available"))
+    quote["bollinger_squeeze_active"] = bool(bollinger_result.get("squeeze"))
+    quote["bollinger_squeeze_breakout"] = bool(bollinger_result.get("breakout"))
+    quote["_snapshot_features_enriched"] = True
+    return quote
+
+
+def compute_snapshot_momentum(
+    quotes: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    lookback_minutes: int,
+    strategy_cfg: dict[str, Any] | None = None,
+    history_by_code: dict[str, list[dict[str, Any]]] | None = None,
+    lazy_indicators: bool = False,
+) -> list[dict[str, Any]]:
     strategy_cfg = strategy_cfg or {}
     if "window_snapshots" in strategy_cfg and "consolidation" not in strategy_cfg:
         # Backward compatible path for old callers that passed only the consolidation config.
         strategy_cfg = {"consolidation": strategy_cfg}
-    indicators_cfg = strategy_cfg.get("indicators", {}) if isinstance(strategy_cfg.get("indicators", {}), dict) else {}
-    consolidation_cfg = strategy_cfg.get("consolidation", {}) if isinstance(strategy_cfg.get("consolidation", {}), dict) else {}
-    by_code: dict[str, list[dict[str, Any]]] = {}
-    for row in history:
-        code = str(row.get("stockCode", "")).zfill(6)
-        if code:
-            by_code.setdefault(code, []).append(row)
+    if history_by_code is None:
+        by_code: dict[str, list[dict[str, Any]]] = {}
+        for row in history:
+            code = str(row.get("stockCode", "")).zfill(6)
+            if code:
+                by_code.setdefault(code, []).append(row)
+    else:
+        by_code = history_by_code
     out = []
     for q in quotes:
         code = str(q.get("stockCode", "")).zfill(6)
@@ -1275,31 +1332,9 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
             if mom_5m_t is not None and mom_5m_prev is not None:
                 acceleration = mom_5m_t - mom_5m_prev
         q2 = dict(q)
-        q2["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
-        q2["first_half_hour_return"] = compute_first_half_hour_return(hist, q, strategy_cfg.get("intraday_momentum", {}) if isinstance(strategy_cfg.get("intraday_momentum", {}), dict) else {})
-        q2["alpha101_conviction"] = compute_alpha101_conviction(hist, q)
         q2["volume"] = as_float(q.get("volume"), 0.0)
         q2["amount"] = as_float(q.get("amount"), 0.0)
         q2["turnover_pct"] = as_float(q.get("turnover_pct"), 0.0)
-        q2["volume_surge"] = compute_volume_surge(hist, q)
-        vwap_result = compute_rolling_vwap(hist, q, indicators_cfg.get("rolling_vwap", {}))
-        atr_result = compute_atr_proxy(hist, q, indicators_cfg.get("intraday_atr", {}))
-        bollinger_result = compute_bollinger_squeeze(hist, q, indicators_cfg.get("bollinger_squeeze", {}))
-        q2["rolling_vwap"] = vwap_result.get("vwap")
-        q2["rolling_vwap_available"] = bool(vwap_result.get("available"))
-        q2["rolling_vwap_status"] = vwap_result.get("status")
-        q2["price_above_vwap"] = vwap_result.get("price_above_vwap")
-        q2["vwap_distance_pct"] = vwap_result.get("distance_pct")
-        q2["vwap_diagnostic"] = vwap_result
-        q2["atr_pct"] = atr_result.get("atr_pct")
-        q2["atr_stop_distance_pct"] = atr_result.get("stop_distance_pct")
-        q2["atr_available"] = bool(atr_result.get("available"))
-        q2["atr_status"] = atr_result.get("status")
-        q2["atr_diagnostic"] = atr_result
-        q2["bollinger_squeeze"] = bollinger_result
-        q2["bollinger_squeeze_available"] = bool(bollinger_result.get("available"))
-        q2["bollinger_squeeze_active"] = bool(bollinger_result.get("squeeze"))
-        q2["bollinger_squeeze_breakout"] = bool(bollinger_result.get("breakout"))
         q2["lookback_minutes"] = lookback_minutes
         q2["momentum"] = momentum
         q2["momentum_available"] = momentum is not None
@@ -1307,6 +1342,10 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
         q2["bid_pressure_3m"] = bid_pressure_3m
         q2["bid_pressure_3m_pct"] = bid_pressure_3m_pct
         q2["acceleration"] = acceleration
+        if lazy_indicators:
+            q2["_snapshot_features_enriched"] = False
+        else:
+            enrich_snapshot_features(q2, hist, strategy_cfg)
         if q2["momentum_available"]:
             q2["signal_type"] = f"snapshot_momentum_{lookback_minutes}m"
         else:
@@ -2474,6 +2513,7 @@ def build_decision(
     state: dict[str, Any],
     market_correlation_stress: dict[str, Any] | None = None,
     history: list[dict[str, Any]] | None = None,
+    feature_history_by_code: dict[str, list[dict[str, Any]]] | None = None,
 ) -> dict[str, Any]:
     session = cn_market_session(_REPLAY_NOW)
     local_time = exchange_local_time(session)
@@ -2591,6 +2631,12 @@ def build_decision(
             shield = compute_safe_policy_shield(q, history_by_code.get(qcode, []), state, strategy)
             q["safe_policy_shield"] = shield
             q["safe_policy_status"] = shield.get("status")
+
+    def ensure_snapshot_features(q: dict[str, Any] | None) -> None:
+        if not q or q.get("_snapshot_features_enriched", True):
+            return
+        qcode = str(q.get("stockCode", "")).zfill(6)
+        enrich_snapshot_features(q, (feature_history_by_code or {}).get(qcode, []), strategy)
 
     for q in quotes:
         q.setdefault("execution_quality", None)
@@ -2784,6 +2830,7 @@ def build_decision(
         or best is not None
     )
     add("sector_diversification_entry_filter", sector_entry_ok, sector_diversification_detail)
+    ensure_snapshot_features(best)
     ensure_entry_diagnostics(best)
     best_execution_quality = best.get("execution_quality") if best and isinstance(best.get("execution_quality"), dict) else {
         "enabled": True, "passed": False, "status": "no_ranked_quote"
@@ -2862,6 +2909,7 @@ def build_decision(
 
     if held_codes:
         for code in held_codes:
+            ensure_snapshot_features(quote_by_code.get(code))
             res = evaluate_exit_for_code(
                 code,
                 strategy=strategy,
@@ -2983,6 +3031,11 @@ def build_decision(
             hk_pref = bool(im_cfg.get("hk_etf_preferred", True))
             im_pool = []
             for q in liquid_quotes:
+                if q.get("first_half_hour_return") is None and feature_history_by_code is not None:
+                    qcode = str(q.get("stockCode", "")).zfill(6)
+                    q["first_half_hour_return"] = compute_first_half_hour_return(
+                        feature_history_by_code.get(qcode, []), q, im_cfg
+                    )
                 fhr = q.get("first_half_hour_return")
                 if fhr is None or as_float(fhr) < im_min_ret:
                     continue
@@ -3004,6 +3057,7 @@ def build_decision(
                 "selected": best_im.get("stockCode") if best_im else None,
                 "min_first_half_return": im_min_ret,
             })
+            ensure_snapshot_features(best_im)
             ensure_entry_diagnostics(best_im)
             if best_im is not None and not bool((best_im.get("execution_quality") or {}).get("passed")):
                 reason = "blocked_execution_quality"

@@ -116,6 +116,35 @@ def fake_positions(positions: dict[str, dict[str, Any]]) -> dict[str, Any]:
 FAKE_PENDING = {"ok": True, "data": {"orders": []}}
 
 
+def extend_replay_universe(cfg: dict[str, Any], quotes: list[dict[str, Any]]) -> int:
+    """Make dynamically selected quote codes visible to position/exit logic.
+
+    Live runs replace the static seed with the resolved dynamic universe before
+    calling build_decision. Offline replay receives quote rounds directly, so it
+    must mirror that step or dynamic buys become invisible holdings that can
+    never be evaluated for exit.
+    """
+    universe = cfg.get("universe")
+    if not isinstance(universe, list):
+        universe = []
+        cfg["universe"] = universe
+    known = {str(item.get("stockCode", "")).zfill(6) for item in universe if isinstance(item, dict)}
+    added = 0
+    for quote in quotes:
+        code = str(quote.get("stockCode", "")).zfill(6)
+        if not code or code in known:
+            continue
+        universe.append({
+            "stockCode": code,
+            "exchange": str(quote.get("exchange") or "SH").upper(),
+            "name": quote.get("name") or code,
+            "asset_class": quote.get("asset_class") or "dynamic",
+        })
+        known.add(code)
+        added += 1
+    return added
+
+
 def apply_buy_fill(sim: dict[str, Any], order: dict[str, Any]) -> None:
     code = str(order.get("stockCode", "")).zfill(6)
     qty = int(as_float(order.get("quantity")))
@@ -241,6 +270,7 @@ def main() -> None:
     state: dict[str, Any] = {}
     sim = {"cash": INITIAL_CASH, "positions": {}, "buy_notional": 0.0, "sell_notional": 0.0}
     history: list[dict[str, Any]] = []
+    history_by_code: dict[str, list[dict[str, Any]]] = {}
     history_trade_date: str | None = None
     history_universe_max = 0
     lookback = int(cfg["strategy"]["lookback_minutes"])
@@ -256,6 +286,8 @@ def main() -> None:
     trades: list[dict[str, Any]] = []
     rows_processed = 0
     feature_seconds = 0.0
+    momentum_seconds = 0.0
+    correlation_seconds = 0.0
     signal_seconds = 0.0
     file_write_seconds = 0.0
     replay_started = time.perf_counter()
@@ -270,6 +302,7 @@ def main() -> None:
             trade_date = replay_now.strftime("%Y-%m-%d")
             if history_trade_date != trade_date:
                 history = []
+                history_by_code = {}
                 history_trade_date = trade_date
                 history_universe_max = 0
             day = per_day.setdefault(trade_date, {
@@ -281,13 +314,26 @@ def main() -> None:
             rows_processed += len(rnd)
 
             raw_quotes = [dict(q) for q in rnd]
+            extend_replay_universe(cfg, raw_quotes)
             feature_started = time.perf_counter()
-            quotes = agent.compute_snapshot_momentum(raw_quotes, history, lookback, cfg["strategy"])
+            momentum_started = time.perf_counter()
+            quotes = agent.compute_snapshot_momentum(
+                raw_quotes,
+                history,
+                lookback,
+                cfg["strategy"],
+                history_by_code=history_by_code,
+                lazy_indicators=True,
+            )
+            momentum_seconds += time.perf_counter() - momentum_started
+            correlation_started = time.perf_counter()
             market_correlation_stress = agent.compute_market_correlation_stress(
                 history,
                 quotes,
                 cfg.get("strategy", {}).get("market_correlation_stress", {}),
+                history_by_code=history_by_code,
             )
+            correlation_seconds += time.perf_counter() - correlation_started
             feature_seconds += time.perf_counter() - feature_started
             history.extend(quotes)
             history_universe_max = max(history_universe_max, len(quotes))
@@ -310,8 +356,17 @@ def main() -> None:
                 state,
                 market_correlation_stress,
                 history=history,
+                feature_history_by_code=history_by_code,
             )
             signal_seconds += time.perf_counter() - signal_started
+            for quote in quotes:
+                code = str(quote.get("stockCode", "")).zfill(6)
+                if not code:
+                    continue
+                code_history = history_by_code.setdefault(code, [])
+                code_history.append(quote)
+                if len(code_history) > max_history_snapshots:
+                    del code_history[:-max_history_snapshots]
             day["actions"][decision.get("action") or decision.get("state_machine", {}).get("action", "?")] += 1
             for c in decision.get("risk_checks", []):
                 if not c.get("passed"):
@@ -403,6 +458,8 @@ def main() -> None:
         "runtime_profile": {
             "total_runtime_seconds": round(time.perf_counter() - replay_started, 6),
             "feature_calculation_seconds": round(feature_seconds, 6),
+            "momentum_feature_seconds": round(momentum_seconds, 6),
+            "correlation_feature_seconds": round(correlation_seconds, 6),
             "signal_generation_seconds": round(signal_seconds, 6),
             "file_write_seconds": round(file_write_seconds, 6),
             "rows_processed": rows_processed,

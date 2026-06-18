@@ -1296,6 +1296,76 @@ def t27_dynamic_gate_replay_cache() -> None:
               [r.get("stockCode") for r in out_rows] == ["510300", "510300"], str(out_rows))
         check("T27 dynamic gate removes never-eligible wide-spread code",
               meta.get("eligible_codes_by_date", {}).get("2026-06-18") == 1, str(meta))
+        check("T27 cash-flow factor ETF is not rejected by generic cash keyword",
+              ev._passes_dynamic_replay_gate(
+                  {"timestamp": "2026-06-18T10:30:00+08:00", "stockCode": "159201",
+                   "name": "自由现金流ETF华夏", "currentPrice": 1.0, "bidPrice1": 0.999,
+                   "askPrice1": 1.001, "amount": 100_000_000},
+                  {"min_amount_yuan": 50_000_000, "max_spread_pct": 0.004, "min_price": 0.3,
+                   "name_exclude_keywords": ["货币", "现金", "理财"]},
+              ))
+
+
+def t38_full_minute_replay_builder() -> None:
+    """Minute replay conversion uses cumulative same-day flow and full-universe metadata."""
+    import importlib
+    builder = importlib.import_module("build_t0_replay_quotes_from_minute_data")
+    etf = {"stockCode": "510300", "exchange": "SH", "name": "沪深300ETF", "asset_class": "dynamic"}
+    rows = [
+        {"datetime": "2026-06-18 09:31:00", "open": 4.0, "close": 4.0, "high": 4.0, "low": 4.0,
+         "volume": 100, "amount": 1_000_000, "source": "tdx"},
+        {"datetime": "2026-06-18 09:32:00", "open": 4.0, "close": 4.01, "high": 4.01, "low": 4.0,
+         "volume": 200, "amount": 2_000_000, "source": "tdx"},
+    ]
+    quotes = list(builder.cumulative_quotes(etf, rows, "2026-06-18", "2026-06-18"))
+    check("T38 minute volume becomes same-day cumulative",
+          [q["volume"] for q in quotes] == [100.0, 300.0], str([q["volume"] for q in quotes]))
+    check("T38 minute amount becomes same-day cumulative",
+          [q["amount"] for q in quotes] == [1_000_000.0, 3_000_000.0], str([q["amount"] for q in quotes]))
+    check("T38 raw minute flow remains available for diagnostics",
+          quotes[-1]["minute_volume"] == 200.0 and quotes[-1]["minute_amount"] == 2_000_000.0,
+          str(quotes[-1]))
+
+    history = [
+        {**quotes[0], "timestamp": "2026-06-18T09:31:00+08:00", "quote_ok": True},
+        {**quotes[1], "timestamp": "2026-06-18T09:32:00+08:00", "quote_ok": True},
+    ]
+    current = [{**quotes[-1], "timestamp": "2026-06-18T09:33:00+08:00", "currentPrice": 4.02,
+                "quote_ok": True}]
+    indexed = {"510300": history}
+    legacy = agent.compute_snapshot_momentum(current, history, 2, {}, history_by_code=None)
+    optimized = agent.compute_snapshot_momentum(current, history, 2, {}, history_by_code=indexed)
+    check("T38 indexed replay history preserves momentum output",
+          legacy[0].get("momentum") == optimized[0].get("momentum"),
+          f"{legacy[0].get('momentum')} != {optimized[0].get('momentum')}")
+
+    replay = importlib.import_module("replay_t0_decisions")
+    replay_cfg = {"universe": [{"stockCode": "510300", "exchange": "SH", "name": "seed"}]}
+    added = replay.extend_replay_universe(replay_cfg, [{
+        "stockCode": "159201", "exchange": "SZ", "name": "自由现金流ETF华夏", "asset_class": "dynamic"
+    }])
+    visible = agent.t0_positions(
+        {"ok": True, "data": {"positions": [{"stockCode": "159201", "quantity": 1000, "availableQuantity": 1000}]}},
+        replay_cfg["universe"],
+    )
+    check("T38 replay adds dynamic quote codes to runtime universe", added == 1, str(replay_cfg["universe"]))
+    check("T38 dynamic replay holding remains visible to exit engine", "159201" in visible, str(visible))
+
+    evolution = importlib.import_module("run_t0_strategy_evolution")
+    original_evaluate = evolution.evaluate_candidate
+    try:
+        evolution.evaluate_candidate = lambda *args, **kwargs: {  # type: ignore[assignment]
+            "candidate": args[3], "overlay": args[4], "ok": True
+        }
+        parallel_rows = evolution.evaluate_fixed_candidates(
+            [{"name": "first", "overlay": {}}, {"name": "second", "overlay": {}}],
+            base_cfg={}, cfg_dir=ROOT, prefix="test", date_filter=None, quotes_path=None,
+            replay_timeout_seconds=1, start_date="2026-06-01", end_date="2026-06-02", workers=2,
+        )
+    finally:
+        evolution.evaluate_candidate = original_evaluate
+    check("T38 parallel candidate evaluation preserves deterministic input order",
+          [row["candidate"] for row in parallel_rows] == ["first", "second"], str(parallel_rows))
 
 
 def t28_layered_backtest_pipeline() -> None:
@@ -1495,6 +1565,7 @@ if __name__ == "__main__":
     t35_sizing_weights()
     t36_overfitting_guard()
     t37_committed_holdings_cap()
+    t38_full_minute_replay_builder()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()

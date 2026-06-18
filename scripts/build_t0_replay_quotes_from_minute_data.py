@@ -13,7 +13,7 @@ import json
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from zoneinfo import ZoneInfo
 
 
@@ -106,21 +106,222 @@ def quote_from_bar(etf: dict[str, Any], row: dict[str, Any], prev_close: float) 
     }
 
 
+def load_replay_universe(config_path: Path, universe_file: Path | None = None) -> list[dict[str, Any]]:
+    cfg = load_json(config_path)
+    static = {
+        str(item.get("stockCode", "")).zfill(6): item
+        for item in cfg.get("universe", [])
+        if item.get("stockCode")
+    }
+    if universe_file is None:
+        return list(static.values())
+    rows: list[dict[str, Any]] = []
+    for line in universe_file.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        code = str(item.get("stockCode", "")).zfill(6)
+        if not code or code == "000000":
+            continue
+        seed = static.get(code, {})
+        market = str(item.get("market", "1" if str(seed.get("exchange", "SH")).upper() == "SH" else "0"))
+        rows.append({
+            "stockCode": code,
+            "exchange": "SH" if market == "1" else "SZ",
+            "name": item.get("name") or seed.get("name", ""),
+            "asset_class": seed.get("asset_class", "dynamic"),
+        })
+    return sorted(rows, key=lambda x: (x["exchange"], x["stockCode"]))
+
+
+def cumulative_quotes(
+    etf: dict[str, Any],
+    rows: list[dict[str, Any]],
+    start_date: str,
+    end_date: str,
+) -> Iterator[dict[str, Any]]:
+    """Convert per-minute bars into live-shaped quotes with same-day cumulative flow fields."""
+    prev_map = prev_close_by_day(rows)
+    active_day = ""
+    cumulative_volume = 0.0
+    cumulative_amount = 0.0
+    for row in rows:
+        dt = str(row.get("datetime") or "")
+        day = dt[:10]
+        if day != active_day:
+            active_day = day
+            cumulative_volume = 0.0
+            cumulative_amount = 0.0
+        cumulative_volume += max(0.0, as_float(row.get("volume")))
+        cumulative_amount += max(0.0, as_float(row.get("amount")))
+        if day < start_date:
+            continue
+        if day > end_date:
+            break
+        prev_close = prev_map.get(day, as_float(row.get("open")))
+        quote = quote_from_bar(etf, row, prev_close)
+        quote["volume"] = cumulative_volume
+        quote["amount"] = cumulative_amount
+        quote["minute_volume"] = as_float(row.get("volume"))
+        quote["minute_amount"] = as_float(row.get("amount"))
+        yield quote
+
+
+def _session_fraction(timestamp: str) -> float:
+    hour = int(timestamp[11:13])
+    minute = int(timestamp[14:16])
+    now_min = hour * 60 + minute
+    if now_min <= 9 * 60 + 30:
+        elapsed = 0
+    elif now_min <= 11 * 60 + 30:
+        elapsed = now_min - (9 * 60 + 30)
+    elif now_min <= 13 * 60:
+        elapsed = 120
+    elif now_min <= 15 * 60:
+        elapsed = 120 + now_min - 13 * 60
+    else:
+        elapsed = 240
+    return max(0.05, min(1.0, elapsed / 240.0))
+
+
+def passes_dynamic_gate(quote: dict[str, Any], dyn_cfg: dict[str, Any]) -> bool:
+    name = str(quote.get("name") or "")
+    for keyword in dyn_cfg.get("name_exclude_keywords", []):
+        keyword = str(keyword)
+        if keyword and keyword in name and not (keyword == "现金" and "现金流" in name):
+            return False
+    price = as_float(quote.get("currentPrice"))
+    bid = as_float(quote.get("bidPrice1"))
+    ask = as_float(quote.get("askPrice1"))
+    if price <= as_float(dyn_cfg.get("min_price"), 0.3) or bid <= 0 or ask <= bid:
+        return False
+    spread = (ask - bid) / ((ask + bid) / 2.0)
+    if spread > as_float(dyn_cfg.get("max_spread_pct"), 0.004):
+        return False
+    required_amount = as_float(dyn_cfg.get("min_amount_yuan"), 50_000_000.0) * _session_fraction(
+        str(quote.get("timestamp") or "")
+    )
+    return as_float(quote.get("amount")) >= required_amount
+
+
+def build_replay_directory(
+    *,
+    config_path: Path,
+    minute_dir: Path,
+    universe_file: Path | None,
+    output_dir: Path,
+    start_date: str,
+    end_date: str,
+    dynamic_gate: bool,
+) -> dict[str, Any]:
+    cfg = load_json(config_path)
+    universe = load_replay_universe(config_path, universe_file)
+    dyn_cfg = cfg.get("dynamic_universe", {}) if isinstance(cfg.get("dynamic_universe"), dict) else {}
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for stale in list(output_dir.glob("*.jsonl")) + list(output_dir.glob("*.unsorted")):
+        stale.unlink()
+
+    handles: dict[str, Any] = {}
+    rows_by_date: dict[str, int] = defaultdict(int)
+    codes_by_date: dict[str, int] = defaultdict(int)
+    missing: list[dict[str, Any]] = []
+    loaded_symbols = 0
+    try:
+        for etf in universe:
+            code = str(etf.get("stockCode", "")).zfill(6)
+            market = market_from_exchange(str(etf.get("exchange", "SH")))
+            path = minute_dir / f"{market}_{code}_{code}.csv.gz"
+            rows = read_minute_file(path)
+            if not rows:
+                missing.append({"stockCode": code, "name": etf.get("name"), "path": str(path)})
+                continue
+            loaded_symbols += 1
+            by_day: dict[str, list[dict[str, Any]]] = defaultdict(list)
+            for quote in cumulative_quotes(etf, rows, start_date, end_date):
+                by_day[str(quote["trade_date"])].append(quote)
+            for day, quotes in by_day.items():
+                if dynamic_gate and not any(passes_dynamic_gate(quote, dyn_cfg) for quote in quotes):
+                    continue
+                if day not in handles:
+                    handles[day] = (output_dir / f"{day}.unsorted").open("w", encoding="utf-8")
+                handle = handles[day]
+                for quote in quotes:
+                    payload = json.dumps(quote, ensure_ascii=False, sort_keys=True)
+                    handle.write(f"{quote['timestamp']}\t{quote['stockCode']}\t{payload}\n")
+                    rows_by_date[day] += 1
+                codes_by_date[day] += 1
+    finally:
+        for handle in handles.values():
+            handle.close()
+
+    for day in sorted(rows_by_date):
+        staging = output_dir / f"{day}.unsorted"
+        lines = staging.read_text(encoding="utf-8").splitlines()
+        lines.sort()
+        with (output_dir / f"{day}.jsonl").open("w", encoding="utf-8") as out:
+            for line in lines:
+                out.write(line.split("\t", 2)[2] + "\n")
+        staging.unlink()
+
+    summary = {
+        "task": "build_t0_replay_quotes_from_minute_data",
+        "config": str(config_path),
+        "minute_dir": str(minute_dir),
+        "universe_file": str(universe_file) if universe_file else None,
+        "output_dir": str(output_dir),
+        "start_date": start_date,
+        "end_date": end_date,
+        "configured_universe": len(universe),
+        "loaded_symbols": loaded_symbols,
+        "missing_symbols": missing,
+        "dates": sorted(rows_by_date),
+        "rows_by_date": dict(sorted(rows_by_date.items())),
+        "eligible_codes_by_date": dict(sorted(codes_by_date.items())),
+        "rows_written": sum(rows_by_date.values()),
+        "dynamic_gate": dynamic_gate,
+        "flow_fields": "same_day_cumulative_from_minute_bars",
+        "synthetic_order_book": True,
+        "paper_trading_only": True,
+        "live_ready": False,
+        "formal_strategy_allowed": False,
+    }
+    (output_dir / "manifest.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build T0 replay quotes from local ETF minute csv.gz files.")
     parser.add_argument("--config", default=str(ROOT / "configs" / "t0_intraday_paper_agent.json"))
     parser.add_argument("--minute-dir", default=str(ROOT / "data" / "market" / "eastmoney" / "minute" / "2026-06" / "etf"))
     parser.add_argument("--output", default=str(ROOT / "outputs" / "t0_replay" / "replay_from_minute_20etf_202606.jsonl"))
+    parser.add_argument("--output-dir", default="", help="write sorted per-day JSONL replay files")
+    parser.add_argument("--universe-file", default="", help="optional JSONL full-market ETF universe")
+    parser.add_argument("--dynamic-gate", action="store_true", help="retain codes that pass live-shaped liquidity gates")
     parser.add_argument("--start-date", default="2026-06-01")
-    parser.add_argument("--end-date", default="2026-06-15")
+    parser.add_argument("--end-date", default="2026-06-18")
     args = parser.parse_args()
 
-    cfg = load_json(Path(args.config))
+    config_path = Path(args.config)
+    cfg = load_json(config_path)
     minute_dir = Path(args.minute_dir)
+    universe_file = Path(args.universe_file) if args.universe_file else None
+    if args.output_dir:
+        summary = build_replay_directory(
+            config_path=config_path,
+            minute_dir=minute_dir,
+            universe_file=universe_file,
+            output_dir=Path(args.output_dir),
+            start_date=args.start_date,
+            end_date=args.end_date,
+            dynamic_gate=args.dynamic_gate,
+        )
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+        return 0
+
     by_ts: dict[str, list[dict[str, Any]]] = defaultdict(list)
     missing: list[dict[str, Any]] = []
     loaded: list[dict[str, Any]] = []
-    for etf in cfg.get("universe", []):
+    for etf in load_replay_universe(config_path, universe_file):
         code = str(etf.get("stockCode", "")).zfill(6)
         market = market_from_exchange(str(etf.get("exchange", "SH")))
         path = minute_dir / f"{market}_{code}_{code}.csv.gz"
@@ -128,15 +329,9 @@ def main() -> int:
         if not rows:
             missing.append({"stockCode": code, "name": etf.get("name"), "path": str(path)})
             continue
-        prev_map = prev_close_by_day(rows)
         kept = 0
-        for row in rows:
-            dt = str(row["datetime"])
-            day = dt[:10]
-            if day < args.start_date or day > args.end_date:
-                continue
-            prev_close = prev_map.get(day, as_float(row.get("open")))
-            by_ts[dt].append(quote_from_bar(etf, row, prev_close))
+        for quote in cumulative_quotes(etf, rows, args.start_date, args.end_date):
+            by_ts[str(quote["timestamp"])].append(quote)
             kept += 1
         loaded.append({"stockCode": code, "name": etf.get("name"), "rows": kept, "path": str(path)})
 
@@ -156,7 +351,7 @@ def main() -> int:
         "output": str(output),
         "start_date": args.start_date,
         "end_date": args.end_date,
-        "configured_universe": len(cfg.get("universe", [])),
+        "configured_universe": len(load_replay_universe(config_path, universe_file)),
         "loaded_symbols": len(loaded),
         "missing_symbols": missing,
         "timestamp_rounds": len(by_ts),
