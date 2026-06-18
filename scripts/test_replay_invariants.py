@@ -731,6 +731,46 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t37_committed_holdings_cap() -> None:
+    """target_holdings must count SAME-DAY T+1 buys (held but not yet sellable), or
+    removing the daily entry cap would over-accumulate. Two positions held at qty>0 with
+    availableQuantity=0 (T+1, not sellable today) must fill the cap (target_holdings=2)
+    and block a new entry -- even though the sellable held_codes set is empty."""
+    import io as _io
+    import json as _json
+    import copy as _copy
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["dynamic_universe"] = {"enabled": False}
+    cfg["strategy"]["target_holdings"] = 2
+    cfg["strategy"]["max_entries_per_day"] = 0
+    cfg["strategy"].setdefault("sector_diversification", {})
+    cfg["sector_diversification"] = {"enabled": False}
+    now = datetime(2026, 6, 18, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    ts = now.isoformat()
+    # two T+1 positions: quantity>0 but availableQuantity=0 (cannot sell same day)
+    positions = [{"stockCode": c, "stockName": c, "exchange": "SH", "quantity": 10000,
+                  "availableQuantity": 0, "costPrice": 1.0} for c in ("513500", "518880")]
+    cand = {"stockCode": "513180", "exchange": "SH", "name": "513180", "asset_class": "hk_etf",
+            "currentPrice": 1.05, "bidPrice1": 1.049, "askPrice1": 1.051, "prevClose": 1.00,
+            "timestamp": ts, "quote_ok": True, "isSuspended": False, "momentum_available": True,
+            "momentum": 0.02, "spread_pct": 0.0008, "change_pct": 0.05, "bid_pressure_3m_pct": 0.003,
+            "acceleration": 0.002}
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 900_000.0}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, [cand], balance, {"ok": True, "data": {"positions": positions}},
+                                   {"ok": True, "data": {"orders": []}}, {}, None)
+    finally:
+        agent.set_replay_now(None)
+    buys = [o for o in dec.get("orders", []) if o.get("direction") == "buy"]
+    check("T37 same-day T+1 holdings fill the cap -> no new entry", len(buys) == 0, str(dec.get("orders")))
+    check("T37 reason is at_target_holdings_capacity",
+          dec.get("state_machine", {}).get("reason") == "at_target_holdings_capacity",
+          str(dec.get("state_machine")))
+
+
 def t36_overfitting_guard() -> None:
     """PBO (CSCV) must read ~0.5 for a pure-noise config search (winner does not persist)
     and ~0 for a genuinely dominant config; purged splits must not leak; the multiple-
@@ -1439,6 +1479,7 @@ if __name__ == "__main__":
     t34_exit_rule_simulation()
     t35_sizing_weights()
     t36_overfitting_guard()
+    t37_committed_holdings_cap()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()

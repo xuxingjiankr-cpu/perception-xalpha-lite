@@ -2535,15 +2535,22 @@ def build_decision(
         "max_age_seconds": max_age_seconds,
     })
 
+    # Daily trade-FREQUENCY caps: a value <= 0 means UNLIMITED (per user: no daily
+    # trading cap, so the wide-universe / 5-holding strategy can fill freely). The daily
+    # LOSS circuit-breaker and the API-run quota are separate safety controls and remain.
+    max_daily_orders = int(risk["max_daily_submitted_orders"])
+    max_daily_round_trips = int(risk["max_daily_round_trips"])
     daily_orders = daily_state_bucket(state, "submitted_orders_by_date", trade_date)
     daily_round_trips = daily_state_bucket(state, "round_trips_by_date", trade_date)
-    add("daily_order_limit", daily_orders < int(risk["max_daily_submitted_orders"]), daily_orders)
-    add("daily_round_trip_limit", daily_round_trips < int(risk["max_daily_round_trips"]), daily_round_trips)
+    add("daily_order_limit", max_daily_orders <= 0 or daily_orders < max_daily_orders, daily_orders)
+    add("daily_round_trip_limit", max_daily_round_trips <= 0 or daily_round_trips < max_daily_round_trips, daily_round_trips)
     # 独立的卖出额度: daily_order_limit 对 SELL 放行后, 用此项防止卖出循环滥用 (出场仍受限但额度更宽)
     daily_sell_orders = daily_state_bucket(state, "sell_orders_by_date", trade_date)
-    add("daily_sell_order_limit", daily_sell_orders < int(risk.get("max_daily_sell_orders", 12)), {
+    max_daily_sell_orders = int(risk.get("max_daily_sell_orders", 12))
+    add("daily_sell_order_limit", max_daily_sell_orders <= 0 or daily_sell_orders < max_daily_sell_orders, {
         "sell_orders_today": daily_sell_orders,
-        "max_daily_sell_orders": int(risk.get("max_daily_sell_orders", 12)),
+        "max_daily_sell_orders": max_daily_sell_orders,
+        "unlimited": max_daily_sell_orders <= 0,
     })
     today_realized_pnl = daily_state_float_bucket(state, "today_realized_pnl", trade_date)
     max_daily_loss_pct = as_float(risk.get("max_daily_loss_pct"), -0.02)
@@ -2686,6 +2693,18 @@ def build_decision(
     held_code = held_codes[0] if held_codes else None
     held_pos = positions.get(held_code) if held_code else None
     target_holdings = max(1, int(as_float(strategy.get("target_holdings"), 1)))
+    # COMMITTED holdings = every name we hold or bought today, INCLUDING same-day T+1
+    # buys that are not yet sellable. held_codes only counts SELLABLE positions (for the
+    # exit engine); the target_holdings cap and "don't re-buy what we hold" must use the
+    # full committed set, otherwise T+1 names (most of the universe) never count as held
+    # and we over-accumulate well past target_holdings.
+    committed_codes: set[str] = {c for c, pos in positions.items() if as_float(pos.get("quantity"), 0.0) > 0}
+    _today_inv = state.get("t0_inventory_by_date", {})
+    if isinstance(_today_inv, dict) and isinstance(_today_inv.get(trade_date), dict):
+        for code, node in _today_inv[trade_date].items():
+            if isinstance(node, dict) and as_float(node.get("buy_quantity_submitted")) - as_float(node.get("sell_quantity_submitted")) > 0:
+                committed_codes.add(str(code).zfill(6))
+    committed_codes |= set(held_codes)
     sector_cfg = cfg.get("sector_diversification", {})
     if not isinstance(sector_cfg, dict):
         sector_cfg = {}
@@ -2699,7 +2718,7 @@ def build_decision(
         unlimited_sectors = {"other"}
     held_sector_counts: dict[str, int] = {}
     held_sector_details: list[dict[str, Any]] = []
-    for code in held_codes:
+    for code in committed_codes:  # sector concentration counts ALL holdings, incl T+1
         name = name_by_code.get(code, code)
         sector = classify_etf_sector(name, sector_keyword_map)
         held_sector_counts[sector] = held_sector_counts.get(sector, 0) + 1
@@ -2738,7 +2757,7 @@ def build_decision(
     best_sector = None
     for q in ranked:
         qcode = str(q.get("stockCode", "")).zfill(6)
-        if qcode in held_codes:
+        if qcode in committed_codes:  # never re-buy a name we already hold (incl T+1)
             continue
         nonheld_ranked_count += 1
         blocked, qsector = entry_sector_status(q)
@@ -2760,7 +2779,7 @@ def build_decision(
     }
     sector_entry_ok = (
         (not sector_enabled)
-        or len(held_codes) >= target_holdings
+        or len(committed_codes) >= target_holdings
         or nonheld_ranked_count == 0
         or best is not None
     )
@@ -2828,7 +2847,9 @@ def build_decision(
     add("reentry_cooldown", cooldown_ok, cooldown_detail)
     max_entries_per_day = int(bracket_cfg.get("max_entries_per_day", 2))
     entries_today = daily_state_bucket(state, "entries_by_date", trade_date)
-    add("daily_entry_limit", entries_today < max_entries_per_day, {"entries_today": entries_today, "max_entries_per_day": max_entries_per_day})
+    # max_entries_per_day <= 0 => UNLIMITED daily entries (no daily trading cap).
+    add("daily_entry_limit", max_entries_per_day <= 0 or entries_today < max_entries_per_day,
+        {"entries_today": entries_today, "max_entries_per_day": max_entries_per_day, "unlimited": max_entries_per_day <= 0})
 
     # 统一 sell_score 出场引擎: 遍历所有持仓, 每仓独立评估。
     # 订单提交层再按 max_sell_orders_per_run 节流，避免同一轮把多仓一起卖出。
@@ -2948,7 +2969,7 @@ def build_decision(
     # Entry-or-hold: enter a NEW name only when nothing is selling/deferred this
     # run AND we are under target_holdings AND a non-held candidate exists. This
     # is how concurrent holdings build up (one new name per entry run).
-    if (not sell_orders) and (not deferred_sell_orders) and best is not None and len(held_codes) < target_holdings:
+    if (not sell_orders) and (not deferred_sell_orders) and best is not None and len(committed_codes) < target_holdings:
         # --- Intraday-momentum last-half-hour entry (Gao-Han-Li-Zhou 2018) ---
         # Faithful: trades the last half-hour by the first-half-hour return sign.
         # Long-only, at most once/day, reserved path that bypasses the 14:00 cutoff,
@@ -3224,7 +3245,7 @@ def build_decision(
             reason = "blocked_broad_market_declining"
         elif best and not correlation_stress_ok:
             reason = "blocked_market_correlation_stress"
-        elif not best and sector_enabled and sector_blocked_candidates and len(held_codes) < target_holdings:
+        elif not best and sector_enabled and sector_blocked_candidates and len(committed_codes) < target_holdings:
             reason = "blocked_sector_concentration"
         elif best and not bool((best.get("execution_quality") or {}).get("passed")):
             reason = "blocked_execution_quality"
@@ -3237,7 +3258,7 @@ def build_decision(
         # sell is throttle-deferred we keep the throttle reason set above.)
         action = "hold"
         reason = (
-            "at_target_holdings_capacity" if len(held_codes) >= target_holdings
+            "at_target_holdings_capacity" if len(committed_codes) >= target_holdings
             else "blocked_sector_concentration" if sector_enabled and sector_blocked_candidates
             else "carry_allowed_sell_score_not_met" if held_codes
             else "no_entry_candidate"

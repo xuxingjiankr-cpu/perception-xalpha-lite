@@ -249,7 +249,7 @@
       "target2_r_multiple": 2.0,
       "min_orb_range_pct": 0.003,
       "chaos_orb_range_pct": 0.015,
-      "max_entries_per_day": 2,
+      "max_entries_per_day": 0,
       "reentry_cooldown_minutes": 30,
       "no_reentry_after_stop_loss_same_day": true
     }
@@ -261,9 +261,9 @@
     "min_amount": 0
   },
   "risk": {
-    "max_daily_submitted_orders": 12,
-    "max_daily_sell_orders": 12,
-    "max_daily_round_trips": 3,
+    "max_daily_submitted_orders": 0,
+    "max_daily_sell_orders": 0,
+    "max_daily_round_trips": 0,
     "max_daily_loss_pct": -0.02,
     "max_daily_api_runs": 80,
     "force_close_before_market_close": true,
