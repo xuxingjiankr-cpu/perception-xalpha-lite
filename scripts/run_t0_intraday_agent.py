@@ -1182,6 +1182,35 @@ def compute_alpha101_conviction(hist: list[dict[str, Any]], current_quote: dict[
     return round((cur - session_open) / (rng + 1e-9), 4)
 
 
+def compute_volume_surge(hist: list[dict[str, Any]], current_quote: dict[str, Any],
+                         recent_n: int = 3, baseline_n: int = 10) -> float | None:
+    """Intraday volume-surge proxy (the early-accumulation tell). Eastmoney volume is
+    CUMULATIVE within the day, so we difference it into per-snapshot increments and
+    compare the recent average increment to an earlier baseline: >1 means volume is
+    accelerating (often LEADS the price move), ~1 flat, <1 fading. Cumulative resets
+    or noise are clamped to 0. Returns None until enough same-day volume history
+    exists. This is logged for research first; it is NOT yet an entry gate."""
+    cur_vol = as_float(current_quote.get("volume"), 0.0)
+    vols = [as_float(r.get("volume"), 0.0) for r in hist]
+    vols.append(cur_vol)
+    vols = [v for v in vols if v > 0]
+    if len(vols) < baseline_n + recent_n + 1:
+        return None
+    incs: list[float] = []
+    for a, b in zip(vols, vols[1:]):
+        d = b - a
+        incs.append(d if d > 0 else 0.0)
+    if len(incs) < baseline_n + recent_n:
+        return None
+    recent = incs[-recent_n:]
+    baseline = incs[:-recent_n]
+    recent_avg = sum(recent) / len(recent)
+    baseline_avg = (sum(baseline) / len(baseline)) if baseline else 0.0
+    if baseline_avg <= 0:
+        return None
+    return round(recent_avg / baseline_avg, 3)
+
+
 def _hhmm_to_minutes(value: str, default: int) -> int:
     try:
         h, m = (int(x) for x in str(value).split(":"))
@@ -1249,6 +1278,10 @@ def compute_snapshot_momentum(quotes: list[dict[str, Any]], history: list[dict[s
         q2["consolidation_box"] = compute_consolidation_box(hist, consolidation_cfg or {})
         q2["first_half_hour_return"] = compute_first_half_hour_return(hist, q, strategy_cfg.get("intraday_momentum", {}) if isinstance(strategy_cfg.get("intraday_momentum", {}), dict) else {})
         q2["alpha101_conviction"] = compute_alpha101_conviction(hist, q)
+        q2["volume"] = as_float(q.get("volume"), 0.0)
+        q2["amount"] = as_float(q.get("amount"), 0.0)
+        q2["turnover_pct"] = as_float(q.get("turnover_pct"), 0.0)
+        q2["volume_surge"] = compute_volume_surge(hist, q)
         vwap_result = compute_rolling_vwap(hist, q, indicators_cfg.get("rolling_vwap", {}))
         atr_result = compute_atr_proxy(hist, q, indicators_cfg.get("intraday_atr", {}))
         bollinger_result = compute_bollinger_squeeze(hist, q, indicators_cfg.get("bollinger_squeeze", {}))

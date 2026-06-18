@@ -731,6 +731,32 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t30_volume_capture_and_surge() -> None:
+    """P1: the agent must CAPTURE volume/amount/turnover (previously dropped in
+    normalize_quote), and the volume-surge proxy must rise when cumulative volume
+    accelerates, sit ~1 when flat, and be None without enough same-day history."""
+    import run_etf_paper_trading_agent as base
+    item = {"f2": 1.5, "f3": 2.0, "f5": 1_000_000, "f6": 1_500_000, "f8": 7.5,
+            "f12": "588000", "f14": "x", "f15": 1.55, "f16": 1.45, "f17": 1.48,
+            "f18": 1.47, "f31": 1.499, "f32": 1.501}
+    etf = {"stockCode": "588000", "exchange": "SH", "name": "x"}
+    q = base.normalize_quote(etf, base.eastmoney_quote_response(etf, item))
+    check("T30 volume carried through normalize_quote", q.get("volume") == 1_000_000.0, str(q.get("volume")))
+    check("T30 amount carried", q.get("amount") == 1_500_000.0, str(q.get("amount")))
+    check("T30 turnover_pct carried (f8)", q.get("turnover_pct") == 7.5, str(q.get("turnover_pct")))
+    check("T30 change_pct carried (f3)", q.get("change_pct") == 2.0, str(q.get("change_pct")))
+
+    rising = [100, 200, 300, 400, 500, 600, 700, 800, 950, 1150, 1400]  # increments grow at the end
+    hist = [{"volume": v} for v in rising[:-1]]
+    surge = agent.compute_volume_surge(hist, {"volume": rising[-1]}, recent_n=3, baseline_n=7)
+    check("T30 accelerating volume -> surge > 1", surge is not None and surge > 1.0, str(surge))
+    flat = list(range(100, 100 + 11 * 50, 50))  # constant increments
+    s_flat = agent.compute_volume_surge([{"volume": v} for v in flat[:-1]], {"volume": flat[-1]},
+                                        recent_n=3, baseline_n=7)
+    check("T30 flat volume -> surge ~1", s_flat is not None and 0.8 <= s_flat <= 1.2, str(s_flat))
+    check("T30 insufficient history -> None", agent.compute_volume_surge([{"volume": 1}], {"volume": 2}) is None)
+
+
 def t22_dynamic_universe_selection() -> None:
     """Dynamic universe: liquidity/spread/price/money-fund gates drop the untradable;
     cross-sectional momentum+conviction ranks the survivors; resolve_agent_universe
@@ -1226,6 +1252,7 @@ if __name__ == "__main__":
     t19_multi_holding_entry_while_carrying()
     t20_alpha101_conviction()
     t21_inventory_aware_passive_skew()
+    t30_volume_capture_and_surge()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()

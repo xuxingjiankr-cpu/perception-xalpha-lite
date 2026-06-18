@@ -307,9 +307,11 @@ def eastmoney_quote_response(etf: dict[str, Any], item: dict[str, Any] | None, e
         "bidPrice1": bid1,
         "askPrice1": ask1,
         "change": as_float(clean(item.get("f3")), 0.0),
+        "change_pct": as_float(clean(item.get("f3")), 0.0),
         "isSuspended": suspended,
         "volume": as_float(clean(item.get("f5")), 0.0),
         "amount": as_float(clean(item.get("f6")), 0.0),
+        "turnover_pct": as_float(clean(item.get("f8")), 0.0),
         "open": as_float(clean(item.get("f17")), 0.0),
         "high": as_float(clean(item.get("f15")), 0.0),
         "low": as_float(clean(item.get("f16")), 0.0),
@@ -339,7 +341,7 @@ def fetch_eastmoney_quotes(
     """
     secids = ",".join(eastmoney_secid(x) for x in universe)
     fields = ",".join([
-        "f1", "f2", "f3", "f4", "f5", "f6", "f12", "f13", "f14",
+        "f1", "f2", "f3", "f4", "f5", "f6", "f8", "f12", "f13", "f14",
         "f15", "f16", "f17", "f18", "f31", "f32", "f124",
     ])
     params = urllib.parse.urlencode({
@@ -742,6 +744,15 @@ def normalize_quote(etf: dict[str, Any], resp: dict[str, Any],
         "askPrice1": as_float(data.get("askPrice1"), current),
         "isSuspended": is_suspended,
         "intraday_ret": intraday_ret,
+        # Liquidity / volume fields (the early-accumulation tell). Carried through so
+        # the agent and minute-quote log can see them; previously dropped here.
+        "open": as_float(data.get("open"), 0.0),
+        "high": as_float(data.get("high"), 0.0),
+        "low": as_float(data.get("low"), 0.0),
+        "volume": as_float(data.get("volume"), 0.0),
+        "amount": as_float(data.get("amount"), 0.0),
+        "turnover_pct": as_float(data.get("turnover_pct"), 0.0),
+        "change_pct": as_float(data.get("change_pct"), intraday_ret * 100.0),
         "signal_type": signal_type,
         "score": signal if not is_suspended else -999.0,
         "quote_ok": bool(resp.get("ok")),
