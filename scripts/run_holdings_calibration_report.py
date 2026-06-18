@@ -89,6 +89,22 @@ def latest_run_with_order_state(path: Path, date: str) -> list[dict[str, Any]]:
     return out
 
 
+def classify_inventory_node(node: dict[str, Any]) -> str:
+    """Classify local inventory without overstating broker confirmation."""
+    filled_remaining = int(as_float(node.get("filled_remaining_qty")))
+    sell_filled = int(as_float(node.get("sell_quantity_filled")))
+    buy_submitted = int(as_float(node.get("buy_quantity_submitted")))
+    sell_submitted = int(as_float(node.get("sell_quantity_submitted")))
+    reconciliation_ok = node.get("fill_reconciliation_ok") is True
+    if reconciliation_ok and filled_remaining > 0:
+        return "confirmed_position"
+    if reconciliation_ok and sell_filled > 0 and filled_remaining == 0:
+        return "confirmed_sell_filled_no_local_remaining"
+    if buy_submitted > 0 or sell_submitted > 0:
+        return "submitted_not_confirmed_filled"
+    return "no_order_activity"
+
+
 def build_report(date: str) -> dict[str, Any]:
     t0_state = read_json(ROOT / "outputs/t0_intraday_agent/t0_state.json")
     t0_latest = read_json(ROOT / "outputs/t0_intraday_agent/latest_t0_decision.json")
@@ -102,6 +118,7 @@ def build_report(date: str) -> dict[str, Any]:
     submitted_runs = latest_run_with_order_state(ROOT / "outputs/t0_intraday_agent/t0_agent_runs.jsonl", date)
 
     positions: list[dict[str, Any]] = []
+    confirmed_filled_exits: list[dict[str, Any]] = []
     pending_or_unconfirmed: list[dict[str, Any]] = []
     for code, node in sorted(t0_inventory.items()):
         if not isinstance(node, dict):
@@ -109,24 +126,34 @@ def build_report(date: str) -> dict[str, Any]:
         filled_qty = int(as_float(node.get("filled_remaining_qty")))
         submitted_qty = int(as_float(node.get("buy_quantity_submitted")))
         sell_submitted = int(as_float(node.get("sell_quantity_submitted")))
+        buy_filled = int(as_float(node.get("buy_quantity_filled")))
+        sell_filled = int(as_float(node.get("sell_quantity_filled")))
         entry_price = as_float(node.get("filled_buy_vwap"), as_float(node.get("entry_price")))
+        confirmation_status = classify_inventory_node(node)
         record = {
             "stockCode": code,
             "buy_order_ids": node.get("buy_order_ids", []),
+            "sell_order_ids": node.get("sell_order_ids", []),
             "submitted_buy_qty": submitted_qty,
+            "confirmed_filled_buy_qty": buy_filled,
             "confirmed_filled_remaining_qty": filled_qty,
             "submitted_sell_qty": sell_submitted,
+            "confirmed_filled_sell_qty": sell_filled,
             "entry_price_local": entry_price,
+            "filled_sell_vwap": node.get("filled_sell_vwap"),
+            "realized_booked_sell_qty": int(as_float(node.get("realized_booked_sell_qty"))),
             "stop_price": node.get("stop_price"),
             "target1_price": node.get("target1_price"),
             "target2_price": node.get("target2_price"),
             "fill_reconciliation_ok": node.get("fill_reconciliation_ok"),
             "fill_reconciled_at": node.get("fill_reconciled_at"),
-            "confirmation_status": "confirmed_position" if filled_qty > 0 else "submitted_not_confirmed_filled",
+            "confirmation_status": confirmation_status,
         }
-        if filled_qty > 0:
+        if confirmation_status == "confirmed_position":
             positions.append(record)
-        elif submitted_qty > 0 or sell_submitted > 0:
+        elif confirmation_status == "confirmed_sell_filled_no_local_remaining":
+            confirmed_filled_exits.append(record)
+        elif confirmation_status == "submitted_not_confirmed_filled":
             pending_or_unconfirmed.append(record)
 
     t0_quota = quota_for_date(ROOT / "outputs/t0_intraday_agent/quota_backoff_state.json", date)
@@ -144,6 +171,7 @@ def build_report(date: str) -> dict[str, Any]:
         "external_broker_confirmation_available": False,
         "external_broker_confirmation_blocked_reason": "quota_exhausted_backoff" if t0_quota or lf_quota else "not_queried_by_design",
         "confirmed_positions_local": positions,
+        "confirmed_filled_exits_local": confirmed_filled_exits,
         "pending_or_unconfirmed_orders_local": pending_or_unconfirmed,
         "today_t0_blotter_rows": t0_blotter,
         "today_low_frequency_blotter_rows": lf_blotter,
@@ -170,6 +198,7 @@ def build_report(date: str) -> dict[str, Any]:
         },
         "summary": {
             "confirmed_position_count_local": len(positions),
+            "confirmed_filled_exit_count_local": len(confirmed_filled_exits),
             "pending_or_unconfirmed_count_local": len(pending_or_unconfirmed),
             "t0_blotter_rows": len(t0_blotter),
             "low_frequency_blotter_rows": len(lf_blotter),
@@ -186,6 +215,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "## Summary",
         "",
         f"- Confirmed local positions: {report['summary']['confirmed_position_count_local']}",
+        f"- Confirmed filled exits with no local remaining quantity: {report['summary']['confirmed_filled_exit_count_local']}",
         f"- Pending or unconfirmed local orders: {report['summary']['pending_or_unconfirmed_count_local']}",
         f"- External broker confirmation available: {report['external_broker_confirmation_available']}",
         f"- Blocked reason: {report['external_broker_confirmation_blocked_reason']}",
@@ -198,6 +228,17 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
             lines.append(f"- {pos['stockCode']}: qty={pos['confirmed_filled_remaining_qty']}, entry={pos['entry_price_local']}")
     else:
         lines.append("- None confirmed from local fill reconciliation.")
+    lines.extend(["", "## Confirmed Filled Exits", ""])
+    if report["confirmed_filled_exits_local"]:
+        for exit_record in report["confirmed_filled_exits_local"]:
+            lines.append(
+                f"- {exit_record['stockCode']}: filled_sell_qty={exit_record['confirmed_filled_sell_qty']}, "
+                f"filled_sell_vwap={exit_record['filled_sell_vwap']}, "
+                f"local_remaining={exit_record['confirmed_filled_remaining_qty']}"
+            )
+        lines.append("- These fills are locally reconciled; current broker positions were not queried by this report.")
+    else:
+        lines.append("- None.")
     lines.extend(["", "## Pending Or Unconfirmed", ""])
     if report["pending_or_unconfirmed_orders_local"]:
         for pos in report["pending_or_unconfirmed_orders_local"]:

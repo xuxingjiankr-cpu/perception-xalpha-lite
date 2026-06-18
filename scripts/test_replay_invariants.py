@@ -1173,6 +1173,39 @@ def t28_layered_backtest_pipeline() -> None:
     check("T28 explicit costs reduce net PnL", 91.8 < metrics["net_pnl"] < 92.0, str(metrics))
 
 
+def t29_holdings_calibration_classification() -> None:
+    """Locally reconciled SELL fills are not mislabeled as pending orders."""
+    import importlib
+
+    report = importlib.import_module("run_holdings_calibration_report")
+    check(
+        "T29 reconciled remaining quantity is a confirmed local position",
+        report.classify_inventory_node({
+            "fill_reconciliation_ok": True,
+            "filled_remaining_qty": 100,
+            "buy_quantity_submitted": 100,
+        }) == "confirmed_position",
+    )
+    check(
+        "T29 reconciled SELL fill with zero local remainder is a confirmed exit",
+        report.classify_inventory_node({
+            "fill_reconciliation_ok": True,
+            "filled_remaining_qty": 0,
+            "sell_quantity_submitted": 100,
+            "sell_quantity_filled": 100,
+        }) == "confirmed_sell_filled_no_local_remaining",
+    )
+    check(
+        "T29 submitted SELL without reconciled fill remains unconfirmed",
+        report.classify_inventory_node({
+            "fill_reconciliation_ok": False,
+            "filled_remaining_qty": 0,
+            "sell_quantity_submitted": 100,
+            "sell_quantity_filled": 0,
+        }) == "submitted_not_confirmed_filled",
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1200,6 +1233,7 @@ if __name__ == "__main__":
     t26_daily_replay_cache_and_directory_reader()
     t27_dynamic_gate_replay_cache()
     t28_layered_backtest_pipeline()
+    t29_holdings_calibration_classification()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
