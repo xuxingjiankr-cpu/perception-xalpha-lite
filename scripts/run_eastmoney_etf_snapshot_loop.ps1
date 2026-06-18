@@ -28,6 +28,19 @@ function In-AshareSessionKst {
     return ($morning -or $afternoon)
 }
 
+# Single-instance guard: the scheduled task fires repeatedly as a watchdog, so
+# exit immediately if a previous collector loop is still alive (avoid duplicates).
+if (Test-Path $PidFile) {
+    $existingPid = (Get-Content $PidFile -Raw).Trim()
+    if ($existingPid -match '^\d+$') {
+        $existing = Get-CimInstance Win32_Process -Filter "ProcessId = $existingPid" -ErrorAction SilentlyContinue
+        if ($existing -and $existing.CommandLine -match 'run_eastmoney_etf_snapshot_loop') {
+            Write-CollectorLog "another collector loop already running pid=$existingPid; exiting"
+            return
+        }
+    }
+}
+
 [System.Diagnostics.Process]::GetCurrentProcess().Id | Set-Content -Path $PidFile -Encoding ASCII
 Write-CollectorLog "eastmoney ETF snapshot loop start pid=$([System.Diagnostics.Process]::GetCurrentProcess().Id) interval=${IntervalSeconds}s"
 
