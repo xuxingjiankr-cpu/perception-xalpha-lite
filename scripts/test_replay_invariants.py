@@ -731,6 +731,40 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t36_overfitting_guard() -> None:
+    """PBO (CSCV) must read ~0.5 for a pure-noise config search (winner does not persist)
+    and ~0 for a genuinely dominant config; purged splits must not leak; the multiple-
+    testing note must flag a tiny Sharpe as luck and a huge one as exceeding noise."""
+    import random
+    import overfitting_guard as og
+    # genuinely dominant config -> PBO ~ 0
+    random.seed(11)
+    dom = [[random.gauss(0, 1) for _ in range(96)] for _ in range(20)]
+    dom[5] = [random.gauss(0.8, 1) for _ in range(96)]
+    pbo_dom = og.combinatorial_symmetric_pbo(dom, n_blocks=10)["pbo"]
+    check("T36 dominant config -> PBO ~ 0", pbo_dom is not None and pbo_dom < 0.05, str(pbo_dom))
+    # pure noise -> PBO centered ~0.5 (average over seeds for determinism)
+    noise_pbos = []
+    for seed in range(20):
+        random.seed(1000 + seed)
+        noise = [[random.gauss(0, 1) for _ in range(96)] for _ in range(20)]
+        noise_pbos.append(og.combinatorial_symmetric_pbo(noise, n_blocks=10)["pbo"])
+    mean_noise = sum(noise_pbos) / len(noise_pbos)
+    check("T36 noise search -> PBO centered ~0.5", 0.35 < mean_noise < 0.65, str(round(mean_noise, 3)))
+    check("T36 noise PBO clearly worse than dominant", mean_noise > pbo_dom + 0.2, f"{mean_noise} vs {pbo_dom}")
+    # purged/embargoed splits: no leakage
+    splits = list(og.purged_train_test_splits(30, n_splits=5, embargo=3))
+    check("T36 purged splits cover 5 folds", len(splits) == 5, str(len(splits)))
+    check("T36 no train/test overlap", all(not (set(tr) & set(te)) for tr, te in splits))
+    check("T36 embargo gap respected",
+          all(min((abs(a - b) for a in tr for b in te), default=99) >= 1 for tr, te in splits))
+    # multiple-testing note
+    luck = og.deflated_significance_note(50, 0.2, 100)
+    real = og.deflated_significance_note(50, 5.0, 100)
+    check("T36 tiny Sharpe over many trials -> luck", luck["flag"] == "consistent_with_luck", str(luck))
+    check("T36 huge Sharpe -> exceeds noise max", real["flag"] == "exceeds_noise_max", str(real))
+
+
 def t35_sizing_weights() -> None:
     """Sizing research: inverse-vol weights give MORE weight to lower-vol names and sum
     to 1; basket_return is the weighted sum of forward returns."""
@@ -1404,6 +1438,7 @@ if __name__ == "__main__":
     t33_regime_classifier()
     t34_exit_rule_simulation()
     t35_sizing_weights()
+    t36_overfitting_guard()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
