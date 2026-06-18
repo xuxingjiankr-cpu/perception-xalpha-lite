@@ -16,7 +16,11 @@ carry volume/amount for every ETF every minute) and computes, per trade day:
       cheaper than the price at which a late "new-high breakout" would have fired?
 
 NO broker calls, NO orders, NO agent state. Reads snapshot files only.
-Run: py -3.13 scripts/research_early_entry.py [--early-end 10:00] [--breakout-after 13:00]
+The default run is incremental: each usable trade date is written once under a
+versioned experiment directory, then all daily records are aggregated. Use
+``--rebuild`` only when intentionally recomputing the same research version.
+
+Run: py -3.13 scripts/research_early_entry.py [--date YYYY-MM-DD] [--rebuild]
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from __future__ import annotations
 import argparse
 import csv
 import gzip
+import hashlib
 import io
 import json
 import sys
@@ -35,6 +40,15 @@ from run_etf_paper_trading_agent import ROOT, as_float
 
 SNAP_DIR = ROOT / "data" / "market" / "eastmoney" / "full_market" / "snapshots"
 OUT_DIR = ROOT / "outputs" / "research_early_entry"
+RESEARCH_VERSION = 1
+DEFAULT_MIN_DAYS_FOR_STATISTICAL_TESTING = 20
+REQUIRED_PROMOTION_GATES = (
+    "walk_forward_offline_replay",
+    "diebold_mariano",
+    "model_confidence_set",
+    "spa_reality_check",
+    "deflated_sharpe",
+)
 
 
 def _china_minute(row: dict[str, Any]) -> int | None:
@@ -58,6 +72,136 @@ def _zscores(vals: list[float]) -> list[float]:
     m = sum(vals) / n
     sd = (sum((v - m) ** 2 for v in vals) / n) ** 0.5
     return [0.0] * n if sd <= 0 else [(v - m) / sd for v in vals]
+
+
+def hhmm(value: str) -> int:
+    hour, minute = (int(x) for x in value.split(":"))
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        raise ValueError(f"invalid HH:MM: {value}")
+    return hour * 60 + minute
+
+
+def experiment_id(params: dict[str, Any]) -> str:
+    canonical = json.dumps(params, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
+    return f"early_entry_v{RESEARCH_VERSION}_{digest}"
+
+
+def _write_json_atomic(path: Path, obj: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(obj, ensure_ascii=False, indent=2, default=str) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def daily_result_path(out_dir: Path, exp_id: str, trade_date: str) -> Path:
+    return out_dir / "experiments" / exp_id / "daily" / f"{trade_date}.json"
+
+
+def save_daily_result(out_dir: Path, exp_id: str, params: dict[str, Any], result: dict[str, Any]) -> Path:
+    path = daily_result_path(out_dir, exp_id, str(result["date"]))
+    _write_json_atomic(path, {
+        "research_version": RESEARCH_VERSION,
+        "experiment_id": exp_id,
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "paper_trading_only": True,
+        "status": "diagnostic_only",
+        "edge_validated": False,
+        "live_ready": False,
+        "formal_strategy_allowed": False,
+        "order_submit_calls_made": False,
+        "params": params,
+        "result": result,
+    })
+    return path
+
+
+def load_daily_results(out_dir: Path, exp_id: str) -> list[dict[str, Any]]:
+    by_date: dict[str, dict[str, Any]] = {}
+    daily_dir = out_dir / "experiments" / exp_id / "daily"
+    for path in sorted(daily_dir.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        result = payload.get("result")
+        if payload.get("experiment_id") != exp_id or not isinstance(result, dict) or not result.get("date"):
+            continue
+        by_date[str(result["date"])] = result
+    return [by_date[day] for day in sorted(by_date)]
+
+
+def summarize_results(
+    params: dict[str, Any],
+    results: list[dict[str, Any]],
+    exp_id: str,
+    *,
+    min_days_for_statistical_testing: int = DEFAULT_MIN_DAYS_FOR_STATISTICAL_TESTING,
+) -> dict[str, Any]:
+    ordered = sorted(results, key=lambda x: str(x.get("date") or ""))
+    edges = [as_float(r.get("early_edge_pct")) for r in ordered if r.get("early_edge_pct") is not None]
+    premiums = [
+        as_float(r.get("late_vs_early_price_premium_pct"))
+        for r in ordered if r.get("late_vs_early_price_premium_pct") is not None
+    ]
+    enough_days = len(edges) >= max(1, min_days_for_statistical_testing)
+    gate_status = "not_run_requires_replay_integration" if enough_days else "not_run_insufficient_days"
+    return {
+        "research_version": RESEARCH_VERSION,
+        "experiment_id": exp_id,
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "paper_trading_only": True,
+        "status": "diagnostic_only",
+        "edge_validated": False,
+        "live_ready": False,
+        "formal_strategy_allowed": False,
+        "investment_recommendation": False,
+        "order_submit_calls_made": False,
+        "params": params,
+        "results": ordered,
+        "sample_days": len(edges),
+        "first_date": ordered[0].get("date") if ordered else None,
+        "last_date": ordered[-1].get("date") if ordered else None,
+        "avg_edge_pct": sum(edges) / len(edges) if edges else None,
+        "positive_edge_days": sum(1 for value in edges if value > 0),
+        "avg_late_premium_pct": sum(premiums) / len(premiums) if premiums else None,
+        "positive_late_premium_days": sum(1 for value in premiums if value > 0),
+        "statistical_readiness": {
+            "minimum_days_before_statistical_testing": max(1, min_days_for_statistical_testing),
+            "sample_sufficient_for_statistical_testing": enough_days,
+            "required_promotion_gates": {
+                gate: {"status": gate_status, "passed": False}
+                for gate in REQUIRED_PROMOTION_GATES
+            },
+            "verdict": "no_validated_edge",
+        },
+    }
+
+
+def write_history_csv(path: Path, results: list[dict[str, Any]]) -> None:
+    fields = [
+        "date", "eligible", "top_n", "universe_fwd_ret_pct", "top_early_fwd_ret_pct",
+        "early_edge_pct", "top_that_later_broke_out", "late_vs_early_price_premium_pct",
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        for row in results:
+            writer.writerow({field: row.get(field) for field in fields})
+
+
+def publish_summary(out_dir: Path, summary: dict[str, Any]) -> dict[str, Path]:
+    exp_dir = out_dir / "experiments" / str(summary["experiment_id"])
+    summary_path = exp_dir / "summary.json"
+    history_path = exp_dir / "daily_history.csv"
+    latest_path = out_dir / "early_entry_research.json"
+    _write_json_atomic(summary_path, summary)
+    write_history_csv(history_path, summary.get("results", []))
+    _write_json_atomic(latest_path, summary)
+    return {"summary": summary_path, "history": history_path, "latest": latest_path}
 
 
 def load_day(day_dir: Path) -> dict[str, list[dict[str, Any]]]:
@@ -169,29 +313,63 @@ def main() -> None:
     ap.add_argument("--min-price", type=float, default=0.3)
     ap.add_argument("--top-frac", type=float, default=0.1)
     ap.add_argument("--breakout-pct", type=float, default=0.015)
+    ap.add_argument("--date", default=None, help="optional single trade date YYYY-MM-DD")
+    ap.add_argument("--rebuild", action="store_true", help="recompute existing daily records for this experiment")
+    ap.add_argument("--min-days-for-statistical-testing", type=int,
+                    default=DEFAULT_MIN_DAYS_FOR_STATISTICAL_TESTING)
     args = ap.parse_args()
-
-    def hhmm(v: str) -> int:
-        h, m = (int(x) for x in v.split(":"))
-        return h * 60 + m
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     early_end, breakout_after = hhmm(args.early_end), hhmm(args.breakout_after)
-    results = []
-    for day_dir in sorted(p for p in SNAP_DIR.glob("*") if p.is_dir()):
+    params = {
+        "research_version": RESEARCH_VERSION,
+        "early_end": args.early_end,
+        "breakout_after": args.breakout_after,
+        "min_amount": args.min_amount,
+        "min_price": args.min_price,
+        "top_frac": args.top_frac,
+        "breakout_pct": args.breakout_pct,
+    }
+    exp_id = experiment_id(params)
+    day_dirs = sorted(p for p in SNAP_DIR.glob("*") if p.is_dir())
+    if args.date:
+        day_dirs = [path for path in day_dirs if path.name == args.date]
+    computed_dates: list[str] = []
+    cached_dates: list[str] = []
+    unusable_dates: list[str] = []
+    for day_dir in day_dirs:
+        daily_path = daily_result_path(OUT_DIR, exp_id, day_dir.name)
+        if daily_path.exists() and not args.rebuild:
+            cached_dates.append(day_dir.name)
+            continue
         by_code = load_day(day_dir)
         if not by_code:
+            unusable_dates.append(day_dir.name)
             continue
         r = analyze_day(day_dir.name, by_code, early_end=early_end, breakout_after=breakout_after,
                         min_amount=args.min_amount, min_price=args.min_price,
                         top_frac=args.top_frac, breakout_pct=args.breakout_pct)
         if r:
-            results.append(r)
+            save_daily_result(OUT_DIR, exp_id, params, r)
+            computed_dates.append(day_dir.name)
+        else:
+            unusable_dates.append(day_dir.name)
+
+    results = load_daily_results(OUT_DIR, exp_id)
+    summary = summarize_results(
+        params,
+        results,
+        exp_id,
+        min_days_for_statistical_testing=args.min_days_for_statistical_testing,
+    )
+    paths = publish_summary(OUT_DIR, summary)
 
     print("=== early relative-strength + volume entry vs late breakout (SHADOW research) ===")
     print(f"early decision @ {args.early_end} CST | late breakout only after {args.breakout_after} | top {int(args.top_frac*100)}%")
+    print(f"experiment={exp_id} | computed={computed_dates} | cached={cached_dates} | unusable={unusable_dates}")
     if not results:
         print("no usable days yet (need full-market snapshots with intraday coverage).")
+        print(f"summary: {paths['summary']}")
         return
     edges, premiums = [], []
     for r in results:
@@ -211,12 +389,13 @@ def main() -> None:
           f"ABOVE the early-entry price (positive => early entry is cheaper)")
     print("verdict guidance: need Q1 edge>0 (early signal predicts) AND Q2 premium>0 (early price better),")
     print("  consistently across MANY days, before wiring an early-entry into live gating (DSR-gated).")
-    print(f"NOTE: only {len(results)} day(s) of data -- directional read only, NOT statistically conclusive.")
-    out_path = OUT_DIR / "early_entry_research.json"
-    out_path.write_text(json.dumps({"params": vars(args), "results": results,
-                                    "avg_edge_pct": avg_edge, "avg_late_premium_pct": avg_prem},
-                                   ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"log: {out_path}")
+    readiness = summary["statistical_readiness"]
+    print(f"NOTE: only {len(results)} day(s) of data; minimum before statistical testing is "
+          f"{readiness['minimum_days_before_statistical_testing']} -- NO validated edge.")
+    print("status=diagnostic_only | edge_validated=false | DSR/MCS/SPA/DM=not passed")
+    print(f"summary: {paths['summary']}")
+    print(f"daily history: {paths['history']}")
+    print(f"latest: {paths['latest']}")
 
 
 if __name__ == "__main__":

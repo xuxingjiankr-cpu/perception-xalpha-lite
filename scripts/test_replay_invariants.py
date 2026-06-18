@@ -1232,6 +1232,63 @@ def t29_holdings_calibration_classification() -> None:
     )
 
 
+def t31_early_entry_daily_accumulation() -> None:
+    """Early-entry research persists idempotent daily evidence and cannot claim edge."""
+    import importlib
+    import tempfile
+    from pathlib import Path as _Path
+
+    early = importlib.import_module("research_early_entry")
+    params = {
+        "research_version": early.RESEARCH_VERSION,
+        "early_end": "10:00",
+        "breakout_after": "13:00",
+        "min_amount": 50_000_000.0,
+        "min_price": 0.3,
+        "top_frac": 0.1,
+        "breakout_pct": 0.015,
+    }
+    first = {
+        "date": "2026-06-17", "eligible": 400, "top_n": 40,
+        "universe_fwd_ret_pct": 0.1, "top_early_fwd_ret_pct": 0.2,
+        "early_edge_pct": 0.1, "top_that_later_broke_out": 10,
+        "late_vs_early_price_premium_pct": 1.2,
+    }
+    second = {
+        "date": "2026-06-18", "eligible": 420, "top_n": 42,
+        "universe_fwd_ret_pct": 0.0, "top_early_fwd_ret_pct": 0.2,
+        "early_edge_pct": 0.2, "top_that_later_broke_out": 12,
+        "late_vs_early_price_premium_pct": 1.4,
+    }
+    with tempfile.TemporaryDirectory() as td:
+        out_dir = _Path(td)
+        exp_id = early.experiment_id(params)
+        early.save_daily_result(out_dir, exp_id, params, first)
+        early.save_daily_result(out_dir, exp_id, params, second)
+        second["early_edge_pct"] = 0.25
+        early.save_daily_result(out_dir, exp_id, params, second)
+        results = early.load_daily_results(out_dir, exp_id)
+        summary = early.summarize_results(params, results, exp_id, min_days_for_statistical_testing=20)
+        paths = early.publish_summary(out_dir, summary)
+        check("T31 one idempotent slot per early-entry trade date",
+              len(results) == 2 and [r["date"] for r in results] == ["2026-06-17", "2026-06-18"], str(results))
+        check("T31 rerun replaces a date instead of double-counting",
+              results[-1]["early_edge_pct"] == 0.25, str(results[-1]))
+        check("T31 experiment id changes with signal parameters",
+              exp_id != early.experiment_id({**params, "early_end": "10:05"}), exp_id)
+        gates = summary.get("statistical_readiness", {}).get("required_promotion_gates", {})
+        check("T31 thin early-entry sample remains diagnostic-only",
+              summary.get("status") == "diagnostic_only" and summary.get("edge_validated") is False
+              and summary.get("live_ready") is False and summary.get("formal_strategy_allowed") is False,
+              str(summary))
+        check("T31 all early-entry promotion gates fail closed before testing",
+              len(gates) == len(early.REQUIRED_PROMOTION_GATES)
+              and all(g.get("passed") is False and g.get("status") == "not_run_insufficient_days" for g in gates.values()),
+              str(gates))
+        check("T31 early-entry summary and history artifacts written",
+              all(path.exists() for path in paths.values()), str(paths))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1261,6 +1318,7 @@ if __name__ == "__main__":
     t27_dynamic_gate_replay_cache()
     t28_layered_backtest_pipeline()
     t29_holdings_calibration_classification()
+    t31_early_entry_daily_accumulation()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
