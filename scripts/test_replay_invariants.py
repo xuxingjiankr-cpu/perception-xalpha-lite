@@ -731,6 +731,37 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t32_lead_lag_detection() -> None:
+    """Lead-lag analyzer must (a) recover a KNOWN lead time -- a follower built as the
+    leader delayed 15 min should peak at horizon=15 with high correlation -- and (b)
+    stay strictly diagnostic_only (no validated edge / no orders)."""
+    import math
+    import research_lead_lag as ll
+    minutes = list(range(570, 901))  # 09:30..15:00 China-minutes
+
+    def leader_px(m):
+        return round(1.0 + 0.03 * math.sin((m - 570) / 60.0), 4)
+
+    leader = [(m, leader_px(m)) for m in minutes]
+    follower_a = [(m, leader_px(m - 15)) for m in minutes if m - 15 >= 570]   # exact 15-min lag
+    follower_b = [(m, round(leader_px(m - 15) * 1.001, 4)) for m in minutes if m - 15 >= 570]
+    by_code = {
+        "500001": {"name": "半导体ETF龙头", "full_amount": 1e9, "series": leader},
+        "500002": {"name": "半导体ETF乙", "full_amount": 6e7, "series": follower_a},
+        "500003": {"name": "半导体ETF丙", "full_amount": 6e7, "series": follower_b},
+    }
+    res = ll.analyze_day("2026-06-18", by_code, keyword_map={"半导体": "semi"},
+                         decision_start=600, decision_end=840, step=5, window=15,
+                         leader_threshold=0.0, min_amount=5e7, min_members=3, roundtrip_cost_pct=0.0)
+    check("T32 lead-lag analyzer returns a result", res is not None, "none")
+    check("T32 recovers the planted 15-min lead time", res and res.get("best_lead_minutes") == 15, str(res and res.get("best_lead_minutes")))
+    check("T32 strong correlation at the true lag", res and res.get("best_corr") is not None and res["best_corr"] > 0.8, str(res and res.get("best_corr")))
+    summary = ll.summarize([res], {})
+    check("T32 stays diagnostic_only / no validated edge",
+          summary["status"] == "diagnostic_only" and summary["edge_validated"] is False
+          and summary["order_submit_calls_made"] is False, str(summary.get("status")))
+
+
 def t30_volume_capture_and_surge() -> None:
     """P1: the agent must CAPTURE volume/amount/turnover (previously dropped in
     normalize_quote), and the volume-surge proxy must rise when cumulative volume
@@ -1310,6 +1341,7 @@ if __name__ == "__main__":
     t20_alpha101_conviction()
     t21_inventory_aware_passive_skew()
     t30_volume_capture_and_surge()
+    t32_lead_lag_detection()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
