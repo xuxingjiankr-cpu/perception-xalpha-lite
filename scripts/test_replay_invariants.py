@@ -731,6 +731,24 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t33_regime_classifier() -> None:
+    """Regime research: Kaufman efficiency ratio ~1 on a clean trend and low on chop;
+    classify_regime maps (net move, ER) to trend_up/trend_down/chop as expected."""
+    import research_regime as rg
+    up = [0.0, 0.001, 0.002, 0.003, 0.004, 0.005]          # monotonic -> ER ~ 1
+    chop = [0.0, 0.004, 0.0, 0.004, 0.0, 0.004]            # oscillating -> ER low
+    check("T33 efficiency ratio ~1 on clean trend", rg.efficiency_ratio(up) > 0.95, str(rg.efficiency_ratio(up)))
+    check("T33 efficiency ratio low on chop", rg.efficiency_ratio(chop) < 0.3, str(rg.efficiency_ratio(chop)))
+    check("T33 strong up + high ER -> trend_up",
+          rg.classify_regime(0.005, 0.9, er_thr=0.4, move_thr=0.003) == "trend_up")
+    check("T33 strong down + high ER -> trend_down",
+          rg.classify_regime(-0.005, 0.9, er_thr=0.4, move_thr=0.003) == "trend_down")
+    check("T33 small move -> chop",
+          rg.classify_regime(0.001, 0.9, er_thr=0.4, move_thr=0.003) == "chop")
+    check("T33 directionless (low ER) -> chop",
+          rg.classify_regime(0.01, 0.2, er_thr=0.4, move_thr=0.003) == "chop")
+
+
 def t32_lead_lag_detection() -> None:
     """Lead-lag analyzer must (a) recover a KNOWN lead time -- a follower built as the
     leader delayed 15 min should peak at horizon=15 with high correlation -- and (b)
@@ -1342,6 +1360,7 @@ if __name__ == "__main__":
     t21_inventory_aware_passive_skew()
     t30_volume_capture_and_surge()
     t32_lead_lag_detection()
+    t33_regime_classifier()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
