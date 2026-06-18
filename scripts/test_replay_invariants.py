@@ -731,6 +731,33 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t34_exit_rule_simulation() -> None:
+    """simulate_exit mechanics (Kaminski-Lo): a stop caps a monotonic crash but SELLS
+    THE BOTTOM on a dip-then-recover path (hold wins there); take-profit and trailing
+    fire at their levels."""
+    import research_stops as rs
+    # dip to -1.2% then recover to +1%: a 1% stop exits at -1% (hurts), hold gets +1%
+    dip_recover = [1.0, 0.995, 0.988, 0.995, 1.01]
+    check("T34 stop sells the bottom on mean-reversion", abs(rs.simulate_exit(dip_recover, stop=0.01) - (-0.01)) < 1e-9,
+          str(rs.simulate_exit(dip_recover, stop=0.01)))
+    check("T34 hold recovers where stop bailed", abs(rs.simulate_exit(dip_recover) - 0.01) < 1e-9,
+          str(rs.simulate_exit(dip_recover)))
+    # monotonic crash: stop caps the loss vs a worse hold
+    crash = [1.0, 0.99, 0.97, 0.95, 0.92]
+    check("T34 stop caps a crash better than hold",
+          rs.simulate_exit(crash, stop=0.02) == -0.02 and rs.simulate_exit(crash) < -0.07,
+          f"{rs.simulate_exit(crash, stop=0.02)},{rs.simulate_exit(crash)}")
+    # take-profit fires at +2%
+    rip = [1.0, 1.01, 1.025, 1.05]
+    check("T34 take-profit fires at its level", abs(rs.simulate_exit(rip, take=0.02) - 0.02) < 1e-9,
+          str(rs.simulate_exit(rip, take=0.02)))
+    # trailing 1% from a 1.03 peak -> exit ~ +1.97%
+    peak_then_fade = [1.0, 1.02, 1.03, 1.018]
+    check("T34 trailing stop exits below the peak",
+          abs(rs.simulate_exit(peak_then_fade, trail=0.01) - (1.03 * 0.99 - 1.0)) < 1e-9,
+          str(rs.simulate_exit(peak_then_fade, trail=0.01)))
+
+
 def t33_regime_classifier() -> None:
     """Regime research: Kaufman efficiency ratio ~1 on a clean trend and low on chop;
     classify_regime maps (net move, ER) to trend_up/trend_down/chop as expected."""
@@ -1361,6 +1388,7 @@ if __name__ == "__main__":
     t30_volume_capture_and_surge()
     t32_lead_lag_detection()
     t33_regime_classifier()
+    t34_exit_rule_simulation()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
