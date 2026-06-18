@@ -731,6 +731,20 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t35_sizing_weights() -> None:
+    """Sizing research: inverse-vol weights give MORE weight to lower-vol names and sum
+    to 1; basket_return is the weighted sum of forward returns."""
+    import research_sizing as rz
+    w = rz.inverse_vol_weights([0.001, 0.002, 0.004])
+    check("T35 inverse-vol weights sum to 1", abs(sum(w) - 1.0) < 1e-9, str(sum(w)))
+    check("T35 lower vol gets more weight", w[0] > w[1] > w[2], str(w))
+    check("T35 equal vols -> equal weights", rz.inverse_vol_weights([0.002, 0.002]) == [0.5, 0.5],
+          str(rz.inverse_vol_weights([0.002, 0.002])))
+    check("T35 basket_return is the weighted sum",
+          abs(rz.basket_return([0.5, 0.5], [0.02, -0.01]) - 0.005) < 1e-9,
+          str(rz.basket_return([0.5, 0.5], [0.02, -0.01])))
+
+
 def t34_exit_rule_simulation() -> None:
     """simulate_exit mechanics (Kaminski-Lo): a stop caps a monotonic crash but SELLS
     THE BOTTOM on a dip-then-recover path (hold wins there); take-profit and trailing
@@ -1389,6 +1403,7 @@ if __name__ == "__main__":
     t32_lead_lag_detection()
     t33_regime_classifier()
     t34_exit_rule_simulation()
+    t35_sizing_weights()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
     t24_sector_limit_never_blocks_sells()
