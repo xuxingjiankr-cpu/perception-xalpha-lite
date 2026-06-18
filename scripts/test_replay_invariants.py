@@ -933,6 +933,21 @@ def t22_dynamic_universe_selection() -> None:
     import tempfile
     from pathlib import Path as _Path
     import select_t0_universe as sel
+    import collect_eastmoney_full_market as collector
+
+    check("T22 cash-flow factor ETF is not classified as money-market",
+          not collector.is_money_market_fund({"name": "自由现金流ETF华夏"}))
+    check("T22 actual money-market ETF remains excluded",
+          collector.is_money_market_fund({"name": "现金管理货币ETF"}))
+    cashflow_gate = sel.passes_gates(
+        {"stockCode": "159201", "name": "自由现金流ETF华夏", "currentPrice": 1.0,
+         "bidPrice1": 0.999, "askPrice1": 1.001, "amount": 100_000_000},
+        {"name_exclude_keywords": ["货币", "现金", "理财"], "min_price": 0.3,
+         "max_spread_pct": 0.004},
+        50_000_000,
+        set(),
+    )
+    check("T22 cash-flow factor ETF passes the generic cash-name gate", cashflow_gate == (True, "ok"), str(cashflow_gate))
 
     cols = ["collected_at", "trade_date", "source_quote_time", "scope", "secid", "market",
             "stockCode", "name", "currentPrice", "change_pct", "change_abs", "volume", "amount",

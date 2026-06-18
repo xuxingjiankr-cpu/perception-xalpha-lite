@@ -118,7 +118,7 @@ def passes_gates(row: dict[str, Any], gates: dict[str, Any], min_amount_effectiv
         return False, "money_fund_excluded"
     name = str(row.get("name", ""))
     for kw in gates.get("name_exclude_keywords", ["货币", "现金", "理财"]):
-        if kw and kw in name:
+        if kw and kw in name and not (kw == "现金" and "现金流" in name):
             return False, "name_excluded"
     price = as_float(row.get("currentPrice"), 0.0)
     if price <= as_float(gates.get("min_price", 0.3), 0.3):

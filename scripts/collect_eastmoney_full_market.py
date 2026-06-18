@@ -170,9 +170,15 @@ MONEY_FUND_NAME_KEYWORDS = (
     "\u7406\u8d22",       # cash management
 )
 
+MONEY_FUND_NAME_EXEMPTIONS = (
+    "现金流",  # cash-flow factor/index ETFs are not money-market funds
+)
+
 
 def is_money_market_fund(row: dict[str, Any]) -> bool:
     name = str(row.get("name") or row.get("f14") or "")
+    if any(keyword in name for keyword in MONEY_FUND_NAME_EXEMPTIONS):
+        return False
     return any(keyword in name for keyword in MONEY_FUND_NAME_KEYWORDS)
 
 
