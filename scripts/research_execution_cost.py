@@ -7,20 +7,22 @@ decides whether the right lever is gradual execution (Almgren/Obizhaeva) or
 passive limit orders that earn the spread (Avellaneda-Stoikov).
 
 No orders, no account/skill calls, no agent state. Reads the quote log only.
-Run: py -3.13 scripts/research_execution_cost.py
+Run: py -3.13 scripts/research_execution_cost.py [--quotes FILE_OR_DIRECTORY]
 """
 
 from __future__ import annotations
 
-import json
+import argparse
 import math
 import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from replay_t0_decisions import iter_quote_rows
+
 ROOT = Path(__file__).resolve().parents[1]
-QUOTES = ROOT / "outputs" / "t0_intraday_agent" / "minute_quotes.jsonl"
+QUOTES = ROOT / "outputs" / "t0_intraday_agent"
 
 # Representative order sizes (shares) we actually submit, and a small one.
 ORDER_SIZES = [20500, 81300, 114600]
@@ -28,13 +30,9 @@ SHARES_PER_LOT = 100  # Eastmoney volume is in 手 (lots of 100 shares)
 IMPACT_Y = 1.0        # square-root impact coefficient (order ~1, Obizhaeva-Wang/empirical)
 
 
-def load() -> dict[str, dict[str, Any]]:
+def load(path: Path = QUOTES) -> dict[str, dict[str, Any]]:
     by_code: dict[str, dict[str, Any]] = defaultdict(lambda: {"vol_by_day": defaultdict(float), "px": [], "spreads": []})
-    for line in QUOTES.read_text(encoding="utf-8").splitlines():
-        try:
-            q = json.loads(line)
-        except Exception:
-            continue
+    for q in iter_quote_rows(path):
         c = str(q.get("stockCode", "")).zfill(6)
         day = str(q.get("timestamp", ""))[:10]
         v, p = q.get("volume"), q.get("currentPrice")
@@ -63,8 +61,11 @@ def daily_sigma(px: list[float]) -> float:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Research ETF execution costs from local quote logs")
+    parser.add_argument("--quotes", default=str(QUOTES), help="minute quote JSONL file or directory")
+    args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
-    data = load()
+    data = load(Path(args.quotes))
     print("=== execution-cost reality check (SHADOW) ===")
     print(f"{'ETF':7} {'ADV(shares)':>14} {'spread_bps':>10} {'sigma_d':>8} | impact for our order sizes (bps)")
     print("-" * 86)

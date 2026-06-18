@@ -1018,6 +1018,40 @@ def t26_daily_replay_cache_and_directory_reader() -> None:
         check("T26 replay directory reader filters by date",
               [r.get("stockCode") for r in read_18] == ["159915"], str(read_18))
 
+        agent_out = root / "agent_output"
+        agent_out.mkdir()
+        legacy_row = {
+            "timestamp": "2026-06-17T10:00:00+08:00", "stockCode": "510300",
+            "currentPrice": 4.0, "bidPrice1": 3.999, "askPrice1": 4.001, "volume": 1000,
+        }
+        daily_row = {
+            "timestamp": "2026-06-18T10:00:00+08:00", "stockCode": "159915",
+            "currentPrice": 2.0, "bidPrice1": 1.999, "askPrice1": 2.001, "volume": 2000,
+        }
+        unrelated_row = {
+            "timestamp": "2026-06-18T10:00:00+08:00", "stockCode": "999999",
+            "currentPrice": 9.0,
+        }
+        (agent_out / "minute_quotes.jsonl").write_text(_json.dumps(legacy_row) + "\n", encoding="utf-8")
+        (agent_out / "minute_quotes_2026-06-18.jsonl").write_text(_json.dumps(daily_row) + "\n", encoding="utf-8")
+        (agent_out / "t0_agent_runs.jsonl").write_text(_json.dumps(unrelated_row) + "\n", encoding="utf-8")
+        mixed_rows = list(replay.iter_quote_rows(agent_out))
+        check("T26 agent output reader combines legacy and daily quote logs only",
+              [r.get("stockCode") for r in mixed_rows] == ["510300", "159915"], str(mixed_rows))
+
+        adverse = importlib.import_module("research_adverse_selection")
+        pairs = importlib.import_module("research_cross_etf_pairs")
+        costs = importlib.import_module("research_execution_cost")
+        adverse_codes = sorted(adverse.mid_series_by_code(agent_out))
+        check("T26 adverse-selection research reads rolled quote history",
+              adverse_codes == ["159915", "510300"], str(adverse_codes))
+        pair_codes = sorted({code for rnd in pairs.load_aligned(agent_out) for code in rnd if code != "ts"})
+        check("T26 pair research reads rolled quote history",
+              pair_codes == ["159915", "510300"], str(pair_codes))
+        cost_codes = sorted(costs.load(agent_out))
+        check("T26 execution-cost research reads rolled quote history",
+              cost_codes == ["159915", "510300"], str(cost_codes))
+
 
 def t27_dynamic_gate_replay_cache() -> None:
     """Dynamic replay cache retains complete intraday history for any code that

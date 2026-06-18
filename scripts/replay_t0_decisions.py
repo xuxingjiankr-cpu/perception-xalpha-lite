@@ -1,6 +1,6 @@
 """Offline decision replayer for the T+0 intraday paper agent.
 
-Feeds historical quote snapshots from minute_quotes.jsonl back through
+Feeds historical quote snapshots from legacy or daily minute quote logs back through
 build_decision() with a virtual clock, simulating fills locally. Pure
 offline analysis: no SkillClient, no network, no order submission, and
 it never touches outputs/t0_intraday_agent/t0_state.json.
@@ -21,7 +21,7 @@ from run_etf_paper_trading_agent import ROOT, as_float, load_json
 
 import run_t0_intraday_agent as agent
 
-DEFAULT_QUOTES = ROOT / "outputs" / "t0_intraday_agent" / "minute_quotes.jsonl"
+DEFAULT_QUOTES = ROOT / "outputs" / "t0_intraday_agent"
 OUT_DIR = ROOT / "outputs" / "t0_replay"
 INITIAL_CASH = 1_000_000.0
 
@@ -41,11 +41,17 @@ def quote_source_paths(path: Path, date_filter: str | None = None) -> list[Path]
     if not path.exists():
         return []
     if path.is_dir():
+        # Agent output directories also contain large non-quote JSONL logs. Prefer
+        # the legacy/daily minute quote family there, while retaining support for
+        # evolution cache directories whose files are simply YYYY-MM-DD.jsonl.
+        candidates = sorted(path.glob("minute_quotes*.jsonl"))
+        if not candidates:
+            candidates = sorted(path.glob("*.jsonl"))
         if date_filter:
-            matched = sorted(path.glob(f"*{date_filter}*.jsonl"))
+            matched = [candidate for candidate in candidates if date_filter in candidate.name]
             if matched:
                 return matched
-        return sorted(path.glob("*.jsonl"))
+        return candidates
     return [path]
 
 

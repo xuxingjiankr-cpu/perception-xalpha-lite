@@ -11,19 +11,22 @@ submission_mid to the market mid a few minutes later. A consistently NEGATIVE
 post-fill move means adverse selection is eating the captured spread.
 
 No orders, no account/skill calls, no live state. Reads outputs only.
-Run: py -3.13 scripts/research_adverse_selection.py
+Run: py -3.13 scripts/research_adverse_selection.py [--quotes FILE_OR_DIRECTORY]
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
+from replay_t0_decisions import iter_quote_rows
+
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "outputs" / "t0_intraday_agent" / "t0_agent_runs.jsonl"
-QUOTES = ROOT / "outputs" / "t0_intraday_agent" / "minute_quotes.jsonl"
+QUOTES = ROOT / "outputs" / "t0_intraday_agent"
 HORIZON_MIN = 15  # look this many minutes after a fill
 
 
@@ -39,15 +42,9 @@ def load_runs() -> list[dict[str, Any]]:
     return out
 
 
-def mid_series_by_code() -> dict[str, list[tuple[Any, float]]]:
+def mid_series_by_code(path: Path = QUOTES) -> dict[str, list[tuple[Any, float]]]:
     series: dict[str, list[tuple[Any, float]]] = {}
-    if not QUOTES.exists():
-        return series
-    for line in QUOTES.read_text(encoding="utf-8").splitlines():
-        try:
-            q = json.loads(line)
-        except Exception:
-            continue
+    for q in iter_quote_rows(path):
         c = str(q.get("stockCode", "")).zfill(6)
         bid, ask, cur = q.get("bidPrice1"), q.get("askPrice1"), q.get("currentPrice")
         if cur in (None, 0):
@@ -70,9 +67,12 @@ def parse(value: Any):
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Research passive-fill adverse selection from local logs")
+    parser.add_argument("--quotes", default=str(QUOTES), help="minute quote JSONL file or directory")
+    args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     runs = load_runs()
-    series = mid_series_by_code()
+    series = mid_series_by_code(Path(args.quotes))
     # collect submitted passive BUY orders
     passive_buys = []
     for r in runs:
