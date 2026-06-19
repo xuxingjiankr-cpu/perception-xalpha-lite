@@ -731,6 +731,30 @@ def t19_multi_holding_entry_while_carrying() -> None:
           str(dec.get("ranked", [{}])[0].get("stockCode", "")).zfill(6) != "518880" or len(buys) == 1, str(dec.get("ranked")))
 
 
+def t39_timing_accuracy_helpers() -> None:
+    """Timing-accuracy primitives: range_percentile locates a price in [low,high];
+    pullback_entry only fills on a real dip; trailing_exit leaves on a drop from peak."""
+    import research_timing as rt
+    check("T39 percentile at the low = 0", rt.range_percentile(1.0, 1.0, 1.1) == 0.0)
+    check("T39 percentile at the high = 1", rt.range_percentile(1.1, 1.0, 1.1) == 1.0)
+    check("T39 percentile mid = 0.5", abs(rt.range_percentile(1.05, 1.0, 1.1) - 0.5) < 1e-9)
+    check("T39 degenerate range -> None", rt.range_percentile(1.0, 1.0, 1.0) is None)
+    # pullback fills on a 0.4% dip within the wait window
+    dip = [1.000, 1.002, 0.995, 1.01]
+    filled = rt.pullback_entry(dip, 0.004, 15)
+    check("T39 pullback fills at the dip", filled is not None and abs(filled[0] - 0.995) < 1e-9, str(filled))
+    # no dip -> no fill (we'd miss this signal)
+    rip = [1.000, 1.003, 1.006, 1.01]
+    check("T39 no dip -> pullback does not fill", rt.pullback_entry(rip, 0.004, 15) is None)
+    # trailing exits on a 0.6% drop from the peak
+    peak_fade = [1.0, 1.02, 1.03, 1.018]
+    px, _ = rt.trailing_exit(peak_fade, 0.006)
+    check("T39 trailing exits below the peak", abs(px - 1.018) < 1e-9, str(px))
+    # monotonic up -> trailing holds to the last price
+    up = [1.0, 1.01, 1.02, 1.03]
+    check("T39 monotonic up -> trailing holds to close", rt.trailing_exit(up, 0.006)[0] == 1.03)
+
+
 def t37_committed_holdings_cap() -> None:
     """target_holdings must count SAME-DAY T+1 buys (held but not yet sellable), or
     removing the daily entry cap would over-accumulate. Two positions held at qty>0 with
@@ -1565,6 +1589,7 @@ if __name__ == "__main__":
     t35_sizing_weights()
     t36_overfitting_guard()
     t37_committed_holdings_cap()
+    t39_timing_accuracy_helpers()
     t38_full_minute_replay_builder()
     t22_dynamic_universe_selection()
     t23_sector_diversification_entry_filter()
