@@ -1,0 +1,463 @@
+{
+  "agent_name": "t0_intraday_paper_agent",
+  "mode": "paper_execute",
+  "execution_enabled": true,
+  "asset_type": "ETF_T0_ONLY",
+  "trading_hours_only": true,
+  "skill": {
+    "python": "py -3.13",
+    "script": "%USERPROFILE%\\.codex\\skills\\a-share-paper-trading\\a_share_paper_trading.py"
+  },
+  "market_data": {
+    "quote_provider": "eastmoney_primary",
+    "eastmoney_enabled": true,
+    "sina_enabled": true,
+    "tencent_enabled": true,
+    "huatai_quote_fallback": false,
+    "eastmoney_timeout_seconds": 6,
+    "thirdparty_timeout_seconds": 6,
+    "preferred_quote_interval_seconds": 60,
+    "huatai_broker_query_min_interval_seconds": 300
+  },
+  "universe": [
+    {
+      "stockCode": "518880",
+      "exchange": "SH",
+      "name": "黄金ETF",
+      "asset_class": "gold_etf"
+    },
+    {
+      "stockCode": "513500",
+      "exchange": "SH",
+      "name": "标普500ETF",
+      "asset_class": "cross_border_etf"
+    },
+    {
+      "stockCode": "513100",
+      "exchange": "SH",
+      "name": "纳指ETF",
+      "asset_class": "cross_border_etf"
+    },
+    {
+      "stockCode": "513180",
+      "exchange": "SH",
+      "name": "恒生科技ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "513050",
+      "exchange": "SH",
+      "name": "中概互联网ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "513330",
+      "exchange": "SH",
+      "name": "恒生互联网ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "588000",
+      "exchange": "SH",
+      "name": "科创50ETF",
+      "asset_class": "exit_only_t1"
+    }
+  ],
+  "dynamic_universe": {
+    "enabled": true,
+    "snapshot_dir": "data/market/eastmoney/full_market/snapshots",
+    "universe_dir": "data/market/eastmoney/universe",
+    "output": "outputs/t0_intraday_agent/latest_dynamic_universe.json",
+    "top_n": 0,
+    "min_amount_yuan": 50000000,
+    "max_spread_pct": 0.004,
+    "min_price": 0.3,
+    "momentum_weight": 1.0,
+    "conviction_weight": 0.5,
+    "name_exclude_keywords": [
+      "货币",
+      "现金",
+      "理财"
+    ],
+    "exclude_codes": []
+  },
+  "observation_pool": {
+    "enabled": true,
+    "shadow_only": true,
+    "trade_gate_enabled": false,
+    "system_limit": 20,
+    "chatgpt_limit": 10,
+    "inbox": "data/research/chatgpt_etf_watchlist/inbox",
+    "output": "outputs/t0_observation_pool/latest_observation_pool.json"
+  },
+  "sector_diversification": {
+    "enabled": true,
+    "max_per_sector": 2,
+    "unlimited_sectors": [
+      "other"
+    ],
+    "keyword_map": {
+      "半导体": "semi",
+      "芯片": "semi",
+      "集成电路": "semi",
+      "医药": "pharma",
+      "医疗": "pharma",
+      "创新药": "pharma",
+      "证券": "brokerage",
+      "券商": "brokerage",
+      "军工": "defense",
+      "光伏": "new_energy",
+      "新能源": "new_energy",
+      "电池": "new_energy",
+      "消费": "consumer",
+      "白酒": "consumer",
+      "食品": "consumer",
+      "银行": "bank",
+      "黄金": "gold",
+      "恒生": "hk_china",
+      "港股": "hk_china",
+      "中概": "hk_china",
+      "标普": "overseas",
+      "纳指": "overseas",
+      "纳斯达克": "overseas",
+      "美股": "overseas",
+      "海外": "overseas",
+      "债": "bond"
+    }
+  },
+  "strategy": {
+    "type": "t0_snapshot_momentum_spread_filter",
+    "lookback_minutes": 5,
+    "entry_momentum_pct": 0.0012,
+    "exit_momentum_pct": -0.001,
+    "stop_loss_pct": -0.012,
+    "take_profit_pct": 0.018,
+    "max_sell_orders_per_run": 5,
+    "sell_throttle_interval_minutes": 5,
+    "sell_throttle_bypass_reasons": [
+      "kill_switch_liquidation",
+      "emergency_stop_exit",
+      "unrecognized_position_state_liquidation",
+      "intraday_momentum_eod_exit"
+    ],
+    "min_profit_exit_pct": 0.003,
+    "min_hold_minutes": 14,
+    "loss_review_after_minutes": 15,
+    "loss_exit_score_threshold": 70,
+    "profit_exit_score_threshold": 65,
+    "emergency_stop_pct": -0.02,
+    "profit_trailing_drawdown_pct": -0.005,
+    "deceleration_exit_threshold": -0.002,
+    "require_negative_bid_pressure_for_profit_exit": true,
+    "hold_losers_until_stop_or_force_close": true,
+    "exit_score_weights": {
+      "loss_depth": 15,
+      "structure_break": 25,
+      "momentum_reversal": 20,
+      "bid_pressure_negative": 15,
+      "market_breadth_negative": 10,
+      "time_confirmation": 10,
+      "liquidity_deterioration": 15,
+      "acceleration_negative": 15,
+      "near_close_1420": 0,
+      "near_close_1450": 0,
+      "profit_drawdown": 25,
+      "profit_floor": 20,
+      "drawdown_from_high": 25,
+      "profit_momentum_negative": 15,
+      "profit_acceleration_negative": 15,
+      "profit_bid_pressure_negative": 15,
+      "vwap_breakdown": 15,
+      "near_close": 0
+    },
+    "entry_score_threshold": 53,
+    "entry_score_weights": {
+      "consolidation_breakout": 20,
+      "orb_breakout": 25,
+      "momentum_strength": 20,
+      "bid_pressure_positive": 20,
+      "acceleration_positive": 15,
+      "tight_spread": 10,
+      "bollinger_squeeze_breakout": 15,
+      "cross_etf_divergence": 15,
+      "market_breadth_positive": 10,
+      "alpha101_intraday_conviction": 10
+    },
+    "alpha101_conviction_threshold": 0.5,
+    "cross_etf_divergence_threshold": 0.002,
+    "entry_blocked_codes": [
+      "513100"
+    ],
+    "entry_blocked_code_reasons": {
+      "513100": "recent_replay_negative_contribution_strict_control"
+    },
+    "consolidation": {
+      "enabled": true,
+      "window_snapshots": 6,
+      "max_range_pct": 0.003,
+      "breakout_buffer_pct": 0.001,
+      "earliest_entry_time": "10:00"
+    },
+    "indicators": {
+      "rolling_vwap": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "min_points": 5,
+        "require_price_above_for_entry": true
+      },
+      "intraday_atr": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "stop_multiplier": 1.2,
+        "min_stop_pct": 0.002
+      },
+      "bollinger_squeeze": {
+        "enabled": true,
+        "window_snapshots": 20,
+        "std_mult": 2.0,
+        "squeeze_bandwidth_pct": 0.006,
+        "breakout_buffer_pct": 0.0005
+      }
+    },
+    "market_correlation_stress": {
+      "enabled": true,
+      "window_snapshots": 30,
+      "min_snapshots": 10,
+      "min_assets": 4,
+      "avg_abs_corr_threshold": 0.68,
+      "breadth_positive_count_max": 1,
+      "max_snapshot_gap_seconds": 480
+    },
+    "skip_dates": [],
+    "overnight_gap_guard_pct": 0.03,
+    "execution": {
+      "passive_entry_enabled": true,
+      "passive_offset_ticks": 0,
+      "tick_size": 0.001,
+      "inventory_skew": {
+        "enabled": true,
+        "risk_aversion": 2.0,
+        "reference_volatility": 0.01,
+        "vol_multiplier_cap": 3.0,
+        "max_skew_ticks": 2,
+        "session_minutes": 240.0
+      }
+    },
+    "kelly_sizing": {
+      "enabled": true,
+      "f_star_for_full_risk": 0.25,
+      "edge_shrinkage_pseudo_trades": 10,
+      "min_trades_for_kelly": 8,
+      "floor_scale": 0.5,
+      "drawdown_factor": 0.5
+    },
+    "intraday_momentum": {
+      "enabled": true,
+      "first_half_hour_end": "10:00",
+      "entry_time": "14:30",
+      "entry_window_minutes": 10,
+      "exit_time": "14:55",
+      "min_first_half_return": 0.001,
+      "position_pct": 0.05,
+      "hk_etf_preferred": true,
+      "reserved_api_runs": 6
+    },
+    "execution_quality": {
+      "enabled": true,
+      "min_score": 60,
+      "max_expected_slippage_bps": 20,
+      "spread_penalty_per_bp": 2.0,
+      "slippage_penalty_per_bp": 1.5,
+      "negative_bid_pressure_penalty": 10,
+      "bad_quote_penalty": 100,
+      "shadow_only": false
+    },
+    "safe_policy_shield": {
+      "enabled": true,
+      "shadow_only": false,
+      "min_history_snapshots": 20,
+      "max_history_snapshots": 120,
+      "max_zscore_abs": 4.0,
+      "negative_sample_block_minutes": 60,
+      "features": [
+        "momentum",
+        "spread_pct",
+        "bid_pressure_3m_pct",
+        "vwap_distance_pct",
+        "acceleration"
+      ]
+    },
+    "target_holdings": 5,
+    "cash_reserve_pct": 0.85,
+    "max_position_pct": 0.15,
+    "bracket": {
+      "enabled": true,
+      "risk_per_trade_pct": 0.004,
+      "risk_per_trade_pct_chaos_day": 0.002,
+      "target1_r_multiple": 1.0,
+      "target1_sell_fraction": 0.5,
+      "target2_r_multiple": 2.0,
+      "min_orb_range_pct": 0.003,
+      "chaos_orb_range_pct": 0.015,
+      "max_entries_per_day": 0,
+      "reentry_cooldown_minutes": 30,
+      "no_reentry_after_stop_loss_same_day": true
+    }
+  },
+  "filters": {
+    "max_spread_pct": 0.0015,
+    "require_volume_field": false,
+    "min_volume": 0,
+    "min_amount": 0
+  },
+  "risk": {
+    "max_daily_submitted_orders": 0,
+    "max_daily_sell_orders": 0,
+    "max_daily_round_trips": 0,
+    "max_daily_loss_pct": -0.02,
+    "max_daily_api_runs": 80,
+    "force_close_before_market_close": true,
+    "max_single_order_pct": 0.08,
+    "min_order_quantity": 100,
+    "quantity_lot": 100,
+    "order_type": "limit",
+    "limit_price_slippage_pct": 0.001,
+    "auto_cancel_pending": true,
+    "max_daily_cancels": 3,
+    "min_minutes_between_cancels": 30,
+    "reconcile_fills_from_trade_history": true,
+    "fill_reconciliation_min_interval_minutes": 3,
+    "kill_switch_file": "outputs/paper_trading_agent/KILL_SWITCH"
+  },
+  "outputs": {
+    "dir": "outputs/t0_intraday_agent",
+    "latest": "latest_t0_decision.json",
+    "jsonl": "t0_agent_runs.jsonl",
+    "minute_quotes_jsonl": "minute_quotes_{trade_date}.jsonl",
+    "minute_quotes_csv": "minute_quotes_{trade_date}.csv",
+    "state": "t0_state.json",
+    "orders": "t0_orders_planned.csv",
+    "blotter": "t0_order_blotter.csv"
+  },
+  "shared_execution": {
+    "enabled": true,
+    "dir": "outputs/shared_order_router",
+    "lock_file": "shared_execution.lock",
+    "intents_jsonl": "order_intents.jsonl",
+    "ledger": "shared_execution_ledger.json",
+    "lock_timeout_seconds": 8,
+    "stale_lock_seconds": 180
+  },
+  "self_iteration": {
+    "enabled": true,
+    "mode": "paper_safe_auto_overlay",
+    "auto_apply_changes": true,
+    "requires_human_approval": false,
+    "overlay_path": "outputs/t0_strategy_evolution/latest_strategy_overlay.json",
+    "required_gate_version": "dm_hln_mcs_spa_v2",
+    "min_replay_trades_for_auto_apply": 8,
+    "min_candidate_entries": 1,
+    "min_distinct_days": 10,
+    "min_score_improvement": 300,
+    "selection_penalty_log_coef": 0.5,
+    "max_per_day_regression_allowed": 0,
+    "max_day_loss_worsening_allowed": 0,
+    "require_diebold_mariano_significant": true,
+    "dm_one_sided_alpha": 0.05,
+    "require_baseline_excluded_from_mcs": true,
+    "mcs_alpha": 0.1,
+    "mcs_n_boot": 500,
+    "require_spa_reject": true,
+    "spa_alpha": 0.05,
+    "spa_n_boot": 500,
+    "require_deflated_sharpe_significant": true,
+    "deflated_sharpe_alpha": 0.1,
+    "blackbox_optimizer": {
+      "mode": "both",
+      "algorithm": "bounded_diagonal_cma_es",
+      "generations": 2,
+      "population_size": 4,
+      "sigma0": 0.22,
+      "seed": 20260614,
+      "offline_replay_only": true
+    },
+    "allowed_strategy_paths": [
+      "entry_momentum_pct",
+      "exit_momentum_pct",
+      "min_profit_exit_pct",
+      "min_hold_minutes",
+      "loss_review_after_minutes",
+      "loss_exit_score_threshold",
+      "profit_exit_score_threshold",
+      "profit_trailing_drawdown_pct",
+      "deceleration_exit_threshold",
+      "entry_score_threshold",
+      "alpha101_conviction_threshold",
+      "cross_etf_divergence_threshold",
+      "consolidation.max_range_pct",
+      "consolidation.breakout_buffer_pct",
+      "indicators.rolling_vwap.require_price_above_for_entry",
+      "indicators.intraday_atr.stop_multiplier",
+      "indicators.intraday_atr.min_stop_pct",
+      "indicators.bollinger_squeeze.squeeze_bandwidth_pct",
+      "indicators.bollinger_squeeze.breakout_buffer_pct",
+      "market_correlation_stress.avg_abs_corr_threshold",
+      "bracket.risk_per_trade_pct",
+      "bracket.risk_per_trade_pct_chaos_day",
+      "bracket.target1_r_multiple",
+      "bracket.target2_r_multiple",
+      "bracket.reentry_cooldown_minutes"
+    ]
+  },
+  "research_metadata": {
+    "preregisteredAt": "2026-06-20T22:22:33+08:00",
+    "prospectiveAfter": "2026-06-18",
+    "hypothesisId": "l4_selectivity_forward_v1",
+    "singleCandidate": true,
+    "diagnosticOnly": true,
+    "liveReady": false,
+    "formalStrategyAllowed": false,
+    "liveConfigSha256": "cc7b3282dd51fee01affc18f39df0f858ac284957567cfac98cbfa3a573e2e76",
+    "overlayFileSha256": "a117986c7b5cf7a1953afc953168239b64d2149bf332f7a2bd14ea1dcb579e50",
+    "overlayAppliedToBaseline": false,
+    "overlayReason": "overlay_status_not_approved:diagnostic_only",
+    "lockedMetrics": {
+      "primary": [
+        "daily_pnl_std_reduction_pct",
+        "worst_day_improvement"
+      ],
+      "secondary": [
+        "net_12bps_total",
+        "daily_sharpe"
+      ]
+    },
+    "lockedPassCriteria": {
+      "minimumForwardDays": 20,
+      "minimumStdReductionPct": 10.0,
+      "minimumWorstDayImprovement": 0.0,
+      "candidateSharpeMustNotBeLower": true,
+      "dmOneSidedAlpha": 0.05,
+      "dsrAlpha": 0.1,
+      "maximumPbo": 0.25
+    },
+    "role": "shadow_l4_candidate",
+    "l4Changes": {
+      "market_correlation_stress.avg_abs_corr_threshold": {
+        "baseline": 0.75,
+        "candidate": 0.68
+      },
+      "entry_score_threshold": {
+        "baseline": 50,
+        "candidate": 53
+      },
+      "entry_momentum_pct": {
+        "baseline": 0.0015,
+        "candidate": 0.0012
+      },
+      "min_hold_minutes": {
+        "baseline": 10,
+        "candidate": 14
+      }
+    }
+  }
+}

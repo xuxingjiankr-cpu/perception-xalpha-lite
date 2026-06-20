@@ -1959,6 +1959,32 @@ def t48_point_in_time_liquidity_gate() -> None:
     check("T48 gate fails closed when both point-in-time measures are thin", blocked is False)
 
 
+def t49_l4_forward_preregistration() -> None:
+    """Forward pair freezes actual baseline and exactly four L4 shadow leaves."""
+    import preregister_l4_forward as prereg
+
+    baseline, candidate = prereg.build_pair()
+    changed = []
+    for path in prereg.L4:
+        if prereg.get(baseline["strategy"], path) != prereg.get(candidate["strategy"], path):
+            changed.append(path)
+    check("T49 L4 preregistration changes exactly four locked leaves",
+          changed == list(prereg.L4), str(changed))
+    check("T49 baseline reflects actual non-applied diagnostic overlay state",
+          baseline["research_metadata"]["overlayAppliedToBaseline"] is False
+          and baseline["research_metadata"]["overlayReason"].startswith("overlay_status_not_approved"),
+          str(baseline["research_metadata"]))
+    check("T49 shadow pair preserves all execution locks",
+          baseline["mode"] == candidate["mode"]
+          and baseline["execution_enabled"] == candidate["execution_enabled"]
+          and baseline["risk"] == candidate["risk"]
+          and baseline["shared_execution"] == candidate["shared_execution"])
+    criteria = candidate["research_metadata"]["lockedPassCriteria"]
+    check("T49 prospective pass criteria are frozen at twenty days",
+          criteria["minimumForwardDays"] == 20 and criteria["minimumStdReductionPct"] == 10.0
+          and criteria["maximumPbo"] == 0.25, str(criteria))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2006,6 +2032,7 @@ if __name__ == "__main__":
     t46_overseas_gap_point_in_time()
     t47_i03_group_ablation_isolation()
     t48_point_in_time_liquidity_gate()
+    t49_l4_forward_preregistration()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
