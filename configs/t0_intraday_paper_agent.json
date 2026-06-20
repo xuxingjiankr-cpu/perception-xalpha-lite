@@ -52,7 +52,7 @@
     "output": "outputs/t0_observation_pool/latest_observation_pool.json"
   },
   "sector_diversification": {
-    "enabled": true,
+    "enabled": false,
     "max_per_sector": 2,
     "unlimited_sectors": ["other"],
     "keyword_map": {
@@ -179,7 +179,7 @@
       }
     },
     "market_correlation_stress": {
-      "enabled": true,
+      "enabled": false,
       "window_snapshots": 30,
       "min_snapshots": 10,
       "min_assets": 4,
@@ -246,13 +246,13 @@
         "acceleration"
       ]
     },
-    "target_holdings": 5,
+    "target_holdings": 2,
     "cash_reserve_pct": 0.85,
-    "max_position_pct": 0.15,
+    "max_position_pct": 0.45,
     "bracket": {
       "enabled": true,
-      "risk_per_trade_pct": 0.004,
-      "risk_per_trade_pct_chaos_day": 0.002,
+      "risk_per_trade_pct": 0.012,
+      "risk_per_trade_pct_chaos_day": 0.006,
       "target1_r_multiple": 1.0,
       "target1_sell_fraction": 0.5,
       "target2_r_multiple": 2.0,
@@ -273,10 +273,10 @@
     "max_daily_submitted_orders": 0,
     "max_daily_sell_orders": 0,
     "max_daily_round_trips": 0,
-    "max_daily_loss_pct": -0.02,
+    "max_daily_loss_pct": -0.05,
     "max_daily_api_runs": 80,
     "force_close_before_market_close": true,
-    "max_single_order_pct": 0.08,
+    "max_single_order_pct": 0.45,
     "min_order_quantity": 100,
     "quantity_lot": 100,
     "order_type": "limit",
