@@ -1911,6 +1911,36 @@ def t46_overseas_gap_point_in_time() -> None:
           pbo.get("pbo") is not None and pbo.get("n_configs") == 2, str(pbo))
 
 
+def t47_i03_group_ablation_isolation() -> None:
+    """i03 ablation configs change only named groups and remain diagnostic."""
+    import research_i03_ablation as ablation
+
+    base = ablation.load(ablation.BASE)
+    i03 = ablation.load(ablation.I03)
+    l1 = ablation.build_config(base, i03, ["L1_risk_per_trade"])
+    changed = []
+
+    def walk(left, right, prefix=""):
+        if isinstance(left, dict) and isinstance(right, dict):
+            for key in sorted(set(left) | set(right)):
+                walk(left.get(key), right.get(key), f"{prefix}.{key}" if prefix else key)
+        elif left != right:
+            changed.append(prefix)
+
+    walk(base, l1)
+    check("T47 L1 ablation changes only its two declared risk paths",
+          changed == ablation.GROUPS["L1_risk_per_trade"], str(changed))
+    check("T47 ablation preserves execution mode and triple-lock fields",
+          l1["mode"] == base["mode"] and l1["execution_enabled"] == base["execution_enabled"]
+          and l1["shared_execution"] == base["shared_execution"])
+    combined = ablation.build_config(base, i03, ["L3_faster_loss", "L4_stress_selectivity"])
+    check("T47 minimal explanatory config is a strict subset of full i03",
+          ablation.get_path(combined, "strategy.loss_exit_score_threshold")
+          == ablation.get_path(i03, "strategy.loss_exit_score_threshold")
+          and ablation.get_path(combined, "strategy.bracket.risk_per_trade_pct")
+          == ablation.get_path(base, "strategy.bracket.risk_per_trade_pct"))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1956,6 +1986,7 @@ if __name__ == "__main__":
     t44_point_in_time_opening_research()
     t45_observation_pool_history_archive()
     t46_overseas_gap_point_in_time()
+    t47_i03_group_ablation_isolation()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

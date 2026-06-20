@@ -1,0 +1,344 @@
+{
+  "schemaVersion": "i03_group_ablation_v1",
+  "paperTradingOnly": true,
+  "status": "diagnostic_only",
+  "liveReady": false,
+  "formalStrategyAllowed": false,
+  "oos": [
+    "2026-05-21",
+    "2026-06-18"
+  ],
+  "oosAlreadyObserved": true,
+  "metrics": {
+    "baseline": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 13822.8,
+      "daily_mean": 658.23,
+      "daily_std_sample": 4324.56,
+      "worst_day_pnl": -6868.6,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 12,
+      "losing_days": 9,
+      "zero_days": 0,
+      "winning_day_rate": 0.5714,
+      "max_cumulative_drawdown": -12923.8,
+      "daily_sharpe": 2.4162,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2160.56,
+        "daily_mean": 102.88,
+        "daily_std_sample": 4373.33,
+        "worst_day_pnl": -7376.39,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -14565.69
+      }
+    },
+    "i03": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 12923.9,
+      "daily_mean": 615.42,
+      "daily_std_sample": 3273.35,
+      "worst_day_pnl": -4958.5,
+      "worst_day_date": "2026-06-11",
+      "winning_days": 11,
+      "losing_days": 10,
+      "zero_days": 0,
+      "winning_day_rate": 0.5238,
+      "max_cumulative_drawdown": -10888.4,
+      "daily_sharpe": 2.9846,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2099.66,
+        "daily_mean": 99.98,
+        "daily_std_sample": 3325.31,
+        "worst_day_pnl": -5805.11,
+        "worst_day_date": "2026-06-11",
+        "winning_days": 10,
+        "losing_days": 11,
+        "zero_days": 0,
+        "winning_day_rate": 0.4762,
+        "max_cumulative_drawdown": -14346.75
+      }
+    },
+    "L1_risk_per_trade": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 13825.6,
+      "daily_mean": 658.36,
+      "daily_std_sample": 4215.23,
+      "worst_day_pnl": -6623.4,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 12,
+      "losing_days": 9,
+      "zero_days": 0,
+      "winning_day_rate": 0.5714,
+      "max_cumulative_drawdown": -12582.0,
+      "daily_sharpe": 2.4794,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2465.77,
+        "daily_mean": 117.42,
+        "daily_std_sample": 4263.69,
+        "worst_day_pnl": -7115.64,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -14158.05
+      }
+    },
+    "L2_earlier_profit": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 14201.2,
+      "daily_mean": 676.25,
+      "daily_std_sample": 4324.93,
+      "worst_day_pnl": -6869.5,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 12,
+      "losing_days": 9,
+      "zero_days": 0,
+      "winning_day_rate": 0.5714,
+      "max_cumulative_drawdown": -12928.4,
+      "daily_sharpe": 2.4822,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2722.93,
+        "daily_mean": 129.66,
+        "daily_std_sample": 4373.73,
+        "worst_day_pnl": -7377.36,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 10,
+        "losing_days": 11,
+        "zero_days": 0,
+        "winning_day_rate": 0.4762,
+        "max_cumulative_drawdown": -14571.84
+      }
+    },
+    "L3_faster_loss": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 10339.2,
+      "daily_mean": 492.34,
+      "daily_std_sample": 3768.86,
+      "worst_day_pnl": -6852.1,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 11,
+      "losing_days": 10,
+      "zero_days": 0,
+      "winning_day_rate": 0.5238,
+      "max_cumulative_drawdown": -13671.2,
+      "daily_sharpe": 2.0737,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": -1533.94,
+        "daily_mean": -73.04,
+        "daily_std_sample": 3830.1,
+        "worst_day_pnl": -7858.52,
+        "worst_day_date": "2026-06-11",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -15217.05
+      }
+    },
+    "L4_stress_selectivity": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 18548.3,
+      "daily_mean": 883.25,
+      "daily_std_sample": 4182.66,
+      "worst_day_pnl": -5463.6,
+      "worst_day_date": "2026-05-21",
+      "winning_days": 10,
+      "losing_days": 11,
+      "zero_days": 0,
+      "winning_day_rate": 0.4762,
+      "max_cumulative_drawdown": -10402.6,
+      "daily_sharpe": 3.3522,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 7609.36,
+        "daily_mean": 362.35,
+        "daily_std_sample": 4203.77,
+        "worst_day_pnl": -6055.39,
+        "worst_day_date": "2026-05-21",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -13837.82
+      }
+    },
+    "minimal_exploratory": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 12263.8,
+      "daily_mean": 583.99,
+      "daily_std_sample": 3374.9,
+      "worst_day_pnl": -5183.6,
+      "worst_day_date": "2026-06-11",
+      "winning_days": 11,
+      "losing_days": 10,
+      "zero_days": 0,
+      "winning_day_rate": 0.5238,
+      "max_cumulative_drawdown": -11266.0,
+      "daily_sharpe": 2.7469,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 950.56,
+        "daily_mean": 45.26,
+        "daily_std_sample": 3427.85,
+        "worst_day_pnl": -6045.94,
+        "worst_day_date": "2026-06-11",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -14800.33
+      }
+    }
+  },
+  "comparisonsVsBaseline": {
+    "i03": {
+      "daily_std_reduction_pct": 24.31,
+      "worst_day_improvement": 1910.1,
+      "total_pnl_delta": -898.9,
+      "sharpe_delta": 0.5684
+    },
+    "L1_risk_per_trade": {
+      "daily_std_reduction_pct": 2.53,
+      "worst_day_improvement": 245.2,
+      "total_pnl_delta": 2.8,
+      "sharpe_delta": 0.0632
+    },
+    "L2_earlier_profit": {
+      "daily_std_reduction_pct": -0.01,
+      "worst_day_improvement": -0.9,
+      "total_pnl_delta": 378.4,
+      "sharpe_delta": 0.066
+    },
+    "L3_faster_loss": {
+      "daily_std_reduction_pct": 12.85,
+      "worst_day_improvement": 16.5,
+      "total_pnl_delta": -3483.6,
+      "sharpe_delta": -0.3425
+    },
+    "L4_stress_selectivity": {
+      "daily_std_reduction_pct": 3.28,
+      "worst_day_improvement": 1405.0,
+      "total_pnl_delta": 4725.5,
+      "sharpe_delta": 0.936
+    },
+    "minimal_exploratory": {
+      "daily_std_reduction_pct": 21.96,
+      "worst_day_improvement": 1685.0,
+      "total_pnl_delta": -1559.0,
+      "sharpe_delta": 0.3307
+    }
+  },
+  "changedValues": {
+    "L1_risk_per_trade": {
+      "strategy.bracket.risk_per_trade_pct": {
+        "baseline": 0.004,
+        "i03": 0.003783
+      },
+      "strategy.bracket.risk_per_trade_pct_chaos_day": {
+        "baseline": 0.002,
+        "i03": 0.001822
+      }
+    },
+    "L2_earlier_profit": {
+      "strategy.bracket.target1_r_multiple": {
+        "baseline": 1.0,
+        "i03": 0.848228
+      },
+      "strategy.bracket.target2_r_multiple": {
+        "baseline": 2.0,
+        "i03": 1.876733
+      },
+      "strategy.profit_trailing_drawdown_pct": {
+        "baseline": -0.005,
+        "i03": -0.004
+      },
+      "strategy.profit_exit_score_threshold": {
+        "baseline": 65,
+        "i03": 69
+      }
+    },
+    "L3_faster_loss": {
+      "strategy.loss_exit_score_threshold": {
+        "baseline": 70,
+        "i03": 65
+      },
+      "strategy.loss_review_after_minutes": {
+        "baseline": 15,
+        "i03": 11
+      },
+      "strategy.deceleration_exit_threshold": {
+        "baseline": -0.002,
+        "i03": -0.003288
+      }
+    },
+    "L4_stress_selectivity": {
+      "strategy.market_correlation_stress.avg_abs_corr_threshold": {
+        "baseline": 0.75,
+        "i03": 0.681575
+      },
+      "strategy.entry_score_threshold": {
+        "baseline": 50,
+        "i03": 53
+      },
+      "strategy.entry_momentum_pct": {
+        "baseline": 0.0015,
+        "i03": 0.0012
+      },
+      "strategy.min_hold_minutes": {
+        "baseline": 10,
+        "i03": 14
+      }
+    }
+  },
+  "rankedGroups": [
+    "L3_faster_loss",
+    "L4_stress_selectivity",
+    "L1_risk_per_trade",
+    "L2_earlier_profit"
+  ],
+  "selectedDriverGroups": [
+    "L3_faster_loss",
+    "L4_stress_selectivity"
+  ],
+  "minimalConfig": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\outputs\\t0_strategy_evolution\\candidate_configs\\oos_i03_minimal_risk_exploratory.json",
+  "decision": "exploratory only; validate on new post-2026-06-18 prospective data before shadow or live use",
+  "methodLimitation": "group attribution is non-additive; the minimal combination was selected on the observed 21-day OOS window"
+}
