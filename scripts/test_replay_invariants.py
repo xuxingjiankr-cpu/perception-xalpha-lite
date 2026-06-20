@@ -1754,6 +1754,45 @@ def t43_fail_closed_t0_etf_master() -> None:
               value["average_spread"] is None and meta["spread_is_real"] is False, str(value))
 
 
+def t44_point_in_time_opening_research() -> None:
+    """Opening research uses prior information, explicit costs and fail-closed gates."""
+    import fetch_t0_research_quotes as collector
+    import research_t0_opening_oos as opening
+
+    raw = [
+        {"timestamp": "2026-06-01T09:30:00+08:00", "trade_date": "2026-06-01", "stockCode": "513100", "exchange": "SH", "bar_volume": 100.0, "close": 10.0},
+        {"timestamp": "2026-06-01T09:35:00+08:00", "trade_date": "2026-06-01", "stockCode": "513100", "exchange": "SH", "bar_volume": 50.0, "close": 11.0},
+        {"timestamp": "2026-06-02T09:30:00+08:00", "trade_date": "2026-06-02", "stockCode": "513100", "exchange": "SH", "bar_volume": 20.0, "close": 12.0},
+    ]
+    enriched = collector.enrich_point_in_time(raw)
+    by_time = {row["timestamp"]: row for row in enriched}
+    second_bar = by_time["2026-06-01T09:35:00+08:00"]
+    next_day = by_time["2026-06-02T09:30:00+08:00"]
+    check("T44 cumulative amount contains only current/past bars",
+          second_bar["cumulative_amount"] == 1550.0 and second_bar["cumulative_volume"] == 150.0,
+          str(second_bar))
+    check("T44 previous close appears only on the next trade day",
+          second_bar["prev_close"] is None and next_day["prev_close"] == 11.0, str(enriched))
+    check("T44 opening amount reference excludes the current observation",
+          opening.rolling_reference([1, 2, 3, 4, 5], minimum=5, lookback=3) is None
+          and opening.rolling_reference([1, 2, 3, 4, 5], minimum=3, lookback=3) == 4)
+
+    sample = {
+        "date": "2026-06-02", "code": "513100", "asset_class": "cross_border",
+        "gap": 0.02, "ret_10m": 0.01, "amount_surge_vs_prior20": 2.0,
+        "first_price": 10.0, "ten_price": 10.1, "close": 10.2, "daily_turnover": 100_000_000.0,
+    }
+    trade = opening.selected_returns([sample], "gap_up_confirmed_10m", 12.0)[0]
+    expected = 10.2 / 10.1 - 1.0 - 0.0012
+    check("T44 configured round-trip cost is subtracted from return",
+          abs(trade["net_return"] - expected) < 1e-12, str(trade))
+    thin = {name: {"overall": {"trades": 2, "bootstrap_daily_mean": {"ci95": [0.01, 0.02], "probability_mean_positive": 1.0}}}
+            for name in opening.RULES}
+    gates = opening.fixed_rule_promotion(thin)
+    check("T44 thin samples fail promotion despite positive point estimates",
+          gates and all(row["passed"] is False for row in gates.values()), str(gates))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1796,6 +1835,7 @@ if __name__ == "__main__":
     t41_unattended_chatgpt_watchlist_generator()
     t42_oos_variance_metrics()
     t43_fail_closed_t0_etf_master()
+    t44_point_in_time_opening_research()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

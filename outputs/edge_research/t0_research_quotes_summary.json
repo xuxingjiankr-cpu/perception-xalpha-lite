@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "t0_research_quotes_v1",
+  "generatedAt": "2026-06-20T10:43:05+08:00",
+  "source": "Yahoo Finance chart 5m",
+  "diagnosticOnly": true,
+  "selectionRule": "official_t0_class_only_no_full_day_liquidity_gate",
+  "futureDayTurnoverUsed": false,
+  "instrumentsRequested": 165,
+  "instrumentsFetched": 163,
+  "failures": [
+    {
+      "code": "526000",
+      "exchange": "SH",
+      "error": "HTTPError: HTTP Error 422: Unprocessable Entity"
+    },
+    {
+      "code": "526010",
+      "exchange": "SH",
+      "error": "HTTPError: HTTP Error 422: Unprocessable Entity"
+    }
+  ],
+  "rows": 421129,
+  "tradeDates": 60,
+  "dateStart": "2026-03-23",
+  "dateEnd": "2026-06-18",
+  "output": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\research\\t0_opening\\yahoo_60d_confirmed_t0_raw_5m.jsonl",
+  "knownLimitations": [
+    "Yahoo has no historical bid/ask or order-book depth",
+    "current exchange product list may introduce survivorship bias for delisted funds",
+    "first 5-minute close is not an executable opening-auction price"
+  ]
+}

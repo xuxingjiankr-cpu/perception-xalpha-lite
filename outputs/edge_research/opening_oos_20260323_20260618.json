@@ -1,0 +1,3115 @@
+{
+  "schemaVersion": "t0_opening_oos_research_v1",
+  "generatedAt": "2026-06-20T10:46:56+08:00",
+  "status": "diagnostic_only",
+  "edgeValidated": false,
+  "liveReady": false,
+  "formalStrategyAllowed": false,
+  "data": {
+    "source": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\research\\t0_opening\\yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "dateStart": "2026-03-24",
+    "dateEnd": "2026-06-18",
+    "ETFDaySamples": 7836,
+    "instruments": 162,
+    "train": {
+      "start": "2026-03-24",
+      "end": "2026-05-20",
+      "samples": 4912
+    },
+    "oos": {
+      "start": "2026-05-21",
+      "end": "2026-06-18",
+      "samples": 2924
+    },
+    "pointInTime": true,
+    "fullDayLiquiditySelection": false
+  },
+  "costModel": {
+    "baseRoundtripBps": 12.0,
+    "stressRoundtripBps": 20.0,
+    "stampTaxBps": 0.0,
+    "note": "all-in round-trip research assumption; historical book depth is unavailable"
+  },
+  "openingState": {
+    "train": {
+      "gap_up_high": {
+        "samples": 934,
+        "first_to_close_mean_pct": 0.1348,
+        "after_30_max_capture_mean_pct": 0.7429,
+        "amplitude_mean_pct": 1.866
+      },
+      "gap_flat": {
+        "samples": 2319,
+        "first_to_close_mean_pct": -0.1466,
+        "after_30_max_capture_mean_pct": 0.2836,
+        "amplitude_mean_pct": 0.8259
+      },
+      "gap_down": {
+        "samples": 1140,
+        "first_to_close_mean_pct": -0.1234,
+        "after_30_max_capture_mean_pct": 0.6222,
+        "amplitude_mean_pct": 1.3851
+      },
+      "gap_other": {
+        "samples": 519,
+        "first_to_close_mean_pct": -0.206,
+        "after_30_max_capture_mean_pct": 0.3557,
+        "amplitude_mean_pct": 1.1787
+      }
+    },
+    "oos": {
+      "gap_up_high": {
+        "samples": 450,
+        "first_to_close_mean_pct": 0.0232,
+        "after_30_max_capture_mean_pct": 0.6623,
+        "amplitude_mean_pct": 1.8749
+      },
+      "gap_flat": {
+        "samples": 1410,
+        "first_to_close_mean_pct": -0.1682,
+        "after_30_max_capture_mean_pct": 0.2845,
+        "amplitude_mean_pct": 1.0116
+      },
+      "gap_down": {
+        "samples": 768,
+        "first_to_close_mean_pct": -0.4843,
+        "after_30_max_capture_mean_pct": 0.3796,
+        "amplitude_mean_pct": 1.6488
+      },
+      "gap_other": {
+        "samples": 296,
+        "first_to_close_mean_pct": -0.0401,
+        "after_30_max_capture_mean_pct": 0.7066,
+        "amplitude_mean_pct": 1.7278
+      }
+    }
+  },
+  "trainResults": {
+    "all_10m_baseline": {
+      "definition": "all eligible ETF-days, enter after 10 minutes",
+      "overall": {
+        "trades": 4912,
+        "trading_days": 37,
+        "gross_mean_pct": -0.0722,
+        "net_mean_pct": -0.1922,
+        "net_median_pct": -0.12,
+        "win_rate": 0.3392,
+        "profit_factor": 0.5541,
+        "average_trade_pct": -0.1922,
+        "tail_loss_p05_pct": -1.8497,
+        "daily_sharpe": -4.848,
+        "max_drawdown_pct": -8.1454,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1441494.3,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.0039388306512867025,
+            0.0001031268519382228
+          ],
+          "probability_mean_positive": 0.031
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 4912
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 752,
+          "trading_days": 37,
+          "gross_mean_pct": 0.0137,
+          "net_mean_pct": -0.1063,
+          "net_median_pct": -0.1103,
+          "win_rate": 0.1037,
+          "profit_factor": 0.201,
+          "average_trade_pct": -0.1063,
+          "tail_loss_p05_pct": -0.3332,
+          "daily_sharpe": -19.4833,
+          "max_drawdown_pct": -3.9252,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 28188063.61,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0013153251558482189,
+              -0.0007757737663747337
+            ],
+            "probability_mean_positive": 0.0
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 752
+        },
+        "cross_border": {
+          "trades": 3864,
+          "trading_days": 37,
+          "gross_mean_pct": -0.0867,
+          "net_mean_pct": -0.2067,
+          "net_median_pct": -0.2249,
+          "win_rate": 0.3797,
+          "profit_factor": 0.5788,
+          "average_trade_pct": -0.2067,
+          "tail_loss_p05_pct": -1.9857,
+          "daily_sharpe": -4.4657,
+          "max_drawdown_pct": -8.9542,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 979560.65,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.004488378688295097,
+              0.00029506150524174796
+            ],
+            "probability_mean_positive": 0.0415
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 3864
+        },
+        "gold": {
+          "trades": 296,
+          "trading_days": 37,
+          "gross_mean_pct": -0.101,
+          "net_mean_pct": -0.221,
+          "net_median_pct": -0.0805,
+          "win_rate": 0.4088,
+          "profit_factor": 0.4584,
+          "average_trade_pct": -0.221,
+          "tail_loss_p05_pct": -1.8044,
+          "daily_sharpe": -4.5579,
+          "max_drawdown_pct": -9.3945,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 3294125.24,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0045650071089356785,
+              0.00020694585264362345
+            ],
+            "probability_mean_positive": 0.0375
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 296
+        }
+      }
+    },
+    "gap_up_chase_5m": {
+      "definition": "first 5m close gap > 1%",
+      "overall": {
+        "trades": 934,
+        "trading_days": 37,
+        "gross_mean_pct": 0.1348,
+        "net_mean_pct": 0.0148,
+        "net_median_pct": 0.0995,
+        "win_rate": 0.5203,
+        "profit_factor": 1.0259,
+        "average_trade_pct": 0.0148,
+        "tail_loss_p05_pct": -2.609,
+        "daily_sharpe": -2.4761,
+        "max_drawdown_pct": -17.8391,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1595860.2,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.00816572921943765,
+            0.002963929754820814
+          ],
+          "probability_mean_positive": 0.169
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 934
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 5,
+          "trading_days": 3,
+          "gross_mean_pct": 0.6561,
+          "net_mean_pct": 0.5361,
+          "net_median_pct": 0.6927,
+          "win_rate": 0.8,
+          "profit_factor": 6.9779,
+          "average_trade_pct": 0.5361,
+          "tail_loss_p05_pct": -0.2269,
+          "daily_sharpe": 8.2203,
+          "max_drawdown_pct": -0.4484,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 145051972.64,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 5
+        },
+        "cross_border": {
+          "trades": 863,
+          "trading_days": 36,
+          "gross_mean_pct": 0.1553,
+          "net_mean_pct": 0.0353,
+          "net_median_pct": 0.1235,
+          "win_rate": 0.5307,
+          "profit_factor": 1.0608,
+          "average_trade_pct": 0.0353,
+          "tail_loss_p05_pct": -2.6592,
+          "daily_sharpe": -2.2299,
+          "max_drawdown_pct": -16.921,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1495556.32,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.007928650563442708,
+              0.003623714077820617
+            ],
+            "probability_mean_positive": 0.1995
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 863
+        },
+        "gold": {
+          "trades": 66,
+          "trading_days": 9,
+          "gross_mean_pct": -0.1728,
+          "net_mean_pct": -0.2928,
+          "net_median_pct": -0.5765,
+          "win_rate": 0.3636,
+          "profit_factor": 0.3997,
+          "average_trade_pct": -0.2928,
+          "tail_loss_p05_pct": -1.0242,
+          "daily_sharpe": -7.5657,
+          "max_drawdown_pct": -3.6422,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 4736190.7,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.007333124347495736,
+              0.0010023937717666305
+            ],
+            "probability_mean_positive": 0.07
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 66
+        }
+      }
+    },
+    "gap_up_confirmed_10m": {
+      "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+      "overall": {
+        "trades": 161,
+        "trading_days": 22,
+        "gross_mean_pct": 0.0676,
+        "net_mean_pct": -0.0524,
+        "net_median_pct": 0.1993,
+        "win_rate": 0.6025,
+        "profit_factor": 0.9151,
+        "average_trade_pct": -0.0524,
+        "tail_loss_p05_pct": -2.8703,
+        "daily_sharpe": -7.014,
+        "max_drawdown_pct": -16.9343,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 2096536.98,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.01679648549185132,
+            -0.001336502209470037
+          ],
+          "probability_mean_positive": 0.009
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 161
+      },
+      "by_asset_class": {
+        "cross_border": {
+          "trades": 158,
+          "trading_days": 22,
+          "gross_mean_pct": 0.0841,
+          "net_mean_pct": -0.0359,
+          "net_median_pct": 0.2155,
+          "win_rate": 0.6076,
+          "profit_factor": 0.9413,
+          "average_trade_pct": -0.0359,
+          "tail_loss_p05_pct": -2.8892,
+          "daily_sharpe": -7.106,
+          "max_drawdown_pct": -17.2448,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1963410.39,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.016993534479962144,
+              -0.0014631491946844846
+            ],
+            "probability_mean_positive": 0.008
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 158
+        },
+        "gold": {
+          "trades": 3,
+          "trading_days": 2,
+          "gross_mean_pct": -0.8039,
+          "net_mean_pct": -0.9239,
+          "net_median_pct": -1.4586,
+          "win_rate": 0.3333,
+          "profit_factor": 0.0537,
+          "average_trade_pct": -0.9239,
+          "tail_loss_p05_pct": -1.4691,
+          "daily_sharpe": -9.049,
+          "max_drawdown_pct": -1.4644,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2844315.07,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 3
+        }
+      }
+    },
+    "gap_down_reversal_10m": {
+      "definition": "gap < -0.5%, then positive 10m reversal",
+      "overall": {
+        "trades": 424,
+        "trading_days": 27,
+        "gross_mean_pct": -0.2491,
+        "net_mean_pct": -0.3691,
+        "net_median_pct": -0.3542,
+        "win_rate": 0.3042,
+        "profit_factor": 0.3014,
+        "average_trade_pct": -0.3691,
+        "tail_loss_p05_pct": -1.7916,
+        "daily_sharpe": -3.4198,
+        "max_drawdown_pct": -4.7503,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1229580.52,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.004887354517335841,
+            0.001120668125806274
+          ],
+          "probability_mean_positive": 0.1205
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 424
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 2,
+          "trading_days": 1,
+          "gross_mean_pct": -0.2846,
+          "net_mean_pct": -0.4046,
+          "net_median_pct": -0.4046,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.4046,
+          "tail_loss_p05_pct": -0.4249,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -0.4046,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 79067182.17,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2
+        },
+        "cross_border": {
+          "trades": 358,
+          "trading_days": 27,
+          "gross_mean_pct": -0.2284,
+          "net_mean_pct": -0.3484,
+          "net_median_pct": -0.3514,
+          "win_rate": 0.2961,
+          "profit_factor": 0.3118,
+          "average_trade_pct": -0.3484,
+          "tail_loss_p05_pct": -1.7429,
+          "daily_sharpe": -3.5915,
+          "max_drawdown_pct": -4.8722,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 941816.92,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.004776468918415811,
+              0.0011004803328574773
+            ],
+            "probability_mean_positive": 0.1125
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 358
+        },
+        "gold": {
+          "trades": 64,
+          "trading_days": 9,
+          "gross_mean_pct": -0.364,
+          "net_mean_pct": -0.484,
+          "net_median_pct": -0.3863,
+          "win_rate": 0.3594,
+          "profit_factor": 0.2626,
+          "average_trade_pct": -0.484,
+          "tail_loss_p05_pct": -2.0458,
+          "daily_sharpe": -8.0941,
+          "max_drawdown_pct": -5.3324,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 3852144.03,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.010265987824094585,
+              0.0007955165239258149
+            ],
+            "probability_mean_positive": 0.0435
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 64
+        }
+      }
+    },
+    "flat_momentum_10m": {
+      "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+      "overall": {
+        "trades": 230,
+        "trading_days": 35,
+        "gross_mean_pct": -0.0517,
+        "net_mean_pct": -0.1717,
+        "net_median_pct": -0.2724,
+        "win_rate": 0.3304,
+        "profit_factor": 0.6542,
+        "average_trade_pct": -0.1717,
+        "tail_loss_p05_pct": -2.0288,
+        "daily_sharpe": -4.1472,
+        "max_drawdown_pct": -10.4134,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1186845.98,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.005394538476213061,
+            0.0006441232466525125
+          ],
+          "probability_mean_positive": 0.054
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 230
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 15,
+          "trading_days": 8,
+          "gross_mean_pct": 0.3439,
+          "net_mean_pct": 0.2239,
+          "net_median_pct": 0.095,
+          "win_rate": 0.6667,
+          "profit_factor": 2.9953,
+          "average_trade_pct": 0.2239,
+          "tail_loss_p05_pct": -0.5096,
+          "daily_sharpe": 6.4639,
+          "max_drawdown_pct": -0.6186,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 37259360.28,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0011240704849690142,
+              0.006017931660316958
+            ],
+            "probability_mean_positive": 0.8885
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 15
+        },
+        "cross_border": {
+          "trades": 215,
+          "trading_days": 35,
+          "gross_mean_pct": -0.0793,
+          "net_mean_pct": -0.1993,
+          "net_median_pct": -0.3188,
+          "win_rate": 0.307,
+          "profit_factor": 0.6191,
+          "average_trade_pct": -0.1993,
+          "tail_loss_p05_pct": -2.0352,
+          "daily_sharpe": -3.5221,
+          "max_drawdown_pct": -10.3005,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1044309.42,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.005400570072696396,
+              0.0010204310245888215
+            ],
+            "probability_mean_positive": 0.0865
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 215
+        }
+      }
+    }
+  },
+  "oosResults": {
+    "all_10m_baseline": {
+      "definition": "all eligible ETF-days, enter after 10 minutes",
+      "overall": {
+        "trades": 2924,
+        "trading_days": 21,
+        "gross_mean_pct": -0.1573,
+        "net_mean_pct": -0.2773,
+        "net_median_pct": -0.2079,
+        "win_rate": 0.2825,
+        "profit_factor": 0.493,
+        "average_trade_pct": -0.2773,
+        "tail_loss_p05_pct": -2.1039,
+        "daily_sharpe": -6.7277,
+        "max_drawdown_pct": -5.6182,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1523752.19,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.005421299250826548,
+            -2.024700751997022e-05
+          ],
+          "probability_mean_positive": 0.0245
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 2924
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 507,
+          "trading_days": 21,
+          "gross_mean_pct": -0.0002,
+          "net_mean_pct": -0.1202,
+          "net_median_pct": -0.1112,
+          "win_rate": 0.0592,
+          "profit_factor": 0.1073,
+          "average_trade_pct": -0.1202,
+          "tail_loss_p05_pct": -0.2981,
+          "daily_sharpe": -27.6775,
+          "max_drawdown_pct": -2.4136,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 29043367.22,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0014497730514794807,
+              -0.0008975319832586513
+            ],
+            "probability_mean_positive": 0.0
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 507
+        },
+        "cross_border": {
+          "trades": 2249,
+          "trading_days": 21,
+          "gross_mean_pct": -0.1922,
+          "net_mean_pct": -0.3122,
+          "net_median_pct": -0.3857,
+          "win_rate": 0.3375,
+          "profit_factor": 0.5227,
+          "average_trade_pct": -0.3122,
+          "tail_loss_p05_pct": -2.2533,
+          "daily_sharpe": -6.0845,
+          "max_drawdown_pct": -6.3765,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1001541.42,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.00650248160065735,
+              0.0003460868964691284
+            ],
+            "probability_mean_positive": 0.0335
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2249
+        },
+        "gold": {
+          "trades": 168,
+          "trading_days": 21,
+          "gross_mean_pct": -0.1636,
+          "net_mean_pct": -0.2836,
+          "net_median_pct": -0.2732,
+          "win_rate": 0.2202,
+          "profit_factor": 0.2024,
+          "average_trade_pct": -0.2836,
+          "tail_loss_p05_pct": -0.8802,
+          "daily_sharpe": -9.378,
+          "max_drawdown_pct": -5.8105,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1871249.03,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.00468839015606542,
+              -0.0007948976185180376
+            ],
+            "probability_mean_positive": 0.006
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 168
+        }
+      }
+    },
+    "gap_up_chase_5m": {
+      "definition": "first 5m close gap > 1%",
+      "overall": {
+        "trades": 450,
+        "trading_days": 21,
+        "gross_mean_pct": 0.0232,
+        "net_mean_pct": -0.0968,
+        "net_median_pct": -0.12,
+        "win_rate": 0.4489,
+        "profit_factor": 0.8468,
+        "average_trade_pct": -0.0968,
+        "tail_loss_p05_pct": -2.7947,
+        "daily_sharpe": -0.9179,
+        "max_drawdown_pct": -6.8762,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1618168.89,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.0066133601229005825,
+            0.005411868760798959
+          ],
+          "probability_mean_positive": 0.394
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 450
+      },
+      "by_asset_class": {
+        "cross_border": {
+          "trades": 418,
+          "trading_days": 21,
+          "gross_mean_pct": 0.0356,
+          "net_mean_pct": -0.0844,
+          "net_median_pct": -0.12,
+          "win_rate": 0.4641,
+          "profit_factor": 0.8713,
+          "average_trade_pct": -0.0844,
+          "tail_loss_p05_pct": -2.864,
+          "daily_sharpe": -0.8986,
+          "max_drawdown_pct": -6.9259,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1547258.73,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.006620135354656052,
+              0.005417310109048616
+            ],
+            "probability_mean_positive": 0.3955
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 418
+        },
+        "gold": {
+          "trades": 32,
+          "trading_days": 4,
+          "gross_mean_pct": -0.1383,
+          "net_mean_pct": -0.2583,
+          "net_median_pct": -0.0975,
+          "win_rate": 0.25,
+          "profit_factor": 0.1751,
+          "average_trade_pct": -0.2583,
+          "tail_loss_p05_pct": -0.9852,
+          "daily_sharpe": -8.1367,
+          "max_drawdown_pct": -1.0329,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1903537.89,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 32
+        }
+      }
+    },
+    "gap_up_confirmed_10m": {
+      "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+      "overall": {
+        "trades": 89,
+        "trading_days": 17,
+        "gross_mean_pct": -0.1259,
+        "net_mean_pct": -0.2459,
+        "net_median_pct": -0.12,
+        "win_rate": 0.4045,
+        "profit_factor": 0.6262,
+        "average_trade_pct": -0.2459,
+        "tail_loss_p05_pct": -2.6876,
+        "daily_sharpe": -1.364,
+        "max_drawdown_pct": -7.0739,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1780858.13,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.008862804757411533,
+            0.00641706238340598
+          ],
+          "probability_mean_positive": 0.3505
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 89
+      },
+      "by_asset_class": {
+        "cross_border": {
+          "trades": 81,
+          "trading_days": 17,
+          "gross_mean_pct": -0.1508,
+          "net_mean_pct": -0.2708,
+          "net_median_pct": -0.161,
+          "win_rate": 0.3827,
+          "profit_factor": 0.6206,
+          "average_trade_pct": -0.2708,
+          "tail_loss_p05_pct": -2.9444,
+          "daily_sharpe": -1.2656,
+          "max_drawdown_pct": -6.8548,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2013988.87,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.008810867117947012,
+              0.006555643520200317
+            ],
+            "probability_mean_positive": 0.3615
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 81
+        },
+        "gold": {
+          "trades": 8,
+          "trading_days": 3,
+          "gross_mean_pct": 0.1262,
+          "net_mean_pct": 0.0062,
+          "net_median_pct": 0.1295,
+          "win_rate": 0.625,
+          "profit_factor": 1.0668,
+          "average_trade_pct": 0.0062,
+          "tail_loss_p05_pct": -0.3065,
+          "daily_sharpe": -6.4637,
+          "max_drawdown_pct": -0.4421,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1557121.26,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 8
+        }
+      }
+    },
+    "gap_down_reversal_10m": {
+      "definition": "gap < -0.5%, then positive 10m reversal",
+      "overall": {
+        "trades": 223,
+        "trading_days": 20,
+        "gross_mean_pct": -0.4425,
+        "net_mean_pct": -0.5625,
+        "net_median_pct": -0.6257,
+        "win_rate": 0.2018,
+        "profit_factor": 0.1787,
+        "average_trade_pct": -0.5625,
+        "tail_loss_p05_pct": -1.926,
+        "daily_sharpe": -7.8907,
+        "max_drawdown_pct": -8.1775,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1149511.8,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.007941191422185915,
+            -0.0005668282902754551
+          ],
+          "probability_mean_positive": 0.0155
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 223
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 2,
+          "trading_days": 1,
+          "gross_mean_pct": -0.1672,
+          "net_mean_pct": -0.2872,
+          "net_median_pct": -0.2872,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.2872,
+          "tail_loss_p05_pct": -0.3316,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -0.2872,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 80019936.0,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2
+        },
+        "cross_border": {
+          "trades": 201,
+          "trading_days": 20,
+          "gross_mean_pct": -0.4351,
+          "net_mean_pct": -0.5551,
+          "net_median_pct": -0.5787,
+          "win_rate": 0.2239,
+          "profit_factor": 0.1965,
+          "average_trade_pct": -0.5551,
+          "tail_loss_p05_pct": -1.9923,
+          "daily_sharpe": -7.9583,
+          "max_drawdown_pct": -8.2478,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 977933.95,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.007938932843104275,
+              -0.0005695716112404858
+            ],
+            "probability_mean_positive": 0.013
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 201
+        },
+        "gold": {
+          "trades": 20,
+          "trading_days": 3,
+          "gross_mean_pct": -0.5447,
+          "net_mean_pct": -0.6647,
+          "net_median_pct": -0.7557,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.6647,
+          "tail_loss_p05_pct": -0.8017,
+          "daily_sharpe": -35.0483,
+          "max_drawdown_pct": -1.7957,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2642085.21,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 20
+        }
+      }
+    },
+    "flat_momentum_10m": {
+      "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+      "overall": {
+        "trades": 216,
+        "trading_days": 14,
+        "gross_mean_pct": -0.3951,
+        "net_mean_pct": -0.5151,
+        "net_median_pct": -0.4122,
+        "win_rate": 0.375,
+        "profit_factor": 0.4344,
+        "average_trade_pct": -0.5151,
+        "tail_loss_p05_pct": -3.1802,
+        "daily_sharpe": -6.0374,
+        "max_drawdown_pct": -7.487,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 937667.82,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.011121236899223862,
+            0.0017631855717368228
+          ],
+          "probability_mean_positive": 0.0755
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 216
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 2,
+          "trading_days": 1,
+          "gross_mean_pct": -0.5755,
+          "net_mean_pct": -0.6955,
+          "net_median_pct": -0.6955,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.6955,
+          "tail_loss_p05_pct": -0.6988,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -0.6955,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 62212051.07,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2
+        },
+        "cross_border": {
+          "trades": 214,
+          "trading_days": 14,
+          "gross_mean_pct": -0.3934,
+          "net_mean_pct": -0.5134,
+          "net_median_pct": -0.3937,
+          "win_rate": 0.3785,
+          "profit_factor": 0.4375,
+          "average_trade_pct": -0.5134,
+          "tail_loss_p05_pct": -3.1816,
+          "daily_sharpe": -6.0761,
+          "max_drawdown_pct": -7.5325,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 929129.42,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.011212185985890365,
+              0.0017360073817979205
+            ],
+            "probability_mean_positive": 0.074
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 214
+        }
+      }
+    }
+  },
+  "oosStressCostResults": {
+    "all_10m_baseline": {
+      "definition": "all eligible ETF-days, enter after 10 minutes",
+      "overall": {
+        "trades": 2924,
+        "trading_days": 21,
+        "gross_mean_pct": -0.1573,
+        "net_mean_pct": -0.3573,
+        "net_median_pct": -0.2879,
+        "win_rate": 0.2558,
+        "profit_factor": 0.4099,
+        "average_trade_pct": -0.3573,
+        "tail_loss_p05_pct": -2.1839,
+        "daily_sharpe": -8.6993,
+        "max_drawdown_pct": -7.1956,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1523752.19,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.006221299250826548,
+            -0.0008202470075199706
+          ],
+          "probability_mean_positive": 0.0055
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 2924
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 507,
+          "trading_days": 21,
+          "gross_mean_pct": -0.0002,
+          "net_mean_pct": -0.2002,
+          "net_median_pct": -0.1912,
+          "win_rate": 0.0434,
+          "profit_factor": 0.05,
+          "average_trade_pct": -0.2002,
+          "tail_loss_p05_pct": -0.3781,
+          "daily_sharpe": -46.7239,
+          "max_drawdown_pct": -4.0419,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 29043367.22,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.002249773051479481,
+              -0.0016975319832586513
+            ],
+            "probability_mean_positive": 0.0
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 507
+        },
+        "cross_border": {
+          "trades": 2249,
+          "trading_days": 21,
+          "gross_mean_pct": -0.1922,
+          "net_mean_pct": -0.3922,
+          "net_median_pct": -0.4657,
+          "win_rate": 0.3121,
+          "profit_factor": 0.4461,
+          "average_trade_pct": -0.3922,
+          "tail_loss_p05_pct": -2.3333,
+          "daily_sharpe": -7.654,
+          "max_drawdown_pct": -7.9418,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1001541.42,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0073024816006573515,
+              -0.00045391310353087237
+            ],
+            "probability_mean_positive": 0.013
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2249
+        },
+        "gold": {
+          "trades": 168,
+          "trading_days": 21,
+          "gross_mean_pct": -0.1636,
+          "net_mean_pct": -0.3636,
+          "net_median_pct": -0.3532,
+          "win_rate": 0.1429,
+          "profit_factor": 0.1386,
+          "average_trade_pct": -0.3636,
+          "tail_loss_p05_pct": -0.9602,
+          "daily_sharpe": -12.0239,
+          "max_drawdown_pct": -7.3848,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1871249.03,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.00548839015606542,
+              -0.0015948976185180379
+            ],
+            "probability_mean_positive": 0.0005
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 168
+        }
+      }
+    },
+    "gap_up_chase_5m": {
+      "definition": "first 5m close gap > 1%",
+      "overall": {
+        "trades": 450,
+        "trading_days": 21,
+        "gross_mean_pct": 0.0232,
+        "net_mean_pct": -0.1768,
+        "net_median_pct": -0.2,
+        "win_rate": 0.4289,
+        "profit_factor": 0.7387,
+        "average_trade_pct": -0.1768,
+        "tail_loss_p05_pct": -2.8747,
+        "daily_sharpe": -1.8183,
+        "max_drawdown_pct": -7.3276,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1618168.89,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.007413360122900586,
+            0.0046118687607989576
+          ],
+          "probability_mean_positive": 0.292
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 450
+      },
+      "by_asset_class": {
+        "cross_border": {
+          "trades": 418,
+          "trading_days": 21,
+          "gross_mean_pct": 0.0356,
+          "net_mean_pct": -0.1644,
+          "net_median_pct": -0.2,
+          "win_rate": 0.4426,
+          "profit_factor": 0.765,
+          "average_trade_pct": -0.1644,
+          "tail_loss_p05_pct": -2.944,
+          "daily_sharpe": -1.7992,
+          "max_drawdown_pct": -7.3771,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1547258.73,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.007420135354656054,
+              0.004617310109048615
+            ],
+            "probability_mean_positive": 0.292
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 418
+        },
+        "gold": {
+          "trades": 32,
+          "trading_days": 4,
+          "gross_mean_pct": -0.1383,
+          "net_mean_pct": -0.3383,
+          "net_median_pct": -0.1775,
+          "win_rate": 0.25,
+          "profit_factor": 0.0933,
+          "average_trade_pct": -0.3383,
+          "tail_loss_p05_pct": -1.0652,
+          "daily_sharpe": -10.6571,
+          "max_drawdown_pct": -1.35,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1903537.89,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 32
+        }
+      }
+    },
+    "gap_up_confirmed_10m": {
+      "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+      "overall": {
+        "trades": 89,
+        "trading_days": 17,
+        "gross_mean_pct": -0.1259,
+        "net_mean_pct": -0.3259,
+        "net_median_pct": -0.2,
+        "win_rate": 0.382,
+        "profit_factor": 0.5389,
+        "average_trade_pct": -0.3259,
+        "tail_loss_p05_pct": -2.7676,
+        "daily_sharpe": -2.1447,
+        "max_drawdown_pct": -7.6725,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1780858.13,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.009662804757411535,
+            0.00561706238340598
+          ],
+          "probability_mean_positive": 0.285
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 89
+      },
+      "by_asset_class": {
+        "cross_border": {
+          "trades": 81,
+          "trading_days": 17,
+          "gross_mean_pct": -0.1508,
+          "net_mean_pct": -0.3508,
+          "net_median_pct": -0.241,
+          "win_rate": 0.358,
+          "profit_factor": 0.5411,
+          "average_trade_pct": -0.3508,
+          "tail_loss_p05_pct": -3.0244,
+          "daily_sharpe": -2.0427,
+          "max_drawdown_pct": -7.4546,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2013988.87,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.009610867117947012,
+              0.005755643520200316
+            ],
+            "probability_mean_positive": 0.294
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 81
+        },
+        "gold": {
+          "trades": 8,
+          "trading_days": 3,
+          "gross_mean_pct": 0.1262,
+          "net_mean_pct": -0.0738,
+          "net_median_pct": 0.0495,
+          "win_rate": 0.625,
+          "profit_factor": 0.3987,
+          "average_trade_pct": -0.0738,
+          "tail_loss_p05_pct": -0.3865,
+          "daily_sharpe": -11.9221,
+          "max_drawdown_pct": -0.6016,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1557121.26,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 8
+        }
+      }
+    },
+    "gap_down_reversal_10m": {
+      "definition": "gap < -0.5%, then positive 10m reversal",
+      "overall": {
+        "trades": 223,
+        "trading_days": 20,
+        "gross_mean_pct": -0.4425,
+        "net_mean_pct": -0.6425,
+        "net_median_pct": -0.7057,
+        "win_rate": 0.1749,
+        "profit_factor": 0.143,
+        "average_trade_pct": -0.6425,
+        "tail_loss_p05_pct": -2.006,
+        "daily_sharpe": -9.3858,
+        "max_drawdown_pct": -9.6417,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 1149511.8,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.008741191422185919,
+            -0.0013668282902754559
+          ],
+          "probability_mean_positive": 0.0045
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 223
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 2,
+          "trading_days": 1,
+          "gross_mean_pct": -0.1672,
+          "net_mean_pct": -0.3672,
+          "net_median_pct": -0.3672,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.3672,
+          "tail_loss_p05_pct": -0.4116,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -0.3672,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 80019936.0,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2
+        },
+        "cross_border": {
+          "trades": 201,
+          "trading_days": 20,
+          "gross_mean_pct": -0.4351,
+          "net_mean_pct": -0.6351,
+          "net_median_pct": -0.6587,
+          "win_rate": 0.194,
+          "profit_factor": 0.1577,
+          "average_trade_pct": -0.6351,
+          "tail_loss_p05_pct": -2.0723,
+          "daily_sharpe": -9.4528,
+          "max_drawdown_pct": -9.711,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 977933.95,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.008738932843104275,
+              -0.0013695716112404864
+            ],
+            "probability_mean_positive": 0.004
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 201
+        },
+        "gold": {
+          "trades": 20,
+          "trading_days": 3,
+          "gross_mean_pct": -0.5447,
+          "net_mean_pct": -0.7447,
+          "net_median_pct": -0.8357,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.7447,
+          "tail_loss_p05_pct": -0.8817,
+          "daily_sharpe": -39.7065,
+          "max_drawdown_pct": -2.0326,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2642085.21,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 20
+        }
+      }
+    },
+    "flat_momentum_10m": {
+      "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+      "overall": {
+        "trades": 216,
+        "trading_days": 14,
+        "gross_mean_pct": -0.3951,
+        "net_mean_pct": -0.5951,
+        "net_median_pct": -0.4922,
+        "win_rate": 0.3704,
+        "profit_factor": 0.3806,
+        "average_trade_pct": -0.5951,
+        "tail_loss_p05_pct": -3.2602,
+        "daily_sharpe": -7.0336,
+        "max_drawdown_pct": -8.2303,
+        "capacity_estimate_cny_at_1pct_median_daily_turnover": 937667.82,
+        "bootstrap_daily_mean": {
+          "ci95": [
+            -0.011921236899223862,
+            0.000963185571736823
+          ],
+          "probability_mean_positive": 0.0475
+        },
+        "cagr": null,
+        "sortino": null,
+        "turnover": 216
+      },
+      "by_asset_class": {
+        "bond": {
+          "trades": 2,
+          "trading_days": 1,
+          "gross_mean_pct": -0.5755,
+          "net_mean_pct": -0.7755,
+          "net_median_pct": -0.7755,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -0.7755,
+          "tail_loss_p05_pct": -0.7788,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -0.7755,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 62212051.07,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2
+        },
+        "cross_border": {
+          "trades": 214,
+          "trading_days": 14,
+          "gross_mean_pct": -0.3934,
+          "net_mean_pct": -0.5934,
+          "net_median_pct": -0.4737,
+          "win_rate": 0.3738,
+          "profit_factor": 0.3835,
+          "average_trade_pct": -0.5934,
+          "tail_loss_p05_pct": -3.2616,
+          "daily_sharpe": -7.0716,
+          "max_drawdown_pct": -8.2754,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 929129.42,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.012012185985890367,
+              0.0009360073817979203
+            ],
+            "probability_mean_positive": 0.047
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 214
+        }
+      }
+    }
+  },
+  "monthlyWalkForward": {
+    "2026-03": {
+      "all_10m_baseline": {
+        "definition": "all eligible ETF-days, enter after 10 minutes",
+        "overall": {
+          "trades": 786,
+          "trading_days": 6,
+          "gross_mean_pct": -0.0312,
+          "net_mean_pct": -0.1512,
+          "net_median_pct": -0.1082,
+          "win_rate": 0.4198,
+          "profit_factor": 0.746,
+          "average_trade_pct": -0.1512,
+          "tail_loss_p05_pct": -2.3134,
+          "daily_sharpe": -1.8731,
+          "max_drawdown_pct": -2.078,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1931430.28,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.010299214871004271,
+              0.007306983267874745
+            ],
+            "probability_mean_positive": 0.3655
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 786
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 110,
+            "trading_days": 6,
+            "gross_mean_pct": 0.0073,
+            "net_mean_pct": -0.1127,
+            "net_median_pct": -0.105,
+            "win_rate": 0.0909,
+            "profit_factor": 0.2546,
+            "average_trade_pct": -0.1127,
+            "tail_loss_p05_pct": -0.384,
+            "daily_sharpe": -13.663,
+            "max_drawdown_pct": -0.7639,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 28218884.48,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0018094182452243139,
+                -2.7091519992409725e-05
+              ],
+              "probability_mean_positive": 0.021
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 110
+          },
+          "cross_border": {
+            "trades": 628,
+            "trading_days": 6,
+            "gross_mean_pct": -0.0413,
+            "net_mean_pct": -0.1613,
+            "net_median_pct": -0.12,
+            "win_rate": 0.4713,
+            "profit_factor": 0.7573,
+            "average_trade_pct": -0.1613,
+            "tail_loss_p05_pct": -2.3948,
+            "daily_sharpe": -1.9211,
+            "max_drawdown_pct": -2.3952,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1445603.55,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.012040461751367306,
+                0.008447859575232058
+              ],
+              "probability_mean_positive": 0.3745
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 628
+          },
+          "gold": {
+            "trades": 48,
+            "trading_days": 6,
+            "gross_mean_pct": 0.013,
+            "net_mean_pct": -0.107,
+            "net_median_pct": -0.0527,
+            "win_rate": 0.5,
+            "profit_factor": 0.8481,
+            "average_trade_pct": -0.107,
+            "tail_loss_p05_pct": -1.8346,
+            "daily_sharpe": -1.1541,
+            "max_drawdown_pct": -2.7759,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 7014182.09,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.01188431187205659,
+                0.009670415081531651
+              ],
+              "probability_mean_positive": 0.3965
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 48
+          }
+        }
+      },
+      "gap_up_chase_5m": {
+        "definition": "first 5m close gap > 1%",
+        "overall": {
+          "trades": 220,
+          "trading_days": 6,
+          "gross_mean_pct": 0.1404,
+          "net_mean_pct": 0.0204,
+          "net_median_pct": 0.4841,
+          "win_rate": 0.6364,
+          "profit_factor": 1.0391,
+          "average_trade_pct": 0.0204,
+          "tail_loss_p05_pct": -2.7669,
+          "daily_sharpe": -3.5429,
+          "max_drawdown_pct": -3.2023,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1775439.28,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.01618151002361536,
+              0.009288413833343119
+            ],
+            "probability_mean_positive": 0.2575
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 220
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 1,
+            "trading_days": 1,
+            "gross_mean_pct": -0.3284,
+            "net_mean_pct": -0.4484,
+            "net_median_pct": -0.4484,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.4484,
+            "tail_loss_p05_pct": -0.4484,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -0.4484,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 179256536.3,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 1
+          },
+          "cross_border": {
+            "trades": 201,
+            "trading_days": 6,
+            "gross_mean_pct": 0.1617,
+            "net_mean_pct": 0.0417,
+            "net_median_pct": 0.4965,
+            "win_rate": 0.6567,
+            "profit_factor": 1.0801,
+            "average_trade_pct": 0.0417,
+            "tail_loss_p05_pct": -2.8095,
+            "daily_sharpe": -3.4779,
+            "max_drawdown_pct": -3.1949,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1586041.08,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.01619000501937772,
+                0.009396894033539185
+              ],
+              "probability_mean_positive": 0.26
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 201
+          },
+          "gold": {
+            "trades": 18,
+            "trading_days": 3,
+            "gross_mean_pct": -0.0715,
+            "net_mean_pct": -0.1915,
+            "net_median_pct": -0.6815,
+            "win_rate": 0.4444,
+            "profit_factor": 0.6392,
+            "average_trade_pct": -0.1915,
+            "tail_loss_p05_pct": -1.0598,
+            "daily_sharpe": -5.2553,
+            "max_drawdown_pct": -1.6983,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 9875822.26,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 18
+          }
+        }
+      },
+      "gap_up_confirmed_10m": {
+        "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+        "overall": {
+          "trades": 4,
+          "trading_days": 1,
+          "gross_mean_pct": -1.7326,
+          "net_mean_pct": -1.8526,
+          "net_median_pct": -1.77,
+          "win_rate": 0.0,
+          "profit_factor": 0.0,
+          "average_trade_pct": -1.8526,
+          "tail_loss_p05_pct": -2.3606,
+          "daily_sharpe": null,
+          "max_drawdown_pct": -1.8526,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 3564925.53,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 4
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": -2.1208,
+            "net_mean_pct": -2.2408,
+            "net_median_pct": -2.2408,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -2.2408,
+            "tail_loss_p05_pct": -2.3948,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -2.2408,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 3046874.51,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          },
+          "gold": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": -1.3444,
+            "net_mean_pct": -1.4644,
+            "net_median_pct": -1.4644,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -1.4644,
+            "tail_loss_p05_pct": -1.4697,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -1.4644,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 7604638.31,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          }
+        }
+      },
+      "gap_down_reversal_10m": {
+        "definition": "gap < -0.5%, then positive 10m reversal",
+        "overall": {
+          "trades": 57,
+          "trading_days": 4,
+          "gross_mean_pct": 0.2796,
+          "net_mean_pct": 0.1596,
+          "net_median_pct": 0.267,
+          "win_rate": 0.6316,
+          "profit_factor": 1.7414,
+          "average_trade_pct": 0.1596,
+          "tail_loss_p05_pct": -0.8342,
+          "daily_sharpe": -5.9388,
+          "max_drawdown_pct": -2.7482,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1630272.67,
+          "bootstrap_daily_mean": {
+            "ci95": null,
+            "probability_mean_positive": null
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 57
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 49,
+            "trading_days": 4,
+            "gross_mean_pct": 0.1674,
+            "net_mean_pct": 0.0474,
+            "net_median_pct": 0.2077,
+            "win_rate": 0.5714,
+            "profit_factor": 1.1894,
+            "average_trade_pct": 0.0474,
+            "tail_loss_p05_pct": -0.8777,
+            "daily_sharpe": -6.4951,
+            "max_drawdown_pct": -2.7482,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1459447.8,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 49
+          },
+          "gold": {
+            "trades": 8,
+            "trading_days": 1,
+            "gross_mean_pct": 0.9668,
+            "net_mean_pct": 0.8468,
+            "net_median_pct": 0.8495,
+            "win_rate": 1.0,
+            "profit_factor": null,
+            "average_trade_pct": 0.8468,
+            "tail_loss_p05_pct": 0.7918,
+            "daily_sharpe": null,
+            "max_drawdown_pct": 0.0,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 5606620.41,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 8
+          }
+        }
+      },
+      "flat_momentum_10m": {
+        "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+        "overall": {
+          "trades": 56,
+          "trading_days": 5,
+          "gross_mean_pct": 0.1656,
+          "net_mean_pct": 0.0456,
+          "net_median_pct": -0.4907,
+          "win_rate": 0.3393,
+          "profit_factor": 1.0529,
+          "average_trade_pct": 0.0456,
+          "tail_loss_p05_pct": -2.3074,
+          "daily_sharpe": -1.0898,
+          "max_drawdown_pct": -2.3688,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1829858.5,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.016009267091766893,
+              0.017579424758046296
+            ],
+            "probability_mean_positive": 0.4045
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 56
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": 0.3267,
+            "net_mean_pct": 0.2067,
+            "net_median_pct": 0.2067,
+            "win_rate": 1.0,
+            "profit_factor": null,
+            "average_trade_pct": 0.2067,
+            "tail_loss_p05_pct": 0.076,
+            "daily_sharpe": null,
+            "max_drawdown_pct": 0.0,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 99077473.8,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          },
+          "cross_border": {
+            "trades": 54,
+            "trading_days": 5,
+            "gross_mean_pct": 0.1596,
+            "net_mean_pct": 0.0396,
+            "net_median_pct": -0.5099,
+            "win_rate": 0.3148,
+            "profit_factor": 1.0444,
+            "average_trade_pct": 0.0396,
+            "tail_loss_p05_pct": -2.3083,
+            "daily_sharpe": -0.2636,
+            "max_drawdown_pct": -2.3688,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1773236.61,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.016009267091766893,
+                0.02094787880318738
+              ],
+              "probability_mean_positive": 0.435
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 54
+          }
+        }
+      }
+    },
+    "2026-04": {
+      "all_10m_baseline": {
+        "definition": "all eligible ETF-days, enter after 10 minutes",
+        "overall": {
+          "trades": 2630,
+          "trading_days": 20,
+          "gross_mean_pct": -0.0615,
+          "net_mean_pct": -0.1815,
+          "net_median_pct": -0.143,
+          "win_rate": 0.3076,
+          "profit_factor": 0.539,
+          "average_trade_pct": -0.1815,
+          "tail_loss_p05_pct": -1.5084,
+          "daily_sharpe": -5.785,
+          "max_drawdown_pct": -4.6521,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1315974.55,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.003967146056553545,
+              0.0002612369158425063
+            ],
+            "probability_mean_positive": 0.045
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2630
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 412,
+            "trading_days": 20,
+            "gross_mean_pct": 0.0154,
+            "net_mean_pct": -0.1046,
+            "net_median_pct": -0.1103,
+            "win_rate": 0.1044,
+            "profit_factor": 0.182,
+            "average_trade_pct": -0.1046,
+            "tail_loss_p05_pct": -0.312,
+            "daily_sharpe": -23.1792,
+            "max_drawdown_pct": -2.0111,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 30417269.74,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0013173874764795396,
+                -0.0007181055856628558
+              ],
+              "probability_mean_positive": 0.0
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 412
+          },
+          "cross_border": {
+            "trades": 2058,
+            "trading_days": 20,
+            "gross_mean_pct": -0.0676,
+            "net_mean_pct": -0.1876,
+            "net_median_pct": -0.2623,
+            "win_rate": 0.3445,
+            "profit_factor": 0.5812,
+            "average_trade_pct": -0.1876,
+            "tail_loss_p05_pct": -1.6002,
+            "daily_sharpe": -5.0582,
+            "max_drawdown_pct": -5.0795,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 896537.26,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0044715037706021124,
+                0.0005960844544516928
+              ],
+              "probability_mean_positive": 0.0725
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2058
+          },
+          "gold": {
+            "trades": 160,
+            "trading_days": 20,
+            "gross_mean_pct": -0.1812,
+            "net_mean_pct": -0.3012,
+            "net_median_pct": -0.1648,
+            "win_rate": 0.3563,
+            "profit_factor": 0.2086,
+            "average_trade_pct": -0.3012,
+            "tail_loss_p05_pct": -1.3396,
+            "daily_sharpe": -7.8688,
+            "max_drawdown_pct": -6.7571,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2970576.32,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.00571022797733505,
+                -0.0006072330926586631
+              ],
+              "probability_mean_positive": 0.0065
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 160
+          }
+        }
+      },
+      "gap_up_chase_5m": {
+        "definition": "first 5m close gap > 1%",
+        "overall": {
+          "trades": 510,
+          "trading_days": 20,
+          "gross_mean_pct": 0.3281,
+          "net_mean_pct": 0.2081,
+          "net_median_pct": -0.0144,
+          "win_rate": 0.498,
+          "profit_factor": 1.4268,
+          "average_trade_pct": 0.2081,
+          "tail_loss_p05_pct": -1.8651,
+          "daily_sharpe": -6.9771,
+          "max_drawdown_pct": -12.0378,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1661922.58,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.01131477046794572,
+              -0.00023355866113319347
+            ],
+            "probability_mean_positive": 0.0195
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 510
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 4,
+            "trading_days": 2,
+            "gross_mean_pct": 0.9022,
+            "net_mean_pct": 0.7822,
+            "net_median_pct": 0.7359,
+            "win_rate": 1.0,
+            "profit_factor": null,
+            "average_trade_pct": 0.7822,
+            "tail_loss_p05_pct": 0.6642,
+            "daily_sharpe": 82.5983,
+            "max_drawdown_pct": 0.0,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 96625392.9,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 4
+          },
+          "cross_border": {
+            "trades": 466,
+            "trading_days": 20,
+            "gross_mean_pct": 0.36,
+            "net_mean_pct": 0.24,
+            "net_median_pct": 0.0118,
+            "win_rate": 0.5021,
+            "profit_factor": 1.48,
+            "average_trade_pct": 0.24,
+            "tail_loss_p05_pct": -1.9857,
+            "daily_sharpe": -6.782,
+            "max_drawdown_pct": -11.8987,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1540578.41,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.011283667732616513,
+                -0.00012205172034745821
+              ],
+              "probability_mean_positive": 0.0225
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 466
+          },
+          "gold": {
+            "trades": 40,
+            "trading_days": 5,
+            "gross_mean_pct": -0.1016,
+            "net_mean_pct": -0.2216,
+            "net_median_pct": -0.4998,
+            "win_rate": 0.4,
+            "profit_factor": 0.4326,
+            "average_trade_pct": -0.2216,
+            "tail_loss_p05_pct": -0.86,
+            "daily_sharpe": -5.6212,
+            "max_drawdown_pct": -1.7648,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 4405593.81,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.006797062661398111,
+                0.0026460686033820927
+              ],
+              "probability_mean_positive": 0.199
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 40
+          }
+        }
+      },
+      "gap_up_confirmed_10m": {
+        "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+        "overall": {
+          "trades": 118,
+          "trading_days": 15,
+          "gross_mean_pct": 0.14,
+          "net_mean_pct": 0.02,
+          "net_median_pct": 0.2732,
+          "win_rate": 0.6271,
+          "profit_factor": 1.0302,
+          "average_trade_pct": 0.02,
+          "tail_loss_p05_pct": -3.2428,
+          "daily_sharpe": -5.8916,
+          "max_drawdown_pct": -13.1268,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1643792.05,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.019736471499003823,
+              0.0013939179285984977
+            ],
+            "probability_mean_positive": 0.058
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 118
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 117,
+            "trading_days": 15,
+            "gross_mean_pct": 0.1389,
+            "net_mean_pct": 0.0189,
+            "net_median_pct": 0.3305,
+            "win_rate": 0.6239,
+            "profit_factor": 1.0282,
+            "average_trade_pct": 0.0189,
+            "tail_loss_p05_pct": -3.2442,
+            "daily_sharpe": -5.8775,
+            "max_drawdown_pct": -13.1077,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1614274.64,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0197340585024685,
+                0.0014200109579233593
+              ],
+              "probability_mean_positive": 0.058
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 117
+          },
+          "gold": {
+            "trades": 1,
+            "trading_days": 1,
+            "gross_mean_pct": 0.2772,
+            "net_mean_pct": 0.1572,
+            "net_median_pct": 0.1572,
+            "win_rate": 1.0,
+            "profit_factor": null,
+            "average_trade_pct": 0.1572,
+            "tail_loss_p05_pct": 0.1572,
+            "daily_sharpe": null,
+            "max_drawdown_pct": 0.0,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2407353.76,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 1
+          }
+        }
+      },
+      "gap_down_reversal_10m": {
+        "definition": "gap < -0.5%, then positive 10m reversal",
+        "overall": {
+          "trades": 196,
+          "trading_days": 14,
+          "gross_mean_pct": -0.5121,
+          "net_mean_pct": -0.6321,
+          "net_median_pct": -0.4766,
+          "win_rate": 0.1582,
+          "profit_factor": 0.0891,
+          "average_trade_pct": -0.6321,
+          "tail_loss_p05_pct": -2.0218,
+          "daily_sharpe": -1.9676,
+          "max_drawdown_pct": -2.2158,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1230419.23,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.004659426604789603,
+              0.002630274890512627
+            ],
+            "probability_mean_positive": 0.3085
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 196
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": -0.2846,
+            "net_mean_pct": -0.4046,
+            "net_median_pct": -0.4046,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.4046,
+            "tail_loss_p05_pct": -0.4249,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -0.4046,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 79067182.17,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          },
+          "cross_border": {
+            "trades": 154,
+            "trading_days": 14,
+            "gross_mean_pct": -0.4687,
+            "net_mean_pct": -0.5887,
+            "net_median_pct": -0.4402,
+            "win_rate": 0.1558,
+            "profit_factor": 0.113,
+            "average_trade_pct": -0.5887,
+            "tail_loss_p05_pct": -1.8668,
+            "daily_sharpe": -1.8453,
+            "max_drawdown_pct": -1.8398,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 840497.39,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.00444937920702962,
+                0.002611822420877426
+              ],
+              "probability_mean_positive": 0.321
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 154
+          },
+          "gold": {
+            "trades": 40,
+            "trading_days": 6,
+            "gross_mean_pct": -0.6908,
+            "net_mean_pct": -0.8108,
+            "net_median_pct": -0.513,
+            "win_rate": 0.175,
+            "profit_factor": 0.0172,
+            "average_trade_pct": -0.8108,
+            "tail_loss_p05_pct": -2.0708,
+            "daily_sharpe": -14.5256,
+            "max_drawdown_pct": -4.254,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2924646.04,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.013347938509057359,
+                -0.0020083428962527506
+              ],
+              "probability_mean_positive": 0.0
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 40
+          }
+        }
+      },
+      "flat_momentum_10m": {
+        "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+        "overall": {
+          "trades": 84,
+          "trading_days": 19,
+          "gross_mean_pct": -0.2965,
+          "net_mean_pct": -0.4165,
+          "net_median_pct": -0.5249,
+          "win_rate": 0.2143,
+          "profit_factor": 0.1987,
+          "average_trade_pct": -0.4165,
+          "tail_loss_p05_pct": -1.227,
+          "daily_sharpe": -7.8776,
+          "max_drawdown_pct": -6.3404,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 783118.8,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.006454613124822102,
+              -0.00031218017078531933
+            ],
+            "probability_mean_positive": 0.0165
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 84
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 4,
+            "trading_days": 2,
+            "gross_mean_pct": 0.5071,
+            "net_mean_pct": 0.3871,
+            "net_median_pct": 0.2959,
+            "win_rate": 0.75,
+            "profit_factor": 12.4494,
+            "average_trade_pct": 0.3871,
+            "tail_loss_p05_pct": -0.1079,
+            "daily_sharpe": 10.0798,
+            "max_drawdown_pct": -0.044,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 62073627.47,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 4
+          },
+          "cross_border": {
+            "trades": 80,
+            "trading_days": 19,
+            "gross_mean_pct": -0.3367,
+            "net_mean_pct": -0.4567,
+            "net_median_pct": -0.5544,
+            "win_rate": 0.1875,
+            "profit_factor": 0.1606,
+            "average_trade_pct": -0.4567,
+            "tail_loss_p05_pct": -1.2357,
+            "daily_sharpe": -7.2795,
+            "max_drawdown_pct": -6.0631,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 766617.33,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.006362353964187513,
+                -3.190389039915826e-05
+              ],
+              "probability_mean_positive": 0.0235
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 80
+          }
+        }
+      }
+    },
+    "2026-05": {
+      "all_10m_baseline": {
+        "definition": "all eligible ETF-days, enter after 10 minutes",
+        "overall": {
+          "trades": 2457,
+          "trading_days": 18,
+          "gross_mean_pct": -0.1145,
+          "net_mean_pct": -0.2345,
+          "net_median_pct": -0.12,
+          "win_rate": 0.3447,
+          "profit_factor": 0.4908,
+          "average_trade_pct": -0.2345,
+          "tail_loss_p05_pct": -2.0711,
+          "daily_sharpe": -5.9388,
+          "max_drawdown_pct": -5.5074,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1420184.81,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.005079897941055661,
+              0.0004220837060180254
+            ],
+            "probability_mean_positive": 0.046
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 2457
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 385,
+            "trading_days": 18,
+            "gross_mean_pct": 0.0055,
+            "net_mean_pct": -0.1145,
+            "net_median_pct": -0.1092,
+            "win_rate": 0.0805,
+            "profit_factor": 0.1603,
+            "average_trade_pct": -0.1145,
+            "tail_loss_p05_pct": -0.351,
+            "daily_sharpe": -21.5225,
+            "max_drawdown_pct": -2.0661,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 26337623.77,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0015269378188568535,
+                -0.0007711582426766184
+              ],
+              "probability_mean_positive": 0.0
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 385
+          },
+          "cross_border": {
+            "trades": 1928,
+            "trading_days": 18,
+            "gross_mean_pct": -0.1375,
+            "net_mean_pct": -0.2575,
+            "net_median_pct": -0.2093,
+            "win_rate": 0.3983,
+            "profit_factor": 0.5172,
+            "average_trade_pct": -0.2575,
+            "tail_loss_p05_pct": -2.1936,
+            "daily_sharpe": -5.2492,
+            "max_drawdown_pct": -6.288,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 973117.17,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.005938757849391468,
+                0.0008592829354611311
+              ],
+              "probability_mean_positive": 0.0695
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 1928
+          },
+          "gold": {
+            "trades": 144,
+            "trading_days": 18,
+            "gross_mean_pct": -0.1273,
+            "net_mean_pct": -0.2473,
+            "net_median_pct": -0.1864,
+            "win_rate": 0.3333,
+            "profit_factor": 0.2995,
+            "average_trade_pct": -0.2473,
+            "tail_loss_p05_pct": -1.0859,
+            "daily_sharpe": -7.4215,
+            "max_drawdown_pct": -5.6556,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2426220.91,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.004871182760075786,
+                -0.00011270517238356935
+              ],
+              "probability_mean_positive": 0.018
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 144
+          }
+        }
+      },
+      "gap_up_chase_5m": {
+        "definition": "first 5m close gap > 1%",
+        "overall": {
+          "trades": 358,
+          "trading_days": 18,
+          "gross_mean_pct": -0.1012,
+          "net_mean_pct": -0.2212,
+          "net_median_pct": 0.0323,
+          "win_rate": 0.5112,
+          "profit_factor": 0.6563,
+          "average_trade_pct": -0.2212,
+          "tail_loss_p05_pct": -2.8166,
+          "daily_sharpe": 1.9635,
+          "max_drawdown_pct": -5.5975,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1588776.4,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.005420616791593364,
+              0.011539955828132786
+            ],
+            "probability_mean_positive": 0.687
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 358
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 334,
+            "trading_days": 17,
+            "gross_mean_pct": -0.0782,
+            "net_mean_pct": -0.1982,
+            "net_median_pct": 0.0799,
+            "win_rate": 0.524,
+            "profit_factor": 0.693,
+            "average_trade_pct": -0.1982,
+            "tail_loss_p05_pct": -2.8481,
+            "daily_sharpe": 2.4978,
+            "max_drawdown_pct": -4.7629,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1441485.91,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.005519929232887835,
+                0.01283638846585393
+              ],
+              "probability_mean_positive": 0.7245
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 334
+          },
+          "gold": {
+            "trades": 24,
+            "trading_days": 3,
+            "gross_mean_pct": -0.4205,
+            "net_mean_pct": -0.5405,
+            "net_median_pct": -0.88,
+            "win_rate": 0.3333,
+            "profit_factor": 0.1191,
+            "average_trade_pct": -0.5405,
+            "tail_loss_p05_pct": -0.9964,
+            "daily_sharpe": -13.0114,
+            "max_drawdown_pct": -1.8324,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1927113.11,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 24
+          }
+        }
+      },
+      "gap_up_confirmed_10m": {
+        "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+        "overall": {
+          "trades": 75,
+          "trading_days": 13,
+          "gross_mean_pct": 0.0699,
+          "net_mean_pct": -0.0501,
+          "net_median_pct": 0.1278,
+          "win_rate": 0.56,
+          "profit_factor": 0.8791,
+          "average_trade_pct": -0.0501,
+          "tail_loss_p05_pct": -1.8638,
+          "daily_sharpe": -5.1095,
+          "max_drawdown_pct": -5.8619,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 2325261.01,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.00956321765718154,
+              0.0024294415526106487
+            ],
+            "probability_mean_positive": 0.1175
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 75
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 70,
+            "trading_days": 13,
+            "gross_mean_pct": 0.055,
+            "net_mean_pct": -0.065,
+            "net_median_pct": 0.0574,
+            "win_rate": 0.5286,
+            "profit_factor": 0.8536,
+            "average_trade_pct": -0.065,
+            "tail_loss_p05_pct": -1.8813,
+            "daily_sharpe": -4.7866,
+            "max_drawdown_pct": -5.8619,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2475562.24,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.009464912146317974,
+                0.0027318780372447516
+              ],
+              "probability_mean_positive": 0.137
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 70
+          },
+          "gold": {
+            "trades": 5,
+            "trading_days": 1,
+            "gross_mean_pct": 0.2783,
+            "net_mean_pct": 0.1583,
+            "net_median_pct": 0.1668,
+            "win_rate": 1.0,
+            "profit_factor": null,
+            "average_trade_pct": 0.1583,
+            "tail_loss_p05_pct": 0.114,
+            "daily_sharpe": null,
+            "max_drawdown_pct": 0.0,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1612921.73,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 5
+          }
+        }
+      },
+      "gap_down_reversal_10m": {
+        "definition": "gap < -0.5%, then positive 10m reversal",
+        "overall": {
+          "trades": 219,
+          "trading_days": 15,
+          "gross_mean_pct": -0.2622,
+          "net_mean_pct": -0.3822,
+          "net_median_pct": -0.4652,
+          "win_rate": 0.3288,
+          "profit_factor": 0.3098,
+          "average_trade_pct": -0.3822,
+          "tail_loss_p05_pct": -1.6794,
+          "daily_sharpe": -9.3012,
+          "max_drawdown_pct": -6.6919,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1030771.72,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.006954861617604816,
+              -0.0006232948492003648
+            ],
+            "probability_mean_positive": 0.012
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 219
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 203,
+            "trading_days": 15,
+            "gross_mean_pct": -0.2661,
+            "net_mean_pct": -0.3861,
+            "net_median_pct": -0.4652,
+            "win_rate": 0.3153,
+            "profit_factor": 0.3018,
+            "average_trade_pct": -0.3861,
+            "tail_loss_p05_pct": -1.7445,
+            "daily_sharpe": -9.4797,
+            "max_drawdown_pct": -6.8139,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 851326.49,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.00710196191629461,
+                -0.0006609263991288795
+              ],
+              "probability_mean_positive": 0.012
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 203
+          },
+          "gold": {
+            "trades": 16,
+            "trading_days": 2,
+            "gross_mean_pct": -0.2126,
+            "net_mean_pct": -0.3326,
+            "net_median_pct": -0.2971,
+            "win_rate": 0.5,
+            "profit_factor": 0.4093,
+            "average_trade_pct": -0.3326,
+            "tail_loss_p05_pct": -1.1636,
+            "daily_sharpe": -4.7045,
+            "max_drawdown_pct": -1.1263,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 4631891.78,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 16
+          }
+        }
+      },
+      "flat_momentum_10m": {
+        "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+        "overall": {
+          "trades": 174,
+          "trading_days": 16,
+          "gross_mean_pct": -0.5741,
+          "net_mean_pct": -0.6941,
+          "net_median_pct": -0.311,
+          "win_rate": 0.3276,
+          "profit_factor": 0.1995,
+          "average_trade_pct": -0.6941,
+          "tail_loss_p05_pct": -3.2302,
+          "daily_sharpe": -6.9651,
+          "max_drawdown_pct": -7.7046,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1065133.45,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.00834490567575747,
+              -3.394205421667587e-05
+            ],
+            "probability_mean_positive": 0.0215
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 174
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 9,
+            "trading_days": 5,
+            "gross_mean_pct": 0.2753,
+            "net_mean_pct": 0.1553,
+            "net_median_pct": 0.095,
+            "win_rate": 0.5556,
+            "profit_factor": 1.9025,
+            "average_trade_pct": 0.1553,
+            "tail_loss_p05_pct": -0.5421,
+            "daily_sharpe": 4.0087,
+            "max_drawdown_pct": -0.6186,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 25818724.9,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.0027856382038839987,
+                0.007164420970047771
+              ],
+              "probability_mean_positive": 0.7235
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 9
+          },
+          "cross_border": {
+            "trades": 165,
+            "trading_days": 16,
+            "gross_mean_pct": -0.6204,
+            "net_mean_pct": -0.7404,
+            "net_median_pct": -0.3228,
+            "win_rate": 0.3152,
+            "profit_factor": 0.1819,
+            "average_trade_pct": -0.7404,
+            "tail_loss_p05_pct": -3.2495,
+            "daily_sharpe": -7.0242,
+            "max_drawdown_pct": -8.0339,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 951255.34,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.008533613440135382,
+                -8.586098013972417e-05
+              ],
+              "probability_mean_positive": 0.0235
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 165
+          }
+        }
+      }
+    },
+    "2026-06": {
+      "all_10m_baseline": {
+        "definition": "all eligible ETF-days, enter after 10 minutes",
+        "overall": {
+          "trades": 1963,
+          "trading_days": 14,
+          "gross_mean_pct": -0.1768,
+          "net_mean_pct": -0.2968,
+          "net_median_pct": -0.2526,
+          "win_rate": 0.2578,
+          "profit_factor": 0.4615,
+          "average_trade_pct": -0.2968,
+          "tail_loss_p05_pct": -1.9197,
+          "daily_sharpe": -8.3079,
+          "max_drawdown_pct": -5.0876,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1526307.27,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.005591456793272677,
+              0.00040851188446411145
+            ],
+            "probability_mean_positive": 0.036
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 1963
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 352,
+            "trading_days": 14,
+            "gross_mean_pct": 0.0027,
+            "net_mean_pct": -0.1173,
+            "net_median_pct": -0.1162,
+            "win_rate": 0.0682,
+            "profit_factor": 0.1118,
+            "average_trade_pct": -0.1173,
+            "tail_loss_p05_pct": -0.283,
+            "daily_sharpe": -26.452,
+            "max_drawdown_pct": -1.5492,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 29155845.29,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.001473983303225627,
+                -0.0008034182101497749
+              ],
+              "probability_mean_positive": 0.0
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 352
+          },
+          "cross_border": {
+            "trades": 1499,
+            "trading_days": 14,
+            "gross_mean_pct": -0.2251,
+            "net_mean_pct": -0.3451,
+            "net_median_pct": -0.4917,
+            "win_rate": 0.3022,
+            "profit_factor": 0.483,
+            "average_trade_pct": -0.3451,
+            "tail_loss_p05_pct": -2.0282,
+            "daily_sharpe": -7.6296,
+            "max_drawdown_pct": -6.0568,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 996109.41,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.006791649518680875,
+                0.0008138636033287122
+              ],
+              "probability_mean_positive": 0.0445
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 1499
+          },
+          "gold": {
+            "trades": 112,
+            "trading_days": 14,
+            "gross_mean_pct": -0.0951,
+            "net_mean_pct": -0.2151,
+            "net_median_pct": -0.2846,
+            "win_rate": 0.2589,
+            "profit_factor": 0.3099,
+            "average_trade_pct": -0.2151,
+            "tail_loss_p05_pct": -0.8024,
+            "daily_sharpe": -6.9093,
+            "max_drawdown_pct": -3.238,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2049306.3,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.004492858752912454,
+                0.0006602331811725609
+              ],
+              "probability_mean_positive": 0.0555
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 112
+          }
+        }
+      },
+      "gap_up_chase_5m": {
+        "definition": "first 5m close gap > 1%",
+        "overall": {
+          "trades": 296,
+          "trading_days": 14,
+          "gross_mean_pct": -0.0866,
+          "net_mean_pct": -0.2066,
+          "net_median_pct": -0.258,
+          "win_rate": 0.375,
+          "profit_factor": 0.7267,
+          "average_trade_pct": -0.2066,
+          "tail_loss_p05_pct": -3.4725,
+          "daily_sharpe": -1.7715,
+          "max_drawdown_pct": -6.8762,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1445373.63,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.009944119806422876,
+              0.006854457041236214
+            ],
+            "probability_mean_positive": 0.3275
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 296
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 280,
+            "trading_days": 14,
+            "gross_mean_pct": -0.0902,
+            "net_mean_pct": -0.2102,
+            "net_median_pct": -0.2904,
+            "win_rate": 0.3964,
+            "profit_factor": 0.7343,
+            "average_trade_pct": -0.2102,
+            "tail_loss_p05_pct": -3.5486,
+            "daily_sharpe": -1.8059,
+            "max_drawdown_pct": -6.9259,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1359224.14,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.009936558678544469,
+                0.006834240789950356
+              ],
+              "probability_mean_positive": 0.3265
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 280
+          },
+          "gold": {
+            "trades": 16,
+            "trading_days": 2,
+            "gross_mean_pct": -0.024,
+            "net_mean_pct": -0.144,
+            "net_median_pct": -0.0975,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.144,
+            "tail_loss_p05_pct": -0.2533,
+            "daily_sharpe": -24.3163,
+            "max_drawdown_pct": -0.2877,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2052619.33,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 16
+          }
+        }
+      },
+      "gap_up_confirmed_10m": {
+        "definition": "gap > 1%, positive 10m return, 10m amount >= 1.5x prior-20 median",
+        "overall": {
+          "trades": 53,
+          "trading_days": 10,
+          "gross_mean_pct": -0.286,
+          "net_mean_pct": -0.406,
+          "net_median_pct": -0.3119,
+          "win_rate": 0.3208,
+          "profit_factor": 0.4772,
+          "average_trade_pct": -0.406,
+          "tail_loss_p05_pct": -2.9628,
+          "daily_sharpe": -1.4129,
+          "max_drawdown_pct": -6.021,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1283469.91,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.01209737477732026,
+              0.010087124386396425
+            ],
+            "probability_mean_positive": 0.3675
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 53
+        },
+        "by_asset_class": {
+          "cross_border": {
+            "trades": 50,
+            "trading_days": 10,
+            "gross_mean_pct": -0.2956,
+            "net_mean_pct": -0.4156,
+            "net_median_pct": -0.3834,
+            "win_rate": 0.34,
+            "profit_factor": 0.486,
+            "average_trade_pct": -0.4156,
+            "tail_loss_p05_pct": -2.9696,
+            "daily_sharpe": -1.4751,
+            "max_drawdown_pct": -6.021,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 1307279.87,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.012208735171047404,
+                0.010061294439246388
+              ],
+              "probability_mean_positive": 0.3645
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 50
+          },
+          "gold": {
+            "trades": 3,
+            "trading_days": 2,
+            "gross_mean_pct": -0.1273,
+            "net_mean_pct": -0.2473,
+            "net_median_pct": -0.276,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.2473,
+            "tail_loss_p05_pct": -0.3182,
+            "daily_sharpe": -31.7619,
+            "max_drawdown_pct": -0.4421,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 657560.86,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 3
+          }
+        }
+      },
+      "gap_down_reversal_10m": {
+        "definition": "gap < -0.5%, then positive 10m reversal",
+        "overall": {
+          "trades": 175,
+          "trading_days": 14,
+          "gross_mean_pct": -0.3569,
+          "net_mean_pct": -0.4769,
+          "net_median_pct": -0.5715,
+          "win_rate": 0.2,
+          "profit_factor": 0.2217,
+          "average_trade_pct": -0.4769,
+          "tail_loss_p05_pct": -1.6682,
+          "daily_sharpe": -4.8219,
+          "max_drawdown_pct": -6.2469,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 1149511.8,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.0074194131861909755,
+              0.002107436635182354
+            ],
+            "probability_mean_positive": 0.1225
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 175
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": -0.1672,
+            "net_mean_pct": -0.2872,
+            "net_median_pct": -0.2872,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.2872,
+            "tail_loss_p05_pct": -0.3316,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -0.2872,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 80019936.0,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          },
+          "cross_border": {
+            "trades": 153,
+            "trading_days": 14,
+            "gross_mean_pct": -0.3349,
+            "net_mean_pct": -0.4549,
+            "net_median_pct": -0.4672,
+            "win_rate": 0.2288,
+            "profit_factor": 0.2546,
+            "average_trade_pct": -0.4549,
+            "tail_loss_p05_pct": -1.7111,
+            "daily_sharpe": -4.9083,
+            "max_drawdown_pct": -6.3187,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 971667.58,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.007397502579486963,
+                0.0020920841535596794
+              ],
+              "probability_mean_positive": 0.121
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 153
+          },
+          "gold": {
+            "trades": 20,
+            "trading_days": 3,
+            "gross_mean_pct": -0.5447,
+            "net_mean_pct": -0.6647,
+            "net_median_pct": -0.7557,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.6647,
+            "tail_loss_p05_pct": -0.8017,
+            "daily_sharpe": -35.0483,
+            "max_drawdown_pct": -1.7957,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 2642085.21,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 20
+          }
+        }
+      },
+      "flat_momentum_10m": {
+        "definition": "gap within +/-0.5%, 10m momentum > 0.2%",
+        "overall": {
+          "trades": 132,
+          "trading_days": 9,
+          "gross_mean_pct": 0.1385,
+          "net_mean_pct": 0.0185,
+          "net_median_pct": -0.0375,
+          "win_rate": 0.4773,
+          "profit_factor": 1.0359,
+          "average_trade_pct": 0.0185,
+          "tail_loss_p05_pct": -1.9165,
+          "daily_sharpe": -2.909,
+          "max_drawdown_pct": -3.5753,
+          "capacity_estimate_cny_at_1pct_median_daily_turnover": 953913.94,
+          "bootstrap_daily_mean": {
+            "ci95": [
+              -0.009358636458711128,
+              0.005859224375420488
+            ],
+            "probability_mean_positive": 0.279
+          },
+          "cagr": null,
+          "sortino": null,
+          "turnover": 132
+        },
+        "by_asset_class": {
+          "bond": {
+            "trades": 2,
+            "trading_days": 1,
+            "gross_mean_pct": -0.5755,
+            "net_mean_pct": -0.6955,
+            "net_median_pct": -0.6955,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "average_trade_pct": -0.6955,
+            "tail_loss_p05_pct": -0.6988,
+            "daily_sharpe": null,
+            "max_drawdown_pct": -0.6955,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 62212051.07,
+            "bootstrap_daily_mean": {
+              "ci95": null,
+              "probability_mean_positive": null
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 2
+          },
+          "cross_border": {
+            "trades": 130,
+            "trading_days": 9,
+            "gross_mean_pct": 0.1495,
+            "net_mean_pct": 0.0295,
+            "net_median_pct": -0.0233,
+            "win_rate": 0.4846,
+            "profit_factor": 1.0575,
+            "average_trade_pct": 0.0295,
+            "tail_loss_p05_pct": -1.9179,
+            "daily_sharpe": -2.9711,
+            "max_drawdown_pct": -3.6226,
+            "capacity_estimate_cny_at_1pct_median_daily_turnover": 937667.82,
+            "bootstrap_daily_mean": {
+              "ci95": [
+                -0.009452366419734357,
+                0.005848228067546365
+              ],
+              "probability_mean_positive": 0.277
+            },
+            "cagr": null,
+            "sortino": null,
+            "turnover": 130
+          }
+        }
+      }
+    }
+  },
+  "promotionGates": {
+    "gap_up_chase_5m": {
+      "passed": false,
+      "minimum_trades": 30,
+      "bonferroni_one_sided_alpha": 0.0125,
+      "one_sided_bootstrap_p": 0.606,
+      "requires_positive_ci_lower_bound": true
+    },
+    "gap_up_confirmed_10m": {
+      "passed": false,
+      "minimum_trades": 30,
+      "bonferroni_one_sided_alpha": 0.0125,
+      "one_sided_bootstrap_p": 0.6495,
+      "requires_positive_ci_lower_bound": true
+    },
+    "gap_down_reversal_10m": {
+      "passed": false,
+      "minimum_trades": 30,
+      "bonferroni_one_sided_alpha": 0.0125,
+      "one_sided_bootstrap_p": 0.9845,
+      "requires_positive_ci_lower_bound": true
+    },
+    "flat_momentum_10m": {
+      "passed": false,
+      "minimum_trades": 30,
+      "bonferroni_one_sided_alpha": 0.0125,
+      "one_sided_bootstrap_p": 0.9245,
+      "requires_positive_ci_lower_bound": true
+    }
+  },
+  "conclusion": {
+    "researchQuestion": "Do fixed opening-gap, momentum or reversal rules create post-cost OOS edge in confirmed T+0 ETFs?",
+    "dataRange": "2026-03-24..2026-06-18; holdout 2026-05-21..2026-06-18",
+    "sampleSize": 7836,
+    "method": "fixed thresholds, point-in-time opening amount reference, base/stress costs, untouched holdout and monthly stability",
+    "result": "no fixed rule passed the OOS multiple-testing gate",
+    "edgeExists": false,
+    "edgeAfterCosts": false,
+    "applicableETFClasses": [
+      "bond",
+      "cross_border",
+      "gold"
+    ],
+    "notApplicable": [
+      "SZ ETFs pending product-level T+0 verification",
+      "auction execution",
+      "strategies requiring historical IOPV or order-book depth"
+    ],
+    "recommendStrategyEntry": false,
+    "recommendedParameters": null,
+    "risks": [
+      "60 trading days",
+      "survivorship bias",
+      "5-minute close is not an executable auction price",
+      "Yahoo volume quality",
+      "no historical spread/depth"
+    ],
+    "nextResearch": "extend the point-in-time dataset, collect real spread/IOPV and repeat a purged walk-forward test before any shadow gate"
+  }
+}
