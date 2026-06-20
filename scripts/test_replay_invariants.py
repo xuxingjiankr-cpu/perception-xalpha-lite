@@ -1793,6 +1793,98 @@ def t44_point_in_time_opening_research() -> None:
           gates and all(row["passed"] is False for row in gates.values()), str(gates))
 
 
+def t45_observation_pool_history_archive() -> None:
+    """Daily watchlist history is point-in-time, idempotent and preserves news/ranks."""
+    import copy as _copy
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+    import archive_t0_observation_pool as archive
+
+    document = {
+        "schemaVersion": "t0_etf_observation_pool_v1",
+        "generatedAt": "2026-06-21T20:00:00+08:00",
+        "asOfDate": "2026-06-19",
+        "effectiveSession": "2026-06-22",
+        "paperTradingOnly": True,
+        "diagnosticOnly": True,
+        "tradeGateEnabled": False,
+        "liveReady": False,
+        "formalStrategyAllowed": False,
+        "chatgptInputMeta": {"effectiveDate": "2026-06-22"},
+        "chatgpt10": [{
+            "stockCode": "513100", "exchange": "SH", "name": "纳指ETF",
+            "reason": "隔夜科技股驱动", "newsDrivers": ["纳指上涨"],
+            "risks": ["高开回落"], "sourceUrls": ["https://news.example.cn/nasdaq"],
+        }, {
+            "stockCode": "518880", "exchange": "SH", "name": "黄金ETF",
+            "reason": "金价驱动", "newsDrivers": ["COMEX上涨"],
+            "risks": ["美元反弹"], "sourceUrls": ["https://news.example.cn/gold"],
+        }],
+        "combined": [{
+            "stockCode": "513100", "exchange": "SH", "name": "纳指ETF",
+            "sources": ["system_rank20", "chatgpt_news10"], "systemRank": 3,
+            "rank_score": 2.5, "chatgptResearch": {
+                "reason": "隔夜科技股驱动", "newsDrivers": ["纳指上涨"],
+                "risks": ["高开回落"], "sourceUrls": ["https://news.example.cn/nasdaq"],
+            },
+        }, {
+            "stockCode": "518880", "exchange": "SH", "name": "黄金ETF",
+            "sources": ["chatgpt_news10"],
+            "reason": "金价驱动", "newsDrivers": ["COMEX上涨"],
+            "risks": ["美元反弹"], "sourceUrls": ["https://news.example.cn/gold"],
+        }],
+    }
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        first = archive.archive_document(document, root)
+        second = archive.archive_document(document, root)
+        rows = [_json.loads(line) for line in (root / "selection_history.jsonl").read_text(encoding="utf-8").splitlines()]
+        nasdaq = next(row for row in rows if row["stockCode"] == "513100")
+        gold = next(row for row in rows if row["stockCode"] == "518880")
+        check("T45 archive uses one actual effective-session daily file",
+              first["selectionDate"] == "2026-06-22"
+              and (root / "daily" / "observation_pool_2026-06-22.json").exists(), str(first))
+        check("T45 rerun is idempotent and does not duplicate selections",
+              first["changed"] is True and second["changed"] is False
+              and second["dayCount"] == 1 and second["selectionCount"] == len(rows) == 2, str(second))
+        check("T45 system/news ranks and source provenance are retained",
+              nasdaq["systemRank"] == 3 and nasdaq["chatgptRank"] == 1
+              and nasdaq["sources"] == ["system_rank20", "chatgpt_news10"], str(nasdaq))
+        check("T45 ChatGPT news evidence survives in ETF-level history",
+              gold["chatgptRank"] == 2 and gold["sourceNews"]["reason"] == "金价驱动"
+              and gold["sourceNews"]["sourceUrls"] == ["https://news.example.cn/gold"], str(gold))
+
+        corrected = _copy.deepcopy(document)
+        corrected["combined"][0]["systemRank"] = 1
+        third = archive.archive_document(corrected, root)
+        corrected_rows = [_json.loads(line) for line in (root / "selection_history.jsonl").read_text(encoding="utf-8").splitlines()]
+        corrected_nasdaq = next(row for row in corrected_rows if row["stockCode"] == "513100")
+        check("T45 corrected same-day pool atomically replaces instead of appending",
+              third["changed"] is True and third["dayCount"] == 1 and third["selectionCount"] == 2
+              and third["canonicalUpdated"] is True and corrected_nasdaq["systemRank"] == 1, str(third))
+
+        late = _copy.deepcopy(corrected)
+        late["generatedAt"] = "2026-06-22T10:00:00+08:00"
+        late["combined"][0]["systemRank"] = 9
+        fourth = archive.archive_document(late, root)
+        late_rows = [_json.loads(line) for line in (root / "selection_history.jsonl").read_text(encoding="utf-8").splitlines()]
+        canonical_nasdaq = next(row for row in late_rows if row["stockCode"] == "513100")
+        revisions = list((root / "revisions" / "2026-06-22").glob("*.json"))
+        check("T45 post-open revision is audited without contaminating canonical history",
+              fourth["lateRevisionOnly"] is True and fourth["canonicalUpdated"] is False
+              and canonical_nasdaq["systemRank"] == 1 and len(revisions) == 3, str(fourth))
+
+        unsafe = _copy.deepcopy(document)
+        unsafe["tradeGateEnabled"] = True
+        blocked = False
+        try:
+            archive.archive_document(unsafe, root)
+        except ValueError:
+            blocked = True
+        check("T45 archiver refuses non-research trade-gating documents", blocked)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1836,6 +1928,7 @@ if __name__ == "__main__":
     t42_oos_variance_metrics()
     t43_fail_closed_t0_etf_master()
     t44_point_in_time_opening_research()
+    t45_observation_pool_history_archive()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

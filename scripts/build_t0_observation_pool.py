@@ -26,6 +26,7 @@ from zoneinfo import ZoneInfo
 
 from run_etf_paper_trading_agent import ROOT, load_json
 from select_t0_universe import select_dynamic_universe
+from archive_t0_observation_pool import DEFAULT_HISTORY, archive_document
 
 
 SH = ZoneInfo("Asia/Shanghai")
@@ -263,6 +264,8 @@ def main() -> None:
     ap.add_argument("--chatgpt-file", help="JSON file path, or '-' to read JSON from stdin")
     ap.add_argument("--inbox", help="Used when --chatgpt-file is omitted; defaults to config")
     ap.add_argument("--output-dir", help="Defaults to the directory containing config observation_pool.output")
+    ap.add_argument("--history-dir", default=str(DEFAULT_HISTORY),
+                    help="Point-in-time daily archive and ETF-level history directory")
     args = ap.parse_args()
 
     cfg = load_json(Path(args.config))
@@ -280,10 +283,12 @@ def main() -> None:
     chatgpt_rows, rejected, chatgpt_meta = validate_chatgpt_payload(payload, master, chatgpt_limit)
     document = build_document(system_rows, system_meta, chatgpt_rows, rejected, chatgpt_meta, master_path, source)
     dated, latest = publish(document, out_dir)
+    archive = archive_document(document, Path(args.history_dir), source_path=latest)
     print(json.dumps(document["counts"], ensure_ascii=False))
     print(f"status={document['status']} as_of={document['asOfDate']} effective={document['effectiveSession']}")
     print(f"output={dated}")
     print(f"latest={latest}")
+    print(f"history={archive['dailyFile']} selections={archive['currentDaySelections']} changed={archive['changed']}")
 
 
 if __name__ == "__main__":
