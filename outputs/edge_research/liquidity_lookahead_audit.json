@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "liquidity_lookahead_audit_v1",
+  "generatedAt": "2026-06-20T23:09:36+09:00",
+  "status": "diagnostic_only",
+  "liveReady": false,
+  "formalStrategyAllowed": false,
+  "findings": {
+    "select_t0_universe_live": {
+      "lookahead": false,
+      "reason": "uses the current snapshot cumulative amount and elapsed-session fraction only"
+    },
+    "fetch_yahoo_5m_quotes": {
+      "lookahead": true,
+      "reason": "fullamt[date] is computed from the complete day before the date's opening rows are emitted"
+    },
+    "convert_june_to_quotes": {
+      "lookahead": true,
+      "reason": "full-day amount selects the universe before all intraday decision rows are emitted"
+    },
+    "build_t0_replay_quotes_from_minute_data": {
+      "lookahead": false,
+      "reason": "liquidity threshold is evaluated from each timestamp's cumulative amount/session fraction"
+    }
+  },
+  "safeResearchPath": {
+    "rawCollector": "scripts/fetch_t0_research_quotes.py",
+    "gate": "previous-day ADV >= full-day floor OR current cumulative amount >= floor * elapsed-session fraction",
+    "futureDayTurnoverUsed": false
+  },
+  "overlapDiagnostic": {
+    "rawETFDaySamples": 7978,
+    "selectedByLeakyFullDayGate": 4408,
+    "omittedByLeakyFullDayGate": 3570,
+    "allRawMeanOpenClosePct": -0.1613,
+    "leakySelectedMeanOpenClosePct": -0.1537,
+    "selectionMeanDifferencePct": 0.0076,
+    "interpretation": "descriptive selection effect only; it is not a strategy-PnL correction"
+  },
+  "baselineImpact": {
+    "direction": "potentially_optimistic_and_not_point_in_time_valid",
+    "exactCorrectionAvailable": false,
+    "reason": "the ungated raw 60-day archive does not cover the original full ~500-ETF universe, so -0.11%/+1.61% cannot be honestly restated",
+    "decision": "treat prior baseline levels as method-contaminated diagnostics; rebuild before future opening/intraday claims"
+  }
+}

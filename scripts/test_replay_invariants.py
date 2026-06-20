@@ -1941,6 +1941,24 @@ def t47_i03_group_ablation_isolation() -> None:
           == ablation.get_path(base, "strategy.bracket.risk_per_trade_pct"))
 
 
+def t48_point_in_time_liquidity_gate() -> None:
+    """Research liquidity uses prior ADV/current cumulative amount, never final-day amount."""
+    import research_liquidity_method_audit as audit
+
+    prior, basis, floor = audit.point_in_time_liquidity_gate(
+        cumulative_amount=0, session_fraction=0.1, previous_day_adv=60_000_000)
+    current, current_basis, current_floor = audit.point_in_time_liquidity_gate(
+        cumulative_amount=6_000_000, session_fraction=0.1, previous_day_adv=10_000_000)
+    blocked, _, _ = audit.point_in_time_liquidity_gate(
+        cumulative_amount=4_000_000, session_fraction=0.1, previous_day_adv=10_000_000)
+    check("T48 previous-day ADV is a point-in-time-safe liquidity basis",
+          prior is True and basis == "previous_day_adv" and floor == 5_000_000, str((prior, basis, floor)))
+    check("T48 current cumulative amount uses only elapsed-session scaled floor",
+          current is True and current_basis == "current_cumulative_amount_scaled_by_elapsed_session"
+          and current_floor == 5_000_000, str((current, current_basis, current_floor)))
+    check("T48 gate fails closed when both point-in-time measures are thin", blocked is False)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1987,6 +2005,7 @@ if __name__ == "__main__":
     t45_observation_pool_history_archive()
     t46_overseas_gap_point_in_time()
     t47_i03_group_ablation_isolation()
+    t48_point_in_time_liquidity_gate()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
