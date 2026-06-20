@@ -1702,6 +1702,58 @@ def t42_oos_variance_metrics() -> None:
           str(boot))
 
 
+def t43_fail_closed_t0_etf_master() -> None:
+    """Official subclasses can confirm T+0; names alone never can."""
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+    import build_t0_etf_master as master
+
+    cross_border = master.official_row_to_master({
+        "stockCode": "513100", "name": "Nasdaq ETF", "subClass": "33",
+        "benchmarkIndex": "NASDAQ-100", "benchmarkCode": "NDX",
+    }, {})
+    domestic = master.official_row_to_master({
+        "stockCode": "510300", "name": "CSI 300 ETF", "subClass": "03",
+        "benchmarkIndex": "CSI 300", "benchmarkCode": "000300",
+    }, {})
+    pending = master.pending_row_to_master(
+        {"stockCode": "159509", "name": "纳指科技ETF"}, "SZ", {},
+    )
+    money = master.pending_row_to_master(
+        {"stockCode": "159999", "name": "现金管理货币ETF"}, "SZ", {},
+    )
+    check("T43 official cross-border subclass confirms T0",
+          cross_border["t0_confirmed"] is True and cross_border["t0_status"] == "confirmed",
+          str(cross_border))
+    check("T43 official domestic-equity subclass remains T1",
+          domestic["t0_confirmed"] is False and domestic["t0_status"] == "explicit_t1",
+          str(domestic))
+    check("T43 T0-looking name without product evidence fails closed",
+          pending["t0_confirmed"] is False and pending["t0_status"] == "pending_verification"
+          and pending["asset_class_candidate"] == "cross_border_candidate", str(pending))
+    check("T43 money-like ETF is excluded rather than confirmed",
+          money["is_money_like"] is True and money["t0_status"] == "excluded_money", str(money))
+    check("T43 cash-flow factor name is not mistaken for money ETF",
+          master.is_money_like("现金流因子ETF") is False)
+
+    with tempfile.TemporaryDirectory() as td:
+        quotes = _Path(td) / "quotes.jsonl"
+        rows = [
+            {"timestamp": "2026-06-01T10:00:00+08:00", "stockCode": "513100", "exchange": "SH", "amount": 10.0, "spread_pct": 0.0008},
+            {"timestamp": "2026-06-01T15:00:00+08:00", "stockCode": "513100", "exchange": "SH", "amount": 30.0, "spread_pct": 0.0008},
+            {"timestamp": "2026-06-02T15:00:00+08:00", "stockCode": "513100", "exchange": "SH", "amount": 50.0, "spread_pct": 0.0008},
+        ]
+        quotes.write_text("".join(_json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+        liquidity, meta = master.liquidity_20d(quotes)
+        value = liquidity[("513100", "SH")]
+        check("T43 turnover uses each day's cumulative maximum without look-ahead duplication",
+              value["average_turnover_20d"] == 40.0 and value["turnover_observation_days"] == 2,
+              str(value))
+        check("T43 synthetic Yahoo spread is never promoted as real evidence",
+              value["average_spread"] is None and meta["spread_is_real"] is False, str(value))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1743,6 +1795,7 @@ if __name__ == "__main__":
     t40_external_etf_observation_pool()
     t41_unattended_chatgpt_watchlist_generator()
     t42_oos_variance_metrics()
+    t43_fail_closed_t0_etf_master()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

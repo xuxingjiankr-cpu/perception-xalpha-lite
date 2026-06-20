@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "t0_edge_research_readiness_v1",
+  "generatedAt": "2026-06-20T10:37:42+08:00",
+  "diagnosticOnly": true,
+  "liveReady": false,
+  "formalStrategyAllowed": false,
+  "inputs": {
+    "localUniverse": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\eastmoney\\universe\\eastmoney_universe_etf_20260618.jsonl",
+    "officialSseClassification": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\research\\t0_etf_master\\official\\sse_fund_list_20260620.json",
+    "liquidity": {
+      "available": true,
+      "source": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\outputs\\t0_replay\\yahoo_60d_quotes.jsonl",
+      "rows": 1364461,
+      "trade_dates": 60,
+      "date_start": "2026-03-23",
+      "date_end": "2026-06-18",
+      "instruments_with_turnover": 612,
+      "spread_is_real": false
+    },
+    "realChatgptWatchlistDays": 0,
+    "realChatgptWatchlistFiles": []
+  },
+  "t0Master": {
+    "rows": 1538,
+    "confirmed": 165,
+    "confirmedInLocalNonMoneyUniverse": 131,
+    "confirmedWith20DayTurnover": 84,
+    "explicitT1": 695,
+    "pendingVerification": 654,
+    "excludedMoney": 24,
+    "limitation": "SZSE public list lacks a product-level T+0 class; SZ names remain fail-closed pending verification"
+  },
+  "directions": [
+    {
+      "id": 1,
+      "name": "watchlist effectiveness",
+      "status": "blocked",
+      "evidence": "0 real watchlist days; need point-in-time history"
+    },
+    {
+      "id": 2,
+      "name": "T+0 ETF master",
+      "status": "partial",
+      "evidence": "165 confirmed; 654 pending"
+    },
+    {
+      "id": 3,
+      "name": "cross-market lead signals",
+      "status": "blocked",
+      "evidence": "no timestamp-aligned futures/FX/yield series"
+    },
+    {
+      "id": 4,
+      "name": "premium/discount filter",
+      "status": "blocked",
+      "evidence": "no point-in-time IOPV/NAV series"
+    },
+    {
+      "id": 5,
+      "name": "opening 30 minutes",
+      "status": "partially_ready",
+      "evidence": "60 Yahoo 5-minute days; no validated watchlist split"
+    },
+    {
+      "id": 6,
+      "name": "trend vs mean reversion",
+      "status": "partially_ready",
+      "evidence": "60 days; only officially classified SH instruments can be grouped safely"
+    },
+    {
+      "id": 7,
+      "name": "liquidity/slippage",
+      "status": "partial",
+      "evidence": "20-day turnover available for some instruments; historical spread/depth unavailable"
+    },
+    {
+      "id": 8,
+      "name": "news decay",
+      "status": "blocked",
+      "evidence": "0 real watchlist days"
+    },
+    {
+      "id": 9,
+      "name": "ETF relative strength",
+      "status": "partially_ready",
+      "evidence": "price/turnover usable; theme, premium and news relevance history absent"
+    },
+    {
+      "id": 10,
+      "name": "kill switch",
+      "status": "partial",
+      "evidence": "daily-loss and execution safeguards exist; premium/news/data-source gates require missing inputs"
+    }
+  ],
+  "nextDataActions": [
+    "resolve SZ product-level categories from official fund announcements or a documented exchange field",
+    "accumulate at least 20 point-in-time ChatGPT watchlist trading days",
+    "collect real bid/ask/depth and IOPV/NAV rather than synthetic replay values",
+    "add timestamp-aligned external futures, FX, yields and commodity references"
+  ]
+}
