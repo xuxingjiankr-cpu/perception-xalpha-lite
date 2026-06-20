@@ -1885,6 +1885,32 @@ def t45_observation_pool_history_archive() -> None:
         check("T45 archiver refuses non-research trade-gating documents", blocked)
 
 
+def t46_overseas_gap_point_in_time() -> None:
+    """Overseas daily alignment is strictly prior and rule returns include costs."""
+    import research_overseas_gap as gap
+
+    reference = [
+        {"date": "2026-06-18", "return": 0.01},
+        {"date": "2026-06-19", "return": 0.99},
+    ]
+    match = gap.strictly_prior_return(reference, "2026-06-19")
+    check("T46 same-date overseas daily bar is forbidden",
+          match == ("2026-06-18", 0.01), str(match))
+    row = {
+        "date": "2026-06-19", "code": "513100", "gap": 0.02,
+        "open_close": 0.01, "ref_IXIC": 0.006,
+    }
+    returns = gap.daily_rule_returns([row], "IXIC", 12.0)
+    check("T46 overseas continuation return subtracts round-trip cost",
+          abs(returns["positive_050_continuation"]["2026-06-19"] - 0.0088) < 1e-12,
+          str(returns))
+    pbo = gap.pbo_for_train({"a": {f"d{i}": 1.0 for i in range(8)},
+                             "b": {f"d{i}": 0.0 for i in range(8)}},
+                            [f"d{i}" for i in range(8)])
+    check("T46 overseas candidate search produces an explicit PBO diagnostic",
+          pbo.get("pbo") is not None and pbo.get("n_configs") == 2, str(pbo))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1929,6 +1955,7 @@ if __name__ == "__main__":
     t43_fail_closed_t0_etf_master()
     t44_point_in_time_opening_research()
     t45_observation_pool_history_archive()
+    t46_overseas_gap_point_in_time()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1,0 +1,617 @@
+{
+  "schemaVersion": "overseas_gap_oos_research_v1",
+  "generatedAt": "2026-06-20T21:56:35+08:00",
+  "paperTradingOnly": true,
+  "status": "diagnostic_only",
+  "edgeValidated": false,
+  "liveReady": false,
+  "formalStrategyAllowed": false,
+  "orderSubmitCallsMade": false,
+  "data": {
+    "etfSource": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\research\\t0_opening\\yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "referenceSource": "Yahoo Finance chart 1d",
+    "train": [
+      "2026-03-23",
+      "2026-05-20"
+    ],
+    "oos": [
+      "2026-05-21",
+      "2026-06-18"
+    ],
+    "alignedSamples": 166,
+    "futureDayTurnoverUsed": false
+  },
+  "costModel": {
+    "roundtripBps": 12.0
+  },
+  "alignmentRule": "latest completed overseas exchange-local daily bar with date strictly before A-share date",
+  "premiumFilter": {
+    "available": false,
+    "status": "not_run_missing_point_in_time_iopv"
+  },
+  "results": {
+    "513100": {
+      "primaryReference": "IXIC",
+      "samples": {
+        "train": 36,
+        "oos": 14
+      },
+      "explanation": {
+        "IXIC": {
+          "train": {
+            "samples": 36,
+            "correlation": 0.696,
+            "r_squared": 0.4844
+          },
+          "oos": {
+            "samples": 14,
+            "correlation": 0.8138,
+            "r_squared": 0.6622
+          }
+        },
+        "NQ": {
+          "train": {
+            "samples": 36,
+            "correlation": 0.6952,
+            "r_squared": 0.4833
+          },
+          "oos": {
+            "samples": 14,
+            "correlation": 0.8548,
+            "r_squared": 0.7307
+          }
+        },
+        "SOX": {
+          "train": {
+            "samples": 36,
+            "correlation": 0.5971,
+            "r_squared": 0.3566
+          },
+          "oos": {
+            "samples": 14,
+            "correlation": 0.8541,
+            "r_squared": 0.7295
+          }
+        },
+        "DXY": {
+          "train": {
+            "samples": 36,
+            "correlation": -0.5469,
+            "r_squared": 0.2991
+          },
+          "oos": {
+            "samples": 14,
+            "correlation": -0.3847,
+            "r_squared": 0.148
+          }
+        }
+      },
+      "descriptive": {
+        "oosMeanGapPct": 0.4877,
+        "oosMeanOpenClosePct": 0.4454,
+        "oosMeanOpenHighPct": 1.0886
+      },
+      "rules": {
+        "positive_any_continuation": {
+          "train": {
+            "trades": 23,
+            "mean_pct": -0.0691,
+            "median_pct": -0.0726,
+            "win_rate": 0.3913,
+            "sharpe": -1.3584,
+            "tail_p05_pct": -1.1047
+          },
+          "oos": {
+            "trades": 9,
+            "mean_pct": 0.5626,
+            "median_pct": 0.8402,
+            "win_rate": 0.7778,
+            "sharpe": 6.9015,
+            "tail_p05_pct": -2.158
+          }
+        },
+        "positive_050_continuation": {
+          "train": {
+            "trades": 16,
+            "mean_pct": -0.109,
+            "median_pct": -0.151,
+            "win_rate": 0.375,
+            "sharpe": -2.1566,
+            "tail_p05_pct": -1.1047
+          },
+          "oos": {
+            "trades": 5,
+            "mean_pct": 0.4888,
+            "median_pct": 0.8402,
+            "win_rate": 0.8,
+            "sharpe": 4.5728,
+            "tail_p05_pct": -2.158
+          }
+        },
+        "positive_100_continuation": {
+          "train": {
+            "trades": 12,
+            "mean_pct": 0.1354,
+            "median_pct": 0.0363,
+            "win_rate": 0.5,
+            "sharpe": 2.7924,
+            "tail_p05_pct": -1.0981
+          },
+          "oos": {
+            "trades": 3,
+            "mean_pct": -0.4192,
+            "median_pct": 0.0603,
+            "win_rate": 0.6667,
+            "sharpe": -4.2781,
+            "tail_p05_pct": -2.158
+          }
+        },
+        "negative_any_rebound": {
+          "train": {
+            "trades": 13,
+            "mean_pct": 0.2559,
+            "median_pct": 0.3923,
+            "win_rate": 0.6154,
+            "sharpe": 5.9453,
+            "tail_p05_pct": -1.0081
+          },
+          "oos": {
+            "trades": 5,
+            "mean_pct": -0.1017,
+            "median_pct": -0.3464,
+            "win_rate": 0.4,
+            "sharpe": -1.673,
+            "tail_p05_pct": -1.2882
+          }
+        },
+        "negative_050_rebound": {
+          "train": {
+            "trades": 11,
+            "mean_pct": 0.2359,
+            "median_pct": 0.3923,
+            "win_rate": 0.6364,
+            "sharpe": 5.3644,
+            "tail_p05_pct": -1.0081
+          },
+          "oos": {
+            "trades": 4,
+            "mean_pct": -0.0406,
+            "median_pct": -0.0212,
+            "win_rate": 0.5,
+            "sharpe": -0.5838,
+            "tail_p05_pct": -1.2882
+          }
+        },
+        "positive_050_high_gap_continuation": {
+          "train": {
+            "trades": 12,
+            "mean_pct": 0.1348,
+            "median_pct": 0.0363,
+            "win_rate": 0.5,
+            "sharpe": 2.7777,
+            "tail_p05_pct": -1.1047
+          },
+          "oos": {
+            "trades": 5,
+            "mean_pct": 0.4888,
+            "median_pct": 0.8402,
+            "win_rate": 0.8,
+            "sharpe": 4.5728,
+            "tail_p05_pct": -2.158
+          }
+        }
+      },
+      "trainSelectedRule": "negative_any_rebound",
+      "selectedRuleOOS": {
+        "trades": 5,
+        "mean_pct": -0.1017,
+        "median_pct": -0.3464,
+        "win_rate": 0.4,
+        "sharpe": -1.673,
+        "tail_p05_pct": -1.2882
+      },
+      "pboTrain": {
+        "pbo": 0.6571,
+        "n_splits": 70,
+        "n_configs": 6,
+        "n_blocks": 8,
+        "interpretation": "pbo~0.5 => search is noise (winner does not persist); pbo~0 => dominant config holds out-of-sample"
+      },
+      "dsrOOS": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 14,
+        "n_trials": 6,
+        "reason": "ok",
+        "mean_diff": -0.0004,
+        "std_diff": 0.0054,
+        "sharpe_diff_daily": -0.0676,
+        "t_stat": -0.2528,
+        "selection_bias_t": 0.9674,
+        "deflated_t": -1.2202,
+        "p_value": 0.8888
+      },
+      "statisticalPass": false
+    },
+    "513500": {
+      "primaryReference": "GSPC",
+      "samples": {
+        "train": 37,
+        "oos": 21
+      },
+      "explanation": {
+        "GSPC": {
+          "train": {
+            "samples": 37,
+            "correlation": 0.6183,
+            "r_squared": 0.3822
+          },
+          "oos": {
+            "samples": 21,
+            "correlation": 0.806,
+            "r_squared": 0.6496
+          }
+        },
+        "ES": {
+          "train": {
+            "samples": 37,
+            "correlation": 0.6022,
+            "r_squared": 0.3626
+          },
+          "oos": {
+            "samples": 21,
+            "correlation": 0.8016,
+            "r_squared": 0.6426
+          }
+        },
+        "DXY": {
+          "train": {
+            "samples": 37,
+            "correlation": -0.4943,
+            "r_squared": 0.2443
+          },
+          "oos": {
+            "samples": 21,
+            "correlation": -0.5051,
+            "r_squared": 0.2551
+          }
+        }
+      },
+      "descriptive": {
+        "oosMeanGapPct": 0.2363,
+        "oosMeanOpenClosePct": 0.0239,
+        "oosMeanOpenHighPct": 0.4851
+      },
+      "rules": {
+        "positive_any_continuation": {
+          "train": {
+            "trades": 22,
+            "mean_pct": -0.1141,
+            "median_pct": -0.1181,
+            "win_rate": 0.4091,
+            "sharpe": -2.8887,
+            "tail_p05_pct": -1.4623
+          },
+          "oos": {
+            "trades": 15,
+            "mean_pct": -0.0954,
+            "median_pct": -0.12,
+            "win_rate": 0.4667,
+            "sharpe": -1.7445,
+            "tail_p05_pct": -1.6289
+          }
+        },
+        "positive_050_continuation": {
+          "train": {
+            "trades": 16,
+            "mean_pct": -0.1749,
+            "median_pct": -0.1181,
+            "win_rate": 0.375,
+            "sharpe": -5.1089,
+            "tail_p05_pct": -1.4623
+          },
+          "oos": {
+            "trades": 6,
+            "mean_pct": -0.206,
+            "median_pct": -0.2014,
+            "win_rate": 0.3333,
+            "sharpe": -4.5136,
+            "tail_p05_pct": -1.4539
+          }
+        },
+        "positive_100_continuation": {
+          "train": {
+            "trades": 7,
+            "mean_pct": 0.0753,
+            "median_pct": 0.0532,
+            "win_rate": 0.5714,
+            "sharpe": 2.1744,
+            "tail_p05_pct": -0.6658
+          },
+          "oos": {
+            "trades": 3,
+            "mean_pct": -0.6189,
+            "median_pct": -0.2829,
+            "win_rate": 0.0,
+            "sharpe": -13.5021,
+            "tail_p05_pct": -1.4539
+          }
+        },
+        "negative_any_rebound": {
+          "train": {
+            "trades": 15,
+            "mean_pct": 0.0054,
+            "median_pct": 0.0914,
+            "win_rate": 0.5333,
+            "sharpe": 0.1757,
+            "tail_p05_pct": -1.2621
+          },
+          "oos": {
+            "trades": 6,
+            "mean_pct": -0.0978,
+            "median_pct": -0.12,
+            "win_rate": 0.3333,
+            "sharpe": -4.5373,
+            "tail_p05_pct": -0.4698
+          }
+        },
+        "negative_050_rebound": {
+          "train": {
+            "trades": 5,
+            "mean_pct": 0.2044,
+            "median_pct": 0.3032,
+            "win_rate": 0.6,
+            "sharpe": 8.1983,
+            "tail_p05_pct": -0.2428
+          },
+          "oos": {
+            "trades": 5,
+            "mean_pct": -0.0379,
+            "median_pct": -0.12,
+            "win_rate": 0.4,
+            "sharpe": -1.7399,
+            "tail_p05_pct": -0.4698
+          }
+        },
+        "positive_050_high_gap_continuation": {
+          "train": {
+            "trades": 9,
+            "mean_pct": 0.1147,
+            "median_pct": 0.0532,
+            "win_rate": 0.6667,
+            "sharpe": 4.3371,
+            "tail_p05_pct": -0.3762
+          },
+          "oos": {
+            "trades": 6,
+            "mean_pct": -0.206,
+            "median_pct": -0.2014,
+            "win_rate": 0.3333,
+            "sharpe": -4.5136,
+            "tail_p05_pct": -1.4539
+          }
+        }
+      },
+      "trainSelectedRule": "negative_050_rebound",
+      "selectedRuleOOS": {
+        "trades": 5,
+        "mean_pct": -0.0379,
+        "median_pct": -0.12,
+        "win_rate": 0.4,
+        "sharpe": -1.7399,
+        "tail_p05_pct": -0.4698
+      },
+      "pboTrain": {
+        "pbo": 0.7143,
+        "n_splits": 70,
+        "n_configs": 6,
+        "n_blocks": 8,
+        "interpretation": "pbo~0.5 => search is noise (winner does not persist); pbo~0 => dominant config holds out-of-sample"
+      },
+      "dsrOOS": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 21,
+        "n_trials": 6,
+        "reason": "ok",
+        "mean_diff": -0.0001,
+        "std_diff": 0.0016,
+        "sharpe_diff_daily": -0.058,
+        "t_stat": -0.2659,
+        "selection_bias_t": 0.9674,
+        "deflated_t": -1.2333,
+        "p_value": 0.8913
+      },
+      "statisticalPass": false
+    },
+    "518880": {
+      "primaryReference": "GOLD",
+      "samples": {
+        "train": 37,
+        "oos": 21
+      },
+      "explanation": {
+        "GOLD": {
+          "train": {
+            "samples": 37,
+            "correlation": 0.0095,
+            "r_squared": 0.0001
+          },
+          "oos": {
+            "samples": 21,
+            "correlation": 0.7043,
+            "r_squared": 0.4961
+          }
+        },
+        "DXY": {
+          "train": {
+            "samples": 37,
+            "correlation": -0.2163,
+            "r_squared": 0.0468
+          },
+          "oos": {
+            "samples": 21,
+            "correlation": -0.4008,
+            "r_squared": 0.1607
+          }
+        }
+      },
+      "descriptive": {
+        "oosMeanGapPct": -0.0375,
+        "oosMeanOpenClosePct": -0.1893,
+        "oosMeanOpenHighPct": 0.2321
+      },
+      "rules": {
+        "positive_any_continuation": {
+          "train": {
+            "trades": 17,
+            "mean_pct": -0.2247,
+            "median_pct": -0.3229,
+            "win_rate": 0.4706,
+            "sharpe": -4.3471,
+            "tail_p05_pct": -1.8667
+          },
+          "oos": {
+            "trades": 10,
+            "mean_pct": -0.3122,
+            "median_pct": -0.2517,
+            "win_rate": 0.2,
+            "sharpe": -13.4311,
+            "tail_p05_pct": -0.9386
+          }
+        },
+        "positive_050_continuation": {
+          "train": {
+            "trades": 11,
+            "mean_pct": -0.3144,
+            "median_pct": -0.4924,
+            "win_rate": 0.3636,
+            "sharpe": -4.9649,
+            "tail_p05_pct": -1.8667
+          },
+          "oos": {
+            "trades": 7,
+            "mean_pct": -0.3566,
+            "median_pct": -0.2542,
+            "win_rate": 0.2857,
+            "sharpe": -12.9445,
+            "tail_p05_pct": -0.9386
+          }
+        },
+        "positive_100_continuation": {
+          "train": {
+            "trades": 7,
+            "mean_pct": -0.347,
+            "median_pct": -0.3516,
+            "win_rate": 0.4286,
+            "sharpe": -4.5593,
+            "tail_p05_pct": -1.8667
+          },
+          "oos": {
+            "trades": 4,
+            "mean_pct": -0.1962,
+            "median_pct": -0.1032,
+            "win_rate": 0.5,
+            "sharpe": -6.7068,
+            "tail_p05_pct": -0.8214
+          }
+        },
+        "negative_any_rebound": {
+          "train": {
+            "trades": 20,
+            "mean_pct": -0.1917,
+            "median_pct": -0.2085,
+            "win_rate": 0.35,
+            "sharpe": -5.0299,
+            "tail_p05_pct": -1.1671
+          },
+          "oos": {
+            "trades": 11,
+            "mean_pct": -0.3067,
+            "median_pct": -0.3298,
+            "win_rate": 0.0909,
+            "sharpe": -9.3928,
+            "tail_p05_pct": -1.0099
+          }
+        },
+        "negative_050_rebound": {
+          "train": {
+            "trades": 14,
+            "mean_pct": -0.0563,
+            "median_pct": -0.1727,
+            "win_rate": 0.3571,
+            "sharpe": -1.4767,
+            "tail_p05_pct": -1.1671
+          },
+          "oos": {
+            "trades": 6,
+            "mean_pct": -0.2514,
+            "median_pct": -0.3197,
+            "win_rate": 0.1667,
+            "sharpe": -5.8596,
+            "tail_p05_pct": -1.0099
+          }
+        },
+        "positive_050_high_gap_continuation": {
+          "train": {
+            "trades": 5,
+            "mean_pct": -0.1857,
+            "median_pct": -0.6189,
+            "win_rate": 0.4,
+            "sharpe": -4.0097,
+            "tail_p05_pct": -0.8599
+          },
+          "oos": {
+            "trades": 3,
+            "mean_pct": -0.3166,
+            "median_pct": -0.2542,
+            "win_rate": 0.3333,
+            "sharpe": -8.471,
+            "tail_p05_pct": -0.9386
+          }
+        }
+      },
+      "trainSelectedRule": "negative_050_rebound",
+      "selectedRuleOOS": {
+        "trades": 6,
+        "mean_pct": -0.2514,
+        "median_pct": -0.3197,
+        "win_rate": 0.1667,
+        "sharpe": -5.8596,
+        "tail_p05_pct": -1.0099
+      },
+      "pboTrain": {
+        "pbo": 0.4857,
+        "n_splits": 70,
+        "n_configs": 6,
+        "n_blocks": 8,
+        "interpretation": "pbo~0.5 => search is noise (winner does not persist); pbo~0 => dominant config holds out-of-sample"
+      },
+      "dsrOOS": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 21,
+        "n_trials": 6,
+        "reason": "ok",
+        "mean_diff": -0.0007,
+        "std_diff": 0.0036,
+        "sharpe_diff_daily": -0.1996,
+        "t_stat": -0.9147,
+        "selection_bias_t": 0.9674,
+        "deflated_t": -1.8821,
+        "p_value": 0.9701
+      },
+      "statisticalPass": false
+    }
+  },
+  "promotion": {
+    "statisticalRulesPass": false,
+    "premiumGatePass": false,
+    "passed": false,
+    "reason": "point-in-time IOPV/premium history unavailable"
+  },
+  "conclusion": "No promotable edge: statistical results are diagnostic and the required premium gate cannot be tested."
+}
