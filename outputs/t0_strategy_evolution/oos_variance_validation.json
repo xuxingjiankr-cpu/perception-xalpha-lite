@@ -1,0 +1,343 @@
+{
+  "schema_version": "oos_variance_validation_v1",
+  "paper_trading_only": true,
+  "diagnostic_only": true,
+  "live_ready": false,
+  "formal_strategy_allowed": false,
+  "split": {
+    "training": [
+      "2026-03-23",
+      "2026-05-20"
+    ],
+    "oos_test": [
+      "2026-05-21",
+      "2026-06-18"
+    ],
+    "oos_days": 21,
+    "optimizer_saw_oos": false
+  },
+  "status": "oos_lower_variance_supported",
+  "passing_candidates": [
+    "i03"
+  ],
+  "metrics": {
+    "baseline": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 13822.8,
+      "daily_mean": 658.23,
+      "daily_std_sample": 4324.56,
+      "worst_day_pnl": -6868.6,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 12,
+      "losing_days": 9,
+      "zero_days": 0,
+      "winning_day_rate": 0.5714,
+      "max_cumulative_drawdown": -12923.8,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2160.56,
+        "daily_mean": 102.88,
+        "daily_std_sample": 4373.33,
+        "worst_day_pnl": -7376.39,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -14565.69
+      }
+    },
+    "i01": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 14978.6,
+      "daily_mean": 713.27,
+      "daily_std_sample": 4440.01,
+      "worst_day_pnl": -7666.0,
+      "worst_day_date": "2026-05-21",
+      "winning_days": 12,
+      "losing_days": 9,
+      "zero_days": 0,
+      "winning_day_rate": 0.5714,
+      "max_cumulative_drawdown": -8431.0,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 4483.13,
+        "daily_mean": 213.48,
+        "daily_std_sample": 4425.31,
+        "worst_day_pnl": -8257.38,
+        "worst_day_date": "2026-05-21",
+        "winning_days": 10,
+        "losing_days": 11,
+        "zero_days": 0,
+        "winning_day_rate": 0.4762,
+        "max_cumulative_drawdown": -10246.87
+      }
+    },
+    "i02": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 9505.2,
+      "daily_mean": 452.63,
+      "daily_std_sample": 3869.64,
+      "worst_day_pnl": -7915.7,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 11,
+      "losing_days": 10,
+      "zero_days": 0,
+      "winning_day_rate": 0.5238,
+      "max_cumulative_drawdown": -14612.7,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": -2301.26,
+        "daily_mean": -109.58,
+        "daily_std_sample": 3934.48,
+        "worst_day_pnl": -8508.81,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 9,
+        "losing_days": 12,
+        "zero_days": 0,
+        "winning_day_rate": 0.4286,
+        "max_cumulative_drawdown": -16230.67
+      }
+    },
+    "i03": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 12923.9,
+      "daily_mean": 615.42,
+      "daily_std_sample": 3273.35,
+      "worst_day_pnl": -4958.5,
+      "worst_day_date": "2026-06-11",
+      "winning_days": 11,
+      "losing_days": 10,
+      "zero_days": 0,
+      "winning_day_rate": 0.5238,
+      "max_cumulative_drawdown": -10888.4,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": 2099.66,
+        "daily_mean": 99.98,
+        "daily_std_sample": 3325.31,
+        "worst_day_pnl": -5805.11,
+        "worst_day_date": "2026-06-11",
+        "winning_days": 10,
+        "losing_days": 11,
+        "zero_days": 0,
+        "winning_day_rate": 0.4762,
+        "max_cumulative_drawdown": -14346.75
+      }
+    },
+    "i05": {
+      "start_date": "2026-05-21",
+      "end_date": "2026-06-18",
+      "n_days": 21,
+      "total_pnl": 344.3,
+      "daily_mean": 16.4,
+      "daily_std_sample": 3566.21,
+      "worst_day_pnl": -7308.4,
+      "worst_day_date": "2026-06-10",
+      "winning_days": 9,
+      "losing_days": 12,
+      "zero_days": 0,
+      "winning_day_rate": 0.4286,
+      "max_cumulative_drawdown": -13690.9,
+      "net_12bps": {
+        "start_date": "2026-05-21",
+        "end_date": "2026-06-18",
+        "n_days": 21,
+        "total_pnl": -12277.99,
+        "daily_mean": -584.67,
+        "daily_std_sample": 3609.85,
+        "worst_day_pnl": -7930.77,
+        "worst_day_date": "2026-06-10",
+        "winning_days": 8,
+        "losing_days": 13,
+        "zero_days": 0,
+        "winning_day_rate": 0.381,
+        "max_cumulative_drawdown": -19135.48
+      }
+    }
+  },
+  "comparisons_vs_baseline": {
+    "i01": {
+      "total_pnl_delta": 1155.8,
+      "daily_std_delta": 115.45,
+      "daily_std_reduction_pct": -2.67,
+      "worst_day_improvement": -797.4,
+      "max_drawdown_improvement": 4492.8,
+      "lower_daily_std": false,
+      "better_worst_day": false,
+      "bootstrap_std_supported": false,
+      "defensible_lower_variance_pass": false,
+      "bootstrap": {
+        "method": "paired_circular_block_bootstrap",
+        "reps": 10000,
+        "block_length_days": 5,
+        "seed": 20260620,
+        "daily_std_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -1126.1,
+            1145.31
+          ],
+          "probability_candidate_lower": 0.4352
+        },
+        "max_drawdown_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -6068.7,
+            11620.3
+          ],
+          "probability_candidate_less_severe": 0.6055
+        },
+        "total_pnl_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -11076.4,
+            13970.5
+          ],
+          "probability_candidate_higher": 0.5651
+        }
+      }
+    },
+    "i02": {
+      "total_pnl_delta": -4317.6,
+      "daily_std_delta": -454.92,
+      "daily_std_reduction_pct": 10.52,
+      "worst_day_improvement": -1047.1,
+      "max_drawdown_improvement": -1688.9,
+      "lower_daily_std": true,
+      "better_worst_day": false,
+      "bootstrap_std_supported": false,
+      "defensible_lower_variance_pass": false,
+      "bootstrap": {
+        "method": "paired_circular_block_bootstrap",
+        "reps": 10000,
+        "block_length_days": 5,
+        "seed": 20260620,
+        "daily_std_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -1515.39,
+            255.68
+          ],
+          "probability_candidate_lower": 0.773
+        },
+        "max_drawdown_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -5231.4,
+            2387.6
+          ],
+          "probability_candidate_less_severe": 0.3031
+        },
+        "total_pnl_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -13888.7,
+            4244.6
+          ],
+          "probability_candidate_higher": 0.1816
+        }
+      }
+    },
+    "i03": {
+      "total_pnl_delta": -898.9,
+      "daily_std_delta": -1051.21,
+      "daily_std_reduction_pct": 24.31,
+      "worst_day_improvement": 1910.1,
+      "max_drawdown_improvement": 2035.4,
+      "lower_daily_std": true,
+      "better_worst_day": true,
+      "bootstrap_std_supported": true,
+      "defensible_lower_variance_pass": true,
+      "bootstrap": {
+        "method": "paired_circular_block_bootstrap",
+        "reps": 10000,
+        "block_length_days": 5,
+        "seed": 20260620,
+        "daily_std_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -1961.06,
+            -271.92
+          ],
+          "probability_candidate_lower": 0.998
+        },
+        "max_drawdown_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -2837.7,
+            8708.7
+          ],
+          "probability_candidate_less_severe": 0.8383
+        },
+        "total_pnl_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -13679.5,
+            11324.4
+          ],
+          "probability_candidate_higher": 0.4465
+        }
+      }
+    },
+    "i05": {
+      "total_pnl_delta": -13478.5,
+      "daily_std_delta": -758.35,
+      "daily_std_reduction_pct": 17.54,
+      "worst_day_improvement": -439.8,
+      "max_drawdown_improvement": -767.1,
+      "lower_daily_std": true,
+      "better_worst_day": false,
+      "bootstrap_std_supported": true,
+      "defensible_lower_variance_pass": false,
+      "bootstrap": {
+        "method": "paired_circular_block_bootstrap",
+        "reps": 10000,
+        "block_length_days": 5,
+        "seed": 20260620,
+        "daily_std_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -1238.02,
+            -229.13
+          ],
+          "probability_candidate_lower": 0.9982
+        },
+        "max_drawdown_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -11174.2,
+            727.6
+          ],
+          "probability_candidate_less_severe": 0.1045
+        },
+        "total_pnl_difference_candidate_minus_baseline": {
+          "ci_95": [
+            -23477.8,
+            -3793.6
+          ],
+          "probability_candidate_higher": 0.0023
+        }
+      }
+    }
+  },
+  "frozen_config_sha256": {
+    "baseline": "02aad426b990aab66b113db63949247569e9935e000923bfa60b24b74ba7deed",
+    "i01": "fb3e86c9da2b692fa3a41813e68d6233abcd7503a2ff811080620bb744d00fda",
+    "i02": "2987310d082e3873de065508afdd1ed850dad959207269efb826bf0014ee72c0",
+    "i03": "7e08fc15ae965560c67ae663fe4af903f6565bf054a7bd2c73d436c814c2f49a",
+    "i05": "3165fa7c33675cbe3b9495d790428a56dde2fdc71d689163732a7fae273328fe"
+  },
+  "decision": {
+    "lower_variance_direction_supported": true,
+    "preferred_candidate_for_evidence": "i03",
+    "recommendation": "freeze the lower-variance hypothesis; optimize future research for risk-adjusted return/drawdown, then validate on new post-2026-06-18 data",
+    "new_evolution_started": false,
+    "new_evolution_reason": "the OOS set has now been used to choose the lower-variance objective; reusing it would contaminate validation"
+  }
+}

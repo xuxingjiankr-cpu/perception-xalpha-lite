@@ -1682,6 +1682,26 @@ def t41_unattended_chatgpt_watchlist_generator() -> None:
               reread == payload and leftovers == [], str(leftovers))
 
 
+def t42_oos_variance_metrics() -> None:
+    """OOS variance helpers measure downside and paired uncertainty without side effects."""
+    import analyze_oos_variance as variance
+
+    values = {"2026-06-01": 100.0, "2026-06-02": -50.0, "2026-06-03": -100.0, "2026-06-04": 200.0}
+    row = variance.metrics(values)
+    check("T42 OOS metrics identify worst day and winning-day count",
+          row["worst_day_pnl"] == -100.0 and row["worst_day_date"] == "2026-06-03"
+          and row["winning_days"] == 2, str(row))
+    check("T42 cumulative drawdown uses chronological equity",
+          variance.max_cumulative_drawdown(list(values.values())) == -150.0, str(row))
+    baseline = [100.0, -100.0, 100.0, -100.0, 100.0, -100.0]
+    candidate = [20.0, -20.0, 20.0, -20.0, 20.0, -20.0]
+    boot = variance.paired_block_bootstrap(baseline, candidate, reps=500, block_length=2, seed=7)
+    check("T42 paired bootstrap detects planted lower variance",
+          boot["daily_std_difference_candidate_minus_baseline"]["ci_95"][1] < 0
+          and boot["daily_std_difference_candidate_minus_baseline"]["probability_candidate_lower"] > 0.99,
+          str(boot))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1722,6 +1742,7 @@ if __name__ == "__main__":
     t31_early_entry_daily_accumulation()
     t40_external_etf_observation_pool()
     t41_unattended_chatgpt_watchlist_generator()
+    t42_oos_variance_metrics()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
