@@ -1562,6 +1562,58 @@ def t31_early_entry_daily_accumulation() -> None:
               all(path.exists() for path in paths.values()), str(paths))
 
 
+def t40_external_etf_observation_pool() -> None:
+    """ChatGPT news picks are locally validated, capped and deduplicated with system-20."""
+    import build_t0_observation_pool as pool
+
+    master = {
+        ("510300", "SH"): {"stockCode": "510300", "market": "1", "name": "沪深300ETF"},
+        ("159915", "SZ"): {"stockCode": "159915", "market": "0", "name": "创业板ETF"},
+        ("512480", "SH"): {"stockCode": "512480", "market": "1", "name": "半导体ETF"},
+    }
+    payload = {
+        "schemaVersion": "chatgpt_etf_watchlist_v1",
+        "asOfDate": "2026-06-21",
+        "effectiveDate": "2026-06-22",
+        "generatedAt": "2026-06-21T20:00:00+08:00",
+        "etfs": [
+            {"stockCode": "510300", "exchange": "SH", "reason": "政策新闻驱动",
+             "sourceUrls": ["https://example.com/a"], "risks": ["消息兑现"]},
+            {"stockCode": "159915", "exchange": "SZ", "reason": "行业新闻驱动",
+             "sourceUrls": ["https://example.com/b"]},
+            {"stockCode": "511990", "exchange": "SH", "reason": "货币基金不应进入",
+             "sourceUrls": ["https://example.com/c"]},
+            {"stockCode": "512480", "exchange": "SH", "reason": "缺少来源应拒绝", "sourceUrls": []},
+        ],
+    }
+    accepted, rejected, meta = pool.validate_chatgpt_payload(payload, master, limit=10, today="2026-06-20")
+    check("T40 receiver accepts only locally known non-money ETFs with sourced reasons",
+          [x["stockCode"] for x in accepted] == ["510300", "159915"], str(accepted))
+    check("T40 receiver rejects absent/money-master and unsourced entries",
+          [x["reason"] for x in rejected] == ["not_in_local_non_money_etf_master", "missing_source_url"],
+          str(rejected))
+    system = [
+        {"stockCode": "510300", "exchange": "SH", "name": "沪深300ETF", "rank_score": 2.0},
+        {"stockCode": "512480", "exchange": "SH", "name": "半导体ETF", "rank_score": 1.0},
+    ]
+    combined, overlaps = pool.merge_observation_pool(system, accepted)
+    keys = [(x["stockCode"], x["exchange"]) for x in combined]
+    overlap = next(x for x in combined if x["stockCode"] == "510300")
+    check("T40 system/chatgpt overlap is one composite code", overlaps == 1 and len(keys) == len(set(keys)) == 3,
+          str(keys))
+    check("T40 overlap retains both provenance labels and research", overlap.get("sources") == ["system_rank20", "chatgpt_news10"]
+          and "chatgptResearch" in overlap, str(overlap))
+    doc = pool.build_document(system, {"trade_date": "2026-06-18"}, accepted, rejected, meta,
+                              ROOT / "non_money_master.jsonl", "test.json")
+    check("T40 observation pool cannot become a trade gate",
+          doc.get("paperTradingOnly") is True and doc.get("diagnosticOnly") is True
+          and doc.get("tradeGateEnabled") is False and doc.get("liveReady") is False
+          and doc.get("formalStrategyAllowed") is False, str(doc))
+    stale, stale_rejected, _ = pool.validate_chatgpt_payload(payload, master, limit=10, today="2026-06-23")
+    check("T40 expired news list fails closed instead of being reused",
+          stale == [] and stale_rejected[0].get("reason") == "stale_effective_date", str(stale_rejected))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1600,6 +1652,7 @@ if __name__ == "__main__":
     t28_layered_backtest_pipeline()
     t29_holdings_calibration_classification()
     t31_early_entry_daily_accumulation()
+    t40_external_etf_observation_pool()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

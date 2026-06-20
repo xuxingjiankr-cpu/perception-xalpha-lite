@@ -18,6 +18,14 @@ function Write-SuiteLog {
 }
 
 Write-SuiteLog "research suite start"
+$observationPool = Join-Path $Root "scripts\build_t0_observation_pool.py"
+try {
+    Write-SuiteLog "build next-session ETF observation pool (system 20 + validated ChatGPT inbox)"
+    py -3.13 $observationPool 2>&1 | ForEach-Object { Write-SuiteLog $_ }
+}
+catch {
+    Write-SuiteLog "ERROR build_t0_observation_pool.py : $($_.Exception.Message)"
+}
 $scripts = @(
     "research_early_entry.py",
     "research_lead_lag.py",

@@ -42,6 +42,15 @@
     "name_exclude_keywords": ["货币", "现金", "理财"],
     "exclude_codes": []
   },
+  "observation_pool": {
+    "enabled": true,
+    "shadow_only": true,
+    "trade_gate_enabled": false,
+    "system_limit": 20,
+    "chatgpt_limit": 10,
+    "inbox": "data/research/chatgpt_etf_watchlist/inbox",
+    "output": "outputs/t0_observation_pool/latest_observation_pool.json"
+  },
   "sector_diversification": {
     "enabled": true,
     "max_per_sector": 2,
