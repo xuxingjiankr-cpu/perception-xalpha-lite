@@ -1985,6 +1985,43 @@ def t49_l4_forward_preregistration() -> None:
           and criteria["maximumPbo"] == 0.25, str(criteria))
 
 
+def t50_l4_forward_shadow_pipeline() -> None:
+    """Forward ledger is idempotent and refuses conclusions before twenty days."""
+    import tempfile
+    from pathlib import Path as _Path
+    import run_l4_forward_validation as forward
+
+    summary = {"per_day": {"2026-06-19": {"pnl": 100.0, "gross_pnl": 100.0,
+                                             "buy_notional": 10000.0, "sell_notional": 10100.0}},
+               "trades": [{"trade_date": "2026-06-19", "pnl": -50.0},
+                          {"trade_date": "2026-06-19", "pnl": 150.0}]}
+    metric = forward.day_metrics(summary, "2026-06-19")
+    check("T50 daily forward metric includes trade dispersion/worst trade/net costs",
+          metric["trade_pnl_std"] > 0 and metric["worst_trade_pnl"] == -50.0
+          and metric["net_12bps"] == 87.94, str(metric))
+    with tempfile.TemporaryDirectory() as td:
+        ledger = _Path(td) / "ledger.jsonl"
+        row = {"tradeDate": "2026-06-19", "baseline": metric, "candidate": metric}
+        first = forward.upsert_day(row, ledger)
+        second = forward.upsert_day({**row, "recordedAt": "later-rerun"}, ledger)
+        check("T50 ledger keeps one idempotent slot per forward date",
+              first is True and second is False and len(forward.read_ledger(ledger)) == 1)
+    thin = [{"tradeDate": f"2026-07-{day:02d}",
+             "baseline": {"net_12bps": float(day)}, "candidate": {"net_12bps": float(day) * 0.8}}
+            for day in range(1, 20)]
+    verdict = forward.build_verdict(thin)
+    check("T50 nineteen forward days cannot produce an L4 conclusion",
+          verdict["status"] == "diagnostic_only" and verdict["decision"] == "insufficient_forward_days"
+          and verdict["recommendLive"] is False and verdict["daysRemaining"] == 1, str(verdict))
+    enough = thin + [{"tradeDate": "2026-07-20", "baseline": {"net_12bps": 20.0},
+                      "candidate": {"net_12bps": 16.0}}]
+    evaluated = forward.build_verdict(enough)
+    check("T50 twenty days run locked DM/DSR/PBO gates without auto-deployment",
+          evaluated["status"] == "forward_validation_complete"
+          and all(key in evaluated for key in ("dm", "dsr", "pbo", "gates"))
+          and evaluated["recommendLive"] is False, str(evaluated))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2033,6 +2070,7 @@ if __name__ == "__main__":
     t47_i03_group_ablation_isolation()
     t48_point_in_time_liquidity_gate()
     t49_l4_forward_preregistration()
+    t50_l4_forward_shadow_pipeline()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
