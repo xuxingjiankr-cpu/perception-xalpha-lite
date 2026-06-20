@@ -1614,6 +1614,74 @@ def t40_external_etf_observation_pool() -> None:
           stale == [] and stale_rejected[0].get("reason") == "stale_effective_date", str(stale_rejected))
 
 
+def t41_unattended_chatgpt_watchlist_generator() -> None:
+    """Daily generator is calendar-aware, strict, atomic and research-only."""
+    import copy as _copy
+    import json as _json
+    import tempfile
+    from datetime import date as _date
+    from pathlib import Path as _Path
+    import generate_chatgpt_etf_watchlist as gen
+
+    weekend = gen.market_day_context(_date(2026, 6, 20))
+    session = gen.market_day_context(_date(2026, 6, 22))
+    check("T41 XSHG calendar skips the Dragon Boat/weekend closure",
+          weekend["is_trading_day"] is False and weekend["effective_date"] == "2026-06-22", str(weekend))
+    check("T41 next XSHG session is recognized",
+          session["is_trading_day"] is True and session["previous_session"] == "2026-06-18", str(session))
+
+    master = {}
+    etfs = []
+    for index in range(10):
+        code = f"51{index:04d}"
+        key = (code, "SH")
+        master[key] = {"stockCode": code, "exchange": "SH", "name": f"行业ETF{index}"}
+        etfs.append({
+            "stockCode": code, "exchange": "SH", "name": f"行业ETF{index}",
+            "reason": f"新闻驱动{index}", "newsDrivers": [f"驱动{index}"],
+            "risks": [f"风险{index}"], "sourceUrls": [f"https://news{index}.example.cn/item"],
+        })
+    payload = {
+        "schemaVersion": gen.SCHEMA_VERSION,
+        "asOfDate": "2026-06-22", "effectiveDate": "2026-06-22",
+        "generatedAt": "2026-06-22T08:30:00+08:00", "etfs": etfs,
+    }
+    clean, errors = gen.validate_payload(payload, master=master, context=session, verify_urls=False)
+    check("T41 valid trading-day payload requires exactly ten verified local ETFs",
+          clean is not None and len(clean["etfs"]) == 10 and errors == [], str(errors))
+
+    duplicate = _copy.deepcopy(payload)
+    duplicate["etfs"][-1]["stockCode"] = duplicate["etfs"][0]["stockCode"]
+    _, duplicate_errors = gen.validate_payload(duplicate, master=master, context=session, verify_urls=False)
+    check("T41 duplicate stockCode fails closed",
+          any("duplicate_stock_code" in str(x.get("reason")) for x in duplicate_errors), str(duplicate_errors))
+
+    money = _copy.deepcopy(payload)
+    money["etfs"][0]["name"] = "现金管理货币ETF"
+    _, money_errors = gen.validate_payload(money, master=master, context=session, verify_urls=False)
+    check("T41 money/cash-management ETF name fails closed",
+          any("forbidden_money_or_cash_management_etf" in str(x.get("reason")) for x in money_errors), str(money_errors))
+
+    empty = {**payload, "asOfDate": weekend["as_of_date"], "effectiveDate": weekend["effective_date"],
+             "generatedAt": "2026-06-20T08:30:00+08:00", "etfs": []}
+    clean_empty, empty_errors = gen.validate_payload(empty, master=master, context=weekend, verify_urls=False)
+    check("T41 non-session payload permits an empty ETF list",
+          clean_empty is not None and clean_empty["etfs"] == [] and empty_errors == [], str(empty_errors))
+
+    schema = gen.response_json_schema()["properties"]["etfs"]
+    check("T41 API structured-output schema fixes list size at ten",
+          schema.get("minItems") == schema.get("maxItems") == 10 and gen.source_url_syntax_ok("https://news.cn/a")
+          and not gen.source_url_syntax_ok("https://example.com/fake"), str(schema))
+
+    with tempfile.TemporaryDirectory() as td:
+        target = _Path(td) / "2026-06-22.json"
+        gen.atomic_write_json(target, payload)
+        reread = _json.loads(target.read_text(encoding="utf-8"))
+        leftovers = list(_Path(td).glob("*.tmp"))
+        check("T41 atomic UTF-8 write re-parses without temp remnants",
+              reread == payload and leftovers == [], str(leftovers))
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -1653,6 +1721,7 @@ if __name__ == "__main__":
     t29_holdings_calibration_classification()
     t31_early_entry_daily_accumulation()
     t40_external_etf_observation_pool()
+    t41_unattended_chatgpt_watchlist_generator()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
