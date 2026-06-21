@@ -121,14 +121,25 @@ def compute_audit_flags(ctx: dict[str, Any]) -> tuple[str, str, list[str]]:
 # --- sub-score helpers: each returns (score, reason) -------------------------------
 
 def _market_regime(ctx: dict[str, Any]) -> tuple[float, str]:
+    # Prefer cross-sectional BREADTH (fraction of names up) -- always available at decision
+    # time, independent of whether the correlation-stress gate is enabled in the config.
+    breadth = ctx.get("market_breadth_up_frac")
+    if breadth is not None:
+        breadth = float(breadth)
+        if breadth >= 0.60:
+            return 18.0, f"strong breadth: {breadth*100:.0f}% of ranked names up -> supportive"
+        if breadth >= 0.45:
+            return 12.0, f"mixed breadth: {breadth*100:.0f}% up -> neutral"
+        if breadth >= 0.30:
+            return 7.0, f"soft breadth: {breadth*100:.0f}% up -> cautious"
+        return 3.0, f"weak breadth: {breadth*100:.0f}% up -> risk-off"
     regime = str(ctx.get("market_regime") or "unknown")
-    breadth_ok = ctx.get("broad_market_not_declining")
     corr_ok = ctx.get("correlation_stress_ok")
-    if regime in ("trend_up",) or (breadth_ok and corr_ok):
-        return 17.0, f"regime={regime}; breadth supportive, correlation not stressed"
-    if regime in ("chop", "neutral") or breadth_ok:
-        return 11.0, f"regime={regime}; neutral/mixed market"
-    return 4.0, f"regime={regime}; weak or stressed market (breadth_ok={breadth_ok}, corr_ok={corr_ok})"
+    if regime == "trend_up":
+        return 17.0, f"regime={regime}; supportive"
+    if ctx.get("broad_market_not_declining") is False or corr_ok is False:
+        return 4.0, f"regime={regime}; weak/stressed market"
+    return 11.0, f"regime={regime}; no breadth signal -> neutral default"
 
 
 def _relative_strength(ctx: dict[str, Any]) -> tuple[float, str]:
@@ -180,8 +191,10 @@ def _execution(ctx: dict[str, Any]) -> tuple[float, str]:
     style = str(ctx.get("execution_style") or "")
     spread = ctx.get("spread_pct")
     has_stop = ctx.get("has_stop")
-    if ctx.get("execution_optimistic") or ctx.get("same_snapshot_fill"):
-        return 2.0, "execution model optimistic/same-snapshot -> low trust"
+    if ctx.get("same_snapshot_fill"):
+        # replay fills at the decision snapshot: execution is genuinely NOT assessable,
+        # so score it NEUTRAL (not a floor) -- otherwise it just lowers every backtest score.
+        return 5.0, "execution not assessable under same-snapshot replay fills (neutral)"
     if spread is not None and float(spread) <= 0.0015 and (style == "passive" or has_stop):
         return 9.0, f"clean fillability ({style or 'n/a'}), tight spread, stop defined"
     if spread is not None and float(spread) <= 0.004:
@@ -299,6 +312,72 @@ def classify_mistake(rec: dict[str, Any]) -> str:
     return "UNKNOWN"
 
 
+def _minute_of(timestamp: str) -> int | None:
+    try:
+        hh, mm = str(timestamp).split(":")[:2]
+        return int(hh) * 60 + int(mm)
+    except Exception:
+        return None
+
+
+def build_price_index(quotes_path: Path) -> tuple[dict, dict]:
+    """From a minute-quote JSONL build code -> {date -> {minute: price}} and code ->
+    {date -> close}. Used to compute forward outcomes for scored decisions."""
+    by: dict[str, dict[str, dict[int, float]]] = {}
+    for line in Path(quotes_path).open(encoding="utf-8"):
+        try:
+            q = json.loads(line)
+        except Exception:
+            continue
+        code = str(q.get("stockCode", "")).zfill(6)
+        ts = str(q.get("timestamp", ""))
+        price = as_float(q.get("currentPrice"), 0.0)
+        if not code or len(ts) < 16 or price <= 0:
+            continue
+        minute = _minute_of(ts[11:16])
+        if minute is None:
+            continue
+        by.setdefault(code, {}).setdefault(ts[:10], {})[minute] = price
+    closes: dict[str, dict[str, float]] = {}
+    for code, days in by.items():
+        closes[code] = {d: mm[max(mm)] for d, mm in days.items() if mm}
+    return by, closes
+
+
+def enrich_from_quotes(records: list[dict[str, Any]], quotes_path: Path) -> list[dict[str, Any]]:
+    """Fill outcome fields for each decision from the quote series: entry_price, MAE/MFE
+    and intraday realized_return (side-adjusted: BUY/HOLD profit if up, SELL/SKIP profit if
+    down), plus raw forward closes return_1d/3d/5d/10d, was_profitable, mistake_type."""
+    by, closes = build_price_index(quotes_path)
+    for r in records:
+        code, date = str(r.get("etf_code") or "").zfill(6), str(r.get("date"))
+        minute = _minute_of(str(r.get("timestamp") or ""))
+        daymap = by.get(code, {}).get(date)
+        if not code or minute is None or not daymap:
+            continue
+        entry = None
+        for m in sorted(daymap):
+            if m <= minute:
+                entry = daymap[m]
+        fwd_path = [daymap[m] for m in sorted(daymap) if m >= minute]
+        if not entry or entry <= 0 or not fwd_path:
+            continue
+        side = 1.0 if str(r.get("decision_type")) in ("BUY", "HOLD") else -1.0
+        r["entry_price"] = round(entry, 4)
+        r["max_favorable_excursion"] = round(max(fwd_path) / entry - 1.0, 5)
+        r["max_adverse_excursion"] = round(min(fwd_path) / entry - 1.0, 5)
+        r["realized_return"] = round(side * (fwd_path[-1] / entry - 1.0), 5)
+        r["was_profitable"] = r["realized_return"] > 0
+        code_dates = sorted(closes.get(code, {}))
+        if date in code_dates:
+            i = code_dates.index(date)
+            for nd, field in ((1, "return_1d"), (3, "return_3d"), (5, "return_5d"), (10, "return_10d")):
+                if i + nd < len(code_dates):
+                    r[field] = round(closes[code][code_dates[i + nd]] / entry - 1.0, 5)
+        r["mistake_type"] = classify_mistake(r)
+    return records
+
+
 def write_scores(records: list[dict[str, Any]], date: str, out_dir: Path = OUT_DIR) -> tuple[Path, Path]:
     """Append/write the day's decision scores to JSONL and CSV. Idempotent per call
     (overwrites the day file). Returns (jsonl_path, csv_path)."""
@@ -345,11 +424,15 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     pct = (pos / n) if pos is not None else None
     sector = decision.get("sector_diversification", {}) if isinstance(decision.get("sector_diversification"), dict) else {}
     held_counts = sector.get("held_sector_counts", {}) if isinstance(sector.get("held_sector_counts"), dict) else {}
+    # cross-sectional breadth = fraction of ranked names up (regime signal, always present)
+    ups = sum(1 for q in ranked if as_float(q.get("change_pct"), 0) > 0 or as_float(q.get("momentum"), 0) > 0)
+    breadth = (ups / len(ranked)) if ranked else None
     return {
         "decision_id": f"{trade_date}_{timestamp}_{code or action}",
         "date": trade_date, "timestamp": timestamp,
         "etf_code": code, "etf_name": (best or {}).get("name"),
         "decision_type": decision_type,
+        "market_breadth_up_frac": breadth,
         "signal_name": sm.get("reason"), "decision_reason": sm.get("reason"),
         "market_regime": (decision.get("market_correlation_stress", {}) or {}).get("regime")
                          or ("stress" if (decision.get("market_correlation_stress", {}) or {}).get("stressed") else "neutral"),

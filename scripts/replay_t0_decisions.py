@@ -849,12 +849,15 @@ def main() -> None:
         try:
             import decision_scoring as _ds
             from collections import defaultdict as _dd
+            _ds.enrich_from_quotes(decision_score_records, Path(args.quotes))  # fill forward outcomes
             by_date: dict[str, list[dict[str, Any]]] = _dd(list)
             for r in decision_score_records:
                 by_date[str(r.get("date"))].append(r)
             for d, recs in by_date.items():
                 _ds.write_scores(recs, d)
-            print(f"decision_scores: wrote {len(decision_score_records)} records across {len(by_date)} day(s)")
+            _enriched = sum(1 for r in decision_score_records if r.get("realized_return") is not None)
+            print(f"decision_scores: wrote {len(decision_score_records)} records "
+                  f"({_enriched} with outcomes) across {len(by_date)} day(s)")
         except Exception as _e:
             print(f"decision_scores: skipped ({_e})")
     summary = {

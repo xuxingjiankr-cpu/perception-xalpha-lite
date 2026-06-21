@@ -2139,6 +2139,31 @@ def t52_decision_scoring_system() -> None:
     opt = ds.score_decision({"decision_type": "BUY", "execution_optimistic": True})
     check("T52 optimistic exec model flagged", opt["execution_model_flag"] == "optimistic")
 
+    # regime now driven by cross-sectional breadth (fix for the dead constant-11 sub-score)
+    hi_b = ds.score_decision({"decision_type": "BUY", "market_breadth_up_frac": 0.8})
+    lo_b = ds.score_decision({"decision_type": "BUY", "market_breadth_up_frac": 0.1})
+    check("T52 regime tracks breadth (strong>weak)", hi_b["market_regime_score"] > lo_b["market_regime_score"],
+          f"{hi_b['market_regime_score']} vs {lo_b['market_regime_score']}")
+    # execution NEUTRAL (not floored) under same-snapshot replay fills -> doesn't crush the score
+    check("T52 same_snapshot execution score neutral (5, not floored)", ss["execution_score"] == 5.0,
+          str(ss["execution_score"]))
+
+    # outcome backfill from a synthetic rising quote series
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _td:
+        qp = _Path(_td) / "q.jsonl"
+        rows = []
+        for m, p in [(575, 1.0), (580, 1.01), (585, 1.03), (900, 1.05)]:  # 09:35..15:00 rising
+            rows.append({"timestamp": f"2026-06-21T{m//60:02d}:{m%60:02d}:00+08:00", "stockCode": "512760", "currentPrice": p})
+        rows.append({"timestamp": "2026-06-22T15:00:00+08:00", "stockCode": "512760", "currentPrice": 1.10})  # next-day close
+        qp.write_text("\n".join(_json.dumps(r) for r in rows), encoding="utf-8")
+        rec = ds.score_decision({"decision_type": "BUY", "etf_code": "512760", "date": "2026-06-21", "timestamp": "09:35:00"})
+        ds.enrich_from_quotes([rec], qp)
+        check("T52 enrich sets entry_price", abs(rec["entry_price"] - 1.0) < 1e-9, str(rec.get("entry_price")))
+        check("T52 enrich realized_return (BUY profit if up)", abs(rec["realized_return"] - 0.05) < 1e-4, str(rec.get("realized_return")))
+        check("T52 enrich MFE/MAE set", rec["max_favorable_excursion"] > 0 and rec["max_adverse_excursion"] <= 0)
+        check("T52 enrich forward return_1d (next-day close)", abs(rec["return_1d"] - 0.10) < 1e-4, str(rec.get("return_1d")))
+
     for dt in ("BUY", "SELL", "HOLD", "SKIP"):
         r = ds.score_decision({"decision_type": dt, "decision_reason": "x"})
         check(f"T52 {dt} produces a score", isinstance(r.get("total_score"), (int, float)) and r["decision_type"] == dt)
