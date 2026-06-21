@@ -2159,10 +2159,17 @@ def t52_decision_scoring_system() -> None:
         qp.write_text("\n".join(_json.dumps(r) for r in rows), encoding="utf-8")
         rec = ds.score_decision({"decision_type": "BUY", "etf_code": "512760", "date": "2026-06-21", "timestamp": "09:35:00"})
         ds.enrich_from_quotes([rec], qp)
-        check("T52 enrich sets entry_price", abs(rec["entry_price"] - 1.0) < 1e-9, str(rec.get("entry_price")))
-        check("T52 enrich realized_return (BUY profit if up)", abs(rec["realized_return"] - 0.05) < 1e-4, str(rec.get("realized_return")))
+        check("T52 enrich uses next snapshot, not decision snapshot",
+              abs(rec["entry_price"] - 1.01) < 1e-9, str(rec.get("entry_price")))
+        check("T52 enrich realized_return (BUY profit if up)",
+              abs(rec["realized_return"] - (1.05 / 1.01 - 1.0)) < 1e-4, str(rec.get("realized_return")))
         check("T52 enrich MFE/MAE set", rec["max_favorable_excursion"] > 0 and rec["max_adverse_excursion"] <= 0)
-        check("T52 enrich forward return_1d (next-day close)", abs(rec["return_1d"] - 0.10) < 1e-4, str(rec.get("return_1d")))
+        check("T52 enrich forward return_1d (next-day close)",
+              abs(rec["return_1d"] - (1.10 / 1.01 - 1.0)) < 1e-4, str(rec.get("return_1d")))
+        skip = ds.score_decision({"decision_type": "SKIP", "etf_code": "512760", "date": "2026-06-21", "timestamp": "09:35:00"})
+        ds.enrich_from_quotes([skip], qp)
+        check("T52 SKIP is not treated as a synthetic short", skip["realized_return"] is None)
+        check("T52 SKIP retains separate counterfactual move", skip["counterfactual_return"] is not None)
 
     for dt in ("BUY", "SELL", "HOLD", "SKIP"):
         r = ds.score_decision({"decision_type": dt, "decision_reason": "x"})
@@ -2185,6 +2192,39 @@ def t52_decision_scoring_system() -> None:
         text = rep.build_report(recs)
         check("T52 report does not crash on null returns + flags sample_insufficient",
               "sample_insufficient" in text)
+
+
+def t53_pseudo_forward_prefix_and_isolation() -> None:
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+    import build_t0_replay_quotes_from_minute_data as builder
+    import run_decision_score_pseudo_forward as pseudo
+
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        cfg_path = root / "cfg.json"
+        universe_path = root / "universe.jsonl"
+        cfg_path.write_text(_json.dumps({"universe": []}), encoding="utf-8")
+        universe_path.write_text(_json.dumps({"code": "159001", "exchange": "SZ", "name": "test"}), encoding="utf-8")
+        universe = builder.load_replay_universe(cfg_path, universe_path)
+        check("T53 confirmed-pool code alias is accepted", universe[0]["stockCode"] == "159001")
+        check("T53 universe exchange is preserved", universe[0]["exchange"] == "SZ")
+
+    quotes = [
+        {"timestamp": "2026-05-06T09:34:00+08:00", "trade_date": "2026-05-06", "currentPrice": 1.0},
+        {"timestamp": "2026-05-06T09:39:00+08:00", "trade_date": "2026-05-06", "currentPrice": 1.1},
+    ]
+    sampled = builder.resample_quotes(quotes, 5)
+    check("T53 09:35 snapshot uses only 09:34-known price", sampled[0]["currentPrice"] == 1.0)
+    check("T53 resample records source timestamp", sampled[0]["source_timestamp"].startswith("2026-05-06T09:34"))
+
+    live = {"mode": "paper_execute", "execution_enabled": True, "self_iteration": {"enabled": True}}
+    research = {"replay_execution": {"default_sell_rule": "T1", "evaluate_strategy_locks_offline": True}}
+    frozen, cfg_hash = pseudo.build_frozen_config(live, research, source_commit="abc123", scorer_sha256="deadbeef")
+    check("T53 pseudo config cannot execute live", frozen["mode"] == "paper_research" and frozen["execution_enabled"] is False)
+    check("T53 pseudo config cannot auto-apply", frozen["self_iteration"]["enabled"] is False and frozen["self_iteration"]["auto_apply_changes"] is False)
+    check("T53 frozen config carries audit hashes", frozen["decision_scoring"]["config_sha256"] == cfg_hash)
 
 
 if __name__ == "__main__":
@@ -2238,6 +2278,7 @@ if __name__ == "__main__":
     t50_l4_forward_shadow_pipeline()
     t51_execution_accounting_and_trust_contract()
     t52_decision_scoring_system()
+    t53_pseudo_forward_prefix_and_isolation()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

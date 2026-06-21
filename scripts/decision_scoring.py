@@ -40,6 +40,7 @@ SCORE_RANGES: dict[str, tuple[float, float]] = {
 # Field order for the CSV (decision fields, then outcome fields).
 DECISION_FIELDS = [
     "decision_id", "date", "timestamp", "etf_code", "etf_name", "decision_type",
+    "sample_origin", "scorer_version", "scorer_sha256", "config_sha256",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "risk_penalty", "execution_score", "counterfactual_score",
@@ -53,7 +54,7 @@ OUTCOME_FIELDS = [
     "fill_status", "entry_price", "exit_price", "exit_reason", "holding_period",
     "return_1d", "return_3d", "return_5d", "return_10d", "realized_return",
     "max_adverse_excursion", "max_favorable_excursion", "was_profitable", "was_stopped",
-    "mistake_type", "post_review_comment",
+    "counterfactual_return", "mistake_type", "post_review_comment",
 ]
 ALL_FIELDS = DECISION_FIELDS + OUTCOME_FIELDS
 
@@ -324,20 +325,26 @@ def build_price_index(quotes_path: Path) -> tuple[dict, dict]:
     """From a minute-quote JSONL build code -> {date -> {minute: price}} and code ->
     {date -> close}. Used to compute forward outcomes for scored decisions."""
     by: dict[str, dict[str, dict[int, float]]] = {}
-    for line in Path(quotes_path).open(encoding="utf-8"):
-        try:
-            q = json.loads(line)
-        except Exception:
-            continue
-        code = str(q.get("stockCode", "")).zfill(6)
-        ts = str(q.get("timestamp", ""))
-        price = as_float(q.get("currentPrice"), 0.0)
-        if not code or len(ts) < 16 or price <= 0:
-            continue
-        minute = _minute_of(ts[11:16])
-        if minute is None:
-            continue
-        by.setdefault(code, {}).setdefault(ts[:10], {})[minute] = price
+    root = Path(quotes_path)
+    sources = sorted(root.glob("*.jsonl")) if root.is_dir() else [root]
+    if root.is_dir() and root.name == "t0_intraday_agent":
+        sources = sorted(root.glob("minute_quotes_*.jsonl"))
+    for source in sources:
+        with source.open(encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    q = json.loads(line)
+                except Exception:
+                    continue
+                code = str(q.get("stockCode", "")).zfill(6)
+                ts = str(q.get("timestamp", ""))
+                price = as_float(q.get("currentPrice"), 0.0)
+                if not code or len(ts) < 16 or price <= 0:
+                    continue
+                minute = _minute_of(ts[11:16])
+                if minute is None:
+                    continue
+                by.setdefault(code, {}).setdefault(ts[:10], {})[minute] = price
     closes: dict[str, dict[str, float]] = {}
     for code, days in by.items():
         closes[code] = {d: mm[max(mm)] for d, mm in days.items() if mm}
@@ -345,36 +352,47 @@ def build_price_index(quotes_path: Path) -> tuple[dict, dict]:
 
 
 def enrich_from_quotes(records: list[dict[str, Any]], quotes_path: Path) -> list[dict[str, Any]]:
-    """Fill outcome fields for each decision from the quote series: entry_price, MAE/MFE
-    and intraday realized_return (side-adjusted: BUY/HOLD profit if up, SELL/SKIP profit if
-    down), plus raw forward closes return_1d/3d/5d/10d, was_profitable, mistake_type."""
+    """Attach outcomes using only prices after the decision timestamp.
+
+    BUY/SELL receive a directional realized return. HOLD/SKIP are not synthetic trades;
+    their raw next-snapshot-to-close move is kept separately as counterfactual_return.
+    """
     by, closes = build_price_index(quotes_path)
+    return enrich_from_price_index(records, by, closes)
+
+
+def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dict) -> list[dict[str, Any]]:
+    """Attach outcomes from a prebuilt index so the daily job scans quote history once."""
     for r in records:
         code, date = str(r.get("etf_code") or "").zfill(6), str(r.get("date"))
         minute = _minute_of(str(r.get("timestamp") or ""))
         daymap = by.get(code, {}).get(date)
         if not code or minute is None or not daymap:
             continue
-        entry = None
-        for m in sorted(daymap):
-            if m <= minute:
-                entry = daymap[m]
-        fwd_path = [daymap[m] for m in sorted(daymap) if m >= minute]
+        eligible_minutes = [m for m in sorted(daymap) if m > minute]
+        entry = daymap[eligible_minutes[0]] if eligible_minutes else None
+        fwd_path = [daymap[m] for m in eligible_minutes]
         if not entry or entry <= 0 or not fwd_path:
             continue
-        side = 1.0 if str(r.get("decision_type")) in ("BUY", "HOLD") else -1.0
+        decision_type = str(r.get("decision_type") or "").upper()
+        side = 1.0 if decision_type == "BUY" else (-1.0 if decision_type == "SELL" else 0.0)
+        raw_path_returns = [price / entry - 1.0 for price in fwd_path]
         r["entry_price"] = round(entry, 4)
-        r["max_favorable_excursion"] = round(max(fwd_path) / entry - 1.0, 5)
-        r["max_adverse_excursion"] = round(min(fwd_path) / entry - 1.0, 5)
-        r["realized_return"] = round(side * (fwd_path[-1] / entry - 1.0), 5)
-        r["was_profitable"] = r["realized_return"] > 0
+        if side:
+            signed_path = [side * value for value in raw_path_returns]
+            r["max_favorable_excursion"] = round(max(signed_path), 5)
+            r["max_adverse_excursion"] = round(min(signed_path), 5)
+            r["realized_return"] = round(signed_path[-1], 5)
+            r["was_profitable"] = r["realized_return"] > 0
+        else:
+            r["counterfactual_return"] = round(raw_path_returns[-1], 5)
         code_dates = sorted(closes.get(code, {}))
         if date in code_dates:
             i = code_dates.index(date)
             for nd, field in ((1, "return_1d"), (3, "return_3d"), (5, "return_5d"), (10, "return_10d")):
                 if i + nd < len(code_dates):
                     r[field] = round(closes[code][code_dates[i + nd]] / entry - 1.0, 5)
-        r["mistake_type"] = classify_mistake(r)
+        r["mistake_type"] = classify_mistake(r) if side else "NOT_A_TRADE"
     return records
 
 
@@ -432,6 +450,10 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "date": trade_date, "timestamp": timestamp,
         "etf_code": code, "etf_name": (best or {}).get("name"),
         "decision_type": decision_type,
+        "sample_origin": cfg.get("decision_scoring", {}).get("sample_origin"),
+        "scorer_version": cfg.get("decision_scoring", {}).get("scorer_version"),
+        "scorer_sha256": cfg.get("decision_scoring", {}).get("scorer_sha256"),
+        "config_sha256": cfg.get("decision_scoring", {}).get("config_sha256"),
         "market_breadth_up_frac": breadth,
         "signal_name": sm.get("reason"), "decision_reason": sm.get("reason"),
         "market_regime": (decision.get("market_correlation_stress", {}) or {}).get("regime")

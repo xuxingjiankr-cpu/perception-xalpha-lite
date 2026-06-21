@@ -10,6 +10,7 @@ import argparse
 import csv
 import gzip
 import json
+import copy
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -121,11 +122,12 @@ def load_replay_universe(config_path: Path, universe_file: Path | None = None) -
         if not line.strip():
             continue
         item = json.loads(line)
-        code = str(item.get("stockCode", "")).zfill(6)
+        code = str(item.get("stockCode") or item.get("code") or "").zfill(6)
         if not code or code == "000000":
             continue
         seed = static.get(code, {})
-        market = str(item.get("market", "1" if str(seed.get("exchange", "SH")).upper() == "SH" else "0"))
+        item_exchange = str(item.get("exchange") or seed.get("exchange") or "SH").upper()
+        market = str(item.get("market", "1" if item_exchange == "SH" else "0"))
         rows.append({
             "stockCode": code,
             "exchange": "SH" if market == "1" else "SZ",
@@ -205,6 +207,38 @@ def passes_dynamic_gate(quote: dict[str, Any], dyn_cfg: dict[str, Any]) -> bool:
     return as_float(quote.get("amount")) >= required_amount
 
 
+def resample_quotes(quotes: list[dict[str, Any]], interval_minutes: int) -> list[dict[str, Any]]:
+    """Create live-cadence snapshots using only the last quote known at each mark."""
+    if interval_minutes <= 0 or not quotes:
+        return quotes
+    day = str(quotes[0].get("trade_date") or str(quotes[0].get("timestamp"))[:10])
+    by_minute = {
+        int(str(quote["timestamp"])[11:13]) * 60 + int(str(quote["timestamp"])[14:16]): quote
+        for quote in quotes
+    }
+    marks = (
+        list(range(9 * 60 + 30 + interval_minutes, 11 * 60 + 30 + 1, interval_minutes))
+        + list(range(13 * 60 + interval_minutes, 15 * 60 + 1, interval_minutes))
+    )
+    available = sorted(by_minute)
+    result: list[dict[str, Any]] = []
+    for mark in marks:
+        prior = [minute for minute in available if minute <= mark]
+        if not prior:
+            continue
+        source_minute = prior[-1]
+        if mark - source_minute > interval_minutes:
+            continue
+        quote = copy.deepcopy(by_minute[source_minute])
+        quote["source_timestamp"] = quote["timestamp"]
+        quote["timestamp"] = (
+            f"{day}T{mark // 60:02d}:{mark % 60:02d}:00+08:00"
+        )
+        quote["snapshot_interval_minutes"] = interval_minutes
+        result.append(quote)
+    return result
+
+
 def build_replay_directory(
     *,
     config_path: Path,
@@ -214,6 +248,7 @@ def build_replay_directory(
     start_date: str,
     end_date: str,
     dynamic_gate: bool,
+    snapshot_interval_minutes: int = 0,
 ) -> dict[str, Any]:
     cfg = load_json(config_path)
     universe = load_replay_universe(config_path, universe_file)
@@ -241,7 +276,10 @@ def build_replay_directory(
             for quote in cumulative_quotes(etf, rows, start_date, end_date):
                 by_day[str(quote["trade_date"])].append(quote)
             for day, quotes in by_day.items():
-                if dynamic_gate and not any(passes_dynamic_gate(quote, dyn_cfg) for quote in quotes):
+                quotes = resample_quotes(quotes, snapshot_interval_minutes)
+                if dynamic_gate:
+                    quotes = [quote for quote in quotes if passes_dynamic_gate(quote, dyn_cfg)]
+                if not quotes:
                     continue
                 if day not in handles:
                     handles[day] = (output_dir / f"{day}.unsorted").open("w", encoding="utf-8")
@@ -280,6 +318,7 @@ def build_replay_directory(
         "eligible_codes_by_date": dict(sorted(codes_by_date.items())),
         "rows_written": sum(rows_by_date.values()),
         "dynamic_gate": dynamic_gate,
+        "snapshot_interval_minutes": snapshot_interval_minutes,
         "flow_fields": "same_day_cumulative_from_minute_bars",
         "synthetic_order_book": True,
         "paper_trading_only": True,
@@ -300,6 +339,8 @@ def main() -> int:
     parser.add_argument("--dynamic-gate", action="store_true", help="retain codes that pass live-shaped liquidity gates")
     parser.add_argument("--start-date", default="2026-06-01")
     parser.add_argument("--end-date", default="2026-06-18")
+    parser.add_argument("--snapshot-interval-minutes", type=int, default=0,
+                        help="resample each symbol to fixed live cadence; 0 keeps raw bars")
     args = parser.parse_args()
 
     config_path = Path(args.config)
@@ -315,6 +356,7 @@ def main() -> int:
             start_date=args.start_date,
             end_date=args.end_date,
             dynamic_gate=args.dynamic_gate,
+            snapshot_interval_minutes=args.snapshot_interval_minutes,
         )
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return 0
@@ -331,9 +373,16 @@ def main() -> int:
             missing.append({"stockCode": code, "name": etf.get("name"), "path": str(path)})
             continue
         kept = 0
-        for quote in cumulative_quotes(etf, rows, args.start_date, args.end_date):
-            by_ts[str(quote["timestamp"])].append(quote)
-            kept += 1
+        raw_quotes = list(cumulative_quotes(etf, rows, args.start_date, args.end_date))
+        by_day_quotes: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for quote in raw_quotes:
+            by_day_quotes[str(quote["trade_date"])].append(quote)
+        for day_quotes in by_day_quotes.values():
+            for quote in resample_quotes(day_quotes, args.snapshot_interval_minutes):
+                if args.dynamic_gate and not passes_dynamic_gate(quote, cfg.get("dynamic_universe", {})):
+                    continue
+                by_ts[str(quote["timestamp"])].append(quote)
+                kept += 1
         loaded.append({"stockCode": code, "name": etf.get("name"), "rows": kept, "path": str(path)})
 
     output = Path(args.output)

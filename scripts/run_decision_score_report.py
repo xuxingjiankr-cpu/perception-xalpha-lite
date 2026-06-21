@@ -25,6 +25,7 @@ from decision_scoring import classify_mistake
 
 SCORE_DIR = ROOT / "outputs" / "decision_scores"
 MIN_OUTCOMES_FOR_CONCLUSION = 30
+MIN_OUTCOME_DAYS_FOR_CONCLUSION = 20
 SUBSCORES = [
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "execution_score", "counterfactual_score", "risk_penalty",
@@ -86,15 +87,18 @@ def build_report(records: list[dict[str, Any]]) -> str:
     n = len(records)
     with_outcome = sum(1 for r in records if _outcome(r) is not None)
     lines = ["# Decision-Score Effectiveness Report", ""]
-    lines.append(f"Decisions: {n} | with outcome: {with_outcome} | "
+    outcome_days = len({str(r.get("date")) for r in records if _outcome(r) is not None})
+    lines.append(f"Decisions: {n} | with outcome: {with_outcome} | outcome days: {outcome_days} | "
                  f"generated: {datetime.now().astimezone().isoformat()}")
     lines.append("")
     lines.append("Diagnostic only. NOT alpha, NOT an auto-trading signal, must not drive live sizing.")
     lines.append("")
-    insufficient = with_outcome < MIN_OUTCOMES_FOR_CONCLUSION
+    insufficient = (with_outcome < MIN_OUTCOMES_FOR_CONCLUSION or
+                    outcome_days < MIN_OUTCOME_DAYS_FOR_CONCLUSION)
     if insufficient:
-        lines.append(f"**sample_insufficient**: only {with_outcome} decisions have outcomes "
-                     f"(need >= {MIN_OUTCOMES_FOR_CONCLUSION}). No definitive conclusion is drawn below.")
+        lines.append(f"**sample_insufficient**: {with_outcome} directional decisions across "
+                     f"{outcome_days} trading days have outcomes (need >= {MIN_OUTCOMES_FOR_CONCLUSION} "
+                     f"decisions and >= {MIN_OUTCOME_DAYS_FOR_CONCLUSION} days). No definitive conclusion is drawn below.")
     lines.append("")
 
     # 1) by total-score bucket

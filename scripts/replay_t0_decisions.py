@@ -562,6 +562,10 @@ def main() -> None:
                         help="summary skips per-round decisions JSONL; full preserves legacy output")
     parser.add_argument("--decision-scores", action="store_true",
                         help="also emit Decision Scoring System records (record-only, diagnostic)")
+    parser.add_argument("--output-dir", default=str(OUT_DIR),
+                        help="isolated replay output directory; defaults to outputs/t0_replay")
+    parser.add_argument("--decision-score-output-dir", default="",
+                        help="isolated decision-score directory; default keeps legacy outputs/decision_scores")
     args = parser.parse_args()
 
     cfg = load_json(Path(args.config))
@@ -576,9 +580,10 @@ def main() -> None:
     execution_settings = replay_execution_settings(cfg)
     round_iter = iter_rounds(iter_quote_rows(Path(args.quotes), args.date, args.start_date, args.end_date))
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    decisions_path = OUT_DIR / f"{args.label}_decisions.jsonl"
-    summary_path = OUT_DIR / f"{args.label}_summary.json"
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    decisions_path = output_dir / f"{args.label}_decisions.jsonl"
+    summary_path = output_dir / f"{args.label}_summary.json"
     if args.output_detail == "full":
         decisions_path.write_text("", encoding="utf-8")
 
@@ -757,7 +762,7 @@ def main() -> None:
                     _td = replay_now.strftime("%Y-%m-%d")
                     _ctx = _ds.context_from_decision(cfg, decision, trade_date=_td,
                                                      timestamp=replay_now.strftime("%H:%M:%S"))
-                    _ctx["same_snapshot_fill"] = True  # replay fills at the decision snapshot
+                    _ctx["same_snapshot_fill"] = execution_settings["same_snapshot_fill"]
                     decision_score_records.append(_ds.score_decision(_ctx))
                 except Exception:
                     pass
@@ -853,8 +858,9 @@ def main() -> None:
             by_date: dict[str, list[dict[str, Any]]] = _dd(list)
             for r in decision_score_records:
                 by_date[str(r.get("date"))].append(r)
+            score_output_dir = Path(args.decision_score_output_dir) if args.decision_score_output_dir else _ds.OUT_DIR
             for d, recs in by_date.items():
-                _ds.write_scores(recs, d)
+                _ds.write_scores(recs, d, out_dir=score_output_dir)
             _enriched = sum(1 for r in decision_score_records if r.get("realized_return") is not None)
             print(f"decision_scores: wrote {len(decision_score_records)} records "
                   f"({_enriched} with outcomes) across {len(by_date)} day(s)")

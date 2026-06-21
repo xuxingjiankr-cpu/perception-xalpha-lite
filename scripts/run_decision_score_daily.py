@@ -41,6 +41,10 @@ def main() -> None:
     if not SCORE_DIR.exists():
         print("no decision_scores yet.")
         return
+    if not any(AGENT_OUT.glob("minute_quotes_*.jsonl")):
+        print("no minute_quotes yet.")
+        return
+    price_index, closes = ds.build_price_index(AGENT_OUT)
     enriched_days = 0
     for jsonl in sorted(SCORE_DIR.glob("decision_scores_*.jsonl")):
         import json
@@ -52,14 +56,12 @@ def main() -> None:
                 continue
         if not recs:
             continue
-        if all(r.get("realized_return") is not None for r in recs):
-            continue  # already enriched
         date_compact = jsonl.stem.replace("decision_scores_", "")
         quotes = minute_quotes_for(date_compact)
         if not quotes:
             print(f"  {date_compact}: no minute_quotes to enrich from yet (skipped)")
             continue
-        ds.enrich_from_quotes(recs, quotes)
+        ds.enrich_from_price_index(recs, price_index, closes)
         iso = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:8]}"
         ds.write_scores(recs, iso)
         n_out = sum(1 for r in recs if r.get("realized_return") is not None)
