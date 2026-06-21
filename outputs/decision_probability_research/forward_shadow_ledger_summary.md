@@ -4,7 +4,7 @@ Status: `research_only / trade_invalid_probability`
 
 - effective_from: 2026-06-22
 - completed BUY-direction forecasts: 0 across 0 days
-- executed BUY / no-trade counterfactual: 0 / 0
+- planned BUY / no-trade counterfactual: 0 / 0
 - final decisions / no-trade candidates recorded: 0 / 0
 - candidate coverage: -
 - incomplete fixed horizons: 0

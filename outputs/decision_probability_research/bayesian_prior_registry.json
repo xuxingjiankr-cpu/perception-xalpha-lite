@@ -2,7 +2,7 @@
   "schemaVersion": "decision_probability_bayesian_prior_registry_v1",
   "iterationId": "DSI-0010",
   "bayesianModelVersion": "DBAYES-1.0.1",
-  "generatedAt": "2026-06-21T23:43:13.637736+09:00",
+  "generatedAt": "2026-06-22T08:10:55.290150+09:00",
   "effectiveThrough": null,
   "researchOnly": true,
   "allowedForTradeGate": false,

@@ -1,0 +1,268 @@
+{
+  "schemaVersion": "decision_score_daily_statistical_review_v1",
+  "generatedAt": "2026-06-22T08:11:20.646110+09:00",
+  "asOfDate": "2026-06-22",
+  "effectiveFrom": "2026-06-22",
+  "status": "diagnostic_only",
+  "autoWeightChangeAllowed": false,
+  "tradeGateChangeAllowed": false,
+  "method": {
+    "outcome": "BUY-direction next-snapshot-to-close return minus recorded round-trip cost",
+    "highLowCuts": "fixed semantic score-range thirds; total score uses <=65 and >=71",
+    "marketDayControl": "same-day high-minus-low means",
+    "uncertainty": "2000 trading-day bootstrap resamples",
+    "multipleTesting": "Holm family-wise correction across total + seven component scores",
+    "equivalenceMargin": 0.0005
+  },
+  "sample": {
+    "allDecisionRecords": 0,
+    "completedBuyDirectionOutcomes": 0,
+    "independentTradingDays": 0,
+    "ledgerRecordTypes": {},
+    "decisionTypes": {}
+  },
+  "reviews": [
+    {
+      "feature": "total_score",
+      "lowCut": 65.0,
+      "highCut": 71.0,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "market_regime_score",
+      "lowCut": 6.666666666666667,
+      "highCut": 13.333333333333334,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "relative_strength_score",
+      "lowCut": 6.666666666666667,
+      "highCut": 13.333333333333334,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "liquidity_score",
+      "lowCut": 5.0,
+      "highCut": 10.0,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "entry_quality_score",
+      "lowCut": 5.0,
+      "highCut": 10.0,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "execution_score",
+      "lowCut": 3.3333333333333335,
+      "highCut": 6.666666666666667,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "counterfactual_score",
+      "lowCut": 3.3333333333333335,
+      "highCut": 6.666666666666667,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    },
+    {
+      "feature": "risk_penalty",
+      "lowCut": -13.333333333333332,
+      "highCut": -6.666666666666666,
+      "highCount": 0,
+      "lowCount": 0,
+      "independentDays": 0,
+      "pairedDays": 0,
+      "highMeanNetReturn": null,
+      "lowMeanNetReturn": null,
+      "highWinRate": null,
+      "lowWinRate": null,
+      "pairedHighMinusLow": null,
+      "bootstrap": {
+        "n": 0,
+        "ci95": [
+          null,
+          null
+        ],
+        "pTwoSided": null
+      },
+      "reviewReady": false,
+      "adjustmentReady": false,
+      "highNotStrong": false,
+      "highGroupNonPositive": false,
+      "lowNotWeak": false,
+      "holmAdjustedP": null,
+      "assessment": "insufficient_forward_sample",
+      "suggestedAction": "keep_frozen_and_collect"
+    }
+  ],
+  "adjustmentCandidates": [],
+  "safetyConclusion": "recommendations_only; weights remain frozen; separate future OOS required"
+}

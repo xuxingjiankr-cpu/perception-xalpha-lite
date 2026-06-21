@@ -180,7 +180,9 @@ def t7_multi_position_exit() -> None:
     from zoneinfo import ZoneInfo
 
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
-    cfg["strategy"]["profit_exit_score_threshold"] = 65
+    # Keep the fixture decisively above threshold.  The current weighted score is 62.25;
+    # using the live threshold would test score calibration rather than multi-sell/throttle.
+    cfg["strategy"]["profit_exit_score_threshold"] = 60
     now = datetime(2026, 6, 15, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))  # open session
     ts = now.isoformat()
     codes = [("513050", 1.000), ("513100", 1.000), ("588000", 1.000)]
@@ -2464,6 +2466,78 @@ def t58_forward_probability_ledger_and_priors() -> None:
           and diagnostic["gates"]["promotionAllowed"] is False)
 
 
+def t59_every_decision_and_daily_score_review() -> None:
+    from datetime import date, timedelta
+    import decision_scoring as scoring
+    import research_decision_score_daily_review as review
+
+    decision = {
+        "state_machine": {"action": "sell", "reason": "unified_sell_score_exit"},
+        "orders": [
+            {"direction": "sell", "stockCode": "588000", "quantity": 100,
+             "reason": "unified_sell_score_exit"},
+            {"direction": "sell", "stockCode": "159915", "quantity": 200,
+             "reason": "emergency_stop_exit"},
+        ],
+        "ranked": [
+            {"stockCode": "588000", "name": "科创50", "currentPrice": 2.0, "amount": 1e8,
+             "spread_pct": 0.001, "change_pct": -1.0},
+            {"stockCode": "159915", "name": "创业板", "currentPrice": 4.0, "amount": 1e8,
+             "spread_pct": 0.001, "change_pct": -2.0},
+            {"stockCode": "159546", "name": "集成电路", "currentPrice": 1.0, "amount": 1e8,
+             "spread_pct": 0.001, "change_pct": 0.2},
+        ],
+        "positions_t0": {
+            "588000": {"stockName": "科创50", "quantity": 100, "availableQuantity": 100},
+            "159915": {"stockName": "创业板", "quantity": 200, "availableQuantity": 200},
+            "159546": {"stockName": "集成电路", "quantity": 300, "availableQuantity": 300},
+        },
+        "sell_score_by_code": {"588000": 80, "159915": 95, "159546": 40},
+        "carry_allowed_by_code": {"588000": False, "159915": False, "159546": True},
+    }
+    contexts = scoring.contexts_from_decision(
+        {"decision_scoring": {"record_ranked_candidates": False}}, decision,
+        trade_date="2026-06-22", timestamp="10:05:00",
+    )
+    sells = [row for row in contexts if row["decision_type"] == "SELL"]
+    holds = [row for row in contexts if row["decision_type"] == "HOLD"]
+    check("T59 every planned sell receives its own decision row",
+          len(sells) == 2 and len({row["decision_id"] for row in sells}) == 2)
+    check("T59 unsold held position receives a position HOLD row",
+          len(holds) == 1 and holds[0]["etf_code"] == "159546")
+    check("T59 planned order is not falsely labelled as executed fill",
+          all(row["order_planned"] is True and row["was_executed"] is False for row in sells))
+
+    rows = []
+    high_scores = {feature: limits[1] for feature, limits in scoring.SCORE_RANGES.items()}
+    low_scores = {feature: limits[0] for feature, limits in scoring.SCORE_RANGES.items()}
+    for day in range(1, 51):
+        trade_date = (date(2026, 7, 1) + timedelta(days=day - 1)).isoformat()
+        high = {"date": trade_date, "decision_type": "BUY_CANDIDATE", "signal_direction": "BUY",
+                "outcome_horizon_complete": True, "probability_outcome": 1,
+                "counterfactual_return": 0.01, "estimated_round_trip_cost": 0.0,
+                "total_score": 80, **high_scores}
+        low = {"date": trade_date, "decision_type": "BUY_CANDIDATE", "signal_direction": "BUY",
+               "outcome_horizon_complete": True, "probability_outcome": 0,
+               "counterfactual_return": -0.01, "estimated_round_trip_cost": 0.0,
+               "total_score": 50, **low_scores}
+        # Plant one inverted component: high liquidity appears on losing rows.
+        high["liquidity_score"], low["liquidity_score"] = 0.0, 15.0
+        rows.extend((high, low))
+    result = review.build_review(rows, "2026-12-31")
+    liquidity = next(item for item in result["reviews"] if item["feature"] == "liquidity_score")
+    total = next(item for item in result["reviews"] if item["feature"] == "total_score")
+    check("T59 day-paired Holm review detects planted inverted component",
+          liquidity["assessment"] == "statistically_inverted_high_score_underperforms"
+          and liquidity["holmAdjustedP"] < 0.05)
+    check("T59 planted total score remains positively discriminating",
+          total["assessment"] == "statistically_positive_discrimination")
+    check("T59 statistical review only recommends and never changes weights/gates",
+          result["autoWeightChangeAllowed"] is False
+          and result["tradeGateChangeAllowed"] is False
+          and "liquidity_score" in result["adjustmentCandidates"])
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2521,6 +2595,7 @@ if __name__ == "__main__":
     t56_high_low_score_separation()
     t57_bayesian_probability_shadow()
     t58_forward_probability_ledger_and_priors()
+    t59_every_decision_and_daily_score_review()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

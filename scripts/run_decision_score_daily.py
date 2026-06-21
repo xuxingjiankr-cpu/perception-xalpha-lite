@@ -23,6 +23,7 @@ from run_etf_paper_trading_agent import ROOT
 import decision_scoring as ds
 import run_decision_score_report as rep
 import run_decision_probability_forward as probability_forward
+import research_decision_score_daily_review as score_review
 
 SCORE_DIR = ROOT / "outputs" / "decision_scores"
 AGENT_OUT = ROOT / "outputs" / "t0_intraday_agent"
@@ -81,6 +82,7 @@ def main() -> None:
     out = SCORE_DIR / f"score_effectiveness_report_{datetime.now().strftime('%Y%m%d')}.md"
     out.write_text(report, encoding="utf-8")
     probability_forward.refresh_reports(records)
+    score_review.write_review(records, datetime.now().astimezone().date().isoformat())
     print(f"enriched {enriched_days} day(s); report over {len(records)} decisions -> {out}")
 
 

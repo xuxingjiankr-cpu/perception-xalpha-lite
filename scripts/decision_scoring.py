@@ -47,9 +47,10 @@ DECISION_FIELDS = [
     "outcome_model_version", "pipeline_version", "shadow_candidate_version",
     "calibration_version", "bayesian_model_version",
     "scorer_sha256", "config_sha256",
-    "ledger_record_type", "was_executed", "signal_direction", "strategy_type",
+    "ledger_record_type", "order_planned", "was_executed", "signal_direction", "strategy_type",
     "symbol_group", "holding_horizon", "candidate_rank", "candidate_count",
-    "candidate_eligible", "candidate_rejection_reason",
+    "candidate_eligible", "candidate_rejection_reason", "held_quantity",
+    "available_quantity", "sell_score", "carry_allowed",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "risk_penalty", "execution_score", "counterfactual_score",
@@ -307,6 +308,7 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "scorer_sha256": ctx.get("scorer_sha256"),
         "config_sha256": ctx.get("config_sha256"),
         "ledger_record_type": ctx.get("ledger_record_type") or "final_decision",
+        "order_planned": bool(ctx.get("order_planned")),
         "was_executed": bool(ctx.get("was_executed")),
         "signal_direction": ctx.get("signal_direction"),
         "strategy_type": ctx.get("strategy_type"),
@@ -316,6 +318,10 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "candidate_count": ctx.get("candidate_count"),
         "candidate_eligible": ctx.get("candidate_eligible"),
         "candidate_rejection_reason": ctx.get("candidate_rejection_reason"),
+        "held_quantity": ctx.get("held_quantity"),
+        "available_quantity": ctx.get("available_quantity"),
+        "sell_score": ctx.get("sell_score"),
+        "carry_allowed": ctx.get("carry_allowed"),
         "signal_name": ctx.get("signal_name"), "market_regime": ctx.get("market_regime"),
         **subs,
         "total_score": total, "score_bucket": score_bucket(total),
@@ -539,14 +545,15 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     scoring_cfg = cfg.get("decision_scoring", {}) if isinstance(cfg.get("decision_scoring"), dict) else {}
     name = market_row.get("name") or (order or {}).get("name")
     signal_name = sm.get("reason")
-    executed = bool(order and decision_type in ("BUY", "SELL"))
+    order_planned = bool(order and decision_type in ("BUY", "SELL"))
     return {
         "decision_id": f"{trade_date}_{timestamp}_{code or action}",
         "date": trade_date, "timestamp": timestamp,
         "etf_code": code, "etf_name": name,
         "decision_type": decision_type,
         "ledger_record_type": "final_decision",
-        "was_executed": executed,
+        "order_planned": order_planned,
+        "was_executed": False,
         "signal_direction": decision_type if decision_type in ("BUY", "SELL") else "NONE",
         "strategy_type": dp.classify_strategy_type(signal_name),
         "symbol_group": dp.classify_symbol_group(code, name),
@@ -594,41 +601,135 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
 
 def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
                            trade_date: str, timestamp: str) -> list[dict[str, Any]]:
-    """Return the final decision plus point-in-time no-trade BUY candidates.
+    """Return every order/position decision plus point-in-time BUY candidates.
 
     Candidate rows are explicitly counterfactual and never masquerade as fills.  They
     close the selection-bias gap by preserving the ranked observation set that existed
-    at the decision timestamp.  The live hook remains try/except wrapped and write-only.
+    at the decision timestamp.  Multiple sell orders are one row each, and every held
+    position not selected for sale receives its own HOLD row.  The live hook remains
+    try/except wrapped and write-only.
     """
-    final = context_from_decision(
+    base = context_from_decision(
         cfg, decision, trade_date=trade_date, timestamp=timestamp,
     )
     scoring_cfg = cfg.get("decision_scoring", {}) if isinstance(cfg.get("decision_scoring"), dict) else {}
-    if not scoring_cfg.get("record_ranked_candidates", False):
-        return [final]
     ranked = decision.get("ranked", []) if isinstance(decision.get("ranked"), list) else []
+    ranked_by_code = {
+        str(quote.get("stockCode") or "").zfill(6): (index, quote)
+        for index, quote in enumerate(ranked) if isinstance(quote, dict) and quote.get("stockCode")
+    }
+    positions = decision.get("positions_t0", {}) if isinstance(decision.get("positions_t0"), dict) else {}
+    sell_scores = decision.get("sell_score_by_code", {}) if isinstance(decision.get("sell_score_by_code"), dict) else {}
+    carry = decision.get("carry_allowed_by_code", {}) if isinstance(decision.get("carry_allowed_by_code"), dict) else {}
+    orders = [order for order in (decision.get("orders", []) or []) if isinstance(order, dict)]
+    deferred = [order for order in (decision.get("deferred_sell_orders", []) or []) if isinstance(order, dict)]
+
+    def code_context(code: str, *, decision_type: str, record_type: str,
+                     reason: str, order: dict[str, Any] | None = None) -> dict[str, Any]:
+        normalized = str(code).zfill(6)
+        rank_row = ranked_by_code.get(normalized)
+        rank_index, quote = rank_row if rank_row else (None, {})
+        position = positions.get(normalized, {}) if isinstance(positions.get(normalized), dict) else {}
+        name = quote.get("name") or position.get("stockName") or (order or {}).get("name")
+        context = dict(base)
+        context.update({
+            "decision_id": f"{trade_date}_{timestamp}_{normalized}_{record_type}",
+            "etf_code": normalized,
+            "etf_name": name,
+            "decision_type": decision_type,
+            "ledger_record_type": record_type,
+            "order_planned": order is not None,
+            "was_executed": False,
+            "signal_direction": decision_type if decision_type in ("BUY", "SELL", "HOLD") else "NONE",
+            "strategy_type": dp.classify_strategy_type(reason),
+            "symbol_group": dp.classify_symbol_group(normalized, name),
+            "holding_horizon": "intraday_to_close",
+            "candidate_rank": rank_index + 1 if rank_index is not None else None,
+            "candidate_count": len(ranked),
+            "signal_name": reason,
+            "decision_reason": reason,
+            "cross_sectional_percentile": rank_index / max(1, len(ranked)) if rank_index is not None else None,
+            "amount": quote.get("amount"),
+            "spread_pct": quote.get("spread_pct"),
+            "alpha101_conviction": quote.get("alpha101_conviction"),
+            "change_pct": quote.get("change_pct"),
+            "atr_pct": quote.get("atr_pct"),
+            "execution_style": (order or {}).get("execution_style"),
+            "has_stop": bool((order or {}).get("bracket")),
+            "position_size_suggestion": (order or {}).get("quantity"),
+            "held_quantity": position.get("quantity"),
+            "available_quantity": position.get("availableQuantity"),
+            "sell_score": sell_scores.get(normalized),
+            "carry_allowed": carry.get(normalized),
+            "missing_price": as_float(quote.get("currentPrice"), 0.0) <= 0,
+        })
+        return context
+
+    contexts: list[dict[str, Any]] = []
+    planned_buy_codes: set[str] = set()
+    planned_sell_codes: set[str] = set()
+    for order in orders:
+        direction = str(order.get("direction") or "").lower()
+        if direction not in ("buy", "sell"):
+            continue
+        code = str(order.get("stockCode") or "").zfill(6)
+        if not code:
+            continue
+        decision_type = direction.upper()
+        reason = str(order.get("reason") or base.get("decision_reason") or f"planned_{direction}")
+        contexts.append(code_context(
+            code, decision_type=decision_type, record_type="planned_order_decision",
+            reason=reason, order=order,
+        ))
+        (planned_buy_codes if direction == "buy" else planned_sell_codes).add(code)
+
+    deferred_by_code = {str(order.get("stockCode") or "").zfill(6): order for order in deferred}
+    for code, position in positions.items():
+        normalized = str(code).zfill(6)
+        if as_float((position or {}).get("quantity"), 0.0) <= 0 or normalized in planned_sell_codes:
+            continue
+        deferred_order = deferred_by_code.get(normalized)
+        if deferred_order:
+            reason = (f"sell_deferred:{deferred_order.get('deferred_reason') or 'throttle'}; "
+                      f"original={deferred_order.get('reason') or 'sell_score'}")
+            record_type = "deferred_sell_hold_decision"
+        else:
+            reason = (f"carry_position; sell_score={sell_scores.get(normalized)}; "
+                      f"carry_allowed={carry.get(normalized)}")
+            record_type = "position_hold_decision"
+        contexts.append(code_context(
+            normalized, decision_type="HOLD", record_type=record_type, reason=reason,
+        ))
+
+    # Preserve a snapshot-level BUY/HOLD/SKIP decision when no concrete order/position
+    # row represents it.  SELL is fully represented by its per-order/per-position rows.
+    if not contexts or (base.get("decision_type") in ("HOLD", "SKIP") and not positions):
+        base["ledger_record_type"] = "snapshot_decision"
+        base["order_planned"] = False
+        base["was_executed"] = False
+        contexts.insert(0, base)
+
+    if not scoring_cfg.get("record_ranked_candidates", False):
+        return contexts
     maximum = max(0, int(as_float(scoring_cfg.get("max_ranked_candidates_per_snapshot"), 30)))
-    executed_buy_code = str(final.get("etf_code") or "").zfill(6) if (
-        final.get("decision_type") == "BUY" and final.get("was_executed")
-    ) else ""
-    contexts = [final]
     n = len(ranked)
-    final_reason = final.get("decision_reason")
+    final_reason = base.get("decision_reason")
     for index, quote in enumerate(ranked[:maximum]):
         if not isinstance(quote, dict):
             continue
         code = str(quote.get("stockCode") or "").zfill(6)
-        if not code or code == executed_buy_code:
+        if not code or code in planned_buy_codes:
             continue
         name = quote.get("name")
         signal_name = quote.get("signal_name") or quote.get("entry_signal") or final_reason
-        candidate = dict(final)
+        candidate = dict(base)
         candidate.update({
             "decision_id": f"{trade_date}_{timestamp}_{code}_candidate_r{index + 1}",
             "etf_code": code,
             "etf_name": name,
             "decision_type": "BUY_CANDIDATE",
             "ledger_record_type": "no_trade_buy_candidate",
+            "order_planned": False,
             "was_executed": False,
             "signal_direction": "BUY",
             "strategy_type": dp.classify_strategy_type(signal_name),

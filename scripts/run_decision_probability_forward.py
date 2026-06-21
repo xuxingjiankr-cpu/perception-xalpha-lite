@@ -114,13 +114,15 @@ def ledger_completeness(records: list[dict[str, Any]], effective: str,
         groups[(str(row.get("date")), str(row.get("timestamp")))].append(row)
     expected = recorded = complete_groups = 0
     for rows in groups.values():
-        final = next((row for row in rows if row.get("ledger_record_type") == "final_decision"), None)
-        if not final:
+        representative = next((row for row in rows
+                               if row.get("ledger_record_type") != "no_trade_buy_candidate"), None)
+        if not representative:
             continue
-        candidate_count = int(as_float(final.get("candidate_count"), 0))
+        candidate_count = int(as_float(representative.get("candidate_count"), 0))
         group_expected = min(candidate_count, max_candidates)
-        if final.get("decision_type") == "BUY" and final.get("was_executed") and group_expected:
-            group_expected -= 1
+        planned_buy_codes = {str(row.get("etf_code")) for row in rows
+                             if row.get("decision_type") == "BUY" and row.get("order_planned")}
+        group_expected = max(0, group_expected - len(planned_buy_codes))
         group_recorded = sum(1 for row in rows if row.get("ledger_record_type") == "no_trade_buy_candidate")
         expected += group_expected
         recorded += group_recorded
@@ -129,7 +131,7 @@ def ledger_completeness(records: list[dict[str, Any]], effective: str,
         "records": len(forward),
         "snapshotGroups": len(groups),
         "completeSnapshotGroups": complete_groups,
-        "finalDecisions": sum(row.get("ledger_record_type") == "final_decision" for row in forward),
+        "finalDecisions": sum(row.get("ledger_record_type") != "no_trade_buy_candidate" for row in forward),
         "noTradeBuyCandidates": sum(row.get("ledger_record_type") == "no_trade_buy_candidate" for row in forward),
         "expectedNoTradeCandidates": expected,
         "recordedNoTradeCandidates": recorded,
@@ -147,7 +149,7 @@ def build_diagnostics(records: list[dict[str, Any]], model: dict[str, Any],
     calibration = config.get("calibration", {})
     edges = [float(value) for value in calibration.get("binEdges", [0, .2, .4, .6, .8, 1])]
     rows = completed_buy_forecasts(records, effective)
-    executed = [row for row in rows if row.get("was_executed") and row.get("decision_type") == "BUY"]
+    planned = [row for row in rows if row.get("order_planned") and row.get("decision_type") == "BUY"]
     latest_days = select_latest_days(rows, int(calibration.get("rollingTradingDays", 20)))
     latest_signals = rows[-int(calibration.get("rollingSignalCount", 50)):] if rows else []
     metrics = metric_for(rows, "calibrated_probability", edges)
@@ -191,8 +193,8 @@ def build_diagnostics(records: list[dict[str, Any]], model: dict[str, Any],
         "tradeGateEnabled": False,
         "positionSizingEnabled": False,
         "sample": {"completedBuyForecasts": len(rows), "independentTradingDays": days,
-                   "executedBuyForecasts": len(executed),
-                   "noTradeCandidateForecasts": len(rows) - len(executed)},
+                   "plannedBuyForecasts": len(planned),
+                   "noTradeCandidateForecasts": len(rows) - len(planned)},
         "ledger": ledger_completeness(
             records, effective, int(candidate_cfg.get("maxRankedCandidatesPerSnapshot", 30)),
         ),
@@ -233,7 +235,7 @@ def render_ledger(diagnostic: dict[str, Any]) -> str:
              "Status: `research_only / trade_invalid_probability`", "",
              f"- effective_from: {diagnostic['effectiveFrom']}",
              f"- completed BUY-direction forecasts: {sample['completedBuyForecasts']} across {sample['independentTradingDays']} days",
-             f"- executed BUY / no-trade counterfactual: {sample['executedBuyForecasts']} / {sample['noTradeCandidateForecasts']}",
+             f"- planned BUY / no-trade counterfactual: {sample['plannedBuyForecasts']} / {sample['noTradeCandidateForecasts']}",
              f"- final decisions / no-trade candidates recorded: {ledger['finalDecisions']} / {ledger['noTradeBuyCandidates']}",
              f"- candidate coverage: {format_metric(ledger['candidateCoverage'], True)}",
              f"- incomplete fixed horizons: {ledger['incompleteProbabilityHorizons']}", "",

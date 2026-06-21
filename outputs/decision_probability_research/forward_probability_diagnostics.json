@@ -1,6 +1,6 @@
 {
   "schemaVersion": "decision_probability_forward_diagnostics_v1",
-  "generatedAt": "2026-06-21T23:43:13.637654+09:00",
+  "generatedAt": "2026-06-22T08:10:55.290067+09:00",
   "iterationId": "DSI-0010",
   "effectiveFrom": "2026-06-22",
   "researchOnly": true,
@@ -9,7 +9,7 @@
   "sample": {
     "completedBuyForecasts": 0,
     "independentTradingDays": 0,
-    "executedBuyForecasts": 0,
+    "plannedBuyForecasts": 0,
     "noTradeCandidateForecasts": 0
   },
   "ledger": {

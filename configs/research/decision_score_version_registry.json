@@ -1,12 +1,12 @@
 {
   "schemaVersion": "decision_score_version_registry_v1",
-  "nextIterationNumber": 11,
+  "nextIterationNumber": 12,
   "active": {
-    "iterationId": "DSI-0010",
+    "iterationId": "DSI-0011",
     "scorerLogicVersion": "DSCORE-1.2.0",
     "weightsVersion": "DWEIGHTS-1.0.0",
-    "outcomeModelVersion": "DOUTCOME-2.1.0",
-    "pipelineVersion": "DPIPE-1.4.0",
+    "outcomeModelVersion": "DOUTCOME-2.2.0",
+    "pipelineVersion": "DPIPE-1.5.0",
     "shadowCandidateVersion": "DSHADOW-2.1.0",
     "calibrationVersion": "DCAL-1.0.1",
     "bayesianModelVersion": "DBAYES-1.0.1"
@@ -138,6 +138,18 @@
         "shadowCandidateVersion": "DSHADOW-2.1.0",
         "calibrationVersion": "DCAL-1.0.1",
         "bayesianModelVersion": "DBAYES-1.0.1"
+      }
+    },
+    {
+      "iterationId": "DSI-0011",
+      "date": "2026-06-22",
+      "commit": "85d03e7caedb63f817941b456addced289482175",
+      "status": "forward_shadow",
+      "changeType": "pipeline",
+      "summary": "Per-order and per-position decision ledger with daily statistical score review",
+      "versions": {
+        "outcomeModelVersion": "DOUTCOME-2.2.0",
+        "pipelineVersion": "DPIPE-1.5.0"
       }
     }
   ],
