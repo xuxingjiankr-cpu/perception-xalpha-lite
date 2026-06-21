@@ -50,8 +50,8 @@
     "exclude_codes": []
   },
   "decision_scoring": {
-    "enabled": false,
-    "note": "RECORD-ONLY decision scoring; writes outputs/decision_scores/. Never drives live sizing/execution. Default off so the live competition agent is unaffected; enable to log live decision scores."
+    "enabled": true,
+    "note": "RECORD-ONLY decision scoring; writes outputs/decision_scores/. Never drives live sizing/execution (try/except wrapped). Enabled to accumulate FORWARD live decision scores; weights are frozen pending forward validation -- do NOT re-fit on the historical backtest."
   },
   "observation_pool": {
     "enabled": true,
