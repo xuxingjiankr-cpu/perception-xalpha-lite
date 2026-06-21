@@ -2101,6 +2101,67 @@ def t51_execution_accounting_and_trust_contract() -> None:
           and set(data_audit) >= {"point_in_time_liquidity", "full_day_liquidity_used", "survivor_bias_warning", "missing_data_count", "rejected_order_count"})
 
 
+def t52_decision_scoring_system() -> None:
+    """Decision Scoring System: correct total/clamp/bucket, non-empty reasons, audit flags
+    (same-snapshot->exec contaminated, full-day-amount->data contaminated), all 4 decision
+    types score, JSONL+CSV output, report sample_insufficient + null-return safe, mistake
+    attribution returns at least UNKNOWN."""
+    import json as _json
+    import tempfile
+    from pathlib import Path as _Path
+    import decision_scoring as ds
+    import run_decision_score_report as rep
+
+    # total = sum of subscores, risk_penalty negative, clamp to [0,100]
+    sub = {"market_regime_score": 20, "relative_strength_score": 20, "liquidity_score": 15,
+           "entry_quality_score": 15, "execution_score": 10, "counterfactual_score": 10,
+           "risk_penalty": -20}
+    check("T52 total sums subscores w/ negative penalty", ds.total_from_subscores(sub) == 70.0,
+          str(ds.total_from_subscores(sub)))
+    check("T52 total clamps >100 to 100", ds.total_from_subscores({"market_regime_score": 200}) == 100.0)
+    check("T52 total clamps <0 to 0",
+          ds.total_from_subscores({k: 0 for k in sub} | {"risk_penalty": -20}) == 0.0)
+    check("T52 buckets", [ds.score_bucket(x) for x in (95, 78, 60, 47, 10)] == ["A", "B", "C", "D", "E"])
+
+    clean_buy = ds.score_decision({"decision_type": "BUY", "decision_reason": "entry_consolidation_breakout_passed",
+                                   "cross_sectional_percentile": 0.05, "amount": 8e8, "spread_pct": 0.0008,
+                                   "broad_market_not_declining": True, "correlation_stress_ok": True, "cost_in_path": True})
+    check("T52 reasons non-empty", all(clean_buy.get(k) for k in
+          ("market_regime_reason", "relative_strength_reason", "liquidity_reason",
+           "entry_quality_reason", "risk_penalty_reason", "execution_reason", "counterfactual_reason")))
+    check("T52 risk_penalty is <= 0", clean_buy["risk_penalty"] <= 0)
+
+    ss = ds.score_decision({"decision_type": "BUY", "same_snapshot_fill": True})
+    check("T52 same_snapshot_fill -> execution_model contaminated", ss["execution_model_flag"] == "contaminated")
+    check("T52 same_snapshot_fill not 'clean'", ss["execution_model_flag"] != "clean")
+    fda = ds.score_decision({"decision_type": "SKIP", "used_full_day_amount": True})
+    check("T52 full_day_amount -> data_quality contaminated", fda["data_quality_flag"] == "contaminated")
+    opt = ds.score_decision({"decision_type": "BUY", "execution_optimistic": True})
+    check("T52 optimistic exec model flagged", opt["execution_model_flag"] == "optimistic")
+
+    for dt in ("BUY", "SELL", "HOLD", "SKIP"):
+        r = ds.score_decision({"decision_type": dt, "decision_reason": "x"})
+        check(f"T52 {dt} produces a score", isinstance(r.get("total_score"), (int, float)) and r["decision_type"] == dt)
+
+    # mistake attribution: no outcome -> UNKNOWN; bad-score-but-profit -> lucky
+    check("T52 mistake UNKNOWN without outcome", ds.classify_mistake(clean_buy) == "UNKNOWN")
+    lucky = {**fda, "total_score": 20, "realized_return": 0.01, "decision_type": "BUY"}
+    check("T52 low score + profit -> BAD_TRADE_LUCKY_PROFIT", ds.classify_mistake(lucky) == "BAD_TRADE_LUCKY_PROFIT")
+
+    with tempfile.TemporaryDirectory() as td:
+        out = _Path(td)
+        recs = [ds.score_decision({"decision_type": d, "decision_reason": "x", "etf_code": "512760"})
+                for d in ("BUY", "SELL", "HOLD", "SKIP")]
+        j, c = ds.write_scores(recs, "2026-06-21", out_dir=out)
+        check("T52 JSONL written with all rows", j.exists() and len([l for l in j.read_text(encoding='utf-8').splitlines() if l]) == 4)
+        check("T52 CSV written with header+rows", c.exists() and len(c.read_text(encoding='utf-8').splitlines()) == 5)
+        # report: null returns must not crash and must flag sample_insufficient
+        rep.SCORE_DIR = out
+        text = rep.build_report(recs)
+        check("T52 report does not crash on null returns + flags sample_insufficient",
+              "sample_insufficient" in text)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2151,6 +2212,7 @@ if __name__ == "__main__":
     t49_l4_forward_preregistration()
     t50_l4_forward_shadow_pipeline()
     t51_execution_accounting_and_trust_contract()
+    t52_decision_scoring_system()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

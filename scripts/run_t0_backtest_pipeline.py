@@ -939,6 +939,17 @@ def main() -> None:
         "live_ready": False,
     }, ensure_ascii=False, indent=2))
 
+    # Decision-score effectiveness report (read-only, guarded): summarizes any decision
+    # scores accumulated in outputs/decision_scores/. Never affects the pipeline result.
+    try:
+        import run_decision_score_report as _dsr
+        if list(_dsr.SCORE_DIR.glob("decision_scores_*.jsonl")):
+            _dsr.build_report(_dsr.load_records(None))  # writes nothing here; report via its CLI
+            print("decision_scores: records present; run "
+                  "`py -3.13 scripts/run_decision_score_report.py` for the effectiveness report.")
+    except Exception:
+        pass
+
 
 if __name__ == "__main__":
     main()

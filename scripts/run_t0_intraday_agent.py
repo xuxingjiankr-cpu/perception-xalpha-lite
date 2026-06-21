@@ -3566,6 +3566,17 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     decision["broker_query_throttle"] = {**broker_query_throttle_detail, "throttled": False}
     decision["fill_reconciliation"] = fill_reconciliation
     decision["evolution_overlay"] = cfg.get("_evolution_overlay", {"applied": False})
+    # Decision Scoring System hook: RECORD-ONLY. Wrapped so it can NEVER affect the
+    # decision, the orders, or the live run; gated by config (default off). It only
+    # appends an auditable decision_score to outputs/decision_scores/.
+    if cfg.get("decision_scoring", {}).get("enabled", False):
+        try:
+            import decision_scoring as _ds
+            _ts = exchange_local_time(session).strftime("%H:%M:%S")
+            _ctx = _ds.context_from_decision(cfg, decision, trade_date=trade_date, timestamp=_ts)
+            _ds.append_score(_ds.score_decision(_ctx), trade_date)
+        except Exception:
+            pass  # never let scoring touch the live agent
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))
     tag_order_owner(decision.get("orders", []) if isinstance(decision.get("orders"), list) else [], agent_name, decision.get("trade_date", trade_date))
     submit_results: list[dict[str, Any]] = []

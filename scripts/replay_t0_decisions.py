@@ -560,6 +560,8 @@ def main() -> None:
     parser.add_argument("--label", default="replay", help="suffix for output filenames")
     parser.add_argument("--output-detail", choices=["summary", "full"], default="full",
                         help="summary skips per-round decisions JSONL; full preserves legacy output")
+    parser.add_argument("--decision-scores", action="store_true",
+                        help="also emit Decision Scoring System records (record-only, diagnostic)")
     args = parser.parse_args()
 
     cfg = load_json(Path(args.config))
@@ -675,6 +677,7 @@ def main() -> None:
             "transaction_cost": round(day_cost, 2), "drawdown": point.get("drawdown"),
         })
 
+    decision_score_records: list[dict[str, Any]] = []
     try:
         for rnd in round_iter:
             ts = agent.parse_iso_dt(rnd[-1].get("timestamp"))
@@ -748,6 +751,16 @@ def main() -> None:
                 feature_history_by_code=history_by_code,
             )
             signal_seconds += time.perf_counter() - signal_started
+            if args.decision_scores:
+                try:
+                    import decision_scoring as _ds
+                    _td = replay_now.strftime("%Y-%m-%d")
+                    _ctx = _ds.context_from_decision(cfg, decision, trade_date=_td,
+                                                     timestamp=replay_now.strftime("%H:%M:%S"))
+                    _ctx["same_snapshot_fill"] = True  # replay fills at the decision snapshot
+                    decision_score_records.append(_ds.score_decision(_ctx))
+                except Exception:
+                    pass
             for quote in quotes:
                 code = str(quote.get("stockCode", "")).zfill(6)
                 if not code:
@@ -832,6 +845,18 @@ def main() -> None:
     result_trust_level = "contaminated" if full_day_used else (
         "diagnostic_only" if not point_in_time_liquidity or data_quality["survivor_bias_warning"] else "clean"
     )
+    if args.decision_scores and decision_score_records:
+        try:
+            import decision_scoring as _ds
+            from collections import defaultdict as _dd
+            by_date: dict[str, list[dict[str, Any]]] = _dd(list)
+            for r in decision_score_records:
+                by_date[str(r.get("date"))].append(r)
+            for d, recs in by_date.items():
+                _ds.write_scores(recs, d)
+            print(f"decision_scores: wrote {len(decision_score_records)} records across {len(by_date)} day(s)")
+        except Exception as _e:
+            print(f"decision_scores: skipped ({_e})")
     summary = {
         "label": args.label,
         "rounds_total": sum(d["rounds"] for d in per_day.values()),

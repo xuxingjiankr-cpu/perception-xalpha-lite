@@ -49,6 +49,10 @@
     "name_exclude_keywords": ["货币", "现金", "理财"],
     "exclude_codes": []
   },
+  "decision_scoring": {
+    "enabled": false,
+    "note": "RECORD-ONLY decision scoring; writes outputs/decision_scores/. Never drives live sizing/execution. Default off so the live competition agent is unaffected; enable to log live decision scores."
+  },
   "observation_pool": {
     "enabled": true,
     "shadow_only": true,
