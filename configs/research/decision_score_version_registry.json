@@ -1,8 +1,8 @@
 {
   "schemaVersion": "decision_score_version_registry_v1",
-  "nextIterationNumber": 8,
+  "nextIterationNumber": 9,
   "active": {
-    "iterationId": "DSI-0007",
+    "iterationId": "DSI-0008",
     "scorerLogicVersion": "DSCORE-1.2.0",
     "weightsVersion": "DWEIGHTS-1.0.0",
     "outcomeModelVersion": "DOUTCOME-2.0.0",
@@ -24,7 +24,11 @@
       "commit": "57e49ef",
       "status": "completed",
       "summary": "Initial record-only decision scoring system",
-      "versions": {"scorerLogicVersion": "DSCORE-1.0.0", "weightsVersion": "DWEIGHTS-1.0.0", "outcomeModelVersion": "DOUTCOME-1.0.0"}
+      "versions": {
+        "scorerLogicVersion": "DSCORE-1.0.0",
+        "weightsVersion": "DWEIGHTS-1.0.0",
+        "outcomeModelVersion": "DOUTCOME-1.0.0"
+      }
     },
     {
       "iterationId": "DSI-0002",
@@ -32,7 +36,11 @@
       "commit": "7624e87",
       "status": "completed",
       "summary": "Breadth regime component and historical outcome enrichment",
-      "versions": {"scorerLogicVersion": "DSCORE-1.1.0", "weightsVersion": "DWEIGHTS-1.0.0", "outcomeModelVersion": "DOUTCOME-1.1.0"}
+      "versions": {
+        "scorerLogicVersion": "DSCORE-1.1.0",
+        "weightsVersion": "DWEIGHTS-1.0.0",
+        "outcomeModelVersion": "DOUTCOME-1.1.0"
+      }
     },
     {
       "iterationId": "DSI-0003",
@@ -40,7 +48,10 @@
       "commit": "3ddc45c",
       "status": "completed",
       "summary": "Enable isolated real-forward score accumulation",
-      "versions": {"pipelineVersion": "DPIPE-1.0.0", "weightsVersion": "DWEIGHTS-1.0.0"}
+      "versions": {
+        "pipelineVersion": "DPIPE-1.0.0",
+        "weightsVersion": "DWEIGHTS-1.0.0"
+      }
     },
     {
       "iterationId": "DSI-0004",
@@ -48,7 +59,11 @@
       "commit": "488fb40",
       "status": "diagnostic_only",
       "summary": "Next-snapshot outcome semantics and historical pseudo-forward pipeline",
-      "versions": {"outcomeModelVersion": "DOUTCOME-2.0.0", "pipelineVersion": "DPIPE-1.1.0", "weightsVersion": "DWEIGHTS-1.0.0"}
+      "versions": {
+        "outcomeModelVersion": "DOUTCOME-2.0.0",
+        "pipelineVersion": "DPIPE-1.1.0",
+        "weightsVersion": "DWEIGHTS-1.0.0"
+      }
     },
     {
       "iterationId": "DSI-0005",
@@ -56,7 +71,9 @@
       "commit": "6d326f9",
       "status": "rejected",
       "summary": "May-fitted ridge reweighting failed fixed June test",
-      "versions": {"weightsVersion": "DWEIGHTS-1.0.0"}
+      "versions": {
+        "weightsVersion": "DWEIGHTS-1.0.0"
+      }
     },
     {
       "iterationId": "DSI-0006",
@@ -64,7 +81,10 @@
       "commit": "6d326f9",
       "status": "forward_shadow",
       "summary": "Frozen-score BUY threshold 71 preregistered for shadow validation",
-      "versions": {"shadowCandidateVersion": "DSHADOW-1.0.0", "weightsVersion": "DWEIGHTS-1.0.0"}
+      "versions": {
+        "shadowCandidateVersion": "DSHADOW-1.0.0",
+        "weightsVersion": "DWEIGHTS-1.0.0"
+      }
     },
     {
       "iterationId": "DSI-0007",
@@ -72,7 +92,20 @@
       "commit": "self",
       "status": "completed",
       "summary": "Add explicit iteration and semantic version provenance to every score record",
-      "versions": {"scorerLogicVersion": "DSCORE-1.2.0", "pipelineVersion": "DPIPE-1.2.0", "weightsVersion": "DWEIGHTS-1.0.0"}
+      "versions": {
+        "scorerLogicVersion": "DSCORE-1.2.0",
+        "pipelineVersion": "DPIPE-1.2.0",
+        "weightsVersion": "DWEIGHTS-1.0.0"
+      }
+    },
+    {
+      "iterationId": "DSI-0008",
+      "date": "2026-06-21",
+      "commit": "02988afeafa1ae3751c99b344c687981ed0f68db",
+      "status": "diagnostic_only",
+      "changeType": "audit",
+      "summary": "High-vs-low BUY score separation on fixed June test",
+      "versions": {}
     }
   ],
   "safety": {

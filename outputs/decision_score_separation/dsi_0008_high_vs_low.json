@@ -1,0 +1,68 @@
+{
+  "iteration_id": "DSI-0008",
+  "status": "diagnostic_only",
+  "hypothesis": "Frozen high-score BUY decisions outperform frozen low-score BUY decisions after cost",
+  "window": "2026-06-01/2026-06-18",
+  "thresholds": {
+    "high_min": 71.0,
+    "low_max": 65.0,
+    "round_trip_cost": 0.0014
+  },
+  "sample": {
+    "buy_decisions": 60,
+    "trading_days": 13
+  },
+  "high": {
+    "count": 28,
+    "days": 8,
+    "mean_net_return": 0.0022346428571428565,
+    "median_net_return": 0.00401,
+    "win_rate": 0.6071428571428571,
+    "mean_mae": -0.0066892857142857145,
+    "mean_mfe": 0.011710714285714284
+  },
+  "low": {
+    "count": 27,
+    "days": 12,
+    "mean_net_return": -0.00042333333333333296,
+    "median_net_return": -0.00124,
+    "win_rate": 0.4074074074074074,
+    "mean_mae": -0.0027737037037037036,
+    "mean_mfe": 0.005176666666666666
+  },
+  "pooled_high_minus_low": 0.0026579761904761893,
+  "day_balanced": {
+    "high_mean": 0.0027668005952380947,
+    "low_mean": -0.000532847222222222,
+    "paired_day_count": 7,
+    "paired_high_minus_low_mean": -0.00044806122448979663,
+    "paired_differences": {
+      "2026-06-01": 0.004188333333333333,
+      "2026-06-03": -0.01278,
+      "2026-06-09": 0.010496666666666665,
+      "2026-06-10": 0.0004083333333333326,
+      "2026-06-12": -0.013353333333333335,
+      "2026-06-16": -0.0005950000000000003,
+      "2026-06-17": 0.008498571428571428
+    }
+  },
+  "day_cluster_bootstrap": {
+    "n_boot": 20000,
+    "seed": 20260621,
+    "ci_95": [
+      -0.006553806573275862,
+      0.010948041871334312
+    ],
+    "median": 0.0030266375291375285,
+    "one_sided_probability_difference_le_zero": 0.26505
+  },
+  "verdict": {
+    "pooled_high_better": true,
+    "cluster_ci_excludes_zero": false,
+    "same_day_paired_high_better": false,
+    "validated": false,
+    "reason": "only 13 test days; clustered CI includes zero and same-day paired mean is not positive"
+  },
+  "live_changes": false,
+  "trade_gate_enabled": false
+}

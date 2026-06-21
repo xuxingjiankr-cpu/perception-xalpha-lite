@@ -23,7 +23,11 @@
     "highScoreMeanNetReturn": 0.0022346428571428565,
     "lowScoreBuyCount": 27,
     "lowScoreMeanNetReturn": -0.00042333333333333296,
-    "roundTripCost": 0.0014
+    "roundTripCost": 0.0014,
+    "sameDayPairedCount": 7,
+    "sameDayPairedMeanDifference": -0.00044806122448979663,
+    "dayClusterBootstrap95CI": [-0.00655381, 0.01094804],
+    "validated": false
   },
   "forwardValidation": {
     "effectiveFrom": "2026-06-22",

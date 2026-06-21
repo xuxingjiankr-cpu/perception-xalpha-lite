@@ -2305,6 +2305,29 @@ def t55_decision_score_semantic_versioning() -> None:
     check("T55 report warns on mixed semantic versions", "mixed_version_warning" in mixed)
 
 
+def t56_high_low_score_separation() -> None:
+    import research_decision_score_separation as separation
+
+    rows = [
+        {"date": "2026-06-01", "total_score": 75, "net_return": 0.01,
+         "max_adverse_excursion": -0.002, "max_favorable_excursion": 0.012},
+        {"date": "2026-06-01", "total_score": 60, "net_return": -0.01,
+         "max_adverse_excursion": -0.012, "max_favorable_excursion": 0.002},
+        {"date": "2026-06-02", "total_score": 75, "net_return": 0.02,
+         "max_adverse_excursion": -0.001, "max_favorable_excursion": 0.021},
+        {"date": "2026-06-02", "total_score": 60, "net_return": -0.02,
+         "max_adverse_excursion": -0.021, "max_favorable_excursion": 0.001},
+    ]
+    high = separation.group_stats([row for row in rows if row["total_score"] >= 71])
+    low = separation.group_stats([row for row in rows if row["total_score"] <= 65])
+    check("T56 planted high group has better net return", high["mean_net_return"] > low["mean_net_return"])
+    high_day = separation.day_means(rows, lambda row: row["total_score"] >= 71)
+    low_day = separation.day_means(rows, lambda row: row["total_score"] <= 65)
+    check("T56 same-day comparison retains both independent days", set(high_day) == set(low_day) == {"2026-06-01", "2026-06-02"})
+    boot = separation.cluster_bootstrap(rows, n_boot=100, seed=1)
+    check("T56 cluster bootstrap is deterministic and populated", boot["n_boot"] == 100 and boot["ci_95"][0] > 0)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2359,6 +2382,7 @@ if __name__ == "__main__":
     t53_pseudo_forward_prefix_and_isolation()
     t54_weight_research_and_forward_shadow()
     t55_decision_score_semantic_versioning()
+    t56_high_low_score_separation()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
