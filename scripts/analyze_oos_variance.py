@@ -54,11 +54,21 @@ def max_cumulative_drawdown(values: list[float]) -> float:
 
 def daily_net_pnl(summary: dict[str, Any], roundtrip_cost_bps: float) -> dict[str, float]:
     rate = roundtrip_cost_bps / 10_000.0
+    execution = summary.get("execution_model", {}) if isinstance(summary.get("execution_model"), dict) else {}
+    cost_in_path = bool(execution.get("cost_in_path", False))
+    embedded = (
+        float(execution.get("buy_cost_pct", 0.0)) + float(execution.get("sell_cost_pct", 0.0))
+        + 2.0 * float(execution.get("slippage_pct_per_side", 0.0))
+    ) if cost_in_path else 0.0
+    extra_rate = max(0.0, rate - embedded) if cost_in_path else rate
     out: dict[str, float] = {}
     for day, node in sorted(summary.get("per_day", {}).items()):
         gross = float(node.get("gross_pnl", node.get("pnl", 0.0)))
         notional = float(node.get("buy_notional", 0.0)) + float(node.get("sell_notional", 0.0))
-        out[day] = gross - 0.5 * rate * notional
+        out[day] = (
+            float(node.get("net_pnl", node.get("pnl", 0.0))) - 0.5 * extra_rate * notional
+            if cost_in_path else gross - 0.5 * rate * notional
+        )
     return out
 
 
@@ -198,6 +208,7 @@ def build_report(reps: int = 10_000) -> dict[str, Any]:
         "diagnostic_only": True,
         "live_ready": False,
         "formal_strategy_allowed": False,
+        "contaminated_warning": "Legacy Yahoo60 universe used same-day final turnover; diagnostic only and not edge evidence.",
         "split": {
             "training": ["2026-03-23", "2026-05-20"],
             "oos_test": [OOS_START, OOS_END],
@@ -227,6 +238,8 @@ def build_report(reps: int = 10_000) -> dict[str, Any]:
 def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# OOS Variance / Drawdown Validation",
+        "",
+        "> CONTAMINATED WARNING: legacy Yahoo60 universe used same-day final turnover. Diagnostic only; not edge evidence.",
         "",
         "Paper-only diagnostic. Frozen train: 2026-03-23..05-20; untouched OOS: 2026-05-21..06-18.",
         "",

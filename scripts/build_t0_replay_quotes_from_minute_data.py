@@ -85,6 +85,7 @@ def quote_from_bar(etf: dict[str, Any], row: dict[str, Any], prev_close: float) 
         "name": etf.get("name", ""),
         "asset_class": etf.get("asset_class", ""),
         "source": row.get("source") or "local_minute",
+        "liquidity_source": "point_in_time",
         "quote_ok": close_px > 0,
         "isSuspended": False,
         "currentPrice": close_px,

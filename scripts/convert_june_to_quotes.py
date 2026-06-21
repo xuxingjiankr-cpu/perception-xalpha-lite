@@ -4,7 +4,7 @@ snapshot days). Offline; writes a single time-ordered minute_quotes JSONL.
 
 Source: data/market/eastmoney/minute/2026-06/etf/*.csv.gz (per-ETF 1-min OHLCV bars,
 TDX). We emit one cross-section per 5-minute mark during the session (matching the live
-~5-min cadence), liquidity-gated to the day's tradable names (full-day amount >= floor)
+~5-min cadence), liquidity-gated at each timestamp using cumulative amount observed so far
 so the replay universe ~ the live dynamic universe. Volume/amount are cumulated within
 the day (snapshot semantics); bid/ask are synthesized = close (no historical book), so
 spread ~ 0 -- a tight-spread assumption appropriate for the liquid names we keep.
@@ -23,10 +23,11 @@ import sys
 from pathlib import Path
 
 from run_etf_paper_trading_agent import ROOT, as_float
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 TDX_DIR = ROOT / "data" / "market" / "eastmoney" / "minute" / "2026-06" / "etf"
 OUT = ROOT / "outputs" / "t0_replay" / "june_full_quotes.jsonl"
-MIN_FULL_DAY_AMOUNT = 50_000_000.0   # liquidity gate ~ live dynamic universe
+MIN_LIQUIDITY_AMOUNT = 50_000_000.0  # elapsed-session-scaled point-in-time gate
 SESSION_MARKS = (                      # 5-min cadence China-time minutes within session
     [m for m in range(9 * 60 + 35, 11 * 60 + 31, 5)] +
     [m for m in range(13 * 60 + 5, 15 * 60 + 1, 5)]
@@ -41,7 +42,7 @@ def _clean(x) -> float:
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     files = sorted(TDX_DIR.glob("*.csv.gz"))
-    # data[code] = {"name","exch", "days": {date: {minute: (close, cumvol, cumamt)}}, "fullamt": {date: amt}, "lastclose": {date: close}}
+    # data[code] = {"name","exch", "days": {date: {minute: (close, cumvol, cumamt)}}, "lastclose": {date: close}}
     data: dict[str, dict] = {}
     for gz in files:
         try:
@@ -64,14 +65,13 @@ def main() -> None:
                 continue
             node = data.setdefault(code, {"name": r.get("name"),
                                           "exch": "SH" if str(r.get("market")).strip() == "1" else "SZ",
-                                          "days": {}, "fullamt": {}, "lastclose": {}})
+                                          "days": {}, "lastclose": {}})
             day = node["days"].setdefault(date, {})
             prev = day.get("__cum__", (0.0, 0.0))
             cumvol = prev[0] + _clean(r.get("volume"))
             cumamt = prev[1] + _clean(r.get("amount"))
             day["__cum__"] = (cumvol, cumamt)
             day[minute] = (close, cumvol, cumamt)
-            node["fullamt"][date] = cumamt
             node["lastclose"][date] = close
 
     all_dates = sorted({d for n in data.values() for d in n["days"]})
@@ -89,19 +89,24 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     n_rows = 0
     per_day_counts: dict[str, int] = {}
+    per_day_codes: dict[str, set[str]] = {}
     with OUT.open("w", encoding="utf-8") as out:
         for date in all_dates:
-            # day's tradable universe by full-day amount
-            universe = [c for c, n in data.items() if n["fullamt"].get(date, 0.0) >= MIN_FULL_DAY_AMOUNT]
             for minute in SESSION_MARKS:
                 ts = f"{date}T{minute // 60:02d}:{minute % 60:02d}:00+08:00"
-                for code in universe:
-                    node = data[code]
+                for code, node in data.items():
+                    if date not in node["days"]:
+                        continue
                     day = node["days"][date]
                     bar = at_or_before(day, minute)
                     if not bar:
                         continue
                     close, cumvol, cumamt = bar
+                    liquid, liquidity_source, _ = point_in_time_liquidity_gate(
+                        {minute: cumamt}, minute, MIN_LIQUIDITY_AMOUNT,
+                    )
+                    if not liquid:
+                        continue
                     pd = prev_date.get(date)
                     prev_close = node["lastclose"].get(pd) if pd else None
                     if not prev_close:
@@ -119,14 +124,16 @@ def main() -> None:
                         "spread_pct": 0.0008, "volume": cumvol, "amount": cumamt,
                         "change_pct": round((close / prev_close - 1.0) * 100, 4) if prev_close else 0.0,
                         "quote_ok": True, "isSuspended": False,
+                        "liquidity_source": liquidity_source,
                     }, ensure_ascii=False) + "\n")
                     n_rows += 1
                     per_day_counts[date] = per_day_counts.get(date, 0) + 1
+                    per_day_codes.setdefault(date, set()).add(code)
 
     print(f"=== converted June TDX bars -> {OUT} ===")
     print(f"trading days: {len(all_dates)} ({all_dates[0]}..{all_dates[-1]}) | rows: {n_rows}")
     for d in all_dates:
-        uni = len([c for c, n in data.items() if n["fullamt"].get(d, 0.0) >= MIN_FULL_DAY_AMOUNT])
+        uni = len(per_day_codes.get(d, set()))
         print(f"  {d}: universe={uni} rows={per_day_counts.get(d, 0)}")
 
 

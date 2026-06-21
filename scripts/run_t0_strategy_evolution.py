@@ -730,6 +730,7 @@ def prepare_daily_quote_cache(
     cache_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = cache_dir / "manifest.json"
     source_sig = {
+        "cache_policy_version": "liquidity_provenance_v2",
         "source": str(source.resolve()),
         "size": source.stat().st_size,
         "mtime": source.stat().st_mtime,
@@ -752,6 +753,7 @@ def prepare_daily_quote_cache(
         stale_file.unlink()
     handles: dict[str, Any] = {}
     counts: dict[str, int] = {}
+    liquidity_sources: dict[str, int] = {}
     try:
         with source.open("r", encoding="utf-8") as f:
             for line in f:
@@ -761,6 +763,14 @@ def prepare_daily_quote_cache(
                     continue
                 if not isinstance(obj, dict) or not obj.get("timestamp"):
                     continue
+                source_name = str(obj.get("liquidity_source") or "")
+                if not source_name:
+                    source_lower = source.name.lower()
+                    source_name = "contaminated_full_day" if (
+                        "yahoo_60d_quotes" in source_lower or "june_full_quotes" in source_lower
+                    ) else "unknown"
+                    obj["liquidity_source"] = source_name
+                liquidity_sources[source_name] = liquidity_sources.get(source_name, 0) + 1
                 trade_date = str(obj["timestamp"])[:10]
                 if not _date_allowed(trade_date, date_filter, start_date, end_date):
                     continue
@@ -768,7 +778,7 @@ def prepare_daily_quote_cache(
                     out_path = cache_dir / f"{trade_date}.jsonl"
                     handles[trade_date] = out_path.open("w", encoding="utf-8")
                     counts[trade_date] = 0
-                handles[trade_date].write(line if line.endswith("\n") else line + "\n")
+                handles[trade_date].write(json.dumps(obj, ensure_ascii=False) + "\n")
                 counts[trade_date] += 1
     finally:
         for handle in handles.values():
@@ -780,6 +790,7 @@ def prepare_daily_quote_cache(
         "created_at": datetime.now().astimezone().isoformat(),
         "dates": dates,
         "rows_by_date": counts,
+        "liquidity_sources": liquidity_sources,
     })
     return {
         "quotes_arg": str(cache_dir),
@@ -841,12 +852,10 @@ def prepare_dynamic_gate_cache(
     *,
     cache_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Keep the full intraday history for codes that pass the live universe gates.
+    """Activate a code only from its first point-in-time gate pass onward.
 
-    Eligibility is evaluated at every snapshot, but once a code is eligible on a
-    date all of its rows for that date are retained. That preserves exit safety
-    and indicator warm-up while avoiding deep calculations on permanently
-    illiquid ETFs.
+    Pre-activation rows are never backfilled: doing so would leak later turnover
+    into earlier decisions. Once activated, later rows remain for exit safety.
     """
     if not daily_quotes_dir:
         return {"quotes_arg": daily_quotes_dir, "gate_cache_used": False, "reason": "no_daily_cache"}
@@ -862,6 +871,7 @@ def prepare_dynamic_gate_cache(
         "source_dir": str(source_dir.resolve()),
         "source_manifest": source_manifest,
         "dynamic_gate": {
+            "policy_version": "point_in_time_activation_v2",
             "min_amount_yuan": dyn_cfg.get("min_amount_yuan"),
             "max_spread_pct": dyn_cfg.get("max_spread_pct"),
             "min_price": dyn_cfg.get("min_price"),
@@ -887,25 +897,24 @@ def prepare_dynamic_gate_cache(
     rows_by_date: dict[str, int] = {}
     for source in sorted(source_dir.glob("*.jsonl")):
         trade_date = source.stem[:10]
-        eligible_codes: set[str] = set()
-        with source.open("r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    row = json.loads(line)
-                except Exception:
-                    continue
-                if isinstance(row, dict) and _passes_dynamic_replay_gate(row, dyn_cfg):
-                    eligible_codes.add(str(row.get("stockCode", "")).zfill(6))
         out_path = cache_dir / f"{trade_date}.jsonl"
         written = 0
+        eligible_codes: set[str] = set()
         with source.open("r", encoding="utf-8") as f, out_path.open("w", encoding="utf-8") as out:
             for line in f:
                 try:
                     row = json.loads(line)
                 except Exception:
                     continue
-                if str(row.get("stockCode", "")).zfill(6) in eligible_codes:
-                    out.write(line if line.endswith("\n") else line + "\n")
+                if not isinstance(row, dict):
+                    continue
+                code = str(row.get("stockCode", "")).zfill(6)
+                if code not in eligible_codes and _passes_dynamic_replay_gate(row, dyn_cfg):
+                    eligible_codes.add(code)
+                if code in eligible_codes:
+                    row["liquidity_gate_source"] = "point_in_time"
+                    row.setdefault("liquidity_source", "unknown")
+                    out.write(json.dumps(row, ensure_ascii=False) + "\n")
                     written += 1
         eligible_counts[trade_date] = len(eligible_codes)
         rows_by_date[trade_date] = written
@@ -917,7 +926,8 @@ def prepare_dynamic_gate_cache(
         "dates": dates,
         "eligible_codes_by_date": eligible_counts,
         "rows_by_date": rows_by_date,
-        "policy": "retain_all_intraday_rows_for_any_code_eligible_during_date",
+        "policy": "activate_from_first_point_in_time_gate_pass_no_backfill",
+        "point_in_time_liquidity": True,
     })
     return {
         "quotes_arg": str(cache_dir),

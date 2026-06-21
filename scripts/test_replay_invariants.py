@@ -903,9 +903,9 @@ def t32_lead_lag_detection() -> None:
     follower_a = [(m, leader_px(m - 15)) for m in minutes if m - 15 >= 570]   # exact 15-min lag
     follower_b = [(m, round(leader_px(m - 15) * 1.001, 4)) for m in minutes if m - 15 >= 570]
     by_code = {
-        "500001": {"name": "半导体ETF龙头", "full_amount": 1e9, "series": leader},
-        "500002": {"name": "半导体ETF乙", "full_amount": 6e7, "series": follower_a},
-        "500003": {"name": "半导体ETF丙", "full_amount": 6e7, "series": follower_b},
+        "500001": {"name": "半导体ETF龙头", "amount_by_min": {m: 1e9 for m, _ in leader}, "series": leader},
+        "500002": {"name": "半导体ETF乙", "amount_by_min": {m: 6e7 for m, _ in follower_a}, "series": follower_a},
+        "500003": {"name": "半导体ETF丙", "amount_by_min": {m: 6e7 for m, _ in follower_b}, "series": follower_b},
     }
     res = ll.analyze_day("2026-06-18", by_code, keyword_map={"半导体": "semi"},
                          decision_start=600, decision_end=840, step=5, window=15,
@@ -1283,8 +1283,8 @@ def t26_daily_replay_cache_and_directory_reader() -> None:
 
 
 def t27_dynamic_gate_replay_cache() -> None:
-    """Dynamic replay cache retains complete intraday history for any code that
-    becomes eligible, and removes codes that never pass the live gates."""
+    """Dynamic replay cache begins at first point-in-time eligibility and never
+    backfills earlier rows using later turnover."""
     import importlib
     import json as _json
     import tempfile
@@ -1316,8 +1316,10 @@ def t27_dynamic_gate_replay_cache() -> None:
             _json.loads(line)
             for line in (_Path(meta["cache_dir"]) / "2026-06-18.jsonl").read_text(encoding="utf-8").splitlines()
         ]
-        check("T27 dynamic gate retains full history for eligible code",
-              [r.get("stockCode") for r in out_rows] == ["510300", "510300"], str(out_rows))
+        check("T27 dynamic gate does not backfill pre-eligibility history",
+              [r.get("stockCode") for r in out_rows] == ["510300"], str(out_rows))
+        check("T27 dynamic gate labels point-in-time activation",
+              out_rows[0].get("liquidity_gate_source") == "point_in_time", str(out_rows))
         check("T27 dynamic gate removes never-eligible wide-spread code",
               meta.get("eligible_codes_by_date", {}).get("2026-06-18") == 1, str(meta))
         check("T27 cash-flow factor ETF is not rejected by generic cash keyword",
@@ -2022,6 +2024,83 @@ def t50_l4_forward_shadow_pipeline() -> None:
           and evaluated["recommendLive"] is False, str(evaluated))
 
 
+def t51_execution_accounting_and_trust_contract() -> None:
+    """Patched replay is next-snapshot, T-rule, cost, MTM and trust fail-closed."""
+    import importlib
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    replay = importlib.import_module("replay_t0_decisions")
+    pipeline = importlib.import_module("run_t0_backtest_pipeline")
+    tz = ZoneInfo("Asia/Shanghai")
+    t0 = datetime(2026, 6, 18, 10, 0, tzinfo=tz)
+    quote = {
+        "timestamp": (t0 + timedelta(minutes=1)).isoformat(), "stockCode": "510300",
+        "currentPrice": 4.0, "bidPrice1": 4.0, "askPrice1": 4.0,
+        "volume": 1000, "amount": 4_000_000, "quote_ok": True, "isSuspended": False,
+    }
+    cfg_t1 = {"strategy": {"bracket": {}}, "replay_execution": {
+        "default_sell_rule": "T1", "t0_allowlist": [], "buy_cost_pct": 0.0005,
+        "sell_cost_pct": 0.0005, "slippage_pct_per_side": 0.0002,
+    }}
+    buy_order = {"stockCode": "510300", "exchange": "SH", "direction": "buy",
+                 "quantity": 1000, "price": 4.0, "orderType": "limit"}
+    intent = replay.make_order_intent(buy_order, t0, 1, {"trade_date": "2026-06-18"})
+    sim = {"initial_cash": 100_000.0, "cash": 100_000.0, "positions": {}}
+    state = {}
+    pending, terminal = replay.process_pending_orders(sim, [intent], [quote], t0, cfg_t1, state)
+    check("T51 same-snapshot intent remains pending", len(pending) == 1 and not terminal and sim.get("positions") == {}, str(intent))
+    pending, terminal = replay.process_pending_orders(sim, pending, [quote], t0 + timedelta(minutes=1), cfg_t1, state)
+    check("T51 next snapshot can fill", not pending and terminal[0]["status"] == "filled", str(terminal))
+    check("T51 in-path cost reduces cash", sim["cash"] < 96_000.0, str(sim["cash"]))
+    first_equity = replay.mark_to_market(sim, [quote], t0 + timedelta(minutes=1))["equity"]
+    higher = dict(quote, currentPrice=4.1, bidPrice1=4.1, askPrice1=4.1)
+    second_point = replay.mark_to_market(sim, [higher], t0 + timedelta(minutes=2))
+    check("T51 mark-to-market changes equity", second_point["equity"] > first_equity, str((first_equity, second_point)))
+    check("T51 changed mark creates unrealized PnL", abs(second_point["unrealized_pnl"]) > 0, str(second_point))
+    replay.refresh_available_quantities(sim, t0 + timedelta(minutes=2))
+    check("T51 T1 same-day buy is not sellable", sim["positions"]["510300"]["availableQuantity"] == 0, str(sim["positions"]))
+    sell_order = {"stockCode": "510300", "exchange": "SH", "direction": "sell",
+                  "quantity": 1000, "price": 4.0, "orderType": "limit"}
+    sell_intent = replay.make_order_intent(sell_order, t0 + timedelta(minutes=2), 2, {"trade_date": "2026-06-18"})
+    _, rejected = replay.process_pending_orders(sim, [sell_intent], [higher], t0 + timedelta(minutes=3), cfg_t1, state)
+    check("T51 T1 same-day sell is rejected", rejected[0]["status"] == "rejected" and "t_rule" in str(rejected[0]["reject_reason"]), str(rejected))
+
+    cfg_t0 = {"strategy": {"bracket": {}}, "replay_execution": {
+        "default_sell_rule": "T1", "t0_allowlist": ["510300"], "buy_cost_pct": 0.0005,
+        "sell_cost_pct": 0.0005, "slippage_pct_per_side": 0.0002,
+    }}
+    sim_t0 = {"initial_cash": 100_000.0, "cash": 100_000.0, "positions": {}}
+    replay.apply_buy_fill(sim_t0, buy_order, fill_price=4.0, fill_time=t0 + timedelta(minutes=1), cfg=cfg_t0)
+    replay.refresh_available_quantities(sim_t0, t0 + timedelta(minutes=1))
+    check("T51 only allowlisted T0 lot is same-day sellable", sim_t0["positions"]["510300"]["availableQuantity"] == 1000, str(sim_t0["positions"]))
+    oversized = dict(sell_order, quantity=2000)
+    partial_intent = replay.make_order_intent(oversized, t0 + timedelta(minutes=1), 3, {"trade_date": "2026-06-18"})
+    _, partial = replay.process_pending_orders(sim_t0, [partial_intent], [higher], t0 + timedelta(minutes=2), cfg_t0, {})
+    check("T51 sell fill never exceeds available qty", partial[0]["status"] == "partially_filled" and partial[0]["filled_qty"] == 1000, str(partial))
+
+    invalid_intent = replay.make_order_intent(buy_order, t0, 4, {"trade_date": "2026-06-18"})
+    invalid_quote = dict(quote, currentPrice=0.0, bidPrice1=0.0, askPrice1=0.0)
+    _, invalid = replay.process_pending_orders(
+        {"initial_cash": 100_000.0, "cash": 100_000.0, "positions": {}},
+        [invalid_intent], [invalid_quote], t0 + timedelta(minutes=1), cfg_t1, {},
+    )
+    check("T51 invalid next-snapshot price rejects order", invalid[0]["status"] == "rejected", str(invalid))
+
+    clean_execution = {"execution_model": {
+        "same_snapshot_fill": False, "next_snapshot_fill": True, "cost_in_path": True,
+        "mark_to_market": True, "t_rule_enforced": True,
+    }, "data_quality": {"point_in_time_liquidity": True}, "rejected_order_count": 0}
+    execution_audit, data_audit, trust = pipeline.build_execution_data_audit(clean_execution, {
+        "point_in_time_liquidity": False, "full_day_liquidity_used": True,
+        "survivor_bias_warning": True, "missing_data_count": 0,
+    })
+    check("T51 full-day liquidity forces contaminated trust", trust == "contaminated", str((execution_audit, data_audit, trust)))
+    check("T51 audit contract exposes execution_model and data_quality",
+          set(execution_audit) >= {"same_snapshot_fill", "next_snapshot_fill", "cost_in_path", "mark_to_market", "t_rule_enforced"}
+          and set(data_audit) >= {"point_in_time_liquidity", "full_day_liquidity_used", "survivor_bias_warning", "missing_data_count", "rejected_order_count"})
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2071,6 +2150,7 @@ if __name__ == "__main__":
     t48_point_in_time_liquidity_gate()
     t49_l4_forward_preregistration()
     t50_l4_forward_shadow_pipeline()
+    t51_execution_accounting_and_trust_contract()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

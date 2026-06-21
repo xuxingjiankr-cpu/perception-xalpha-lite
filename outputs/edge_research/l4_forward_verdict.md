@@ -1,5 +1,6 @@
 # L4 Forward Shadow Verdict
 
+Trust level: `diagnostic_only`
 Status: `insufficient_forward_days`
 Forward days: 0/20
 

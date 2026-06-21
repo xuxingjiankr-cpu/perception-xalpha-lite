@@ -1,4 +1,5 @@
 {
+  "contaminated_warning": "Uses legacy Yahoo60 universe selected with same-day final turnover; diagnostic only after method audit.",
   "schema_version": "oos_variance_validation_v1",
   "paper_trading_only": true,
   "diagnostic_only": true,

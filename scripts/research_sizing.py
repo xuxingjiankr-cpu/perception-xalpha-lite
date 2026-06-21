@@ -33,6 +33,7 @@ from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
 from research_early_entry import _china_minute, REQUIRED_PROMOTION_GATES, RESEARCH_VERSION
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 SNAP_DIR = ROOT / "data" / "market" / "eastmoney" / "full_market" / "snapshots"
 OUT_DIR = ROOT / "outputs" / "research_sizing"
@@ -64,9 +65,9 @@ def load_day(day_dir: Path) -> dict[str, dict[str, Any]]:
             if minute is None or price <= 0:
                 continue
             code = str(r.get("stockCode", "")).zfill(6)
-            node = by_code.setdefault(code, {"full_amount": 0.0, "by_min": {}})
+            node = by_code.setdefault(code, {"amount_by_min": {}, "by_min": {}})
             node["by_min"][minute] = price
-            node["full_amount"] = max(node["full_amount"], as_float(r.get("amount"), 0.0))
+            node["amount_by_min"][minute] = as_float(r.get("amount"), 0.0)
     return by_code
 
 
@@ -92,12 +93,14 @@ def recent_vol(by_min: dict[int, float], t: int, window: int) -> float | None:
 def analyze_day(by_code: dict[str, dict[str, Any]], *, decision_minutes: list[int], window: int,
                 horizon: int, min_amount: float, basket_k: int, target_vol: float, max_lev: float,
                 cost_pct: float) -> dict[str, list[float]]:
-    eligible = {c: n for c, n in by_code.items() if n["full_amount"] >= min_amount and len(n["by_min"]) >= 5}
-    if len(eligible) < 20:
-        return {}
     cost = cost_pct / 100.0
     buckets: dict[str, list[float]] = {"equal_weight": [], "inverse_vol": [], "vol_targeted": []}
     for t in decision_minutes:
+        eligible = {
+            c: n for c, n in by_code.items()
+            if point_in_time_liquidity_gate(n["amount_by_min"], t, min_amount)[0]
+            and sum(1 for minute in n["by_min"] if minute <= t) >= 3
+        }
         cand = []
         for c, n in eligible.items():
             p_now, p_past = price_at(n["by_min"], t), price_at(n["by_min"], t - window)
@@ -141,6 +144,7 @@ def summarize(all_buckets: dict[str, list[float]], days: int, params: dict[str, 
     return {
         "research_version": RESEARCH_VERSION, "generated_at": datetime.now().astimezone().isoformat(),
         "paper_trading_only": True, "status": "diagnostic_only", "edge_validated": False,
+        "liquidity_source": "point_in_time",
         "live_ready": False, "formal_strategy_allowed": False, "order_submit_calls_made": False,
         "params": params, "sample_days": days, "per_scheme": per, "sharpe_minus_equal_weight": vs_ew,
         "statistical_readiness": {

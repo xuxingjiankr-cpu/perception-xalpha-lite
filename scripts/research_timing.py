@@ -33,6 +33,7 @@ from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
 from research_early_entry import _china_minute, REQUIRED_PROMOTION_GATES, RESEARCH_VERSION
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 SNAP_DIR = ROOT / "data" / "market" / "eastmoney" / "full_market" / "snapshots"
 OUT_DIR = ROOT / "outputs" / "research_timing"
@@ -87,9 +88,9 @@ def load_day(day_dir: Path) -> dict[str, dict[str, Any]]:
             if minute is None or price <= 0:
                 continue
             code = str(r.get("stockCode", "")).zfill(6)
-            node = by_code.setdefault(code, {"full_amount": 0.0, "by_min": {}})
+            node = by_code.setdefault(code, {"amount_by_min": {}, "by_min": {}})
             node["by_min"][minute] = price
-            node["full_amount"] = max(node["full_amount"], as_float(r.get("amount"), 0.0))
+            node["amount_by_min"][minute] = as_float(r.get("amount"), 0.0)
     return by_code
 
 
@@ -108,9 +109,6 @@ def _forward_path(by_min: dict[int, float], start: int, end: int) -> list[float]
 def analyze_day(by_code: dict[str, dict[str, Any]], *, decision_minutes: list[int], window: int,
                 min_amount: float, top_frac: float, pullback_frac: float, pullback_wait: int,
                 trail_frac: float, cost_pct: float) -> dict[str, list[float]]:
-    eligible = {c: n for c, n in by_code.items() if n["full_amount"] >= min_amount and len(n["by_min"]) >= 5}
-    if len(eligible) < 20:
-        return {}
     cost = cost_pct / 100.0
     out: dict[str, list[float]] = {
         "entry_pct_breakout": [], "entry_pct_pullback": [], "pullback_filled": [],
@@ -118,6 +116,13 @@ def analyze_day(by_code: dict[str, dict[str, Any]], *, decision_minutes: list[in
         "exit_pct_hold": [], "exit_pct_trail": [], "ret_hold": [], "ret_trail": [],
     }
     for t in decision_minutes:
+        eligible = {
+            c: n for c, n in by_code.items()
+            if point_in_time_liquidity_gate(n["amount_by_min"], t, min_amount)[0]
+            and sum(1 for minute in n["by_min"] if minute <= t) >= 2
+        }
+        if len(eligible) < 20:
+            continue
         recent = []
         for c, n in eligible.items():
             p_now, p_past = price_at(n["by_min"], t), price_at(n["by_min"], t - window)
@@ -173,7 +178,7 @@ def summarize(buckets: dict[str, list[float]], days: int, params: dict[str, Any]
         "research_version": RESEARCH_VERSION, "generated_at": datetime.now().astimezone().isoformat(),
         "paper_trading_only": True, "status": "diagnostic_only", "edge_validated": False,
         "live_ready": False, "formal_strategy_allowed": False, "order_submit_calls_made": False,
-        "params": params, "sample_days": days,
+        "params": params, "sample_days": days, "liquidity_source": "point_in_time",
         "n_entries": len(buckets.get("entry_pct_breakout", [])),
         "entry_accuracy": {
             "breakout_entry_pct_in_range": m["entry_pct_breakout"],   # lower = nearer the low

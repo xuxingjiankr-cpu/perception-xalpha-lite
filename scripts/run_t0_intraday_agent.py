@@ -3429,6 +3429,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     # by cross-sectional liquidity+momentum) UNION held codes (never orphan an exit).
     # Falls back to the static config universe if selection is unavailable. This only
     # changes WHICH names are considered; all safety/risk gates downstream are intact.
+    universe_meta: dict[str, Any] = {"mode": "static"}
     if cfg.get("dynamic_universe", {}).get("enabled"):
         resolved_universe, universe_meta = resolve_agent_universe(cfg, state, trade_date)
         cfg["universe"] = resolved_universe
@@ -3447,6 +3448,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
         quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
         for q in quotes:
+            q["liquidity_source"] = "point_in_time" if universe_meta.get("mode") == "dynamic" else "unknown"
             append_jsonl(minute_path, q)
         append_csv(minute_csv_path, quotes)
         local_time = exchange_local_time(session)
@@ -3487,6 +3489,7 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         cfg.get("strategy", {}).get("market_correlation_stress", {}),
     )
     for q in quotes:
+        q["liquidity_source"] = "point_in_time" if universe_meta.get("mode") == "dynamic" else "unknown"
         append_jsonl(minute_path, q)
     append_csv(minute_csv_path, quotes)
     if any_quota_exhausted(quote_responses):

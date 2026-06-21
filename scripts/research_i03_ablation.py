@@ -140,7 +140,9 @@ def main() -> int:
     rows = {name: summary_metrics(run_replay(path, labels[name], args.rerun)) for name, path in configs.items()}
     ranked = sorted(GROUPS, key=lambda name: group_score(rows["baseline"], rows[name]), reverse=True)
     drivers = ranked[:2]
-    minimal_path = CONFIG_DIR / "oos_i03_minimal_risk_exploratory.json"
+    # Diagnostic reruns must not rewrite a tracked candidate or create a new
+    # promotion target. The derived combination lives only in replay outputs.
+    minimal_path = REPLAY_DIR / "i03_ablation_minimal_runtime.json"
     minimal_cfg = build_config(base, i03, drivers)
     minimal_cfg["research_metadata"] = {
         "diagnostic_only": True, "selected_using_observed_oos": True,
@@ -159,9 +161,11 @@ def main() -> int:
         "minimalConfig": str(minimal_path),
         "decision": "exploratory only; validate on new post-2026-06-18 prospective data before shadow or live use",
         "methodLimitation": "group attribution is non-additive; the minimal combination was selected on the observed 21-day OOS window",
+        "contaminated_warning": "Patched execution was rerun, but the legacy Yahoo60 source universe cannot recover ETFs excluded by its old full-day-turnover gate.",
     }
     write_json(OUT_JSON, report)
     lines = ["# i03 OOS Variance Mechanism — Group Ablation", "",
+             "> CONTAMINATED WARNING: patched execution, but legacy Yahoo60 universe remains full-day-turnover contaminated.", "",
              "Observed OOS 2026-05-21..06-18; diagnostic only.", "",
              "| config | daily std | worst day | total PnL | Sharpe | std reduction | worst-day improvement |",
              "|---|---:|---:|---:|---:|---:|---:|"]

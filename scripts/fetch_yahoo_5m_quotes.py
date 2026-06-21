@@ -11,7 +11,7 @@ Universe = the liquid codes the June backtest used (read from june_full_quotes.j
 Symbols map to Yahoo as <code>.SS (Shanghai 5/6...) / <code>.SZ (Shenzhen 1...).
 
 Output: one time-ordered minute_quotes JSONL the replay/evolution consume, liquidity-
-gated to the day's tradable names (cumulative full-day amount >= floor), with a
+gated at each timestamp using cumulative amount observed so far, with a
 synthesized ~8bps book (Yahoo has no order book) so the liquidity filter passes.
 
 Run: py -3.13 scripts/fetch_yahoo_5m_quotes.py
@@ -27,11 +27,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from run_etf_paper_trading_agent import ROOT, as_float
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 CST = timezone(timedelta(hours=8))
 JUNE_QUOTES = ROOT / "outputs" / "t0_replay" / "june_full_quotes.jsonl"
 OUT = ROOT / "outputs" / "t0_replay" / "yahoo_60d_quotes.jsonl"
-MIN_FULL_DAY_AMOUNT = 50_000_000.0
+MIN_LIQUIDITY_AMOUNT = 50_000_000.0
 SESSION_MARKS = (
     [m for m in range(9 * 60 + 35, 11 * 60 + 31, 5)] +
     [m for m in range(13 * 60 + 5, 15 * 60 + 1, 5)]
@@ -80,7 +81,7 @@ def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     universe = load_universe()
     print(f"fetching {len(universe)} liquid ETFs from Yahoo (5m, 60d)...")
-    # data[code] = {"exch", "days": {date: {minute: (close, cumvol, cumamt)}}, "fullamt": {date: amt}, "lastclose": {date: close}}
+    # data[code] = {"exch", "days": {date: {minute: (close, cumvol, cumamt)}}, "lastclose": {date: close}}
     data: dict[str, dict] = {}
     ok = fail = 0
     for n, (code, exch) in enumerate(universe):
@@ -93,7 +94,7 @@ def main() -> None:
             time.sleep(0.25)
             continue
         ok += 1
-        node = data.setdefault(code, {"exch": exch, "days": {}, "fullamt": {}, "lastclose": {}})
+        node = data.setdefault(code, {"exch": exch, "days": {}, "lastclose": {}})
         cur_day = None
         cumvol = cumamt = 0.0
         for dt, close, vol in bars:
@@ -106,7 +107,6 @@ def main() -> None:
             cumvol += vol
             cumamt += vol * close
             node["days"].setdefault(d, {})[minute] = (close, cumvol, cumamt)
-            node["fullamt"][d] = cumamt
             node["lastclose"][d] = close
         if n % 50 == 0:
             print(f"  {n}/{len(universe)} ok={ok} fail={fail}")
@@ -130,17 +130,23 @@ def main() -> None:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     n_rows = 0
     per_day: dict[str, int] = {}
+    per_day_codes: dict[str, set[str]] = {}
     with OUT.open("w", encoding="utf-8") as out:
         for date in all_dates:
-            uni = [c for c, nd in data.items() if nd["fullamt"].get(date, 0.0) >= MIN_FULL_DAY_AMOUNT]
             for minute in SESSION_MARKS:
                 ts = f"{date}T{minute // 60:02d}:{minute % 60:02d}:00+08:00"
-                for code in uni:
-                    nd = data[code]
+                for code, nd in data.items():
+                    if date not in nd["days"]:
+                        continue
                     bar = at_or_before(nd["days"][date], minute)
                     if not bar:
                         continue
                     close, cumvol, cumamt = bar
+                    liquid, liquidity_source, _ = point_in_time_liquidity_gate(
+                        {minute: cumamt}, minute, MIN_LIQUIDITY_AMOUNT,
+                    )
+                    if not liquid:
+                        continue
                     pd = prev_date.get(date)
                     prev_close = nd["lastclose"].get(pd) if pd else None
                     if not prev_close:
@@ -154,14 +160,16 @@ def main() -> None:
                         "spread_pct": 0.0008, "volume": cumvol, "amount": cumamt,
                         "change_pct": round((close / prev_close - 1.0) * 100, 4) if prev_close else 0.0,
                         "quote_ok": True, "isSuspended": False,
+                        "liquidity_source": liquidity_source,
                     }, ensure_ascii=False) + "\n")
                     n_rows += 1
                     per_day[date] = per_day.get(date, 0) + 1
+                    per_day_codes.setdefault(date, set()).add(code)
 
     print(f"=== Yahoo 5m -> {OUT} ===")
     print(f"fetched ok={ok} fail={fail} | trading days={len(all_dates)} ({all_dates[0]}..{all_dates[-1]}) | rows={n_rows}")
     for d in all_dates:
-        uni = len([c for c, nd in data.items() if nd["fullamt"].get(d, 0.0) >= MIN_FULL_DAY_AMOUNT])
+        uni = len(per_day_codes.get(d, set()))
         print(f"  {d}: universe={uni} rows={per_day.get(d, 0)}")
 
 

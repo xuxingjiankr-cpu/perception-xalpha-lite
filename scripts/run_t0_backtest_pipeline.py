@@ -30,7 +30,7 @@ import replay_t0_decisions as replay
 import run_t0_strategy_evolution as evolution
 
 
-PIPELINE_VERSION = "t0_layered_backtest_v1"
+PIPELINE_VERSION = "t0_layered_backtest_v2_execution_audited"
 DEFAULT_AGENT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 DEFAULT_PROFILE_CONFIG = ROOT / "configs" / "t0_backtest_profiles.json"
 DEFAULT_OUT = ROOT / "outputs" / "t0_backtest_pipeline"
@@ -124,22 +124,30 @@ def audit_quote_directory(source_dir: Path, quality: dict[str, Any]) -> dict[str
         invalid_timestamps = 0
         non_monotonic = 0
         duplicate_pairs = 0
+        invalid_json = 0
+        missing_price = 0
+        liquidity_sources: dict[str, int] = {}
         prior_timestamp = ""
         seen_pairs: set[tuple[str, str]] = set()
 
         def observed_rows():
-            nonlocal rows, invalid_timestamps, non_monotonic, duplicate_pairs, prior_timestamp
+            nonlocal rows, invalid_timestamps, non_monotonic, duplicate_pairs, prior_timestamp, invalid_json, missing_price
             with path.open("r", encoding="utf-8") as handle:
                 for line in handle:
                     try:
                         obj = json.loads(line)
                     except Exception:
+                        invalid_json += 1
                         continue
                     if not isinstance(obj, dict):
                         continue
                     timestamp = str(obj.get("timestamp") or "")
                     code = str(obj.get("stockCode") or "").zfill(6)
                     rows += 1
+                    source = str(obj.get("liquidity_source") or "unknown")
+                    liquidity_sources[source] = liquidity_sources.get(source, 0) + 1
+                    if as_float(obj.get("currentPrice"), 0.0) <= 0:
+                        missing_price += 1
                     if not timestamp:
                         invalid_timestamps += 1
                         continue
@@ -166,6 +174,11 @@ def audit_quote_directory(source_dir: Path, quality: dict[str, Any]) -> dict[str
             "non_monotonic_timestamps": non_monotonic,
             "duplicate_timestamp_code_pairs": duplicate_pairs,
             "duplicate_ratio": duplicate_pairs / rows if rows else 1.0,
+            "invalid_json_rows": invalid_json,
+            "missing_price_rows": missing_price,
+            "liquidity_sources": liquidity_sources,
+            "point_in_time_liquidity": bool(liquidity_sources) and set(liquidity_sources) <= {"point_in_time", "previous_day", "rolling_past"},
+            "full_day_liquidity_used": liquidity_sources.get("contaminated_full_day", 0) > 0,
         })
 
     best_cross_section = max((as_float(row["median_codes_per_round"]) for row in day_rows), default=0.0)
@@ -199,9 +212,44 @@ def audit_quote_directory(source_dir: Path, quality: dict[str, Any]) -> dict[str
         "dates": day_rows,
         "complete_dates": [row["trade_date"] for row in day_rows if row["complete"]],
         "incomplete_dates": [row["trade_date"] for row in day_rows if not row["complete"]],
+        "point_in_time_liquidity": bool(day_rows) and all(row["point_in_time_liquidity"] for row in day_rows),
+        "full_day_liquidity_used": any(row["full_day_liquidity_used"] for row in day_rows),
+        "missing_data_count": sum(row["invalid_json_rows"] + row["missing_price_rows"] + row["invalid_timestamps"] for row in day_rows),
+        "survivor_bias_warning": True,
     }
     write_json(cache_path, report)
     return report
+
+
+def build_execution_data_audit(replay_summary: dict[str, Any], quote_audit: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], str]:
+    raw_execution = replay_summary.get("execution_model", {}) if isinstance(replay_summary.get("execution_model"), dict) else {}
+    execution_model = {
+        "same_snapshot_fill": bool(raw_execution.get("same_snapshot_fill", True)),
+        "next_snapshot_fill": bool(raw_execution.get("next_snapshot_fill", False)),
+        "cost_in_path": bool(raw_execution.get("cost_in_path", False)),
+        "mark_to_market": bool(raw_execution.get("mark_to_market", False)),
+        "t_rule_enforced": bool(raw_execution.get("t_rule_enforced", False)),
+    }
+    replay_data = replay_summary.get("data_quality", {}) if isinstance(replay_summary.get("data_quality"), dict) else {}
+    full_day_used = bool(quote_audit.get("full_day_liquidity_used") or replay_data.get("full_day_liquidity_used"))
+    point_in_time = bool(quote_audit.get("point_in_time_liquidity") and replay_data.get("point_in_time_liquidity"))
+    data_quality = {
+        "point_in_time_liquidity": point_in_time,
+        "full_day_liquidity_used": full_day_used,
+        "survivor_bias_warning": bool(quote_audit.get("survivor_bias_warning", True)),
+        "missing_data_count": int(as_float(quote_audit.get("missing_data_count"))) + int(as_float(replay_data.get("missing_data_count"))),
+        "rejected_order_count": int(as_float(replay_summary.get("rejected_order_count"), as_float(replay_data.get("rejected_order_count")))),
+    }
+    if execution_model["same_snapshot_fill"] or full_day_used:
+        trust = "contaminated"
+    elif not all((execution_model["next_snapshot_fill"], execution_model["cost_in_path"],
+                  execution_model["mark_to_market"], execution_model["t_rule_enforced"], point_in_time)):
+        trust = "diagnostic_only"
+    elif data_quality["survivor_bias_warning"] or data_quality["missing_data_count"] > 0:
+        trust = "diagnostic_only"
+    else:
+        trust = "clean"
+    return execution_model, data_quality, trust
 
 
 def evenly_spaced(values: list[str], count: int) -> list[str]:
@@ -284,6 +332,13 @@ def validate_locked_parameters(path: Path, oos_start: str | None = None) -> tupl
 
 def replay_metrics(summary: dict[str, Any], scenario: str, roundtrip_cost_bps: float) -> dict[str, Any]:
     rate = roundtrip_cost_bps / 10000.0
+    execution = summary.get("execution_model", {}) if isinstance(summary.get("execution_model"), dict) else {}
+    cost_in_path = bool(execution.get("cost_in_path", False))
+    embedded_roundtrip_rate = (
+        as_float(execution.get("buy_cost_pct")) + as_float(execution.get("sell_cost_pct"))
+        + 2.0 * as_float(execution.get("slippage_pct_per_side"))
+    ) if cost_in_path else 0.0
+    extra_rate = max(0.0, rate - embedded_roundtrip_rate) if cost_in_path else rate
     per_day = summary.get("per_day", {}) if isinstance(summary.get("per_day"), dict) else {}
     daily_net: dict[str, float] = {}
     daily_gross: dict[str, float] = {}
@@ -293,13 +348,23 @@ def replay_metrics(summary: dict[str, Any], scenario: str, roundtrip_cost_bps: f
             continue
         gross = as_float(node.get("gross_pnl"), as_float(node.get("pnl")))
         notional = as_float(node.get("buy_notional")) + as_float(node.get("sell_notional"))
-        cost = 0.5 * rate * notional
+        embedded_cost = as_float(node.get("transaction_cost")) if cost_in_path else 0.0
+        extra_cost = 0.5 * extra_rate * notional
+        cost = embedded_cost + extra_cost
         daily_gross[trade_date] = gross
-        daily_net[trade_date] = gross - cost
+        daily_net[trade_date] = (
+            as_float(node.get("net_pnl"), as_float(node.get("pnl"))) - extra_cost
+            if cost_in_path else gross - cost
+        )
         total_cost += cost
 
     gross_pnl = as_float(summary.get("gross_pnl"), as_float(summary.get("total_pnl")))
-    net_pnl = gross_pnl - total_cost
+    net_pnl = (
+        as_float(summary.get("total_pnl"), as_float(summary.get("net_total_pnl")))
+        - sum(0.5 * extra_rate * (as_float(node.get("buy_notional")) + as_float(node.get("sell_notional")))
+              for node in per_day.values() if isinstance(node, dict))
+        if cost_in_path else gross_pnl - total_cost
+    )
     daily_returns = [value / INITIAL_CASH for value in daily_net.values()]
     mean_return = statistics.mean(daily_returns) if daily_returns else 0.0
     std_return = statistics.stdev(daily_returns) if len(daily_returns) >= 2 else 0.0
@@ -322,7 +387,10 @@ def replay_metrics(summary: dict[str, Any], scenario: str, roundtrip_cost_bps: f
             continue
         gross = as_float(trade.get("gross_pnl"), as_float(trade.get("pnl")))
         notional = as_float(trade.get("entry_notional")) + as_float(trade.get("exit_notional"))
-        net = gross - 0.5 * rate * notional
+        net = (
+            as_float(trade.get("net_pnl"), as_float(trade.get("pnl"))) - 0.5 * extra_rate * notional
+            if cost_in_path else gross - 0.5 * rate * notional
+        )
         trade_net.append(net)
         code = str(trade.get("stockCode") or "unknown")
         symbol_pnl[code] = symbol_pnl.get(code, 0.0) + net
@@ -334,6 +402,9 @@ def replay_metrics(summary: dict[str, Any], scenario: str, roundtrip_cost_bps: f
     return {
         "scenario": scenario,
         "roundtrip_cost_bps": roundtrip_cost_bps,
+        "cost_in_path": cost_in_path,
+        "embedded_roundtrip_cost_bps": round(embedded_roundtrip_rate * 10000.0, 4),
+        "scenario_is_additional_stress_only": bool(cost_in_path and rate <= embedded_roundtrip_rate),
         "gross_pnl": round(gross_pnl, 2),
         "net_pnl": round(net_pnl, 2),
         "total_return": round(net_pnl / INITIAL_CASH, 8),
@@ -394,6 +465,9 @@ def markdown_summary(report: dict[str, Any]) -> str:
         f"- Dates: {', '.join(report.get('selected_dates', [])) or 'none'}",
         f"- Cache hit: {report.get('cache_hit')}",
         f"- Selected candidate: `{report.get('selected_candidate')}`",
+        f"- Result trust level: `{report.get('result_trust_level', 'diagnostic_only')}`",
+        f"- Execution model: `{json.dumps(report.get('execution_model', {}), ensure_ascii=False, sort_keys=True)}`",
+        f"- Data quality: `{json.dumps(report.get('data_quality', {}), ensure_ascii=False, sort_keys=True)}`",
         "",
         "## Validation",
         "",
@@ -450,6 +524,7 @@ def main() -> None:
         quotes_arg = gate_meta.get("quotes_arg")
     source_dir = Path(str(quotes_arg))
     audit = audit_quote_directory(source_dir, profile_book.get("data_quality", {}))
+    initial_execution_model, initial_data_quality, initial_trust = build_execution_data_audit({}, audit)
     selected_dates, date_reasons = select_profile_dates(
         args.profile, profile_cfg, audit, args.start_date, args.end_date,
     )
@@ -470,8 +545,7 @@ def main() -> None:
     validation.append({
         "name": "execution_event_ordering",
         "passed": True,
-        "detail": "signal is built before the local fill event; timestamp resolution is the same quote snapshot",
-        "warning": "same_snapshot_limit_fill_is_optimistic_and_requires_external_validation",
+        "detail": "orders become eligible only on a later tradable snapshot",
     })
 
     locked_obj: dict[str, Any] = {}
@@ -579,6 +653,8 @@ def main() -> None:
             "run_id": run_id, "created_at": created_at.isoformat(), "profile": args.profile,
             "status": "failed_validation", "cache_hit": False, "selected_dates": selected_dates,
             "selected_candidate": None, "validation": validation, "cost_sensitivity": [],
+            "execution_model": initial_execution_model, "data_quality": initial_data_quality,
+            "result_trust_level": initial_trust,
             "paper_trading_only": True, "live_ready": False, "formal_strategy_allowed": False,
             "investment_advice": False, "runtime_seconds": round(time.perf_counter() - started, 6),
         }
@@ -662,6 +738,19 @@ def main() -> None:
     else:
         validation.append({"name": "replay_summary_available", "passed": True, "detail": str(replay_summary_path)})
     backtest_seconds = time.perf_counter() - backtest_started
+    execution_model, data_quality, result_trust_level = build_execution_data_audit(replay_summary, audit)
+    validation.append({
+        "name": "execution_model_audited",
+        "passed": not execution_model["same_snapshot_fill"] and execution_model["next_snapshot_fill"]
+                  and execution_model["cost_in_path"] and execution_model["mark_to_market"]
+                  and execution_model["t_rule_enforced"],
+        "detail": execution_model,
+    })
+    validation.append({
+        "name": "point_in_time_liquidity",
+        "passed": data_quality["point_in_time_liquidity"] and not data_quality["full_day_liquidity_used"],
+        "detail": data_quality,
+    })
 
     metrics_started = time.perf_counter()
     cost_sensitivity = [
@@ -685,6 +774,9 @@ def main() -> None:
     if any(not item["passed"] for item in validation):
         profile_status = "failed_validation"
         rejection_reason = ";".join(item["name"] for item in validation if not item["passed"])
+    elif result_trust_level != "clean":
+        profile_status = "needs_review"
+        rejection_reason = f"result_trust_level:{result_trust_level}"
     elif evolution_report and evolution_report.get("status") != "approved_for_paper_auto_apply":
         profile_status = "needs_review"
         rejection_reason = str(evolution_report.get("decision_reason") or "evolution_not_approved")
@@ -765,6 +857,9 @@ def main() -> None:
         "validation": validation,
         "cost_sensitivity": cost_sensitivity,
         "cost_fragile": cost_fragile,
+        "execution_model": execution_model,
+        "data_quality": data_quality,
+        "result_trust_level": result_trust_level,
         "promoted_parameters": str(promoted_path) if promoted_path else None,
         "manifest": manifest,
         "paper_trading_only": True,

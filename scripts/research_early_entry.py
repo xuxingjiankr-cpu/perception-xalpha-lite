@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 SNAP_DIR = ROOT / "data" / "market" / "eastmoney" / "full_market" / "snapshots"
 OUT_DIR = ROOT / "outputs" / "research_early_entry"
@@ -248,15 +249,16 @@ def analyze_day(day: str, by_code: dict[str, list[dict[str, Any]]], *, early_end
                 top_frac: float, breakout_pct: float) -> dict[str, Any] | None:
     rows = []
     for code, series in by_code.items():
-        if len(series) < 5:
+        if sum(1 for row in series if row["minute"] <= early_end) < 2:
             continue
         op = series[0]["open"] or series[0]["price"]
         early = _at_or_before(series, early_end)
         close = series[-1]
         if not early or op <= 0:
             continue
-        full_amount = max(s["amount"] for s in series)
-        if full_amount < min_amount or close["price"] < min_price:
+        amount_by_min = {int(s["minute"]): as_float(s.get("amount"), 0.0) for s in series}
+        liquid, _, _ = point_in_time_liquidity_gate(amount_by_min, early_end, min_amount)
+        if not liquid or early["price"] < min_price:
             continue
         early_ret = early["price"] / op - 1.0
         elapsed = max(1, early["minute"] - (9 * 60 + 30))
@@ -329,6 +331,7 @@ def main() -> None:
         "min_price": args.min_price,
         "top_frac": args.top_frac,
         "breakout_pct": args.breakout_pct,
+        "liquidity_source": "point_in_time",
     }
     exp_id = experiment_id(params)
     day_dirs = sorted(p for p in SNAP_DIR.glob("*") if p.is_dir())

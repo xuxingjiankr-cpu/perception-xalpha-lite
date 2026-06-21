@@ -33,6 +33,7 @@ from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
 from research_early_entry import _china_minute, REQUIRED_PROMOTION_GATES, RESEARCH_VERSION
+from point_in_time_liquidity import point_in_time_liquidity_gate
 
 SNAP_DIR = ROOT / "data" / "market" / "eastmoney" / "full_market" / "snapshots"
 OUT_DIR = ROOT / "outputs" / "research_regime"
@@ -54,9 +55,9 @@ def load_day(day_dir: Path) -> dict[str, dict[str, Any]]:
             if minute is None or price <= 0 or op <= 0:
                 continue
             code = str(r.get("stockCode", "")).zfill(6)
-            node = by_code.setdefault(code, {"open": op, "full_amount": 0.0, "by_min": {}})
+            node = by_code.setdefault(code, {"open": op, "amount_by_min": {}, "by_min": {}})
             node["by_min"][minute] = price
-            node["full_amount"] = max(node["full_amount"], as_float(r.get("amount"), 0.0))
+            node["amount_by_min"][minute] = as_float(r.get("amount"), 0.0)
     return by_code
 
 
@@ -86,12 +87,7 @@ def analyze_day(by_code: dict[str, dict[str, Any]], *, decision_start: int, deci
                 step: int, window: int, horizon: int, min_amount: float, top_frac: float,
                 er_thr: float, move_thr: float, roundtrip_cost_pct: float) -> dict[str, list[float]]:
     """Return {regime+"::"+style: [forward_returns_pct_net_of_cost...]}."""
-    eligible = {c: n for c, n in by_code.items() if n["full_amount"] >= min_amount and len(n["by_min"]) >= 5}
-    if len(eligible) < 20:
-        return {}
-    minutes = sorted({m for n in eligible.values() for m in n["by_min"]})
-
-    def market_level(minute: int) -> float | None:
+    def market_level(eligible: dict[str, dict[str, Any]], minute: int) -> float | None:
         rets = []
         for n in eligible.values():
             p = price_at(n["by_min"], minute)
@@ -102,7 +98,13 @@ def analyze_day(by_code: dict[str, dict[str, Any]], *, decision_start: int, deci
     buckets: dict[str, list[float]] = {}
     t = decision_start
     while t <= decision_end:
-        lvls = [market_level(m) for m in range(t - window, t + 1) if t - window <= m <= t and m in minutes]
+        eligible = {
+            c: n for c, n in by_code.items()
+            if point_in_time_liquidity_gate(n["amount_by_min"], t, min_amount)[0]
+            and sum(1 for minute in n["by_min"] if minute <= t) >= 2
+        }
+        minutes = sorted({m for n in eligible.values() for m in n["by_min"] if m <= t})
+        lvls = [market_level(eligible, m) for m in range(t - window, t + 1) if m in minutes]
         lvls = [x for x in lvls if x is not None]
         if len(lvls) >= 3:
             regime = classify_regime(lvls[-1] - lvls[0], efficiency_ratio(lvls), er_thr=er_thr, move_thr=move_thr)
@@ -145,6 +147,7 @@ def summarize(all_buckets: dict[str, list[float]], days: int, params: dict[str, 
         "paper_trading_only": True, "status": "diagnostic_only", "edge_validated": False,
         "live_ready": False, "formal_strategy_allowed": False, "order_submit_calls_made": False,
         "params": params, "sample_days": days, "per_regime_style": per,
+        "liquidity_source": "point_in_time",
         "momentum_minus_reversion_pct_by_regime": spreads,
         "statistical_readiness": {
             "minimum_days_before_statistical_testing": MIN_DAYS_FOR_STATISTICAL_TESTING,

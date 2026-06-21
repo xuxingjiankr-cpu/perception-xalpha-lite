@@ -1,20 +1,22 @@
 # i03 OOS Variance Mechanism — Group Ablation
 
+> CONTAMINATED WARNING: patched execution, but legacy Yahoo60 universe remains full-day-turnover contaminated.
+
 Observed OOS 2026-05-21..06-18; diagnostic only.
 
 | config | daily std | worst day | total PnL | Sharpe | std reduction | worst-day improvement |
 |---|---:|---:|---:|---:|---:|---:|
-| baseline | 4324.56 | -6868.60 | 13822.80 | 2.4162 | +0.00% | +0.00 |
-| i03 | 3273.35 | -4958.50 | 12923.90 | 2.9846 | +24.31% | +1910.10 |
-| L1_risk_per_trade | 4215.23 | -6623.40 | 13825.60 | 2.4794 | +2.53% | +245.20 |
-| L2_earlier_profit | 4324.93 | -6869.50 | 14201.20 | 2.4822 | -0.01% | -0.90 |
-| L3_faster_loss | 3768.86 | -6852.10 | 10339.20 | 2.0737 | +12.85% | +16.50 |
-| L4_stress_selectivity | 4182.66 | -5463.60 | 18548.30 | 3.3522 | +3.28% | +1405.00 |
-| minimal_exploratory | 3374.90 | -5183.60 | 12263.80 | 2.7469 | +21.96% | +1685.00 |
+| baseline | 4158.68 | -7184.80 | 13333.86 | 2.4237 | +0.00% | +0.00 |
+| i03 | 3803.81 | -6847.50 | 16803.07 | 3.3393 | +8.53% | +337.30 |
+| L1_risk_per_trade | 4006.92 | -6847.50 | 12853.95 | 2.425 | +3.65% | +337.30 |
+| L2_earlier_profit | 4283.09 | -7184.80 | 15979.54 | 2.8203 | -2.99% | +0.00 |
+| L3_faster_loss | 4158.68 | -7184.80 | 13333.86 | 2.4237 | +0.00% | +0.00 |
+| L4_stress_selectivity | 3907.25 | -7184.80 | 14109.55 | 2.7297 | +6.05% | +0.00 |
+| minimal_exploratory | 3762.71 | -6847.50 | 13624.13 | 2.7371 | +9.52% | +337.30 |
 
-Driver groups (exploratory): `['L3_faster_loss', 'L4_stress_selectivity']`
+Driver groups (exploratory): `['L4_stress_selectivity', 'L1_risk_per_trade']`
 
-Minimal config: `C:\Users\XU XINGJIAN\Documents\Codex\outputs\t0_strategy_evolution\candidate_configs\oos_i03_minimal_risk_exploratory.json`
+Minimal config: `C:\Users\XU XINGJIAN\Documents\Codex\outputs\t0_replay\i03_ablation_minimal_runtime.json`
 
 ## Hard decision
 

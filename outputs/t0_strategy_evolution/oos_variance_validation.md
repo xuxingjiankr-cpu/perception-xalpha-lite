@@ -1,5 +1,7 @@
 # OOS Variance / Drawdown Validation
 
+> CONTAMINATED WARNING: legacy Yahoo60 universe used same-day final turnover. Diagnostic only; not edge evidence.
+
 Paper-only diagnostic. Frozen train: 2026-03-23..05-20; untouched OOS: 2026-05-21..06-18.
 
 | config | worst day | daily std | max cumulative DD | total PnL | winning days | net PnL @12bps | net std @12bps |

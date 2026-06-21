@@ -97,6 +97,13 @@ def day_metrics(summary: dict[str, Any], trade_date: str) -> dict[str, Any]:
     pnls = [float(trade.get("pnl", 0.0)) for trade in trades]
     gross = float(node.get("gross_pnl", node.get("pnl", 0.0)))
     buy, sell = float(node.get("buy_notional", 0.0)), float(node.get("sell_notional", 0.0))
+    execution = summary.get("execution_model", {}) if isinstance(summary.get("execution_model"), dict) else {}
+    cost_in_path = bool(execution.get("cost_in_path", False))
+    embedded = (
+        float(execution.get("buy_cost_pct", 0.0)) + float(execution.get("sell_cost_pct", 0.0))
+        + 2.0 * float(execution.get("slippage_pct_per_side", 0.0))
+    ) if cost_in_path else 0.0
+    extra_rate = max(0.0, 12.0 / 10_000.0 - embedded) if cost_in_path else 12.0 / 10_000.0
     return {
         "total_pnl": round(gross, 2),
         "trade_pnl_std": round(statistics.stdev(pnls), 2) if len(pnls) >= 2 else 0.0,
@@ -104,7 +111,12 @@ def day_metrics(summary: dict[str, Any], trade_date: str) -> dict[str, Any]:
         "trades": len(pnls), "winning_trades": sum(value > 0 for value in pnls),
         "losing_trades": sum(value < 0 for value in pnls),
         "day_won": gross > 0, "buy_notional": round(buy, 2), "sell_notional": round(sell, 2),
-        "net_12bps": round(gross - 0.0006 * (buy + sell), 2),
+        "net_12bps": round(
+            float(node.get("net_pnl", node.get("pnl", 0.0))) - 0.5 * extra_rate * (buy + sell)
+            if cost_in_path else gross - 0.0006 * (buy + sell), 2,
+        ),
+        "cost_in_path": cost_in_path,
+        "embedded_roundtrip_cost_bps": round(embedded * 10_000.0, 4),
     }
 
 
