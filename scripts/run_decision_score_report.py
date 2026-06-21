@@ -142,6 +142,16 @@ def build_report(records: list[dict[str, Any]]) -> str:
                  f"generated: {datetime.now().astimezone().isoformat()}")
     lines.append("")
     lines.append("Diagnostic only. NOT alpha, NOT an auto-trading signal, must not drive live sizing.")
+    versions = {
+        key: sorted({str(row.get(key)) for row in records if row.get(key)})
+        for key in ("iteration_id", "scorer_version", "weights_version", "outcome_model_version", "pipeline_version")
+    }
+    if records:
+        lines.append("Version provenance: " + "; ".join(
+            f"{key}={','.join(value) if value else 'missing'}" for key, value in versions.items()
+        ))
+        if any(len(value) > 1 for value in versions.values()):
+            lines.append("**mixed_version_warning**: report contains more than one semantic version.")
     lines.append("")
     insufficient = (with_outcome < MIN_OUTCOMES_FOR_CONCLUSION or
                     outcome_days < MIN_OUTCOME_DAYS_FOR_CONCLUSION)

@@ -2270,6 +2270,41 @@ def t54_weight_research_and_forward_shadow() -> None:
     check("T54 shadow can never auto-promote", shadow["promotion_allowed"] is False)
 
 
+def t55_decision_score_semantic_versioning() -> None:
+    import decision_scoring as scoring
+    import register_decision_score_iteration as register
+    import run_decision_score_report as report
+
+    active = scoring.active_version_metadata()
+    check("T55 active iteration has stable DSI number", str(active["iteration_id"]).startswith("DSI-"))
+    check("T55 frozen weights have independent version", str(active["weights_version"]).startswith("DWEIGHTS-"))
+    ctx = scoring.context_from_decision(
+        {"decision_scoring": {"enabled": True}},
+        {"state_machine": {"action": "hold", "reason": "wait"}, "ranked": []},
+        trade_date="2026-06-22", timestamp="09:35:00",
+    )
+    rec = scoring.score_decision(ctx)
+    check("T55 live score record carries iteration version", rec["iteration_id"] == active["iteration_id"])
+    check("T55 live score record carries scorer and outcome versions",
+          rec["scorer_version"] == active["scorer_version"]
+          and rec["outcome_model_version"] == active["outcome_model_version"])
+    check("T55 config fingerprint ignores runtime-private leaves",
+          scoring.config_fingerprint({"x": 1, "_runtime": 2}) == scoring.config_fingerprint({"x": 1, "_runtime": 3}))
+
+    registry = {"nextIterationNumber": 8, "active": {"weightsVersion": "DWEIGHTS-1.0.0"}, "history": []}
+    updated, entry = register.allocate_iteration(
+        registry, summary="test", change_type="audit", status="completed",
+        commit="abc", versions={"pipelineVersion": "DPIPE-1.3.0"}, timestamp="2026-06-22",
+    )
+    check("T55 registrar allocates next immutable ID", entry["iterationId"] == "DSI-0008")
+    check("T55 registrar advances sequence", updated["nextIterationNumber"] == 9)
+    mixed = report.build_report([
+        {"date": "2026-06-22", "iteration_id": "DSI-0007", "scorer_version": "DSCORE-1.2.0"},
+        {"date": "2026-06-23", "iteration_id": "DSI-0008", "scorer_version": "DSCORE-1.2.0"},
+    ])
+    check("T55 report warns on mixed semantic versions", "mixed_version_warning" in mixed)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2323,6 +2358,7 @@ if __name__ == "__main__":
     t52_decision_scoring_system()
     t53_pseudo_forward_prefix_and_isolation()
     t54_weight_research_and_forward_shadow()
+    t55_decision_score_semantic_versioning()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

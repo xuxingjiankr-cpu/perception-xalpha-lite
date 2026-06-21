@@ -17,6 +17,7 @@ be called from a guarded hook in run_t0_intraday_agent / replay (write-only).
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,7 @@ from typing import Any
 from run_etf_paper_trading_agent import ROOT, as_float
 
 OUT_DIR = ROOT / "outputs" / "decision_scores"
+VERSION_REGISTRY = ROOT / "configs" / "research" / "decision_score_version_registry.json"
 
 # (min, max) for each sub-score; risk_penalty is NEGATIVE.
 SCORE_RANGES: dict[str, tuple[float, float]] = {
@@ -40,7 +42,9 @@ SCORE_RANGES: dict[str, tuple[float, float]] = {
 # Field order for the CSV (decision fields, then outcome fields).
 DECISION_FIELDS = [
     "decision_id", "date", "timestamp", "etf_code", "etf_name", "decision_type",
-    "sample_origin", "scorer_version", "scorer_sha256", "config_sha256",
+    "iteration_id", "sample_origin", "scorer_version", "weights_version",
+    "outcome_model_version", "pipeline_version", "shadow_candidate_version",
+    "scorer_sha256", "config_sha256",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "risk_penalty", "execution_score", "counterfactual_score",
@@ -57,6 +61,29 @@ OUTCOME_FIELDS = [
     "counterfactual_return", "mistake_type", "post_review_comment",
 ]
 ALL_FIELDS = DECISION_FIELDS + OUTCOME_FIELDS
+
+
+def active_version_metadata() -> dict[str, Any]:
+    try:
+        registry = json.loads(VERSION_REGISTRY.read_text(encoding="utf-8"))
+        active = registry.get("active", {}) if isinstance(registry, dict) else {}
+    except Exception:
+        active = {}
+    return {
+        "iteration_id": active.get("iterationId") or "DSI-UNREGISTERED",
+        "scorer_version": active.get("scorerLogicVersion") or "DSCORE-UNREGISTERED",
+        "weights_version": active.get("weightsVersion") or "DWEIGHTS-UNREGISTERED",
+        "outcome_model_version": active.get("outcomeModelVersion") or "DOUTCOME-UNREGISTERED",
+        "pipeline_version": active.get("pipelineVersion") or "DPIPE-UNREGISTERED",
+        "shadow_candidate_version": active.get("shadowCandidateVersion"),
+        "scorer_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    }
+
+
+def config_fingerprint(cfg: dict[str, Any]) -> str:
+    stable = {key: value for key, value in cfg.items() if not str(key).startswith("_")}
+    payload = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -261,6 +288,15 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "date": ctx.get("date"), "timestamp": ctx.get("timestamp"),
         "etf_code": ctx.get("etf_code"), "etf_name": ctx.get("etf_name"),
         "decision_type": str(ctx.get("decision_type") or "").upper() or "SKIP",
+        "iteration_id": ctx.get("iteration_id"),
+        "sample_origin": ctx.get("sample_origin"),
+        "scorer_version": ctx.get("scorer_version"),
+        "weights_version": ctx.get("weights_version"),
+        "outcome_model_version": ctx.get("outcome_model_version"),
+        "pipeline_version": ctx.get("pipeline_version"),
+        "shadow_candidate_version": ctx.get("shadow_candidate_version"),
+        "scorer_sha256": ctx.get("scorer_sha256"),
+        "config_sha256": ctx.get("config_sha256"),
         "signal_name": ctx.get("signal_name"), "market_regime": ctx.get("market_regime"),
         **subs,
         "total_score": total, "score_bucket": score_bucket(total),
@@ -448,15 +484,22 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     # cross-sectional breadth = fraction of ranked names up (regime signal, always present)
     ups = sum(1 for q in ranked if as_float(q.get("change_pct"), 0) > 0 or as_float(q.get("momentum"), 0) > 0)
     breadth = (ups / len(ranked)) if ranked else None
+    versions = active_version_metadata()
+    scoring_cfg = cfg.get("decision_scoring", {}) if isinstance(cfg.get("decision_scoring"), dict) else {}
     return {
         "decision_id": f"{trade_date}_{timestamp}_{code or action}",
         "date": trade_date, "timestamp": timestamp,
         "etf_code": code, "etf_name": market_row.get("name") or (order or {}).get("name"),
         "decision_type": decision_type,
-        "sample_origin": cfg.get("decision_scoring", {}).get("sample_origin"),
-        "scorer_version": cfg.get("decision_scoring", {}).get("scorer_version"),
-        "scorer_sha256": cfg.get("decision_scoring", {}).get("scorer_sha256"),
-        "config_sha256": cfg.get("decision_scoring", {}).get("config_sha256"),
+        "iteration_id": scoring_cfg.get("iteration_id") or versions["iteration_id"],
+        "sample_origin": scoring_cfg.get("sample_origin") or "forward_live",
+        "scorer_version": scoring_cfg.get("scorer_version") or versions["scorer_version"],
+        "weights_version": scoring_cfg.get("weights_version") or versions["weights_version"],
+        "outcome_model_version": scoring_cfg.get("outcome_model_version") or versions["outcome_model_version"],
+        "pipeline_version": scoring_cfg.get("pipeline_version") or versions["pipeline_version"],
+        "shadow_candidate_version": scoring_cfg.get("shadow_candidate_version") or versions["shadow_candidate_version"],
+        "scorer_sha256": scoring_cfg.get("scorer_sha256") or versions["scorer_sha256"],
+        "config_sha256": scoring_cfg.get("config_sha256") or config_fingerprint(cfg),
         "market_breadth_up_frac": breadth,
         "signal_name": sm.get("reason"), "decision_reason": sm.get("reason"),
         "market_regime": (decision.get("market_correlation_stress", {}) or {}).get("regime")
