@@ -24,6 +24,7 @@ from run_etf_paper_trading_agent import ROOT, as_float
 from decision_scoring import classify_mistake
 
 SCORE_DIR = ROOT / "outputs" / "decision_scores"
+SHADOW_CONFIG = ROOT / "configs" / "shadow" / "decision_score_high71_candidate.json"
 MIN_OUTCOMES_FOR_CONCLUSION = 30
 MIN_OUTCOME_DAYS_FOR_CONCLUSION = 20
 SUBSCORES = [
@@ -81,6 +82,55 @@ def load_records(date: str | None) -> list[dict[str, Any]]:
             except Exception:
                 continue
     return recs
+
+
+def load_shadow_config() -> dict[str, Any] | None:
+    if not SHADOW_CONFIG.exists():
+        return None
+    try:
+        value = json.loads(SHADOW_CONFIG.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else None
+    except Exception:
+        return None
+
+
+def shadow_forward_stats(records: list[dict[str, Any]], cfg: dict[str, Any]) -> dict[str, Any]:
+    candidate = cfg.get("candidate", {})
+    validation = cfg.get("forwardValidation", {})
+    threshold = as_float(candidate.get("totalScoreMin"), 71.0)
+    effective = str(validation.get("effectiveFrom") or "9999-12-31")
+    cost = as_float(cfg.get("diagnosticEvidence", {}).get("roundTripCost"), 0.0014)
+    buys = [
+        row for row in records
+        if str(row.get("decision_type")) == "BUY"
+        and str(row.get("date")) >= effective
+        and row.get("realized_return") is not None
+    ]
+    high = [as_float(row.get("realized_return")) - cost for row in buys
+            if as_float(row.get("total_score")) >= threshold]
+    below = [as_float(row.get("realized_return")) - cost for row in buys
+             if as_float(row.get("total_score")) < threshold]
+    days = len({str(row.get("date")) for row in buys})
+    high_mean = sum(high) / len(high) if high else None
+    below_mean = sum(below) / len(below) if below else None
+    spread = high_mean - below_mean if high_mean is not None and below_mean is not None else None
+    enough = (days >= int(validation.get("minimumTradingDays", 20))
+              and len(high) >= int(validation.get("minimumDirectionalOutcomes", 30)))
+    passed = bool(enough and high_mean is not None and high_mean > 0
+                  and spread is not None and spread > 0)
+    return {
+        "threshold": threshold,
+        "effective_from": effective,
+        "days": days,
+        "high_count": len(high),
+        "below_count": len(below),
+        "high_mean_net": high_mean,
+        "below_mean_net": below_mean,
+        "high_minus_below": spread,
+        "sample_ready": enough,
+        "shadow_pass": passed,
+        "promotion_allowed": False,
+    }
 
 
 def build_report(records: list[dict[str, Any]]) -> str:
@@ -165,6 +215,24 @@ def build_report(records: list[dict[str, Any]]) -> str:
         lines.append("- Next: down-weight sub-scores with ~0 high-minus-low spread; investigate "
                      "buckets where high score but negative expectancy (scoring-logic error).")
     lines.append("")
+
+    shadow_cfg = load_shadow_config()
+    if shadow_cfg:
+        shadow = shadow_forward_stats(records, shadow_cfg)
+        show = lambda value: "-" if value is None else f"{value:.4%}"
+        lines.extend([
+            "## 5. Preregistered forward shadow: frozen score >= 71",
+            "",
+            f"- effective_from: {shadow['effective_from']}",
+            f"- forward BUY outcome days: {shadow['days']}",
+            f"- high-score outcomes: {shadow['high_count']}; net mean: {show(shadow['high_mean_net'])}",
+            f"- below-threshold outcomes: {shadow['below_count']}; net mean: {show(shadow['below_mean_net'])}",
+            f"- high-minus-below: {show(shadow['high_minus_below'])}",
+            f"- sample_ready: `{shadow['sample_ready']}`",
+            f"- shadow_pass: `{shadow['shadow_pass']}`",
+            "- trade_gate_enabled: `false`; promotion_allowed: `false`",
+            "",
+        ])
     return "\n".join(lines)
 
 

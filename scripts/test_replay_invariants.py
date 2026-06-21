@@ -2175,6 +2175,17 @@ def t52_decision_scoring_system() -> None:
         r = ds.score_decision({"decision_type": dt, "decision_reason": "x"})
         check(f"T52 {dt} produces a score", isinstance(r.get("total_score"), (int, float)) and r["decision_type"] == dt)
 
+    ctx = ds.context_from_decision(
+        {"decision_scoring": {}},
+        {"state_machine": {"action": "buy", "reason": "momentum"},
+         "orders": [{"direction": "buy", "stockCode": "513100", "quantity": 100}],
+         "ranked": [{"stockCode": "513100", "name": "Nasdaq ETF", "amount": 120_000_000,
+                     "spread_pct": 0.001, "change_pct": 1.2}]},
+        trade_date="2026-06-21", timestamp="10:00:00",
+    )
+    check("T52 BUY scoring context retains ranked market amount", ctx["amount"] == 120_000_000)
+    check("T52 BUY scoring context retains ranked spread", ctx["spread_pct"] == 0.001)
+
     # mistake attribution: no outcome -> UNKNOWN; bad-score-but-profit -> lucky
     check("T52 mistake UNKNOWN without outcome", ds.classify_mistake(clean_buy) == "UNKNOWN")
     lucky = {**fda, "total_score": 20, "realized_return": 0.01, "decision_type": "BUY"}
@@ -2225,6 +2236,38 @@ def t53_pseudo_forward_prefix_and_isolation() -> None:
     check("T53 pseudo config cannot execute live", frozen["mode"] == "paper_research" and frozen["execution_enabled"] is False)
     check("T53 pseudo config cannot auto-apply", frozen["self_iteration"]["enabled"] is False and frozen["self_iteration"]["auto_apply_changes"] is False)
     check("T53 frozen config carries audit hashes", frozen["decision_scoring"]["config_sha256"] == cfg_hash)
+
+
+def t54_weight_research_and_forward_shadow() -> None:
+    import research_decision_score_weights as weights
+    import run_decision_score_report as report
+
+    rows = []
+    for day in range(1, 6):
+        for value in (-1.0, 0.0, 1.0):
+            rows.append({
+                "date": f"2026-05-{day:02d}",
+                "realized_return": value * 0.01 + 0.002,
+                **{feature: (value if feature == "market_regime_score" else 0.0)
+                   for feature in weights.FEATURES},
+            })
+    model = weights.fit_fixed_ridge(rows, alpha=1.0, cost=0.0)
+    check("T54 ridge recovers positive planted regime coefficient",
+          model["coefficients"]["market_regime_score"] > 0)
+
+    cfg = {
+        "candidate": {"totalScoreMin": 71},
+        "diagnosticEvidence": {"roundTripCost": 0.0014},
+        "forwardValidation": {"effectiveFrom": "2026-06-22", "minimumTradingDays": 20,
+                              "minimumDirectionalOutcomes": 30},
+    }
+    forward_rows = [
+        {"date": "2026-06-22", "decision_type": "BUY", "total_score": 75,
+         "realized_return": 0.01}
+    ] * 30
+    shadow = report.shadow_forward_stats(forward_rows, cfg)
+    check("T54 repeated decisions from one day do not pass day gate", shadow["sample_ready"] is False)
+    check("T54 shadow can never auto-promote", shadow["promotion_allowed"] is False)
 
 
 if __name__ == "__main__":
@@ -2279,6 +2322,7 @@ if __name__ == "__main__":
     t51_execution_accounting_and_trust_contract()
     t52_decision_scoring_system()
     t53_pseudo_forward_prefix_and_isolation()
+    t54_weight_research_and_forward_shadow()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

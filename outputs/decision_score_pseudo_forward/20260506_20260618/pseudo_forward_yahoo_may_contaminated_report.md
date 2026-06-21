@@ -6,9 +6,9 @@ Weights refit allowed: `false`
 
 ## Frozen inputs
 
-- source commit: `3ddc45c665a1d10bc724b19debff0af894ece631`
-- scorer SHA256: `9d64efd26e28ce8a97716f281947dcb7aafdedc801e104d92e08e0e598176a38`
-- config SHA256: `13cfddba50162e4a593b9fc5f72c0bc0147bcb8b5b9bd2c94ae48088cf727ba7`
+- source commit: `488fb405257d69ad427d6e5bdc8a0a313d43c5e1`
+- scorer SHA256: `b8c13b0e0cd2541cd8ab7eada7ee8674167dad978dcf66ca8f201240bdaeab6d`
+- config SHA256: `74709fb2c635884d8825f252c9db47a54f6f8d00de22fd7102dea8ee99d70549`
 - requested window: 2026-05-06..2026-06-18
 - replayed trading days: 32
 - confirmed T0 universe records: 131
@@ -29,15 +29,15 @@ Weights refit allowed: `false`
 
 - recorded decisions: 1536 ({'HOLD': 1302, 'BUY': 155, 'SELL': 79})
 - directional BUY/SELL outcomes: 232 across 31 days
-- total-score/return Pearson correlation: -0.0359
+- total-score/return Pearson correlation: -0.0281
 
 | score bucket | directional outcomes | mean return |
 |---|---:|---:|
 | A | 0 | - |
-| B | 0 | - |
-| C | 83 | 0.0611% |
-| D | 58 | 0.0046% |
-| E | 91 | 0.1471% |
+| B | 72 | 0.1080% |
+| C | 69 | -0.0160% |
+| D | 68 | 0.0689% |
+| E | 23 | 0.3200% |
 
 ## Data coverage
 

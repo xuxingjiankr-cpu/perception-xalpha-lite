@@ -435,8 +435,11 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     orders = decision.get("orders", []) or []
     order = next((o for o in orders if o.get("direction") == ("buy" if action == "BUY" else "sell")), None)
     ranked = decision.get("ranked", []) or []
-    best = order or (ranked[0] if ranked else {})
-    code = str((best or {}).get("stockCode", "")).zfill(6) or None
+    code = str((order or {}).get("stockCode") or (ranked[0] if ranked else {}).get("stockCode") or "").zfill(6) or None
+    market_row = next(
+        (quote for quote in ranked if str(quote.get("stockCode", "")).zfill(6) == code),
+        ranked[0] if ranked else {},
+    )
     n = len(ranked) or 1
     pos = next((i for i, q in enumerate(ranked) if str(q.get("stockCode", "")).zfill(6) == code), None)
     pct = (pos / n) if pos is not None else None
@@ -448,7 +451,7 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     return {
         "decision_id": f"{trade_date}_{timestamp}_{code or action}",
         "date": trade_date, "timestamp": timestamp,
-        "etf_code": code, "etf_name": (best or {}).get("name"),
+        "etf_code": code, "etf_name": market_row.get("name") or (order or {}).get("name"),
         "decision_type": decision_type,
         "sample_origin": cfg.get("decision_scoring", {}).get("sample_origin"),
         "scorer_version": cfg.get("decision_scoring", {}).get("scorer_version"),
@@ -461,9 +464,9 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "broad_market_not_declining": (decision.get("market_correlation_stress", {}) or {}).get("broad_market_not_declining"),
         "correlation_stress_ok": not (decision.get("market_correlation_stress", {}) or {}).get("stressed", False),
         "cross_sectional_percentile": pct,
-        "amount": (best or {}).get("amount"), "spread_pct": (best or {}).get("spread_pct"),
-        "alpha101_conviction": (best or {}).get("alpha101_conviction"),
-        "change_pct": (best or {}).get("change_pct"), "atr_pct": (best or {}).get("atr_pct"),
+        "amount": market_row.get("amount"), "spread_pct": market_row.get("spread_pct"),
+        "alpha101_conviction": market_row.get("alpha101_conviction"),
+        "change_pct": market_row.get("change_pct"), "atr_pct": market_row.get("atr_pct"),
         "execution_style": (order or {}).get("execution_style"),
         "has_stop": bool((order or {}).get("bracket")),
         "position_size_suggestion": (order or {}).get("quantity"),

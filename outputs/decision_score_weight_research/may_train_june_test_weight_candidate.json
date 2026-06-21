@@ -1,0 +1,108 @@
+{
+  "status": "diagnostic_only",
+  "candidate_status": "candidate_not_promotable",
+  "hypothesis": "May-only day-balanced component weighting improves June cost-adjusted BUY ranking",
+  "data": {
+    "score_dir": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\outputs\\decision_score_pseudo_forward\\20260506_20260618\\scores_with_yahoo_may_contaminated",
+    "train_end": "2026-05-31",
+    "test_start": "2026-06-01",
+    "may_training_contaminated": true,
+    "june_point_in_time_rows": true,
+    "researcher_selection_bias": true
+  },
+  "sample": {
+    "train_rows": 95,
+    "train_days": 18,
+    "test_rows": 60,
+    "test_days": 13
+  },
+  "candidate_model": {
+    "intercept": -0.0014478914835164322,
+    "coefficients": {
+      "market_regime_score": -0.0014660343028706014,
+      "relative_strength_score": 0.0007016814147535075,
+      "liquidity_score": -0.0021381851724572173,
+      "entry_quality_score": -0.0018777183460689398,
+      "execution_score": 0.0,
+      "counterfactual_score": 0.000578347457396736,
+      "risk_penalty": 0.004720780829904282
+    },
+    "center": {
+      "market_regime_score": 13.120049857549855,
+      "relative_strength_score": 16.539351851851837,
+      "liquidity_score": 13.803240740740724,
+      "entry_quality_score": 9.306790123456782,
+      "execution_score": 8.999999999999993,
+      "counterfactual_score": 7.340895061728391,
+      "risk_penalty": -5.90586419753086
+    },
+    "scale": {
+      "market_regime_score": 5.6772598068868705,
+      "relative_strength_score": 3.669610881871322,
+      "liquidity_score": 1.1196982028657039,
+      "entry_quality_score": 1.0644436640689479,
+      "execution_score": 1.0,
+      "counterfactual_score": 1.5907701958952007,
+      "risk_penalty": 1.9258065955038375
+    },
+    "active": {
+      "market_regime_score": true,
+      "relative_strength_score": true,
+      "liquidity_score": true,
+      "entry_quality_score": true,
+      "execution_score": false,
+      "counterfactual_score": true,
+      "risk_penalty": true
+    },
+    "alpha": 10.0,
+    "round_trip_cost": 0.0014
+  },
+  "test_metrics": {
+    "frozen_total_score": {
+      "pearson": 0.09115883737603689,
+      "spearman": 0.1294248402333982,
+      "tertiles": {
+        "train_low_cut": 65.0,
+        "train_high_cut": 71.0,
+        "test_top_count": 28,
+        "test_bottom_count": 27,
+        "test_top_mean": 0.0022346428571428565,
+        "test_bottom_mean": -0.00042333333333333296,
+        "test_top_minus_bottom": 0.0026579761904761893
+      }
+    },
+    "ridge_candidate": {
+      "pearson": -0.205216267035971,
+      "spearman": -0.15404278966379553,
+      "tertiles": {
+        "train_low_cut": 0.0001969115497928199,
+        "train_high_cut": 0.0001969115497928199,
+        "test_top_count": 49,
+        "test_bottom_count": 39,
+        "test_top_mean": 0.00078530612244898,
+        "test_bottom_mean": 0.0020194871794871794,
+        "test_top_minus_bottom": -0.0012341810570381992
+      }
+    }
+  },
+  "shadow_hypothesis": {
+    "name": "frozen_score_high_tertile_buy",
+    "total_score_min": 71.0,
+    "test_count": 28,
+    "test_mean_net_return": 0.0022346428571428565,
+    "test_bottom_count": 27,
+    "test_bottom_mean_net_return": -0.00042333333333333296,
+    "trade_gate_enabled": false,
+    "weights_changed": false,
+    "status": "unvalidated_forward_shadow"
+  },
+  "gates": {
+    "minimum_test_days": 20,
+    "test_days_gate": false,
+    "candidate_improves_both_metrics": false,
+    "promotion_allowed": false,
+    "reason": "historical diagnostic only; fewer than 20 June BUY-outcome days and scorer post-dates sample"
+  },
+  "live_changes": false,
+  "weights_refit_applied": false
+}

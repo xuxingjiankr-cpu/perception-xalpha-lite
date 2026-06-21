@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "decision_score_forward_shadow_v1",
+  "status": "diagnostic_only",
+  "candidateName": "frozen_score_high_tertile_buy",
+  "purpose": "Data-derived hypothesis for new real-forward validation only",
+  "sourceResearch": {
+    "trainPeriod": "2026-05-06/2026-05-29",
+    "testPeriod": "2026-06-01/2026-06-18",
+    "trainContaminated": true,
+    "testDays": 13,
+    "testBuyDecisions": 60,
+    "researcherSelectionBias": true
+  },
+  "candidate": {
+    "decisionType": "BUY",
+    "totalScoreMin": 71.0,
+    "weightsFrozen": true,
+    "tradeGateEnabled": false,
+    "shadowTagOnly": true
+  },
+  "diagnosticEvidence": {
+    "highScoreBuyCount": 28,
+    "highScoreMeanNetReturn": 0.0022346428571428565,
+    "lowScoreBuyCount": 27,
+    "lowScoreMeanNetReturn": -0.00042333333333333296,
+    "roundTripCost": 0.0014
+  },
+  "forwardValidation": {
+    "effectiveFrom": "2026-06-22",
+    "minimumTradingDays": 20,
+    "minimumDirectionalOutcomes": 30,
+    "primaryMetric": "high_score_mean_net_return",
+    "secondaryMetric": "high_minus_low_mean_net_return",
+    "requirePrimaryPositive": true,
+    "requireSecondaryPositive": true,
+    "autoPromote": false,
+    "requiresHumanApproval": true
+  },
+  "prohibitions": [
+    "must_not_change_live_weights",
+    "must_not_gate_orders",
+    "must_not_auto_apply",
+    "must_not_claim_alpha"
+  ]
+}
