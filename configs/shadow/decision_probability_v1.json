@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "decision_probability_shadow_v1",
+  "iterationId": "DSI-0009",
+  "calibrationVersion": "DCAL-1.0.0",
+  "bayesianModelVersion": "DBAYES-1.0.0",
+  "shadowCandidateVersion": "DSHADOW-2.0.0",
+  "recordOnly": true,
+  "tradeGateEnabled": false,
+  "positionSizingEnabled": false,
+  "autoPromotionAllowed": false,
+  "effectiveFrom": "2026-06-22",
+  "decisionType": "BUY",
+  "horizon": "next_snapshot_to_same_day_last_quote",
+  "successDefinition": "realized_return_minus_0.0014_gt_0",
+  "prior": {
+    "type": "day_balanced_beta_binomial",
+    "alpha": 2.0,
+    "beta": 2.0,
+    "probability": 0.38017418110010703,
+    "logOdds": -0.4888089822941741
+  },
+  "scoreTransform": {
+    "feature": "total_score",
+    "center": 63.20446343779682,
+    "scale": 7.768503568516738,
+    "regularizedSlope": 0.20642245479705076,
+    "l2Penalty": 10.0,
+    "interpretation": "slope_times_z_is_discounted_log_likelihood_ratio"
+  },
+  "payoff": {
+    "expectedGrossWin": 0.013990617976004269,
+    "expectedGrossLoss": 0.008475630003745176,
+    "trainingFailureGrossMean": -0.008475630003745176,
+    "roundTripCost": 0.0014,
+    "evFormula": "p*expectedGrossWin-(1-p)*expectedGrossLoss-roundTripCost"
+  },
+  "modelConfidence": 0.2647058823529412,
+  "training": {
+    "endDate": "2026-05-31",
+    "rows": 95,
+    "independentTradingDays": 18,
+    "sampleSha256": "8939ce5b48bca7604a4ad777d63adec2b1a13a46ae4d4fd062309ad213fb0cd4",
+    "maySourceKnownContaminated": true,
+    "scorerPostDatesSample": true
+  },
+  "forwardValidation": {
+    "minimumIndependentTradingDays": 20,
+    "minimumBuyOutcomes": 50,
+    "metrics": [
+      "brier",
+      "log_loss",
+      "auc",
+      "ece",
+      "reliability_bins"
+    ],
+    "refitPolicy": "manual_only_after_forward_gate; never automatic"
+  },
+  "limitations": [
+    "May training source uses known final-day-turnover-contaminated fallback data.",
+    "The score design post-dates both May and June historical samples.",
+    "Multiple decisions per day are correlated; model confidence uses trading days.",
+    "No regime-specific prior or multi-evidence LR is fit at this sample size."
+  ]
+}

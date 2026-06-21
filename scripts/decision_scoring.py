@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
+import decision_probability as dp
 
 OUT_DIR = ROOT / "outputs" / "decision_scores"
 VERSION_REGISTRY = ROOT / "configs" / "research" / "decision_score_version_registry.json"
@@ -44,6 +45,7 @@ DECISION_FIELDS = [
     "decision_id", "date", "timestamp", "etf_code", "etf_name", "decision_type",
     "iteration_id", "sample_origin", "scorer_version", "weights_version",
     "outcome_model_version", "pipeline_version", "shadow_candidate_version",
+    "calibration_version", "bayesian_model_version",
     "scorer_sha256", "config_sha256",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
@@ -53,13 +55,13 @@ DECISION_FIELDS = [
     "market_regime_reason", "relative_strength_reason", "liquidity_reason",
     "entry_quality_reason", "risk_penalty_reason", "execution_reason",
     "data_quality_flag", "execution_model_flag",
-]
+] + dp.PROBABILITY_FIELDS[2:]
 OUTCOME_FIELDS = [
     "fill_status", "entry_price", "exit_price", "exit_reason", "holding_period",
     "return_1d", "return_3d", "return_5d", "return_10d", "realized_return",
     "max_adverse_excursion", "max_favorable_excursion", "was_profitable", "was_stopped",
     "counterfactual_return", "mistake_type", "post_review_comment",
-]
+] + dp.PROBABILITY_OUTCOME_FIELDS
 ALL_FIELDS = DECISION_FIELDS + OUTCOME_FIELDS
 
 
@@ -76,6 +78,8 @@ def active_version_metadata() -> dict[str, Any]:
         "outcome_model_version": active.get("outcomeModelVersion") or "DOUTCOME-UNREGISTERED",
         "pipeline_version": active.get("pipelineVersion") or "DPIPE-UNREGISTERED",
         "shadow_candidate_version": active.get("shadowCandidateVersion"),
+        "calibration_version": active.get("calibrationVersion") or "DCAL-UNREGISTERED",
+        "bayesian_model_version": active.get("bayesianModelVersion") or "DBAYES-UNREGISTERED",
         "scorer_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
     }
 
@@ -295,6 +299,8 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "outcome_model_version": ctx.get("outcome_model_version"),
         "pipeline_version": ctx.get("pipeline_version"),
         "shadow_candidate_version": ctx.get("shadow_candidate_version"),
+        "calibration_version": ctx.get("calibration_version"),
+        "bayesian_model_version": ctx.get("bayesian_model_version"),
         "scorer_sha256": ctx.get("scorer_sha256"),
         "config_sha256": ctx.get("config_sha256"),
         "signal_name": ctx.get("signal_name"), "market_regime": ctx.get("market_regime"),
@@ -312,6 +318,13 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "execution_reason": reasons["execution_score"],
         "data_quality_flag": dq_flag, "execution_model_flag": ex_flag,
     }
+    for field in dp.PROBABILITY_FIELDS:
+        rec.setdefault(field, None)
+    rec.update(dp.forecast_shadow(
+        total_score=total,
+        decision_type=rec["decision_type"],
+        date=str(rec.get("date") or ""),
+    ))
     for f in OUTCOME_FIELDS:
         rec[f] = None
     return rec
@@ -420,6 +433,7 @@ def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dic
             r["max_adverse_excursion"] = round(min(signed_path), 5)
             r["realized_return"] = round(signed_path[-1], 5)
             r["was_profitable"] = r["realized_return"] > 0
+            dp.enrich_probability_outcome(r)
         else:
             r["counterfactual_return"] = round(raw_path_returns[-1], 5)
         code_dates = sorted(closes.get(code, {}))
@@ -498,6 +512,8 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "outcome_model_version": scoring_cfg.get("outcome_model_version") or versions["outcome_model_version"],
         "pipeline_version": scoring_cfg.get("pipeline_version") or versions["pipeline_version"],
         "shadow_candidate_version": scoring_cfg.get("shadow_candidate_version") or versions["shadow_candidate_version"],
+        "calibration_version": scoring_cfg.get("calibration_version") or versions["calibration_version"],
+        "bayesian_model_version": scoring_cfg.get("bayesian_model_version") or versions["bayesian_model_version"],
         "scorer_sha256": scoring_cfg.get("scorer_sha256") or versions["scorer_sha256"],
         "config_sha256": scoring_cfg.get("config_sha256") or config_fingerprint(cfg),
         "market_breadth_up_frac": breadth,

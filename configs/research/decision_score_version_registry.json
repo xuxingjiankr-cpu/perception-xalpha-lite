@@ -1,13 +1,15 @@
 {
   "schemaVersion": "decision_score_version_registry_v1",
-  "nextIterationNumber": 9,
+  "nextIterationNumber": 10,
   "active": {
-    "iterationId": "DSI-0008",
+    "iterationId": "DSI-0009",
     "scorerLogicVersion": "DSCORE-1.2.0",
     "weightsVersion": "DWEIGHTS-1.0.0",
     "outcomeModelVersion": "DOUTCOME-2.0.0",
-    "pipelineVersion": "DPIPE-1.2.0",
-    "shadowCandidateVersion": "DSHADOW-1.0.0"
+    "pipelineVersion": "DPIPE-1.3.0",
+    "shadowCandidateVersion": "DSHADOW-2.0.0",
+    "calibrationVersion": "DCAL-1.0.0",
+    "bayesianModelVersion": "DBAYES-1.0.0"
   },
   "numberingPolicy": {
     "DSI": "Increment for every research iteration, including rejected and diagnostic-only work.",
@@ -15,7 +17,9 @@
     "DWEIGHTS": "Numerical component weighting profile. It remains frozen until a separately approved promotion.",
     "DOUTCOME": "Outcome-label semantics and execution timing used for score evaluation.",
     "DPIPE": "Collection, enrichment, reporting and audit pipeline.",
-    "DSHADOW": "Preregistered shadow hypothesis; never implies order gating."
+    "DSHADOW": "Preregistered shadow hypothesis; never implies order gating.",
+    "DCAL": "Score-to-probability calibration semantics and frozen parameters.",
+    "DBAYES": "Bayesian prior, shrinkage, posterior and EV semantics; shadow-only until separately promoted."
   },
   "history": [
     {
@@ -106,6 +110,20 @@
       "changeType": "audit",
       "summary": "High-vs-low BUY score separation on fixed June test",
       "versions": {}
+    },
+    {
+      "iterationId": "DSI-0009",
+      "date": "2026-06-21",
+      "commit": "95d336249989c9173075135b6a6d0d90108712af",
+      "status": "forward_shadow",
+      "changeType": "shadow",
+      "summary": "Frozen one-parameter Bayesian probability calibration forward shadow",
+      "versions": {
+        "pipelineVersion": "DPIPE-1.3.0",
+        "shadowCandidateVersion": "DSHADOW-2.0.0",
+        "calibrationVersion": "DCAL-1.0.0",
+        "bayesianModelVersion": "DBAYES-1.0.0"
+      }
     }
   ],
   "safety": {

@@ -22,6 +22,7 @@ from typing import Any
 
 from run_etf_paper_trading_agent import ROOT, as_float
 from decision_scoring import classify_mistake
+import decision_probability as dp
 
 SCORE_DIR = ROOT / "outputs" / "decision_scores"
 SHADOW_CONFIG = ROOT / "configs" / "shadow" / "decision_score_high71_candidate.json"
@@ -133,6 +134,35 @@ def shadow_forward_stats(records: list[dict[str, Any]], cfg: dict[str, Any]) -> 
     }
 
 
+def probability_forward_stats(records: list[dict[str, Any]],
+                              model: dict[str, Any]) -> dict[str, Any]:
+    effective = str(model.get("effectiveFrom") or "9999-12-31")
+    rows = [row for row in records
+            if str(row.get("date")) >= effective
+            and str(row.get("decision_type")) == "BUY"
+            and row.get("posterior_prob") is not None
+            and row.get("probability_outcome") is not None]
+    probabilities = [as_float(row.get("posterior_prob"), 0.5) for row in rows]
+    outcomes = [int(row.get("probability_outcome")) for row in rows]
+    metrics = dp.probability_metrics(probabilities, outcomes)
+    prior = as_float(model.get("prior", {}).get("probability"), 0.5)
+    baseline = dp.probability_metrics([prior] * len(rows), outcomes)
+    neutral = dp.probability_metrics([0.5] * len(rows), outcomes)
+    days = len({str(row.get("date")) for row in rows})
+    validation = model.get("forwardValidation", {})
+    ready = (days >= int(validation.get("minimumIndependentTradingDays", 20))
+             and len(rows) >= int(validation.get("minimumBuyOutcomes", 50)))
+    improved = bool(
+        ready and metrics.get("brier") is not None and baseline.get("brier") is not None
+        and metrics["brier"] < baseline["brier"]
+        and metrics["log_loss"] < baseline["log_loss"]
+    )
+    return {"effective_from": effective, "days": days, "rows": len(rows),
+            "metrics": metrics, "constant_prior": baseline, "neutral_half": neutral,
+            "sample_ready": ready,
+            "beats_prior_brier_and_logloss": improved, "promotion_allowed": False}
+
+
 def build_report(records: list[dict[str, Any]]) -> str:
     n = len(records)
     with_outcome = sum(1 for r in records if _outcome(r) is not None)
@@ -144,7 +174,8 @@ def build_report(records: list[dict[str, Any]]) -> str:
     lines.append("Diagnostic only. NOT alpha, NOT an auto-trading signal, must not drive live sizing.")
     versions = {
         key: sorted({str(row.get(key)) for row in records if row.get(key)})
-        for key in ("iteration_id", "scorer_version", "weights_version", "outcome_model_version", "pipeline_version")
+        for key in ("iteration_id", "scorer_version", "weights_version", "outcome_model_version",
+                    "pipeline_version", "calibration_version", "bayesian_model_version")
     }
     if records:
         lines.append("Version provenance: " + "; ".join(
@@ -241,6 +272,27 @@ def build_report(records: list[dict[str, Any]]) -> str:
             f"- sample_ready: `{shadow['sample_ready']}`",
             f"- shadow_pass: `{shadow['shadow_pass']}`",
             "- trade_gate_enabled: `false`; promotion_allowed: `false`",
+            "",
+        ])
+    probability_model = dp.load_shadow_model()
+    if probability_model:
+        probability = probability_forward_stats(records, probability_model)
+        metrics = probability["metrics"]
+        baseline = probability["constant_prior"]
+        neutral = probability["neutral_half"]
+        show = lambda value: "-" if value is None else f"{value:.6f}"
+        lines.extend([
+            "## 6. Preregistered probability calibration shadow",
+            "",
+            f"- effective_from: {probability['effective_from']}",
+            f"- forward BUY outcomes: {probability['rows']} across {probability['days']} independent days",
+            f"- posterior Brier / LogLoss / AUC / ECE: {show(metrics['brier'])} / "
+            f"{show(metrics['log_loss'])} / {show(metrics['auc'])} / {show(metrics['ece'])}",
+            f"- constant-prior Brier / LogLoss: {show(baseline['brier'])} / {show(baseline['log_loss'])}",
+            f"- neutral-50% Brier / LogLoss: {show(neutral['brier'])} / {show(neutral['log_loss'])}",
+            f"- sample_ready: `{probability['sample_ready']}`",
+            f"- beats_prior_brier_and_logloss: `{probability['beats_prior_brier_and_logloss']}`",
+            "- trade_gate_enabled: `false`; position_sizing_enabled: `false`; promotion_allowed: `false`",
             "",
         ])
     return "\n".join(lines)

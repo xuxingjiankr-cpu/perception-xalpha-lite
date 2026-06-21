@@ -1,0 +1,153 @@
+{
+  "status": "diagnostic_only",
+  "generatedAt": "2026-06-21T23:26:26.975482+09:00",
+  "model": {
+    "schemaVersion": "decision_probability_shadow_v1",
+    "iterationId": "DSI-0009",
+    "calibrationVersion": "DCAL-1.0.0",
+    "bayesianModelVersion": "DBAYES-1.0.0",
+    "shadowCandidateVersion": "DSHADOW-2.0.0",
+    "recordOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "autoPromotionAllowed": false,
+    "effectiveFrom": "2026-06-22",
+    "decisionType": "BUY",
+    "horizon": "next_snapshot_to_same_day_last_quote",
+    "successDefinition": "realized_return_minus_0.0014_gt_0",
+    "prior": {
+      "type": "day_balanced_beta_binomial",
+      "alpha": 2.0,
+      "beta": 2.0,
+      "probability": 0.38017418110010703,
+      "logOdds": -0.4888089822941741
+    },
+    "scoreTransform": {
+      "feature": "total_score",
+      "center": 63.20446343779682,
+      "scale": 7.768503568516738,
+      "regularizedSlope": 0.20642245479705076,
+      "l2Penalty": 10.0,
+      "interpretation": "slope_times_z_is_discounted_log_likelihood_ratio"
+    },
+    "payoff": {
+      "expectedGrossWin": 0.013990617976004269,
+      "expectedGrossLoss": 0.008475630003745176,
+      "trainingFailureGrossMean": -0.008475630003745176,
+      "roundTripCost": 0.0014,
+      "evFormula": "p*expectedGrossWin-(1-p)*expectedGrossLoss-roundTripCost"
+    },
+    "modelConfidence": 0.2647058823529412,
+    "training": {
+      "endDate": "2026-05-31",
+      "rows": 95,
+      "independentTradingDays": 18,
+      "sampleSha256": "8939ce5b48bca7604a4ad777d63adec2b1a13a46ae4d4fd062309ad213fb0cd4",
+      "maySourceKnownContaminated": true,
+      "scorerPostDatesSample": true
+    },
+    "forwardValidation": {
+      "minimumIndependentTradingDays": 20,
+      "minimumBuyOutcomes": 50,
+      "metrics": [
+        "brier",
+        "log_loss",
+        "auc",
+        "ece",
+        "reliability_bins"
+      ],
+      "refitPolicy": "manual_only_after_forward_gate; never automatic"
+    },
+    "limitations": [
+      "May training source uses known final-day-turnover-contaminated fallback data.",
+      "The score design post-dates both May and June historical samples.",
+      "Multiple decisions per day are correlated; model confidence uses trading days.",
+      "No regime-specific prior or multi-evidence LR is fit at this sample size."
+    ]
+  },
+  "data": {
+    "scoreDir": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\outputs\\decision_score_pseudo_forward\\20260506_20260618\\scores_with_yahoo_may_contaminated",
+    "trainEnd": "2026-05-31",
+    "testStart": "2026-06-01",
+    "mayTrainingContaminated": true,
+    "junePointInTime": true,
+    "researcherSelectionBias": true
+  },
+  "sample": {
+    "trainRows": 95,
+    "trainDays": 18,
+    "testRows": 60,
+    "testDays": 13
+  },
+  "june_diagnostic": {
+    "model": {
+      "count": 60,
+      "brier": 0.2578454587502987,
+      "log_loss": 0.7107687956265584,
+      "auc": 0.6088888888888889,
+      "ece": 0.11185593416666667,
+      "mean_predicted": 0.38814406583333333,
+      "actual_rate": 0.5,
+      "bins": [
+        {
+          "low": 0.2,
+          "high": 0.4,
+          "count": 30,
+          "mean_predicted": 0.3471082583333333,
+          "actual_rate": 0.36666666666666664
+        },
+        {
+          "low": 0.4,
+          "high": 0.6,
+          "count": 30,
+          "mean_predicted": 0.4291798733333333,
+          "actual_rate": 0.6333333333333333
+        }
+      ]
+    },
+    "constant_training_prior": {
+      "count": 60,
+      "brier": 0.26435822687502997,
+      "log_loss": 0.7227212688185882,
+      "auc": 0.5,
+      "ece": 0.11982581889989297,
+      "mean_predicted": 0.38017418110010703,
+      "actual_rate": 0.5,
+      "bins": [
+        {
+          "low": 0.2,
+          "high": 0.4,
+          "count": 60,
+          "mean_predicted": 0.38017418110010703,
+          "actual_rate": 0.5
+        }
+      ]
+    },
+    "neutral_half": {
+      "count": 60,
+      "brier": 0.25,
+      "log_loss": 0.6931471805599453,
+      "auc": 0.5,
+      "ece": 0.0,
+      "mean_predicted": 0.5,
+      "actual_rate": 0.5,
+      "bins": [
+        {
+          "low": 0.4,
+          "high": 0.6,
+          "count": 60,
+          "mean_predicted": 0.5,
+          "actual_rate": 0.5
+        }
+      ]
+    },
+    "days": 13
+  },
+  "gates": {
+    "june_test_days_gate": false,
+    "beats_prior_brier_and_logloss": true,
+    "beats_neutral_half_brier_and_logloss": false,
+    "promotion_allowed": false
+  },
+  "liveChanges": false
+}

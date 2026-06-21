@@ -2328,6 +2328,59 @@ def t56_high_low_score_separation() -> None:
     check("T56 cluster bootstrap is deterministic and populated", boot["n_boot"] == 100 and boot["ci_95"][0] > 0)
 
 
+def t57_bayesian_probability_shadow() -> None:
+    import decision_probability as probability
+    import decision_scoring as scoring
+    import run_decision_score_report as report
+
+    check("T57 sigmoid/logit round-trip", abs(probability.sigmoid(probability.logit(0.37)) - 0.37) < 1e-10)
+    unsafe = {"schemaVersion": "decision_probability_shadow_v1", "recordOnly": True,
+              "tradeGateEnabled": True, "positionSizingEnabled": False}
+    import tempfile
+    from pathlib import Path as _Path
+    import json as _json
+    with tempfile.TemporaryDirectory() as td:
+        path = _Path(td) / "unsafe.json"
+        path.write_text(_json.dumps(unsafe), encoding="utf-8")
+        check("T57 probability model fails closed if trade gate is true",
+              probability.load_shadow_model(path) is None)
+
+    model = probability.load_shadow_model()
+    check("T57 checked-in probability model is record-only",
+          model is not None and model["tradeGateEnabled"] is False
+          and model["positionSizingEnabled"] is False)
+    before = probability.forecast_shadow(total_score=80, decision_type="BUY", date="2026-06-21", model=model)
+    after = probability.forecast_shadow(total_score=80, decision_type="BUY", date="2026-06-22", model=model)
+    check("T57 preregistered model does not backfill before effective date", before == {})
+    check("T57 posterior forecast is bounded and record-only",
+          0 < after["posterior_prob"] < 1
+          and after["probability_shadow_action"] == "RECORD_ONLY_NO_TRADE_GATE")
+    check("T57 higher score raises posterior under frozen positive slope",
+          after["posterior_prob"] > probability.forecast_shadow(
+              total_score=50, decision_type="BUY", date="2026-06-22", model=model
+          )["posterior_prob"])
+
+    record = {**after, "realized_return": 0.0010}
+    probability.enrich_probability_outcome(record)
+    check("T57 probability success label deducts 14bps cost", record["probability_outcome"] == 0)
+    check("T57 post-close enrichment writes proper scores",
+          record["brier_score"] >= 0 and record["probability_log_loss"] >= 0)
+    metrics = probability.probability_metrics([0.9, 0.1], [1, 0])
+    check("T57 calibrated toy forecast has low Brier and perfect AUC",
+          metrics["brier"] < 0.02 and metrics["auc"] == 1.0)
+
+    score = scoring.score_decision({"decision_type": "BUY", "date": "2026-06-22",
+                                    "decision_reason": "momentum"})
+    check("T57 live score carries frozen shadow posterior", score.get("posterior_prob") is not None)
+    check("T57 probability shadow never changes position suggestion",
+          score.get("position_size_suggestion") is None)
+    repeated = [{**score, "date": "2026-06-22", "probability_outcome": 1,
+                 "realized_return": 0.01} for _ in range(60)]
+    stats = report.probability_forward_stats(repeated, model)
+    check("T57 repeated outcomes from one day do not pass probability day gate",
+          stats["sample_ready"] is False and stats["promotion_allowed"] is False)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2383,6 +2436,7 @@ if __name__ == "__main__":
     t54_weight_research_and_forward_shadow()
     t55_decision_score_semantic_versioning()
     t56_high_low_score_separation()
+    t57_bayesian_probability_shadow()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -65,6 +65,8 @@ def main() -> int:
     parser.add_argument("--outcome-version", default="")
     parser.add_argument("--pipeline-version", default="")
     parser.add_argument("--shadow-version", default="")
+    parser.add_argument("--calibration-version", default="")
+    parser.add_argument("--bayesian-version", default="")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     registry = json.loads(REGISTRY.read_text(encoding="utf-8"))
@@ -74,6 +76,8 @@ def main() -> int:
         "outcomeModelVersion": args.outcome_version,
         "pipelineVersion": args.pipeline_version,
         "shadowCandidateVersion": args.shadow_version,
+        "calibrationVersion": args.calibration_version,
+        "bayesianModelVersion": args.bayesian_version,
     }
     updated, entry = allocate_iteration(
         registry, summary=args.summary, change_type=args.change_type,
