@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "decision_probability_forward_diagnostics_v1",
+  "generatedAt": "2026-06-21T23:43:13.637654+09:00",
+  "iterationId": "DSI-0010",
+  "effectiveFrom": "2026-06-22",
+  "researchOnly": true,
+  "tradeGateEnabled": false,
+  "positionSizingEnabled": false,
+  "sample": {
+    "completedBuyForecasts": 0,
+    "independentTradingDays": 0,
+    "executedBuyForecasts": 0,
+    "noTradeCandidateForecasts": 0
+  },
+  "ledger": {
+    "records": 0,
+    "snapshotGroups": 0,
+    "completeSnapshotGroups": 0,
+    "finalDecisions": 0,
+    "noTradeBuyCandidates": 0,
+    "expectedNoTradeCandidates": 0,
+    "recordedNoTradeCandidates": 0,
+    "candidateCoverage": null,
+    "completedProbabilityOutcomes": 0,
+    "incompleteProbabilityHorizons": 0
+  },
+  "calibration": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "rawProbabilityHistogram": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "bayesianCalibration": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "neutralHalf": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "rolling20TradingDays": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "rolling50Signals": {
+    "count": 0,
+    "brier": null,
+    "log_loss": null,
+    "auc": null,
+    "ece": null,
+    "mce": null,
+    "mean_predicted": null,
+    "actual_rate": null,
+    "bins": []
+  },
+  "gates": {
+    "properScoresBeatNeutralHalf": false,
+    "ecePass": false,
+    "stableAucPass": false,
+    "maximumEce": 0.05,
+    "minimumStableAuc": 0.6,
+    "recommendationOnly": true,
+    "promotionAllowed": false
+  },
+  "readinessTiers": [
+    {
+      "name": "shadow_warmup",
+      "minimumBuyOutcomes": 50,
+      "minimumIndependentTradingDays": 20,
+      "samplePass": false,
+      "statisticalPass": false
+    },
+    {
+      "name": "research_validated",
+      "minimumBuyOutcomes": 100,
+      "minimumIndependentTradingDays": 40,
+      "samplePass": false,
+      "statisticalPass": false
+    },
+    {
+      "name": "gate_candidate",
+      "minimumBuyOutcomes": 200,
+      "minimumIndependentTradingDays": 60,
+      "samplePass": false,
+      "statisticalPass": false
+    },
+    {
+      "name": "position_candidate",
+      "minimumBuyOutcomes": 300,
+      "minimumIndependentTradingDays": 60,
+      "samplePass": false,
+      "statisticalPass": false
+    }
+  ],
+  "daily": []
+}

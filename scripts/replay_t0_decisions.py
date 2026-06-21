@@ -760,10 +760,11 @@ def main() -> None:
                 try:
                     import decision_scoring as _ds
                     _td = replay_now.strftime("%Y-%m-%d")
-                    _ctx = _ds.context_from_decision(cfg, decision, trade_date=_td,
-                                                     timestamp=replay_now.strftime("%H:%M:%S"))
-                    _ctx["same_snapshot_fill"] = execution_settings["same_snapshot_fill"]
-                    decision_score_records.append(_ds.score_decision(_ctx))
+                    for _ctx in _ds.contexts_from_decision(
+                            cfg, decision, trade_date=_td,
+                            timestamp=replay_now.strftime("%H:%M:%S")):
+                        _ctx["same_snapshot_fill"] = execution_settings["same_snapshot_fill"]
+                        decision_score_records.append(_ds.score_decision(_ctx))
                 except Exception:
                     pass
             for quote in quotes:

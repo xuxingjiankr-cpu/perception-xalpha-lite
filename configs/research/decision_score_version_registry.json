@@ -1,15 +1,15 @@
 {
   "schemaVersion": "decision_score_version_registry_v1",
-  "nextIterationNumber": 10,
+  "nextIterationNumber": 11,
   "active": {
-    "iterationId": "DSI-0009",
+    "iterationId": "DSI-0010",
     "scorerLogicVersion": "DSCORE-1.2.0",
     "weightsVersion": "DWEIGHTS-1.0.0",
-    "outcomeModelVersion": "DOUTCOME-2.0.0",
-    "pipelineVersion": "DPIPE-1.3.0",
-    "shadowCandidateVersion": "DSHADOW-2.0.0",
-    "calibrationVersion": "DCAL-1.0.0",
-    "bayesianModelVersion": "DBAYES-1.0.0"
+    "outcomeModelVersion": "DOUTCOME-2.1.0",
+    "pipelineVersion": "DPIPE-1.4.0",
+    "shadowCandidateVersion": "DSHADOW-2.1.0",
+    "calibrationVersion": "DCAL-1.0.1",
+    "bayesianModelVersion": "DBAYES-1.0.1"
   },
   "numberingPolicy": {
     "DSI": "Increment for every research iteration, including rejected and diagnostic-only work.",
@@ -123,6 +123,21 @@
         "shadowCandidateVersion": "DSHADOW-2.0.0",
         "calibrationVersion": "DCAL-1.0.0",
         "bayesianModelVersion": "DBAYES-1.0.0"
+      }
+    },
+    {
+      "iterationId": "DSI-0010",
+      "date": "2026-06-21",
+      "commit": "119ae39fd6b337d5fed49e86740f2f990b043b50",
+      "status": "forward_shadow",
+      "changeType": "pipeline",
+      "summary": "Complete forward probability ledger, calibration diagnostics, and Bayesian prior registry",
+      "versions": {
+        "outcomeModelVersion": "DOUTCOME-2.1.0",
+        "pipelineVersion": "DPIPE-1.4.0",
+        "shadowCandidateVersion": "DSHADOW-2.1.0",
+        "calibrationVersion": "DCAL-1.0.1",
+        "bayesianModelVersion": "DBAYES-1.0.1"
       }
     }
   ],

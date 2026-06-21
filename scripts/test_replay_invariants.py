@@ -2381,6 +2381,89 @@ def t57_bayesian_probability_shadow() -> None:
           stats["sample_ready"] is False and stats["promotion_allowed"] is False)
 
 
+def t58_forward_probability_ledger_and_priors() -> None:
+    import decision_probability as probability
+    import decision_scoring as scoring
+    import run_decision_probability_forward as forward
+
+    config = probability.load_research_config()
+    model = probability.load_shadow_model()
+    check("T58 research config is fail-closed and record-only",
+          config is not None and config["tradeGateEnabled"] is False
+          and config["positionSizingEnabled"] is False
+          and config["bayesPosteriorAllowedForTradeGate"] is False)
+    decision = {
+        "state_machine": {"action": "hold", "reason": "entry_score_below_threshold"},
+        "orders": [],
+        "ranked": [
+            {"stockCode": "513100", "name": "纳指ETF", "currentPrice": 1.0,
+             "amount": 2e8, "spread_pct": 0.001, "change_pct": 1.0},
+            {"stockCode": "512760", "name": "芯片ETF", "currentPrice": 2.0,
+             "amount": 1e8, "spread_pct": 0.001, "change_pct": 0.5},
+            {"stockCode": "510300", "name": "沪深300ETF", "currentPrice": 4.0,
+             "amount": 3e8, "spread_pct": 0.001, "change_pct": -0.2},
+        ],
+    }
+    cfg = {"decision_scoring": {"record_ranked_candidates": True,
+                                  "max_ranked_candidates_per_snapshot": 2}}
+    contexts = scoring.contexts_from_decision(
+        cfg, decision, trade_date="2026-06-22", timestamp="10:00:00",
+    )
+    check("T58 final decision plus configured no-trade candidates are retained", len(contexts) == 3)
+    check("T58 candidate rows are explicit counterfactual BUY signals",
+          all(row["decision_type"] == "BUY_CANDIDATE" and row["signal_direction"] == "BUY"
+              and row["was_executed"] is False for row in contexts[1:]))
+    candidate = scoring.score_decision(contexts[1])
+    check("T58 no-trade candidate gets a pre-outcome probability forecast",
+          candidate.get("calibrated_probability") is not None
+          and candidate.get("probability_outcome") is None)
+
+    incomplete_index = {"513100": {"2026-06-22": {605: 1.0, 610: 1.01, 890: 1.02}}}
+    scoring.enrich_from_price_index([candidate], incomplete_index, {"513100": {"2026-06-22": 1.02}})
+    check("T58 incomplete session cannot create probability outcome",
+          candidate["probability_outcome"] is None and candidate["outcome_horizon_complete"] is False)
+    complete_candidate = scoring.score_decision(contexts[1])
+    complete_index = {"513100": {"2026-06-22": {605: 1.0, 610: 1.01, 895: 1.03}}}
+    scoring.enrich_from_price_index([complete_candidate], complete_index,
+                                    {"513100": {"2026-06-22": 1.03}})
+    check("T58 candidate outcome is counterfactual and horizon-complete",
+          complete_candidate["realized_return"] is None
+          and complete_candidate["counterfactual_return"] is not None
+          and complete_candidate["probability_outcome"] is not None
+          and complete_candidate["outcome_horizon_complete"] is True)
+
+    metrics = probability.probability_metrics(
+        [0.25, 0.35, 0.65, 0.75], [0, 1, 0, 1],
+        bin_edges=[0.0, 0.3, 0.4, 0.7, 0.8, 1.0],
+    )
+    check("T58 calibration diagnostics include MCE and per-bin proper scores",
+          metrics["mce"] is not None and all("brier" in row and "log_loss" in row
+                                             and "calibration_error" in row for row in metrics["bins"]))
+
+    rows = []
+    for index, outcome in enumerate((1, 1, 1, 0)):
+        rows.append({**complete_candidate, "decision_id": f"candidate_{index}",
+                     "date": "2026-06-22", "probability_outcome": outcome,
+                     "outcome_horizon_complete": True})
+    registry = forward.build_prior_registry(rows, config)
+    key = probability.prior_registry_key(rows[0])
+    check("T58 Beta(2,2) prior registry shrinks a 3-of-4 segment",
+          abs(registry["jointSegments"][key]["posteriorProbability"] - 0.625) < 1e-12)
+    forecast = probability.forecast_shadow(
+        total_score=70, decision_type="BUY_CANDIDATE", date="2026-06-23",
+        context=rows[0], model=model, research_config=config, prior_registry=registry,
+    )
+    check("T58 Bayesian posterior uses the prior registry but remains research-only",
+          forecast["prior_source"] == "forward_beta_binomial_joint_segment"
+          and forecast["bayes_posterior_research_only"] is True
+          and forecast["bayes_posterior_allowed_for_trade_gate"] is False)
+    diagnostic = forward.build_diagnostics(rows, model, config)
+    check("T58 one correlated day cannot pass any readiness tier",
+          all(tier["samplePass"] is False and tier["statisticalPass"] is False
+              for tier in diagnostic["readinessTiers"])
+          and diagnostic["gates"]["promotionAllowed"] is False)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -2437,6 +2520,7 @@ if __name__ == "__main__":
     t55_decision_score_semantic_versioning()
     t56_high_low_score_separation()
     t57_bayesian_probability_shadow()
+    t58_forward_probability_ledger_and_priors()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

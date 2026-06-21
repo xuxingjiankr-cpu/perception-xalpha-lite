@@ -3573,8 +3573,10 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
         try:
             import decision_scoring as _ds
             _ts = exchange_local_time(session).strftime("%H:%M:%S")
-            _ctx = _ds.context_from_decision(cfg, decision, trade_date=trade_date, timestamp=_ts)
-            _ds.append_score(_ds.score_decision(_ctx), trade_date)
+            _contexts = _ds.contexts_from_decision(
+                cfg, decision, trade_date=trade_date, timestamp=_ts,
+            )
+            _ds.append_scores([_ds.score_decision(_ctx) for _ctx in _contexts], trade_date)
         except Exception:
             pass  # never let scoring touch the live agent
     agent_name = str(cfg.get("agent_name", "t0_intraday_paper_agent"))

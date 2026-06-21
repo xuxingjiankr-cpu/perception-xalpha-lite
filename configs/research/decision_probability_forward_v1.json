@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "decision_probability_forward_research_v1",
+  "iterationId": "DSI-0010",
+  "calibrationVersion": "DCAL-1.0.1",
+  "bayesianModelVersion": "DBAYES-1.0.1",
+  "recordOnly": true,
+  "tradeGateEnabled": false,
+  "positionSizingEnabled": false,
+  "bayesPosteriorResearchOnly": true,
+  "bayesPosteriorAllowedForTradeGate": false,
+  "horizon": {
+    "name": "next_snapshot_to_same_day_last_quote",
+    "minimumCompleteMinute": 895,
+    "roundTripCost": 0.0014
+  },
+  "candidateLedger": {
+    "enabled": true,
+    "maxRankedCandidatesPerSnapshot": 30,
+    "excludeExecutedBuyFromCounterfactuals": true
+  },
+  "calibration": {
+    "binEdges": [0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0],
+    "rollingTradingDays": 20,
+    "rollingSignalCount": 50,
+    "maximumEce": 0.05,
+    "minimumStableAuc": 0.60
+  },
+  "bayesianPrior": {
+    "alpha": 2.0,
+    "beta": 2.0,
+    "confidenceK": 50,
+    "dimensions": ["market_regime", "strategy_type", "holding_horizon", "symbol_group", "signal_direction"],
+    "configuredLikelihoodRatios": []
+  },
+  "readinessTiers": [
+    {"name": "shadow_warmup", "minimumBuyOutcomes": 50, "minimumIndependentTradingDays": 20},
+    {"name": "research_validated", "minimumBuyOutcomes": 100, "minimumIndependentTradingDays": 40},
+    {"name": "gate_candidate", "minimumBuyOutcomes": 200, "minimumIndependentTradingDays": 60},
+    {"name": "position_candidate", "minimumBuyOutcomes": 300, "minimumIndependentTradingDays": 60}
+  ],
+  "promotionPolicy": "reports_only; never enable filtering, execution, or sizing automatically"
+}

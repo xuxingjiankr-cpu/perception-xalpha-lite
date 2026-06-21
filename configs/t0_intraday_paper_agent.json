@@ -51,7 +51,11 @@
   },
   "decision_scoring": {
     "enabled": true,
-    "note": "RECORD-ONLY decision scoring; writes outputs/decision_scores/. Never drives live sizing/execution (try/except wrapped). Enabled to accumulate FORWARD live decision scores; weights are frozen pending forward validation -- do NOT re-fit on the historical backtest."
+    "record_ranked_candidates": true,
+    "max_ranked_candidates_per_snapshot": 30,
+    "trade_gate_enabled": false,
+    "position_sizing_enabled": false,
+    "note": "RECORD-ONLY decision scoring; writes final decisions and point-in-time no-trade candidates to outputs/decision_scores/. Never drives live sizing/execution (try/except wrapped). Weights and probability transform remain frozen pending forward validation."
   },
   "observation_pool": {
     "enabled": true,

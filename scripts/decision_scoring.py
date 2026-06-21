@@ -47,6 +47,9 @@ DECISION_FIELDS = [
     "outcome_model_version", "pipeline_version", "shadow_candidate_version",
     "calibration_version", "bayesian_model_version",
     "scorer_sha256", "config_sha256",
+    "ledger_record_type", "was_executed", "signal_direction", "strategy_type",
+    "symbol_group", "holding_horizon", "candidate_rank", "candidate_count",
+    "candidate_eligible", "candidate_rejection_reason",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "risk_penalty", "execution_score", "counterfactual_score",
@@ -303,6 +306,16 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "bayesian_model_version": ctx.get("bayesian_model_version"),
         "scorer_sha256": ctx.get("scorer_sha256"),
         "config_sha256": ctx.get("config_sha256"),
+        "ledger_record_type": ctx.get("ledger_record_type") or "final_decision",
+        "was_executed": bool(ctx.get("was_executed")),
+        "signal_direction": ctx.get("signal_direction"),
+        "strategy_type": ctx.get("strategy_type"),
+        "symbol_group": ctx.get("symbol_group"),
+        "holding_horizon": ctx.get("holding_horizon"),
+        "candidate_rank": ctx.get("candidate_rank"),
+        "candidate_count": ctx.get("candidate_count"),
+        "candidate_eligible": ctx.get("candidate_eligible"),
+        "candidate_rejection_reason": ctx.get("candidate_rejection_reason"),
         "signal_name": ctx.get("signal_name"), "market_regime": ctx.get("market_regime"),
         **subs,
         "total_score": total, "score_bucket": score_bucket(total),
@@ -324,6 +337,7 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         total_score=total,
         decision_type=rec["decision_type"],
         date=str(rec.get("date") or ""),
+        context=rec,
     ))
     for f in OUTCOME_FIELDS:
         rec[f] = None
@@ -412,6 +426,10 @@ def enrich_from_quotes(records: list[dict[str, Any]], quotes_path: Path) -> list
 
 def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dict) -> list[dict[str, Any]]:
     """Attach outcomes from a prebuilt index so the daily job scans quote history once."""
+    probability_model = dp.load_shadow_model()
+    minimum_complete_minute = int(as_float(
+        (probability_model or {}).get("minimumHorizonCompleteMinute"), 895,
+    ))
     for r in records:
         code, date = str(r.get("etf_code") or "").zfill(6), str(r.get("date"))
         minute = _minute_of(str(r.get("timestamp") or ""))
@@ -425,6 +443,7 @@ def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dic
             continue
         decision_type = str(r.get("decision_type") or "").upper()
         side = 1.0 if decision_type == "BUY" else (-1.0 if decision_type == "SELL" else 0.0)
+        candidate_long = decision_type == "BUY_CANDIDATE"
         raw_path_returns = [price / entry - 1.0 for price in fwd_path]
         r["entry_price"] = round(entry, 4)
         if side:
@@ -433,9 +452,11 @@ def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dic
             r["max_adverse_excursion"] = round(min(signed_path), 5)
             r["realized_return"] = round(signed_path[-1], 5)
             r["was_profitable"] = r["realized_return"] > 0
-            dp.enrich_probability_outcome(r)
         else:
             r["counterfactual_return"] = round(raw_path_returns[-1], 5)
+            if candidate_long:
+                r["max_favorable_excursion"] = round(max(raw_path_returns), 5)
+                r["max_adverse_excursion"] = round(min(raw_path_returns), 5)
         code_dates = sorted(closes.get(code, {}))
         if date in code_dates:
             i = code_dates.index(date)
@@ -443,6 +464,16 @@ def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dic
                 if i + nd < len(code_dates):
                     r[field] = round(closes[code][code_dates[i + nd]] / entry - 1.0, 5)
         r["mistake_type"] = classify_mistake(r) if side else "NOT_A_TRADE"
+        horizon_complete = max(daymap) >= minimum_complete_minute
+        if r.get("posterior_prob") is not None and horizon_complete:
+            completed_minute = max(daymap)
+            completed_at = f"{date}T{completed_minute // 60:02d}:{completed_minute % 60:02d}:00+08:00"
+            probability_return = r.get("counterfactual_return") if candidate_long else r.get("realized_return")
+            dp.enrich_probability_outcome(
+                r, outcome_return=probability_return, completed_at=completed_at,
+            )
+        elif r.get("posterior_prob") is not None:
+            r["outcome_horizon_complete"] = False
     return records
 
 
@@ -466,11 +497,17 @@ def write_scores(records: list[dict[str, Any]], date: str, out_dir: Path = OUT_D
 
 def append_score(record: dict[str, Any], date: str, out_dir: Path = OUT_DIR) -> Path:
     """Append a single decision score to the day's JSONL (used by the live/replay hook)."""
+    return append_scores([record], date, out_dir=out_dir)
+
+
+def append_scores(records: list[dict[str, Any]], date: str, out_dir: Path = OUT_DIR) -> Path:
+    """Append one snapshot's final decision and candidates with a single file open."""
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = str(date).replace("-", "")
     jsonl = out_dir / f"decision_scores_{stamp}.jsonl"
     with jsonl.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        for record in records:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
     return jsonl
 
 
@@ -500,11 +537,24 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     breadth = (ups / len(ranked)) if ranked else None
     versions = active_version_metadata()
     scoring_cfg = cfg.get("decision_scoring", {}) if isinstance(cfg.get("decision_scoring"), dict) else {}
+    name = market_row.get("name") or (order or {}).get("name")
+    signal_name = sm.get("reason")
+    executed = bool(order and decision_type in ("BUY", "SELL"))
     return {
         "decision_id": f"{trade_date}_{timestamp}_{code or action}",
         "date": trade_date, "timestamp": timestamp,
-        "etf_code": code, "etf_name": market_row.get("name") or (order or {}).get("name"),
+        "etf_code": code, "etf_name": name,
         "decision_type": decision_type,
+        "ledger_record_type": "final_decision",
+        "was_executed": executed,
+        "signal_direction": decision_type if decision_type in ("BUY", "SELL") else "NONE",
+        "strategy_type": dp.classify_strategy_type(signal_name),
+        "symbol_group": dp.classify_symbol_group(code, name),
+        "holding_horizon": "intraday_to_close",
+        "candidate_rank": (pos + 1) if pos is not None else None,
+        "candidate_count": len(ranked),
+        "candidate_eligible": None,
+        "candidate_rejection_reason": None,
         "iteration_id": scoring_cfg.get("iteration_id") or versions["iteration_id"],
         "sample_origin": scoring_cfg.get("sample_origin") or "forward_live",
         "scorer_version": scoring_cfg.get("scorer_version") or versions["scorer_version"],
@@ -517,7 +567,7 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "scorer_sha256": scoring_cfg.get("scorer_sha256") or versions["scorer_sha256"],
         "config_sha256": scoring_cfg.get("config_sha256") or config_fingerprint(cfg),
         "market_breadth_up_frac": breadth,
-        "signal_name": sm.get("reason"), "decision_reason": sm.get("reason"),
+        "signal_name": signal_name, "decision_reason": signal_name,
         "market_regime": (decision.get("market_correlation_stress", {}) or {}).get("regime")
                          or ("stress" if (decision.get("market_correlation_stress", {}) or {}).get("stressed") else "neutral"),
         "broad_market_not_declining": (decision.get("market_correlation_stress", {}) or {}).get("broad_market_not_declining"),
@@ -540,3 +590,67 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "missing_price": code is None,
         "diagnostic_only": True,
     }
+
+
+def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
+                           trade_date: str, timestamp: str) -> list[dict[str, Any]]:
+    """Return the final decision plus point-in-time no-trade BUY candidates.
+
+    Candidate rows are explicitly counterfactual and never masquerade as fills.  They
+    close the selection-bias gap by preserving the ranked observation set that existed
+    at the decision timestamp.  The live hook remains try/except wrapped and write-only.
+    """
+    final = context_from_decision(
+        cfg, decision, trade_date=trade_date, timestamp=timestamp,
+    )
+    scoring_cfg = cfg.get("decision_scoring", {}) if isinstance(cfg.get("decision_scoring"), dict) else {}
+    if not scoring_cfg.get("record_ranked_candidates", False):
+        return [final]
+    ranked = decision.get("ranked", []) if isinstance(decision.get("ranked"), list) else []
+    maximum = max(0, int(as_float(scoring_cfg.get("max_ranked_candidates_per_snapshot"), 30)))
+    executed_buy_code = str(final.get("etf_code") or "").zfill(6) if (
+        final.get("decision_type") == "BUY" and final.get("was_executed")
+    ) else ""
+    contexts = [final]
+    n = len(ranked)
+    final_reason = final.get("decision_reason")
+    for index, quote in enumerate(ranked[:maximum]):
+        if not isinstance(quote, dict):
+            continue
+        code = str(quote.get("stockCode") or "").zfill(6)
+        if not code or code == executed_buy_code:
+            continue
+        name = quote.get("name")
+        signal_name = quote.get("signal_name") or quote.get("entry_signal") or final_reason
+        candidate = dict(final)
+        candidate.update({
+            "decision_id": f"{trade_date}_{timestamp}_{code}_candidate_r{index + 1}",
+            "etf_code": code,
+            "etf_name": name,
+            "decision_type": "BUY_CANDIDATE",
+            "ledger_record_type": "no_trade_buy_candidate",
+            "was_executed": False,
+            "signal_direction": "BUY",
+            "strategy_type": dp.classify_strategy_type(signal_name),
+            "symbol_group": dp.classify_symbol_group(code, name),
+            "holding_horizon": "intraday_to_close",
+            "candidate_rank": index + 1,
+            "candidate_count": n,
+            "candidate_eligible": quote.get("entry_eligible"),
+            "candidate_rejection_reason": final_reason,
+            "sample_origin": "forward_live_no_trade_candidate",
+            "signal_name": signal_name,
+            "decision_reason": f"ranked_no_trade_candidate; final={final_reason or 'unknown'}",
+            "cross_sectional_percentile": index / max(1, n),
+            "amount": quote.get("amount"),
+            "spread_pct": quote.get("spread_pct"),
+            "alpha101_conviction": quote.get("alpha101_conviction"),
+            "change_pct": quote.get("change_pct"),
+            "atr_pct": quote.get("atr_pct"),
+            "execution_style": None,
+            "has_stop": False,
+            "position_size_suggestion": None,
+            "missing_price": as_float(quote.get("currentPrice"), 0.0) <= 0,
+        })
+        contexts.append(candidate)
+    return contexts

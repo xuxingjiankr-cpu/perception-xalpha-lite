@@ -22,6 +22,7 @@ from pathlib import Path
 from run_etf_paper_trading_agent import ROOT
 import decision_scoring as ds
 import run_decision_score_report as rep
+import run_decision_probability_forward as probability_forward
 
 SCORE_DIR = ROOT / "outputs" / "decision_scores"
 AGENT_OUT = ROOT / "outputs" / "t0_intraday_agent"
@@ -56,6 +57,11 @@ def main() -> None:
                 continue
         if not recs:
             continue
+        deduplicated: dict[str, dict] = {}
+        for index, record in enumerate(recs):
+            key = str(record.get("decision_id") or f"missing_{index}")
+            deduplicated[key] = record
+        recs = list(deduplicated.values())
         date_compact = jsonl.stem.replace("decision_scores_", "")
         quotes = minute_quotes_for(date_compact)
         if not quotes:
@@ -65,7 +71,8 @@ def main() -> None:
         iso = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:8]}"
         ds.write_scores(recs, iso)
         n_out = sum(1 for r in recs if r.get("realized_return") is not None)
-        print(f"  {date_compact}: enriched {n_out}/{len(recs)} records")
+        n_probability = sum(1 for r in recs if r.get("probability_outcome") is not None)
+        print(f"  {date_compact}: enriched {n_out} executed / {n_probability} probability outcomes / {len(recs)} records")
         enriched_days += 1
 
     records = rep.load_records(None)
@@ -73,6 +80,7 @@ def main() -> None:
     from datetime import datetime
     out = SCORE_DIR / f"score_effectiveness_report_{datetime.now().strftime('%Y%m%d')}.md"
     out.write_text(report, encoding="utf-8")
+    probability_forward.refresh_reports(records)
     print(f"enriched {enriched_days} day(s); report over {len(records)} decisions -> {out}")
 
 
