@@ -2585,6 +2585,32 @@ def t62_trend_deploy_factor() -> None:
     fp.unlink(missing_ok=True)
 
 
+def t63_hsmm_regime_research_is_point_in_time() -> None:
+    """The post-publication HSMM research must infer the published duration faithfully,
+    decode every prefix without future observations, and trade only on the next return."""
+    import numpy as _np
+    import research_hsmm_regime as hsmm
+
+    p = hsmm.logseries_p_from_mean(26.0)
+    check("T63 inferred log-series duration reproduces reported mean",
+          abs(float(hsmm.logser.mean(p)) - 26.0) < 1e-6)
+
+    params = hsmm.published_parameters()
+    observations = _np.asarray([-0.1, 0.2, -0.05, 0.1, 1.4, 0.8, -2.2, -1.0], dtype=float)
+    full = hsmm.decode_expanding_right_censored(observations, params)
+    prefix_ok = all(
+        int(full[end - 1])
+        == int(hsmm.decode_expanding_right_censored(observations[:end], params)[-1])
+        for end in range(1, len(observations) + 1)
+    )
+    check("T63 expanding HSMM state is invariant to unseen future suffix", prefix_ok)
+
+    states = _np.asarray([2, 0, 1], dtype=int)
+    positions = hsmm.positions_from_states(states, (-1.0, 0.0, 1.0))
+    check("T63 close-t state is shifted to the next return",
+          positions.tolist() == [0.0, 1.0, -1.0], str(positions.tolist()))
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -2807,6 +2833,7 @@ if __name__ == "__main__":
     t60_sell_logic_v2_timing_gate()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
+    t63_hsmm_regime_research_is_point_in_time()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
