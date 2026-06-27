@@ -2611,6 +2611,57 @@ def t63_hsmm_regime_research_is_point_in_time() -> None:
           positions.tolist() == [0.0, 1.0, -1.0], str(positions.tolist()))
 
 
+def t64_hmm_nn_bl_research_is_frozen_and_safe() -> None:
+    """The hybrid research model is deterministic, long-only/cash-aware and cannot promote
+    a merely less-negative result or reach any live execution path."""
+    import json as _json
+    import numpy as _np
+    import research_hmm_nn_bl as hybrid
+
+    sequences = [
+        _np.asarray([-0.010, -0.008, -0.006, 0.000, 0.001, 0.008, 0.010])
+        for _ in range(4)
+    ]
+    first = hybrid.GaussianHMM1D(n_iter=5).fit(sequences)
+    second = hybrid.GaussianHMM1D(n_iter=5).fit(sequences)
+    filtered = first.filter_probabilities(_np.asarray([-0.01, 0.0, 0.01]))
+    check("T64 HMM fit is deterministic and state means remain ordered",
+          _np.allclose(first.means, second.means) and _np.all(_np.diff(first.means) >= 0))
+    check("T64 causal HMM filter emits valid probabilities",
+          filtered.shape == (3, 3) and _np.allclose(filtered.sum(axis=1), 1.0))
+
+    covariance = _np.asarray([[0.0001, 0.00002], [0.00002, 0.0002]])
+    posterior = hybrid.black_litterman_posterior(
+        covariance, _np.asarray([0.002, 0.001]), tau=0.05, risk_aversion=8.0,
+        view_confidence=0.35, residual_variance=1e-6,
+    )
+    weights = hybrid.optimize_long_only(
+        posterior, covariance, round_trip_cost=0.0005, risk_aversion=8.0,
+        max_weight=0.25, max_assets=2,
+    )
+    cash = hybrid.optimize_long_only(
+        _np.asarray([-0.01, -0.02]), covariance, round_trip_cost=0.0005,
+        risk_aversion=8.0, max_weight=0.25, max_assets=2,
+    )
+    check("T64 BL optimizer is long-only, capped and cash-aware",
+          _np.isfinite(posterior).all() and _np.all(weights >= 0)
+          and float(weights.max()) <= 0.25 + 1e-12 and float(weights.sum()) <= 1.0 + 1e-12
+          and _np.allclose(cash, 0.0))
+
+    config = _json.loads((ROOT / "configs" / "research" / "hmm_nn_bl_preregistered.json")
+                         .read_text(encoding="utf-8"))
+    source = (ROOT / "scripts" / "research_hmm_nn_bl.py").read_text(encoding="utf-8")
+    check("T64 hybrid model is frozen research-only and cannot gate or size live trades",
+          config["status"] == "diagnostic_only"
+          and config["safety"]["offlineOnly"] is True
+          and config["safety"]["tradeGateEnabled"] is False
+          and config["safety"]["positionSizingEnabled"] is False
+          and config["evidenceGates"]["mustHavePositiveNetReturn"] is True
+          and config["evidenceGates"]["mustHavePositiveSharpe"] is True
+          and "submitOrder" not in source and "SkillClient" not in source
+          and "latest_strategy_overlay" not in source)
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -2834,6 +2885,7 @@ if __name__ == "__main__":
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
+    t64_hmm_nn_bl_research_is_frozen_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

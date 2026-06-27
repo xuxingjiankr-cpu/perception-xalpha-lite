@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "hmm_nn_bl_research_v1_1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T00:00:00+08:00",
+  "hypothesis": "A causally filtered market-regime HMM, a frozen cross-sectional neural return forecast, and Black-Litterman shrinkage can improve net 30-minute risk-adjusted returns versus a fixed momentum baseline on the untouched 2026-05-21 through 2026-06-18 window.",
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "selection": "officially confirmed T+0 and non-money ETF master only",
+    "universeSize": 20,
+    "universeFormation": "top training-period average daily point-in-time cumulative amount with at least 80% training-day coverage",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18"
+  },
+  "execution": {
+    "decisionTimes": [
+      "10:00",
+      "10:30",
+      "11:00",
+      "13:30",
+      "14:00",
+      "14:25"
+    ],
+    "entry": "next observed 5-minute close",
+    "holdingBars": 6,
+    "roundTripCostBps": 12.0,
+    "sameSnapshotFill": false,
+    "maxAssets": 5,
+    "maxWeightPerAsset": 0.25,
+    "cashAllowed": true
+  },
+  "hmm": {
+    "states": 3,
+    "iterations": 40,
+    "varianceFloor": 1e-08,
+    "dailyStateReset": true,
+    "parametersFrozenBeforeOos": true
+  },
+  "neuralNetwork": {
+    "implementation": "sklearn.neural_network.MLPRegressor",
+    "hiddenLayers": [
+      16,
+      8
+    ],
+    "activation": "tanh",
+    "solver": "lbfgs",
+    "alpha": 0.01,
+    "maxIterations": 400,
+    "randomSeed": 20260628,
+    "parametersFrozenBeforeOos": true
+  },
+  "blackLitterman": {
+    "tau": 0.05,
+    "riskAversion": 8.0,
+    "viewConfidence": 0.35,
+    "covarianceLookbackBars": 480,
+    "covarianceRidge": 1e-08,
+    "equilibriumWeights": "equal_weight_within_frozen_universe",
+    "longOnly": true
+  },
+  "variants": [
+    "momentum_top5",
+    "nn_top5",
+    "hmm_nn_top5",
+    "nn_bl",
+    "hmm_nn_bl"
+  ],
+  "primaryMetrics": [
+    "oos_net_total_return",
+    "oos_daily_sharpe",
+    "oos_max_drawdown",
+    "oos_worst_day"
+  ],
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "mustHavePositiveNetReturn": true,
+    "mustHavePositiveSharpe": true,
+    "mustBeatMomentumNetReturn": true,
+    "mustBeatMomentumSharpe": true,
+    "dieboldMarianoOneSidedAlpha": 0.05,
+    "deflatedSharpeAlpha": 0.1,
+    "maximumPbo": 0.2,
+    "spaAlpha": 0.05,
+    "forwardShadowStillRequired": true
+  },
+  "auditAmendment": {
+    "date": "2026-06-28",
+    "reason": "The first mechanical run exposed that relative tests can reward an almost-cash strategy for losing less than a deeply negative baseline. Absolute positive net return and positive Sharpe are non-negotiable promotion conditions. No model parameter, feature, threshold, architecture, universe, split, or observed return was changed."
+  },
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false
+  }
+}
