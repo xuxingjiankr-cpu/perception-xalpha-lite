@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "intraday_reversal_research_v1_1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T09:00:00+08:00",
+  "hypothesis": "Temporary cross-sectional liquidity pressure in officially confirmed non-money T+0 ETFs reverses within 30 minutes, with a distinct additional reversal among intraday losers during the final 30 minutes.",
+  "literature": [
+    {
+      "title": "Intraday Patterns in the Cross-Section of Stock Returns",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1107590",
+      "testableClaim": "Temporary liquidity imbalances generate reversals lasting less than one hour."
+    },
+    {
+      "title": "End-of-Day Reversal",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5039009",
+      "testableClaim": "Intraday losers reverse during the final 30 minutes."
+    },
+    {
+      "title": "Unlocking the True Price Impact: Intraday Liquidity and Expected Return in China's Stock Market",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5293616",
+      "testableClaim": "Intraday return per traded amount contains incremental information in China."
+    }
+  ],
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "allowedAssetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "universeSize": 30,
+    "minimumTrainingDayCoverage": 0.8,
+    "universeFormation": "training-period average daily cumulative amount only; OOS data excluded"
+  },
+  "execution": {
+    "intradayDecisionTimes": [
+      "10:00",
+      "10:30",
+      "10:55",
+      "13:30",
+      "14:00"
+    ],
+    "endOfDayPredictorTime": "14:00",
+    "endOfDayDecisionTime": "14:20",
+    "entry": "next observed 5-minute close",
+    "intradayHoldingBars": 6,
+    "endOfDayExitTime": "14:55",
+    "primaryRoundTripCostBps": 12.0,
+    "costStressBps": [
+      6.0,
+      12.0,
+      20.0
+    ],
+    "sameSnapshotFill": false,
+    "maxAssets": 5,
+    "maxWeightPerAsset": 0.2,
+    "cashAllowed": true
+  },
+  "signals": {
+    "crossSectionFraction": 0.2,
+    "costFilteredShockMultiple": 2.0,
+    "amihudHighRankMinimum": 0.5,
+    "shortHorizonLookbackBars": 6,
+    "amihudAmountWindowBars": 6,
+    "variants": [
+      "momentum_30m_control",
+      "reversal_30m",
+      "reversal_30m_cost_filtered",
+      "reversal_30m_high_amihud",
+      "eod_momentum_control",
+      "eod_reversal",
+      "eod_reversal_cost_filtered"
+    ]
+  },
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "mustHavePositiveNetReturnAt12Bps": true,
+    "mustHavePositiveSharpeAt12Bps": true,
+    "mustRemainPositiveAt20Bps": true,
+    "dieboldMarianoOneSidedAlpha": 0.05,
+    "deflatedSharpeAlpha": 0.1,
+    "maximumPbo": 0.2,
+    "spaAlpha": 0.05,
+    "forwardShadowStillRequired": true
+  },
+  "dataAvailabilityAmendment": {
+    "date": "2026-06-28",
+    "reason": "The first mechanical run showed that Yahoo supplies a 15:00 bar for only 51 instrument-days, while 14:55 is the regular final bar. Full-text review also confirmed that the paper measures the predictor through 3:00pm, skips the next half hour, and trades 3:30pm-4:00pm. The China/Yahoo mapping is therefore previous close through 14:00 as predictor, 14:00-14:25 as skip, 14:25 next-bar entry and 14:55 exit. No signal rank, threshold, universe, cost or observed return criterion was changed."
+  },
+  "deferredResearch": [
+    {
+      "topic": "ETF IOPV/premium-discount mean reversion",
+      "blockedBy": "insufficient historical point-in-time IOPV snapshots"
+    },
+    {
+      "topic": "SSE 50/CSI 300 ETF option pressure and variance-risk-premium signals",
+      "blockedBy": "no historical option volume, open interest and implied-volatility surface"
+    },
+    {
+      "topic": "True order-imbalance and effective-spread reversal",
+      "blockedBy": "Yahoo history has no historical bid/ask depth or signed trades"
+    },
+    {
+      "topic": "Regularized high-frequency factor-zoo prediction",
+      "blockedBy": "60 trading days are insufficient for a high-dimensional stable model"
+    }
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false
+  }
+}

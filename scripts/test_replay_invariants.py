@@ -2662,6 +2662,76 @@ def t64_hmm_nn_bl_research_is_frozen_and_safe() -> None:
           and "latest_strategy_overlay" not in source)
 
 
+def t65_literature_reversal_research_is_point_in_time() -> None:
+    """Liquidity-reversal studies must rank only information known at the decision,
+    fill on the next bar, deduct cost, and remain disconnected from live trading."""
+    import json as _json
+    import numpy as _np
+    import pandas as _pd
+    import research_intraday_reversal_edge as reversal
+    import research_overnight_cross_section as overnight
+
+    signal = _pd.Series({"a": -0.03, "b": -0.02, "c": 0.00, "d": 0.02, "e": 0.03})
+    check("T65 cross-sectional tails select losers for reversal and winners for control",
+          reversal.select_tail(signal, fraction=0.2, side="bottom", max_assets=2) == ["a"]
+          and reversal.select_tail(signal, fraction=0.2, side="top", max_assets=2) == ["e"])
+
+    timestamps = _pd.date_range("2026-07-01 10:00", periods=8, freq="5min", tz="Asia/Shanghai")
+    prices = _pd.DataFrame(
+        {"a": [100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0]},
+        index=timestamps,
+    )
+    future = reversal.future_trade_return(prices, 0, "a", holding_bars=6)
+    check("T65 intraday research enters next bar rather than signal bar",
+          abs(float(future) - (107.0 / 101.0 - 1.0)) < 1e-12)
+    portfolio = reversal.portfolio_interval(
+        {"a": 0.01}, ["a"], max_weight=0.2, round_trip_cost=0.0012,
+    )
+    check("T65 portfolio return deducts cost in proportion to exposure",
+          abs(portfolio["net_return"] - (0.2 * 0.01 - 0.2 * 0.0012)) < 1e-12)
+
+    day_index = _pd.to_datetime([
+        "2026-07-02 09:30+08:00", "2026-07-02 09:35+08:00",
+        "2026-07-02 14:55+08:00",
+    ])
+    columns = [f"{index:06d}" for index in range(10)]
+    price_values = _np.asarray([
+        [100.0 + index for index in range(10)],
+        [101.0 + index for index in range(10)],
+        [102.0 + index for index in range(10)],
+    ])
+    previous = _np.asarray([[100.0] * 10] * 3)
+    observations = overnight.build_daily_observations({
+        "prices": _pd.DataFrame(price_values, index=day_index, columns=columns),
+        "prev_close": _pd.DataFrame(previous, index=day_index, columns=columns),
+    })
+    check("T65 overnight study uses 09:30 signal, 09:35 entry and 14:55 exit",
+          len(observations) == 1
+          and observations[0]["signal_time"].strftime("%H:%M") == "09:30"
+          and observations[0]["entry_time"].strftime("%H:%M") == "09:35"
+          and observations[0]["exit_time"].strftime("%H:%M") == "14:55")
+
+    reversal_cfg = _json.loads(
+        (ROOT / "configs" / "research" / "intraday_reversal_preregistered.json")
+        .read_text(encoding="utf-8")
+    )
+    overnight_cfg = _json.loads(
+        (ROOT / "configs" / "research" / "overnight_cross_section_preregistered.json")
+        .read_text(encoding="utf-8")
+    )
+    sources = (
+        (ROOT / "scripts" / "research_intraday_reversal_edge.py").read_text(encoding="utf-8")
+        + (ROOT / "scripts" / "research_overnight_cross_section.py").read_text(encoding="utf-8")
+    )
+    check("T65 literature research stays offline and cannot promote itself",
+          reversal_cfg["safety"]["tradeGateEnabled"] is False
+          and overnight_cfg["safety"]["tradeGateEnabled"] is False
+          and reversal_cfg["safety"]["writesStrategyOverlay"] is False
+          and overnight_cfg["safety"]["writesStrategyOverlay"] is False
+          and "submitOrder" not in sources and "SkillClient" not in sources
+          and "latest_strategy_overlay" not in sources)
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -2886,6 +2956,7 @@ if __name__ == "__main__":
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
     t64_hmm_nn_bl_research_is_frozen_and_safe()
+    t65_literature_reversal_research_is_point_in_time()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

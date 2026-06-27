@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "overnight_cross_section_research_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T09:30:00+08:00",
+  "hypothesis": "Among liquid officially confirmed non-money T+0 ETFs, the lowest own overnight-return quintile earns a positive next-session intraday return, especially when overnight cross-sectional dispersion is high.",
+  "literature": [
+    {
+      "title": "Overnight-Intraday Reversal Everywhere",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2730304",
+      "testableClaim": "Buying the assets with the lowest overnight returns produces intraday reversal; cross-sectional dispersion predicts conditional performance."
+    },
+    {
+      "title": "A Hidden Cost of ETF Investing: Retail Demand Shocks and Limits to Arbitrage",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5168733",
+      "testableClaim": "ETF overnight and intraday returns can have systematically different signs because of retail demand and limited arbitrage."
+    }
+  ],
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "allowedAssetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "universeSize": 30,
+    "minimumTrainingDayCoverage": 0.8
+  },
+  "execution": {
+    "signalTime": "09:30",
+    "entryTime": "09:35",
+    "exitTime": "14:55",
+    "primaryRoundTripCostBps": 12.0,
+    "costStressBps": [
+      6.0,
+      12.0,
+      20.0
+    ],
+    "maxAssets": 5,
+    "maxWeightPerAsset": 0.2,
+    "sameSnapshotFill": false
+  },
+  "signals": {
+    "crossSectionFraction": 0.2,
+    "costFilteredShockMultiple": 2.0,
+    "dispersionThreshold": "training_period_median_only",
+    "variants": [
+      "overnight_momentum_control",
+      "overnight_reversal",
+      "overnight_reversal_cost_filtered",
+      "overnight_reversal_high_dispersion"
+    ]
+  },
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "mustHavePositiveNetReturnAt12Bps": true,
+    "mustHavePositiveSharpeAt12Bps": true,
+    "mustRemainPositiveAt20Bps": true,
+    "dieboldMarianoOneSidedAlpha": 0.05,
+    "deflatedSharpeAlpha": 0.1,
+    "maximumPbo": 0.2,
+    "spaAlpha": 0.05,
+    "forwardShadowStillRequired": true
+  },
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false
+  }
+}
