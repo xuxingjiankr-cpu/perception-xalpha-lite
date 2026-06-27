@@ -124,6 +124,12 @@
     "profit_exit_score_threshold": 65,
     "emergency_stop_pct": -0.02,
     "profit_trailing_drawdown_pct": -0.02,
+    "trend_deployment": {
+      "enabled": true,
+      "regime_file": "outputs/t0_intraday_agent/trend_regime.json",
+      "max_age_days": 4,
+      "note": "Gayed trend filter: scales position sizing by deploy_factor (uptrend 1.0 / downtrend 0.3) from compute_trend_regime.py (沪深300 vs 50d MA). Risk-managed beta, fail-open (1.0 if missing/stale), clamped [0,1] so it can only de-risk. Revert by removing this block."
+    },
     "sell_logic_v2": {
       "enabled": false,
       "note": "DEFAULT OFF: timing-sell de-noising; gates ONLY unified_sell_score_exit, never hard stops/emergency/kill. enabled=false => identical to baseline. Validate (60d ablation + purged OOS + PBO/DSR + forward shadow) before flipping live.",

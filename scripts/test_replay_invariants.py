@@ -2561,6 +2561,30 @@ def t58_forward_probability_ledger_and_priors() -> None:
           and diagnostic["gates"]["promotionAllowed"] is False)
 
 
+def t62_trend_deploy_factor() -> None:
+    """Gayed trend filter scales sizing by deploy_factor: applies a fresh downtrend de-risk, but
+    is FAIL-OPEN (missing/stale/disabled -> 1.0) and CLAMPED to [0,1] (can only reduce exposure)."""
+    import json as _json
+    import run_t0_intraday_agent as agent
+    fp = ROOT / "outputs" / "t0_intraday_agent" / "_t62_trend.json"
+    fp.parent.mkdir(parents=True, exist_ok=True)
+    cfg = lambda f=str(fp): {"strategy": {"trend_deployment": {"enabled": True, "regime_file": f, "max_age_days": 4}}}
+
+    check("T62 disabled is fail-open (1.0)", agent._trend_deploy_factor({"strategy": {}}, "2026-06-26")[0] == 1.0)
+    check("T62 missing file is fail-open", agent._trend_deploy_factor(cfg("outputs/t0_intraday_agent/__none__.json"), "2026-06-26")[0] == 1.0)
+
+    fp.write_text(_json.dumps({"date": "2026-06-26", "deploy_factor": 0.3, "regime": "downtrend"}), encoding="utf-8")
+    f, m = agent._trend_deploy_factor(cfg(), "2026-06-26")
+    check("T62 fresh downtrend de-risks to 0.3", abs(f - 0.3) < 1e-9 and m.get("applied") is True)
+
+    fp.write_text(_json.dumps({"date": "2026-06-10", "deploy_factor": 0.3}), encoding="utf-8")
+    check("T62 stale regime is fail-open", agent._trend_deploy_factor(cfg(), "2026-06-26")[0] == 1.0)
+
+    fp.write_text(_json.dumps({"date": "2026-06-26", "deploy_factor": 2.5}), encoding="utf-8")
+    check("T62 factor clamped <=1 (de-risk only)", agent._trend_deploy_factor(cfg(), "2026-06-26")[0] == 1.0)
+    fp.unlink(missing_ok=True)
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -2782,6 +2806,7 @@ if __name__ == "__main__":
     t59_every_decision_and_daily_score_review()
     t60_sell_logic_v2_timing_gate()
     t61_daily_momentum_pool_failopen()
+    t62_trend_deploy_factor()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

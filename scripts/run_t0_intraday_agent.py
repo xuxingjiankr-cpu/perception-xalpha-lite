@@ -2159,6 +2159,35 @@ def compute_kelly_scale(realized_pnls: list[float], kelly_cfg: dict[str, Any]) -
     return detail
 
 
+def _trend_deploy_factor(cfg: dict[str, Any], trade_date: str) -> tuple[float, dict[str, Any]]:
+    """Gayed-style trend filter: scale position sizing by the market trend regime (uptrend=full,
+    downtrend=de-risk). Reads outputs/.../trend_regime.json (written nightly). FAIL-OPEN and
+    SAFE: missing/stale/disabled/bad -> 1.0 (no change), and the factor is clamped to [0,1] so it
+    can only REDUCE exposure, never increase it. Risk-managed beta, not alpha."""
+    td = cfg.get("strategy", {}).get("trend_deployment", {})
+    if not isinstance(td, dict) or not td.get("enabled"):
+        return 1.0, {"enabled": False}
+    ref = td.get("regime_file")
+    path = (Path(ref) if ref and Path(ref).is_absolute() else (ROOT / ref)) if ref else None
+    if not path or not path.exists():
+        return 1.0, {"enabled": True, "applied": False, "reason": "no_regime_file"}
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return 1.0, {"enabled": True, "applied": False, "reason": "unreadable"}
+    max_age = int(as_float(td.get("max_age_days"), 4))
+    try:
+        age = (datetime.fromisoformat(trade_date).date()
+               - datetime.fromisoformat(str(d.get("date"))).date()).days
+    except Exception:
+        age = None
+    if age is None or age < 0 or age > max_age:
+        return 1.0, {"enabled": True, "applied": False, "reason": "stale_regime", "regime_date": d.get("date")}
+    f = min(1.0, max(0.0, as_float(d.get("deploy_factor"), 1.0)))
+    return f, {"enabled": True, "applied": True, "regime": d.get("regime"),
+               "deploy_factor": f, "pct_vs_ma": d.get("pct_vs_ma")}
+
+
 def _market_breadth_up_frac(quotes: list[dict[str, Any]]) -> float | None:
     """Fraction of this snapshot's quotes that are up on the day (broad-strength gauge)."""
     vals = [as_float(q.get("change_pct")) for q in quotes if q and q.get("change_pct") is not None]
@@ -2793,6 +2822,7 @@ def build_decision(
     total_assets, available_cash = account_assets(balance)
     positions = t0_positions(positions_resp, cfg["universe"])
     lot_size = int(risk["quantity_lot"])
+    deploy_factor, deploy_meta = _trend_deploy_factor(cfg, trade_date)
 
     pending_data = extract_data(pending_resp)
     pending_orders = pending_data.get("orders", [])
@@ -3524,7 +3554,7 @@ def build_decision(
                         dd_factor = as_float(kelly_cfg.get("drawdown_factor", 0.5))
                     risk_pct_val = as_float(bracket_cfg.get(risk_pct_key, 0.004)) * gap_reduce_factor * kelly_scale * dd_factor
                     risk_budget = total_assets * risk_pct_val
-                    qty = round_lot(min(
+                    qty = round_lot(deploy_factor * min(
                         risk_budget / R_val,
                         total_assets * as_float(strategy["max_position_pct"]) / px,
                         total_assets * as_float(risk["max_single_order_pct"]) / px,
@@ -3551,7 +3581,7 @@ def build_decision(
                         "drawdown_factor": dd_factor,
                     }
             else:
-                target_value = min(
+                target_value = deploy_factor * min(
                     total_assets * as_float(strategy["max_position_pct"]),
                     total_assets * as_float(risk["max_single_order_pct"]),
                     available_cash * 0.95,
