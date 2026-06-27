@@ -158,6 +158,36 @@ def _zscores(values: list[float]) -> list[float]:
     return [(v - mean) / sd for v in values]
 
 
+def _load_daily_momentum_pool(dyn_cfg: dict[str, Any], trade_date: str) -> tuple[set[str], dict[str, Any]]:
+    """Optional nightly DAILY-momentum pool (top-N by multi-day close momentum, produced by
+    select_daily_momentum_pool.py). Used to RESTRICT the gate-passing eligible set to recent
+    daily-momentum leaders -- momentum applied at the horizon where it has the right sign
+    (intraday momentum reverts). FAIL-OPEN: any problem returns an empty set so the caller
+    keeps the full eligible universe and trading never halts on a missed nightly run."""
+    ref = dyn_cfg.get("daily_momentum_pool_file")
+    if not ref:
+        return set(), {"enabled": False}
+    path = Path(ref) if Path(ref).is_absolute() else (ROOT / ref)
+    if not path.exists():
+        return set(), {"enabled": True, "applied": False, "reason": "no_pool_file"}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return set(), {"enabled": True, "applied": False, "reason": "unreadable_pool_file"}
+    max_age = int(as_float(dyn_cfg.get("daily_momentum_pool_max_age_days", 4), 4))
+    pool_date = str(data.get("date", ""))
+    try:
+        age = (datetime.fromisoformat(trade_date).date() - datetime.fromisoformat(pool_date).date()).days
+    except Exception:
+        age = None
+    if age is None or age < 0 or age > max_age:
+        return set(), {"enabled": True, "applied": False, "reason": "stale_pool",
+                       "pool_date": pool_date, "age_days": age}
+    codes = {str(c).zfill(6) for c in data.get("codes", []) if c}
+    return codes, {"enabled": True, "pool_date": pool_date, "age_days": age,
+                   "n_pool": len(codes), "lookback_days": data.get("lookback_days")}
+
+
 def select_dynamic_universe(snapshot_dir: Path, universe_dir: Path, trade_date: str,
                             dyn_cfg: dict[str, Any]) -> dict[str, Any]:
     """Return {"selected": [...], "meta": {...}} or an empty selection on failure."""
@@ -204,6 +234,20 @@ def select_dynamic_universe(snapshot_dir: Path, universe_dir: Path, trade_date: 
         return {"selected": [], "meta": {"ok": False, "reason": "no_eligible_after_gates",
                                          "snapshot": path.name, "rejects": rejects}}
 
+    # Nightly daily-momentum pool restriction (fail-open): keep only the gate-passing names
+    # that are also in the daily-momentum leader pool. If the pool is missing/stale, or none
+    # of its names are tradeable today, fall back to the full eligible set.
+    pool_codes, pool_meta = _load_daily_momentum_pool(dyn_cfg, trade_date)
+    if pool_codes:
+        restricted = [r for r in eligible if str(r.get("stockCode", "")).zfill(6) in pool_codes]
+        if restricted:
+            eligible = restricted
+            pool_meta["applied"] = True
+            pool_meta["restricted_to"] = len(restricted)
+        else:
+            pool_meta["applied"] = False
+            pool_meta["reason"] = "no_pool_name_tradeable_today"
+
     momentum = [as_float(r.get("change_pct"), 0.0) for r in eligible]
     conviction = [_conviction(r) for r in eligible]
     mom_w = as_float(dyn_cfg.get("momentum_weight", 1.0), 1.0)
@@ -236,7 +280,7 @@ def select_dynamic_universe(snapshot_dir: Path, universe_dir: Path, trade_date: 
         "top_n": top_n,
         "selection_scope": "all_eligible_after_gates" if top_n <= 0 else "top_n_after_gates",
         "session_fraction": round(frac, 3), "min_amount_effective": round(min_amount_effective, 0),
-        "rejects": rejects,
+        "rejects": rejects, "daily_momentum_pool": pool_meta,
     }
     return {"selected": selected, "meta": meta}
 

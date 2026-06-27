@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import json
 import math
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -63,6 +65,10 @@ EXPECTED_EVOLUTION_GATE_VERSION = "dm_hln_mcs_spa_v2"
 # engine can liquidate it (buying it intraday would be unsellable same day).
 ENTRY_EXCLUDED_ASSET_CLASSES = {"bond_etf", "exit_only_t1"}
 
+MONEY_LIKE_ETF_NAME_RE = re.compile(
+    r"(货币|现金|理财|保证金|添利|快线|收益宝|现金通|银华日利|华宝添益|建信添益)"
+)
+
 # Entry-oriented + BUY-budget/data checks that must NEVER block a SELL exit
 # (stop-loss / profit / liquidation). Otherwise a position is forced to carry
 # overnight exactly when risk controls fire. quote_freshness is handled
@@ -78,6 +84,8 @@ SELL_BYPASS_CHECKS = {
     "execution_quality_filter",
     "safe_policy_shield",
     "market_correlation_stress_filter",
+    "full_market_entry_guard",
+    "t0_entry_eligibility_filter",
     "sector_diversification_entry_filter",
     "reentry_cooldown",
     "daily_entry_limit",
@@ -1607,6 +1615,198 @@ def parse_iso_dt(value: Any) -> datetime | None:
         return None
 
 
+def _cfg_path(value: Any, default: str) -> Path:
+    raw = str(value or default)
+    path = Path(raw)
+    return path if path.is_absolute() else ROOT / path
+
+
+def is_money_like_etf_name(name: Any) -> bool:
+    return bool(MONEY_LIKE_ETF_NAME_RE.search(str(name or "")))
+
+
+def _read_full_market_csv_rows(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    opener = gzip.open if path.suffix == ".gz" else open
+    with opener(path, "rt", encoding="utf-8", errors="replace", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def evaluate_full_market_entry_guard(strategy: dict[str, Any], trade_date: str, local_time: datetime) -> dict[str, Any]:
+    """Point-in-time full-market ETF breadth guard for new BUYs only.
+
+    Uses the latest successful local Eastmoney full-market ETF snapshot at or
+    before the decision time. It is a defensive entry guard, not an alpha signal.
+    Unavailable data only blocks when explicitly configured to fail closed.
+    """
+    cfg = strategy.get("full_market_entry_guard", {})
+    if not isinstance(cfg, dict) or not cfg.get("enabled", False):
+        return {"enabled": False, "status": "disabled", "block_new_buy": False}
+    if _REPLAY_NOW is not None and not cfg.get("enabled_in_replay", False):
+        return {"enabled": False, "status": "disabled_in_replay", "block_new_buy": False}
+
+    runs_path = _cfg_path(cfg.get("snapshot_runs_path"), "outputs/eastmoney_full_market/snapshot_runs.jsonl")
+    block_on_unavailable = bool(cfg.get("block_on_unavailable", False))
+    if not runs_path.exists():
+        return {
+            "enabled": True, "status": "snapshot_runs_missing", "block_new_buy": block_on_unavailable,
+            "snapshot_runs_path": str(runs_path),
+        }
+
+    max_age_minutes = as_float(cfg.get("max_snapshot_age_minutes"), 150.0)
+    min_non_money_etfs = int(as_float(cfg.get("min_non_money_etfs"), 300))
+    min_active_amount = as_float(cfg.get("min_active_amount"), 1_000_000.0)
+    min_active_etfs = int(as_float(cfg.get("min_active_etfs"), 200))
+    up_frac_max = as_float(cfg.get("risk_off_up_frac_max"), 0.35)
+    median_max = as_float(cfg.get("risk_off_median_change_pct_max"), -0.35)
+    lt_minus1_min = as_float(cfg.get("risk_off_down_gt_1pct_frac_min"), 0.55)
+    block_on_risk_off = bool(cfg.get("block_on_risk_off", True))
+
+    latest: tuple[datetime, Path, int] | None = None
+    try:
+        for line in runs_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            if not line.strip():
+                continue
+            run = json.loads(line)
+            session = run.get("session") if isinstance(run.get("session"), dict) else {}
+            if (
+                session.get("trade_date") != trade_date
+                or run.get("scope") != "etf"
+                or run.get("status") != "ok"
+                or int(as_float(run.get("row_count"), 0)) <= 0
+            ):
+                continue
+            snap_dt = parse_iso_dt(session.get("exchange_local_time"))
+            out_path = Path(str(run.get("output_file") or ""))
+            if snap_dt is None or not out_path.exists():
+                continue
+            snap_dt_sh = snap_dt.astimezone(ZoneInfo("Asia/Shanghai"))
+            # Never use a future snapshot in replay or delayed runs.
+            if snap_dt_sh > local_time:
+                continue
+            latest = (snap_dt_sh, out_path, int(as_float(run.get("row_count"), 0)))
+    except Exception as exc:
+        return {
+            "enabled": True, "status": "snapshot_runs_parse_error",
+            "block_new_buy": block_on_unavailable, "error": str(exc), "snapshot_runs_path": str(runs_path),
+        }
+
+    if latest is None:
+        return {
+            "enabled": True, "status": "no_point_in_time_snapshot",
+            "block_new_buy": block_on_unavailable, "trade_date": trade_date, "snapshot_runs_path": str(runs_path),
+        }
+
+    snap_dt, out_path, raw_rows = latest
+    age_minutes = max(0.0, (local_time - snap_dt).total_seconds() / 60.0)
+    if max_age_minutes > 0 and age_minutes > max_age_minutes:
+        return {
+            "enabled": True, "status": "snapshot_stale", "block_new_buy": block_on_unavailable,
+            "snapshot_time": snap_dt.isoformat(), "age_minutes": round(age_minutes, 2),
+            "max_snapshot_age_minutes": max_age_minutes, "snapshot_file": str(out_path),
+        }
+
+    try:
+        rows = _read_full_market_csv_rows(out_path)
+    except Exception as exc:
+        return {
+            "enabled": True, "status": "snapshot_read_error", "block_new_buy": block_on_unavailable,
+            "error": str(exc), "snapshot_file": str(out_path),
+        }
+
+    all_changes: list[float] = []
+    active_changes: list[float] = []
+    for row in rows:
+        name = row.get("name")
+        if is_money_like_etf_name(name):
+            continue
+        price = as_float(row.get("currentPrice"), 0.0)
+        chg = as_float(row.get("change_pct"), math.nan)
+        if not math.isfinite(chg) or price <= 0:
+            continue
+        all_changes.append(chg)
+        if as_float(row.get("amount"), 0.0) >= min_active_amount:
+            active_changes.append(chg)
+
+    changes = active_changes if len(active_changes) >= min_active_etfs else all_changes
+    if len(all_changes) < min_non_money_etfs or not changes:
+        return {
+            "enabled": True, "status": "insufficient_full_market_rows",
+            "block_new_buy": block_on_unavailable, "raw_rows": raw_rows,
+            "non_money_count": len(all_changes), "active_count": len(active_changes),
+            "min_non_money_etfs": min_non_money_etfs, "min_active_etfs": min_active_etfs,
+            "snapshot_file": str(out_path), "snapshot_time": snap_dt.isoformat(),
+        }
+
+    ordered = sorted(changes)
+    n = len(ordered)
+    median = ordered[n // 2] if n % 2 else (ordered[n // 2 - 1] + ordered[n // 2]) / 2.0
+    up_frac = sum(1 for x in ordered if x > 0) / n
+    down_frac = sum(1 for x in ordered if x < 0) / n
+    avg = sum(ordered) / n
+    lt_minus1_frac = sum(1 for x in ordered if x <= -1.0) / n
+    risk_off = bool((up_frac <= up_frac_max and median <= median_max) or lt_minus1_frac >= lt_minus1_min)
+    mode = "risk_off" if risk_off else ("selective_or_neutral" if up_frac < 0.55 else "risk_on")
+    return {
+        "enabled": True,
+        "status": "available",
+        "block_new_buy": bool(block_on_risk_off and risk_off),
+        "mode": mode,
+        "snapshot_time": snap_dt.isoformat(),
+        "age_minutes": round(age_minutes, 2),
+        "snapshot_file": str(out_path),
+        "raw_rows": raw_rows,
+        "non_money_count": len(all_changes),
+        "active_count": len(active_changes),
+        "sample_used": "active_amount" if len(active_changes) >= min_active_etfs else "all_non_money",
+        "sample_count": n,
+        "up_frac": round(up_frac, 4),
+        "down_frac": round(down_frac, 4),
+        "avg_change_pct": round(avg, 4),
+        "median_change_pct": round(median, 4),
+        "down_gt_1pct_frac": round(lt_minus1_frac, 4),
+        "rule": {
+            "risk_off_up_frac_max": up_frac_max,
+            "risk_off_median_change_pct_max": median_max,
+            "risk_off_down_gt_1pct_frac_min": lt_minus1_min,
+            "block_on_risk_off": block_on_risk_off,
+            "block_on_unavailable": block_on_unavailable,
+        },
+    }
+
+
+def t0_entry_eligibility(q: dict[str, Any], strategy: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+    """Conservative whitelist for ETFs that may be opened by the T0 agent.
+
+    If the broker cannot make same-day sellability reliable for a class (e.g.
+    dynamic domestic industry ETFs), the T0 agent must not open it as an intraday
+    position. This does not affect selling existing holdings.
+    """
+    cfg = strategy.get("t0_entry_eligibility", {})
+    if not isinstance(cfg, dict) or not cfg.get("enabled", False):
+        return True, {"enabled": False, "status": "disabled"}
+    code = str(q.get("stockCode", "")).zfill(6)
+    asset_class = str(q.get("asset_class") or "unknown")
+    allow_codes = {str(x).zfill(6) for x in (cfg.get("allow_stock_codes") or []) if str(x).strip()}
+    block_codes = {str(x).zfill(6) for x in (cfg.get("block_stock_codes") or []) if str(x).strip()}
+    allow_classes = {str(x) for x in (cfg.get("allow_asset_classes") or [])}
+    block_classes = {str(x) for x in (cfg.get("block_asset_classes") or [])}
+    block_unknown = bool(cfg.get("block_unknown_asset_class", True))
+    if code in block_codes:
+        return False, {"enabled": True, "status": "blocked_code", "stockCode": code, "asset_class": asset_class}
+    if code in allow_codes:
+        return True, {"enabled": True, "status": "allowlisted_code", "stockCode": code, "asset_class": asset_class}
+    if asset_class in allow_classes:
+        return True, {"enabled": True, "status": "allowlisted_asset_class", "stockCode": code, "asset_class": asset_class}
+    if asset_class in block_classes or (block_unknown and asset_class == "unknown"):
+        return False, {
+            "enabled": True, "status": "blocked_asset_class", "stockCode": code, "asset_class": asset_class,
+            "reason": cfg.get("reason", "asset_class_not_confirmed_same_day_sellable_for_t0_entry"),
+        }
+    return True, {"enabled": True, "status": "not_blocked", "stockCode": code, "asset_class": asset_class}
+
+
 def quote_for_code(quotes: list[dict[str, Any]], code: str | None) -> dict[str, Any] | None:
     if not code:
         return None
@@ -1959,6 +2159,64 @@ def compute_kelly_scale(realized_pnls: list[float], kelly_cfg: dict[str, Any]) -
     return detail
 
 
+def _market_breadth_up_frac(quotes: list[dict[str, Any]]) -> float | None:
+    """Fraction of this snapshot's quotes that are up on the day (broad-strength gauge)."""
+    vals = [as_float(q.get("change_pct")) for q in quotes if q and q.get("change_pct") is not None]
+    return (sum(1 for x in vals if x > 0) / len(vals)) if vals else None
+
+
+def apply_sell_logic_v2(
+    strategy: dict[str, Any], state: dict[str, Any], trade_date: str, code: str,
+    sell_score_result: dict[str, Any], sell_threshold: float,
+    quotes: list[dict[str, Any]], local_time: datetime,
+) -> tuple[bool, float, str]:
+    """Gate a TIMING sell (`unified_sell_score_exit`) to cut whipsaw. Returns
+    (do_sell, sell_fraction, reason). Hard stops/kill/emergency never reach here, so
+    they are untouched. When `sell_logic_v2.enabled` is false this is a no-op that
+    returns (True, 1.0, "unified_sell_score_exit") -> byte-identical baseline behavior.
+
+    Levers (all data already in scope; no signature changes): H5 require >=N independent
+    negative components; H3 in strong breadth require score >= threshold+delta; H2 require
+    the signal to persist across consecutive snapshots; H4 scale out a fraction and trail
+    the rest. Pending state lives in state['pending_sell_v2_by_date'][date][code]."""
+    cfg = strategy.get("sell_logic_v2", {})
+    if not isinstance(cfg, dict) or not cfg.get("enabled"):
+        return True, 1.0, "unified_sell_score_exit"
+    min_components = max(1, int(as_float(cfg.get("min_independent_negative_components"), 1)))
+    confirm_n = max(1, int(as_float(cfg.get("confirmation_snapshots"), 2)))
+    max_gap = int(as_float(cfg.get("confirmation_max_gap_minutes"), 7))
+    strong_breadth = as_float(cfg.get("strong_tape_breadth"), 1.01)   # >1 disables H3
+    delta = as_float(cfg.get("strong_tape_threshold_delta"), 0.0)
+    scale = as_float(cfg.get("scale_out_fraction"), 1.0)
+    pend = state.setdefault("pending_sell_v2_by_date", {}).setdefault(trade_date, {})
+
+    components = sell_score_result.get("components", {}) if isinstance(sell_score_result.get("components"), dict) else {}
+    neg_keys = ("loss_depth", "structure_break", "momentum_reversal", "bid_pressure_negative",
+                "acceleration_negative", "liquidity_deterioration", "vwap_breakdown",
+                "profit_drawdown", "drawdown_from_high", "profit_momentum_negative",
+                "profit_acceleration_negative", "profit_bid_pressure_negative")
+    n_neg = sum(1 for k in neg_keys if as_float(components.get(k)) > 0)
+    if n_neg < min_components:
+        pend.pop(code, None)
+        return False, 0.0, "v2_suppress_insufficient_components"
+
+    breadth = _market_breadth_up_frac(quotes)
+    score = as_float(sell_score_result.get("score"))
+    if breadth is not None and breadth >= strong_breadth and score < sell_threshold + delta:
+        pend.pop(code, None)
+        return False, 0.0, "v2_suppress_strong_tape"
+
+    now_min = local_time.hour * 60 + local_time.minute
+    rec = pend.get(code) if isinstance(pend.get(code), dict) else None
+    count = int(rec.get("count", 0)) + 1 if rec and now_min - int(rec.get("last_min", -10_000)) <= max_gap else 1
+    if count < confirm_n:
+        pend[code] = {"last_min": now_min, "count": count}
+        return False, 0.0, "v2_awaiting_confirmation"
+    pend.pop(code, None)
+    frac = scale if 0.0 < scale < 1.0 else 1.0
+    return True, frac, "unified_sell_score_exit" if frac >= 1.0 else "unified_sell_score_exit_v2_scaled"
+
+
 def evaluate_exit_for_code(
     code: str,
     *,
@@ -2039,12 +2297,22 @@ def evaluate_exit_for_code(
         exit_reason = None
     elif score_pass:
         exit_reason = "unified_sell_score_exit"
+    # v2 timing-sell de-noising (default OFF). Only gates the unified_sell_score_exit
+    # timing sell; hard stops/kill/emergency/unrecognized above are never routed here.
+    sell_fraction = 1.0
+    if exit_reason == "unified_sell_score_exit":
+        do_sell, sell_fraction, exit_reason = apply_sell_logic_v2(
+            strategy, state, trade_date, code, sell_score_result,
+            sell_threshold, quotes, local_time)
+        if not do_sell:
+            exit_reason = None
     carry_allowed = exit_reason is None
     px = safe_sell_reference_price(q, current, node, held_pos)
     px *= 1.0 - as_float(risk["limit_price_slippage_pct"])
     order: dict[str, Any] | None = None
     if available_qty >= int(risk["min_order_quantity"]) and exit_reason and px > 0:
-        qty = round_lot(available_qty, lot_size)
+        scaled_qty = round_lot(available_qty * sell_fraction, lot_size)
+        qty = scaled_qty if scaled_qty >= int(risk["min_order_quantity"]) else round_lot(available_qty, lot_size)
         r_multiple = round((px - cost_price) / node_r_value, 2) if node_r_value > 0 else None
         order = {
             "direction": "sell",
@@ -2644,6 +2912,7 @@ def build_decision(
 
     liquid_quotes = []
     ranking_exclusions = []
+    t0_entry_blocked_candidates: list[dict[str, Any]] = []
     raw_blocked_codes = strategy.get("entry_blocked_codes") or []
     entry_blocked_codes = {str(x).zfill(6) for x in raw_blocked_codes if str(x).strip()}
     blocked_code_reasons = strategy.get("entry_blocked_code_reasons", {})
@@ -2670,6 +2939,17 @@ def build_decision(
                 "excluded_reason": "exit_only_or_bond_not_eligible_for_t0_entry",
             })
             continue
+        t0_entry_ok, t0_entry_detail = t0_entry_eligibility(q, strategy)
+        if not t0_entry_ok:
+            detail = {
+                "stockCode": q.get("stockCode"),
+                "asset_class": q.get("asset_class"),
+                "excluded_reason": "blocked_t0_entry_ineligible_asset_class",
+                **t0_entry_detail,
+            }
+            ranking_exclusions.append(detail)
+            t0_entry_blocked_candidates.append(detail)
+            continue
         if q.get("quote_ok") and not q.get("isSuspended") and spread_ok and volume_ok and q.get("momentum_available"):
             liquid_quotes.append(q)
 
@@ -2678,6 +2958,19 @@ def build_decision(
         "max_spread_pct": filters.get("max_spread_pct"),
         "volume_filter_status": "available" if volume_fields_available else "unavailable_api_field",
         "ranking_exclusions": ranking_exclusions,
+    })
+    t0_eligibility_cfg = strategy.get("t0_entry_eligibility", {})
+    t0_entry_filter_available = (
+        not isinstance(t0_eligibility_cfg, dict)
+        or not t0_eligibility_cfg.get("enabled", False)
+        or bool(liquid_quotes)
+        or not t0_entry_blocked_candidates
+    )
+    add("t0_entry_eligibility_filter", t0_entry_filter_available, {
+        "enabled": bool(isinstance(t0_eligibility_cfg, dict) and t0_eligibility_cfg.get("enabled", False)),
+        "blocked_count": len(t0_entry_blocked_candidates),
+        "blocked_candidates": t0_entry_blocked_candidates[:20],
+        "policy": t0_eligibility_cfg if isinstance(t0_eligibility_cfg, dict) else {},
     })
     non_bond_quotes = [q for q in quotes if q.get("asset_class") not in ENTRY_EXCLUDED_ASSET_CLASSES]
     positive_count = sum(1 for q in non_bond_quotes if as_float(q.get("change_pct")) > -0.005)
@@ -2693,6 +2986,9 @@ def build_decision(
     }
     correlation_stress_ok = not bool(market_correlation_stress.get("block_new_buy"))
     add("market_correlation_stress_filter", correlation_stress_ok, market_correlation_stress)
+    full_market_guard = evaluate_full_market_entry_guard(strategy, trade_date, local_time)
+    full_market_entry_ok = not bool(full_market_guard.get("block_new_buy"))
+    add("full_market_entry_guard", full_market_entry_ok, full_market_guard)
 
     action = "hold"
     reason = "no_signal"
@@ -2751,6 +3047,18 @@ def build_decision(
             if isinstance(node, dict) and as_float(node.get("buy_quantity_submitted")) - as_float(node.get("sell_quantity_submitted")) > 0:
                 committed_codes.add(str(code).zfill(6))
     committed_codes |= set(held_codes)
+    # 存量(legacy)持仓单独成桶:它们仍在 committed_codes 内(=照常防重复买入、板块计数、
+    # 由卖出引擎按各自条件退出),但 NOT counted against the target_holdings 新增配额。
+    # 这样"现在就豪赌"——新增集中仓位不被存量挤占;存量清空后该名自然离开 committed_codes。
+    legacy_inventory_codes = {str(c).zfill(6) for c in (strategy.get("legacy_inventory_codes") or [])}
+    budget_codes: set[str] = committed_codes - legacy_inventory_codes
+    add("legacy_inventory_split", True, {
+        "legacy_held": sorted(legacy_inventory_codes & committed_codes),
+        "new_book_codes": sorted(budget_codes),
+        "new_book_count": len(budget_codes),
+        "target_holdings": int(as_float(strategy.get("target_holdings"), 1)),
+        "new_slots_open": max(0, int(as_float(strategy.get("target_holdings"), 1)) - len(budget_codes)),
+    })
     sector_cfg = cfg.get("sector_diversification", {})
     if not isinstance(sector_cfg, dict):
         sector_cfg = {}
@@ -2825,7 +3133,7 @@ def build_decision(
     }
     sector_entry_ok = (
         (not sector_enabled)
-        or len(committed_codes) >= target_holdings
+        or len(budget_codes) >= target_holdings
         or nonheld_ranked_count == 0
         or best is not None
     )
@@ -3017,7 +3325,7 @@ def build_decision(
     # Entry-or-hold: enter a NEW name only when nothing is selling/deferred this
     # run AND we are under target_holdings AND a non-held candidate exists. This
     # is how concurrent holdings build up (one new name per entry run).
-    if (not sell_orders) and (not deferred_sell_orders) and best is not None and len(committed_codes) < target_holdings:
+    if (not sell_orders) and (not deferred_sell_orders) and best is not None and len(budget_codes) < target_holdings:
         # --- Intraday-momentum last-half-hour entry (Gao-Han-Li-Zhou 2018) ---
         # Faithful: trades the last half-hour by the first-half-hour return sign.
         # Long-only, at most once/day, reserved path that bypasses the 14:00 cutoff,
@@ -3063,6 +3371,8 @@ def build_decision(
                 reason = "blocked_execution_quality"
             elif best_im is not None and not bool((best_im.get("safe_policy_shield") or {}).get("passed")):
                 reason = "blocked_safe_policy_shield"
+            elif best_im is not None and not full_market_entry_ok:
+                reason = "blocked_full_market_risk_off"
             elif best_im is not None:
                 im_inv_ratio = (len(held_codes) / target_holdings) if target_holdings > 0 else 0.0
                 im_mins_to_close = max(0.0, 15 * 60 - (local_time.hour * 60 + local_time.minute))
@@ -3299,7 +3609,11 @@ def build_decision(
             reason = "blocked_broad_market_declining"
         elif best and not correlation_stress_ok:
             reason = "blocked_market_correlation_stress"
-        elif not best and sector_enabled and sector_blocked_candidates and len(committed_codes) < target_holdings:
+        elif best and not full_market_entry_ok:
+            reason = "blocked_full_market_risk_off"
+        elif not best and t0_entry_blocked_candidates and len(budget_codes) < target_holdings:
+            reason = "blocked_t0_entry_ineligible_asset_class"
+        elif not best and sector_enabled and sector_blocked_candidates and len(budget_codes) < target_holdings:
             reason = "blocked_sector_concentration"
         elif best and not bool((best.get("execution_quality") or {}).get("passed")):
             reason = "blocked_execution_quality"
@@ -3312,7 +3626,8 @@ def build_decision(
         # sell is throttle-deferred we keep the throttle reason set above.)
         action = "hold"
         reason = (
-            "at_target_holdings_capacity" if len(committed_codes) >= target_holdings
+            "at_target_holdings_capacity" if len(budget_codes) >= target_holdings
+            else "blocked_t0_entry_ineligible_asset_class" if t0_entry_blocked_candidates
             else "blocked_sector_concentration" if sector_enabled and sector_blocked_candidates
             else "carry_allowed_sell_score_not_met" if held_codes
             else "no_entry_candidate"

@@ -46,6 +46,9 @@
     "min_price": 0.3,
     "momentum_weight": 1.0,
     "conviction_weight": 0.5,
+    "daily_momentum_pool_file": "outputs/t0_intraday_agent/daily_momentum_pool.json",
+    "daily_momentum_pool_max_age_days": 4,
+    "daily_momentum_pool_note": "Nightly select_daily_momentum_pool.py writes top-20 by 20d DAILY momentum; agent restricts the gate-passing universe to these (fail-open if missing/stale). Competition tilt -- delete this file ref to revert. Intraday momentum_weight deliberately NOT cranked (intraday momentum reverts).",
     "name_exclude_keywords": ["货币", "现金", "理财"],
     "exclude_codes": []
   },
@@ -67,7 +70,7 @@
     "output": "outputs/t0_observation_pool/latest_observation_pool.json"
   },
   "sector_diversification": {
-    "enabled": false,
+    "enabled": true,
     "max_per_sector": 2,
     "unlimited_sectors": ["other"],
     "keyword_map": {
@@ -105,7 +108,7 @@
     "entry_momentum_pct": 0.0015,
     "exit_momentum_pct": -0.001,
     "stop_loss_pct": -0.012,
-    "take_profit_pct": 0.018,
+    "take_profit_pct": 0.05,
     "max_sell_orders_per_run": 5,
     "sell_throttle_interval_minutes": 5,
     "sell_throttle_bypass_reasons": [
@@ -120,7 +123,17 @@
     "loss_exit_score_threshold": 70,
     "profit_exit_score_threshold": 65,
     "emergency_stop_pct": -0.02,
-    "profit_trailing_drawdown_pct": -0.005,
+    "profit_trailing_drawdown_pct": -0.02,
+    "sell_logic_v2": {
+      "enabled": false,
+      "note": "DEFAULT OFF: timing-sell de-noising; gates ONLY unified_sell_score_exit, never hard stops/emergency/kill. enabled=false => identical to baseline. Validate (60d ablation + purged OOS + PBO/DSR + forward shadow) before flipping live.",
+      "min_independent_negative_components": 2,
+      "confirmation_snapshots": 2,
+      "confirmation_max_gap_minutes": 7,
+      "strong_tape_breadth": 0.65,
+      "strong_tape_threshold_delta": 10,
+      "scale_out_fraction": 0.5
+    },
     "deceleration_exit_threshold": -0.002,
     "require_negative_bid_pressure_for_profit_exit": true,
     "hold_losers_until_stop_or_force_close": true,
@@ -202,6 +215,29 @@
       "breadth_positive_count_max": 1,
       "max_snapshot_gap_seconds": 480
     },
+    "full_market_entry_guard": {
+      "enabled": true,
+      "enabled_in_replay": false,
+      "snapshot_runs_path": "outputs/eastmoney_full_market/snapshot_runs.jsonl",
+      "max_snapshot_age_minutes": 150,
+      "min_non_money_etfs": 300,
+      "min_active_amount": 1000000,
+      "min_active_etfs": 200,
+      "risk_off_up_frac_max": 0.35,
+      "risk_off_median_change_pct_max": -0.35,
+      "risk_off_down_gt_1pct_frac_min": 0.55,
+      "block_on_risk_off": true,
+      "block_on_unavailable": false
+    },
+    "t0_entry_eligibility": {
+      "enabled": true,
+      "allow_asset_classes": ["gold_etf", "cross_border_etf", "hk_etf"],
+      "allow_stock_codes": [],
+      "block_stock_codes": [],
+      "block_asset_classes": ["dynamic", "domestic_equity_etf", "equity_etf"],
+      "block_unknown_asset_class": true,
+      "reason": "asset_class_not_confirmed_same_day_sellable_for_t0_entry"
+    },
     "skip_dates": [],
     "overnight_gap_guard_pct": 0.03,
     "execution": {
@@ -261,16 +297,18 @@
         "acceleration"
       ]
     },
-    "target_holdings": 2,
-    "cash_reserve_pct": 0.85,
-    "max_position_pct": 0.45,
+    "target_holdings": 5,
+    "legacy_inventory_codes": ["159915", "588000", "588030", "159546"],
+    "legacy_inventory_note": "存量持仓:按各自卖出条件退出(不强平),且不占用 target_holdings 的新增豪赌仓位配额。某只清空后会自然离开 committed,可从此列表移除;比赛结束后清空整个列表。",
+    "cash_reserve_pct": 0.05,
+    "max_position_pct": 0.25,
     "bracket": {
       "enabled": true,
       "risk_per_trade_pct": 0.012,
       "risk_per_trade_pct_chaos_day": 0.006,
-      "target1_r_multiple": 1.0,
-      "target1_sell_fraction": 0.5,
-      "target2_r_multiple": 2.0,
+      "target1_r_multiple": 2.0,
+      "target1_sell_fraction": 0.33,
+      "target2_r_multiple": 4.0,
       "min_orb_range_pct": 0.003,
       "chaos_orb_range_pct": 0.015,
       "max_entries_per_day": 0,
@@ -291,7 +329,7 @@
     "max_daily_loss_pct": -0.05,
     "max_daily_api_runs": 80,
     "force_close_before_market_close": true,
-    "max_single_order_pct": 0.45,
+    "max_single_order_pct": 0.25,
     "min_order_quantity": 100,
     "quantity_lot": 100,
     "order_type": "limit",

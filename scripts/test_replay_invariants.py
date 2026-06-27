@@ -797,6 +797,96 @@ def t37_committed_holdings_cap() -> None:
           str(dec.get("state_machine")))
 
 
+def t61_full_market_and_t0_entry_guards() -> None:
+    """Defensive entry guards: full-market risk_off blocks new BUYs, and T+1/
+    unconfirmed-sellability ETF classes cannot be opened by the T0 agent."""
+    import csv as _csv
+    import gzip as _gzip
+    import io as _io
+    import json as _json
+    import tempfile
+    from datetime import datetime
+    from pathlib import Path as _Path
+    from zoneinfo import ZoneInfo
+
+    SH = ZoneInfo("Asia/Shanghai")
+    with tempfile.TemporaryDirectory() as td:
+        root = _Path(td)
+        snap = root / "eastmoney_full_market_20260623_103000_etf.csv.gz"
+        with _gzip.open(snap, "wt", encoding="utf-8", newline="") as f:
+            writer = _csv.DictWriter(f, fieldnames=[
+                "stockCode", "name", "currentPrice", "change_pct", "amount",
+            ])
+            writer.writeheader()
+            for i in range(420):
+                writer.writerow({
+                    "stockCode": f"5{i:05d}"[-6:],
+                    "name": f"ETF{i}",
+                    "currentPrice": "1.0",
+                    "change_pct": "0.2" if i < 60 else "-1.2",
+                    "amount": "2000000",
+                })
+            writer.writerow({  # money-like names are excluded from breadth.
+                "stockCode": "511990", "name": "货币ETF", "currentPrice": "100.0",
+                "change_pct": "0.0", "amount": "999999999",
+            })
+        runs = root / "snapshot_runs.jsonl"
+        runs.write_text(_json.dumps({
+            "task": "eastmoney_full_market_snapshot", "status": "ok", "scope": "etf",
+            "row_count": 421, "output_file": str(snap),
+            "session": {"trade_date": "2026-06-23", "exchange_local_time": "2026-06-23T10:30:00+08:00"},
+        }) + "\n", encoding="utf-8")
+        strat = {
+            "full_market_entry_guard": {
+                "enabled": True,
+                "snapshot_runs_path": str(runs),
+                "max_snapshot_age_minutes": 90,
+                "min_non_money_etfs": 300,
+                "min_active_amount": 1000000,
+                "min_active_etfs": 200,
+                "risk_off_up_frac_max": 0.30,
+                "risk_off_median_change_pct_max": -0.50,
+                "risk_off_down_gt_1pct_frac_min": 0.55,
+                "block_on_risk_off": True,
+                "block_on_unavailable": False,
+            }
+        }
+        agent.set_replay_now(None)
+        detail = agent.evaluate_full_market_entry_guard(strat, "2026-06-23", datetime(2026, 6, 23, 10, 45, tzinfo=SH))
+        check("T61 full-market guard classifies risk_off and blocks BUY",
+              detail.get("block_new_buy") is True and detail.get("mode") == "risk_off",
+              str(detail))
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["intraday_momentum"]["enabled"] = False
+    cfg["strategy"]["target_holdings"] = 2
+    cfg["sector_diversification"] = {"enabled": False}
+    cfg["strategy"]["full_market_entry_guard"]["enabled"] = False
+    now = datetime(2026, 6, 23, 10, 40, tzinfo=SH)
+    ts = now.isoformat()
+    dyn = {"stockCode": "159558", "exchange": "SZ", "name": "半导体设备ETF易方达", "asset_class": "dynamic",
+           "currentPrice": 3.75, "bidPrice1": 3.749, "askPrice1": 3.751, "prevClose": 3.69,
+           "timestamp": ts, "quote_ok": True, "isSuspended": False, "momentum_available": True,
+           "momentum": 0.03, "spread_pct": 0.0003, "change_pct": 0.016,
+           "bid_pressure_3m_pct": 0.01, "acceleration": 0.002}
+    cfg["universe"] = [{"stockCode": "159558", "exchange": "SZ", "name": "半导体设备ETF易方达", "asset_class": "dynamic"}]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    agent.set_replay_now(now)
+    try:
+        dec = agent.build_decision(cfg, [dyn], balance, {"ok": True, "data": {"positions": []}},
+                                   {"ok": True, "data": {"orders": []}}, {}, None)
+    finally:
+        agent.set_replay_now(None)
+    t0_check = next((c for c in dec.get("risk_checks", []) if c.get("name") == "t0_entry_eligibility_filter"), {})
+    buys = [o for o in dec.get("orders", []) if o.get("direction") == "buy"]
+    check("T61 dynamic/T+1-like ETF is not opened by T0 entry",
+          not buys and dec.get("state_machine", {}).get("reason") == "blocked_t0_entry_ineligible_asset_class",
+          str(dec.get("state_machine")))
+    check("T61 T0 eligibility risk check records blocked candidate",
+          t0_check.get("passed") is False and t0_check.get("detail", {}).get("blocked_count") == 1,
+          str(t0_check))
+
+
 def t36_overfitting_guard() -> None:
     """PBO (CSCV) must read ~0.5 for a pure-noise config search (winner does not persist)
     and ~0 for a genuinely dominant config; purged splits must not leak; the multiple-
@@ -1064,6 +1154,7 @@ def t23_sector_diversification_entry_filter() -> None:
     SH = ZoneInfo("Asia/Shanghai")
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
     cfg["strategy"]["intraday_momentum"]["enabled"] = False
+    cfg["strategy"]["t0_entry_eligibility"] = {"enabled": False}
     cfg["strategy"]["target_holdings"] = 5
     cfg["sector_diversification"] = {
         "enabled": True,
@@ -1139,6 +1230,7 @@ def t24_sector_limit_never_blocks_sells() -> None:
     SH = ZoneInfo("Asia/Shanghai")
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
     cfg["strategy"]["intraday_momentum"]["enabled"] = False
+    cfg["strategy"]["t0_entry_eligibility"] = {"enabled": False}
     cfg["strategy"]["target_holdings"] = 5
     cfg["sector_diversification"] = {
         "enabled": True,
@@ -2124,6 +2216,9 @@ def t52_decision_scoring_system() -> None:
     check("T52 total clamps <0 to 0",
           ds.total_from_subscores({k: 0 for k in sub} | {"risk_penalty": -20}) == 0.0)
     check("T52 buckets", [ds.score_bucket(x) for x in (95, 78, 60, 47, 10)] == ["A", "B", "C", "D", "E"])
+    check("T52 fixed report buckets use explicit total-score ranges",
+          [rep._fixed_total_score_bucket(x) for x in (20, 40, 60, 75, 90)]
+          == ["0-40", "40-60", "60-75", "75-90", "90+"])
 
     clean_buy = ds.score_decision({"decision_type": "BUY", "decision_reason": "entry_consolidation_breakout_passed",
                                    "cross_sectional_percentile": 0.05, "amount": 8e8, "spread_pct": 0.0008,
@@ -2204,7 +2299,7 @@ def t52_decision_scoring_system() -> None:
         rep.SCORE_DIR = out
         text = rep.build_report(recs)
         check("T52 report does not crash on null returns + flags sample_insufficient",
-              "sample_insufficient" in text)
+              "sample_insufficient" in text and "By fixed total-score range" in text)
 
 
 def t53_pseudo_forward_prefix_and_isolation() -> None:
@@ -2466,10 +2561,86 @@ def t58_forward_probability_ledger_and_priors() -> None:
           and diagnostic["gates"]["promotionAllowed"] is False)
 
 
+def t61_daily_momentum_pool_failopen() -> None:
+    """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
+    missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
+    never halts on a missed nightly run)."""
+    import json as _json
+    import select_t0_universe as su
+    from pathlib import Path as _P
+    fp = ROOT / "outputs" / "t0_intraday_agent" / "_t61_pool.json"
+    fp.parent.mkdir(parents=True, exist_ok=True)
+
+    codes, meta = su._load_daily_momentum_pool({}, "2026-06-23")
+    check("T61 no pool ref is fail-open (empty, disabled)", codes == set() and meta.get("enabled") is False)
+
+    codes, meta = su._load_daily_momentum_pool(
+        {"daily_momentum_pool_file": "outputs/t0_intraday_agent/__missing__.json"}, "2026-06-23")
+    check("T61 missing pool file is fail-open", codes == set() and meta.get("reason") == "no_pool_file")
+
+    fp.write_text(_json.dumps({"date": "2026-06-23", "lookback_days": 20,
+                               "codes": ["510300", "159915"]}), encoding="utf-8")
+    codes, meta = su._load_daily_momentum_pool(
+        {"daily_momentum_pool_file": str(fp)}, "2026-06-23")
+    check("T61 fresh pool returns its codes", codes == {"510300", "159915"} and meta.get("age_days") == 0)
+
+    fp.write_text(_json.dumps({"date": "2026-06-01", "codes": ["510300"]}), encoding="utf-8")
+    codes, meta = su._load_daily_momentum_pool(
+        {"daily_momentum_pool_file": str(fp), "daily_momentum_pool_max_age_days": 4}, "2026-06-23")
+    check("T61 stale pool is fail-open (empty)", codes == set() and meta.get("reason") == "stale_pool")
+    fp.unlink(missing_ok=True)
+
+
+def t60_sell_logic_v2_timing_gate() -> None:
+    """sell_logic_v2 de-noises ONLY the unified_sell_score_exit timing sell, behind a
+    default-OFF flag. Hard stops are never routed through it; flag off == baseline."""
+    from datetime import datetime
+    SSR2 = {"score": 80.0, "components": {"structure_break": 25.0, "momentum_reversal": 20.0}}
+    lt0, lt1 = datetime(2026, 6, 22, 13, 0), datetime(2026, 6, 22, 13, 5)
+
+    # (a) flag OFF -> exact baseline no-op
+    off = {"sell_logic_v2": {"enabled": False}}
+    check("T60 v2 disabled is baseline no-op",
+          agent.apply_sell_logic_v2(off, {}, "2026-06-22", "159915", SSR2, 70.0, [], lt0)
+          == (True, 1.0, "unified_sell_score_exit"))
+
+    # (b) confirmation: first snapshot waits, second consecutive snapshot sells
+    on = {"sell_logic_v2": {"enabled": True, "min_independent_negative_components": 2,
+                            "confirmation_snapshots": 2, "scale_out_fraction": 0.5}}
+    st: dict = {}
+    do1, _, r1 = agent.apply_sell_logic_v2(on, st, "2026-06-22", "159915", SSR2, 70.0, [], lt0)
+    do2, frac2, _ = agent.apply_sell_logic_v2(on, st, "2026-06-22", "159915", SSR2, 70.0, [], lt1)
+    check("T60 first signal awaits confirmation", do1 is False and r1 == "v2_awaiting_confirmation")
+    check("T60 second consecutive signal sells, scaled", do2 is True and abs(frac2 - 0.5) < 1e-9)
+
+    # (c) a one-snapshot dip that does NOT recur next snapshot never sells (gap too large)
+    st2: dict = {}
+    agent.apply_sell_logic_v2(on, st2, "2026-06-22", "159915", SSR2, 70.0, [], lt0)
+    late = datetime(2026, 6, 22, 14, 0)  # 60min gap > confirmation_max_gap -> counter resets
+    do_late, _, _ = agent.apply_sell_logic_v2(on, st2, "2026-06-22", "159915", SSR2, 70.0, [], late)
+    check("T60 non-consecutive dip resets and does not sell", do_late is False)
+
+    # (d) lone component suppressed (needs >=2 independent negatives)
+    lone = {"score": 80.0, "components": {"bid_pressure_negative": 15.0}}
+    do_lone, _, r_lone = agent.apply_sell_logic_v2(on, {}, "2026-06-22", "159915", lone, 70.0, [], lt0)
+    check("T60 lone negative component suppressed",
+          do_lone is False and r_lone == "v2_suppress_insufficient_components")
+
+    # (e) strong breadth holds a sub-(threshold+delta) score
+    strong = {"sell_logic_v2": {"enabled": True, "min_independent_negative_components": 1,
+                                "confirmation_snapshots": 1, "strong_tape_breadth": 0.6,
+                                "strong_tape_threshold_delta": 10}}
+    up_quotes = [{"change_pct": 1.0}, {"change_pct": 1.0}, {"change_pct": -0.1}]  # breadth 0.67
+    do_str, _, r_str = agent.apply_sell_logic_v2(strong, {}, "2026-06-22", "159915", SSR2, 75.0, up_quotes, lt0)
+    check("T60 strong tape holds sub-threshold+delta score",
+          do_str is False and r_str == "v2_suppress_strong_tape")
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
     import research_decision_score_daily_review as review
+    import run_decision_score_daily as daily
 
     decision = {
         "state_machine": {"action": "sell", "reason": "unified_sell_score_exit"},
@@ -2527,11 +2698,23 @@ def t59_every_decision_and_daily_score_review() -> None:
     result = review.build_review(rows, "2026-12-31")
     liquidity = next(item for item in result["reviews"] if item["feature"] == "liquidity_score")
     total = next(item for item in result["reviews"] if item["feature"] == "total_score")
+    fixed = {item["bucket"]: item for item in result["fixedTotalScoreBuckets"]}
     check("T59 day-paired Holm review detects planted inverted component",
           liquidity["assessment"] == "statistically_inverted_high_score_underperforms"
           and liquidity["holmAdjustedP"] < 0.05)
     check("T59 planted total score remains positively discriminating",
           total["assessment"] == "statistically_positive_discrimination")
+    check("T59 fixed total-score buckets expose high vs low outcome separation",
+          fixed["75-90"]["count"] == 50 and fixed["40-60"]["count"] == 50
+          and fixed["75-90"]["avgNetReturn"] > fixed["40-60"]["avgNetReturn"])
+    check("T59 daily enrichment refuses incomplete trading sessions",
+          daily.session_complete({"588000": {"2026-07-01": {600: 1.0}}}, "2026-07-01", 895) is False
+          and daily.session_complete({"588000": {"2026-07-01": {895: 1.0}}}, "2026-07-01", 895) is True)
+    dirty = {"realized_return": 0.01, "counterfactual_return": 0.02, "probability_outcome": 1}
+    daily.clear_outcomes([dirty])
+    check("T59 provisional outcomes can be cleared safely before session close",
+          dirty["realized_return"] is None and dirty["counterfactual_return"] is None
+          and dirty["probability_outcome"] is None)
     check("T59 statistical review only recommends and never changes weights/gates",
           result["autoWeightChangeAllowed"] is False
           and result["tradeGateChangeAllowed"] is False
@@ -2565,6 +2748,7 @@ if __name__ == "__main__":
     t35_sizing_weights()
     t36_overfitting_guard()
     t37_committed_holdings_cap()
+    t61_full_market_and_t0_entry_guards()
     t39_timing_accuracy_helpers()
     t38_full_minute_replay_builder()
     t22_dynamic_universe_selection()
@@ -2596,6 +2780,8 @@ if __name__ == "__main__":
     t57_bayesian_probability_shadow()
     t58_forward_probability_ledger_and_priors()
     t59_every_decision_and_daily_score_review()
+    t60_sell_logic_v2_timing_gate()
+    t61_daily_momentum_pool_failopen()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -19,7 +19,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -390,6 +390,37 @@ def _minute_of(timestamp: str) -> int | None:
         return None
 
 
+_SHANGHAI_TZ = timezone(timedelta(hours=8))
+
+
+def _market_date_minute(rec: dict[str, Any]) -> tuple[str | None, int | None]:
+    """Return (YYYY-MM-DD, minute-of-day) in SHANGHAI market time.
+
+    Critical for forward outcomes: the live agent's `timestamp` is the host wall
+    clock, which on a machine set to a different zone (e.g. KST +09:00) is ~60 min
+    off the market clock -- comparing it to the Shanghai decision time made the
+    "next snapshot" land up to an hour on the wrong side. So we prefer
+    `source_quote_time` (always the Shanghai feed clock, no offset); only if it is
+    absent do we fall back to `timestamp`, normalizing any UTC offset to +08:00 so
+    the host timezone cannot shift the minute index (replay quotes are already +08:00).
+    """
+    sqt = rec.get("source_quote_time")
+    if sqt:
+        s = str(sqt)
+        return s[:10], _minute_of(s[11:16])
+    ts = str(rec.get("timestamp") or "")
+    if len(ts) < 16:
+        return None, None
+    try:
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(_SHANGHAI_TZ)
+            return dt.strftime("%Y-%m-%d"), dt.hour * 60 + dt.minute
+    except Exception:
+        pass
+    return ts[:10], _minute_of(ts[11:16])
+
+
 def build_price_index(quotes_path: Path) -> tuple[dict, dict]:
     """From a minute-quote JSONL build code -> {date -> {minute: price}} and code ->
     {date -> close}. Used to compute forward outcomes for scored decisions."""
@@ -406,14 +437,13 @@ def build_price_index(quotes_path: Path) -> tuple[dict, dict]:
                 except Exception:
                     continue
                 code = str(q.get("stockCode", "")).zfill(6)
-                ts = str(q.get("timestamp", ""))
                 price = as_float(q.get("currentPrice"), 0.0)
-                if not code or len(ts) < 16 or price <= 0:
+                # Index by Shanghai market time (source_quote_time), NOT the host
+                # wall-clock timestamp -- otherwise a KST host shifts every quote ~60min.
+                qdate, minute = _market_date_minute(q)
+                if not code or price <= 0 or minute is None or not qdate:
                     continue
-                minute = _minute_of(ts[11:16])
-                if minute is None:
-                    continue
-                by.setdefault(code, {}).setdefault(ts[:10], {})[minute] = price
+                by.setdefault(code, {}).setdefault(qdate, {})[minute] = price
     closes: dict[str, dict[str, float]] = {}
     for code, days in by.items():
         closes[code] = {d: mm[max(mm)] for d, mm in days.items() if mm}
@@ -438,7 +468,10 @@ def enrich_from_price_index(records: list[dict[str, Any]], by: dict, closes: dic
     ))
     for r in records:
         code, date = str(r.get("etf_code") or "").zfill(6), str(r.get("date"))
-        minute = _minute_of(str(r.get("timestamp") or ""))
+        # Same Shanghai clock as the price index: the decision timestamp is time-only,
+        # so prefer source_quote_time's HH:MM when present, else the (Shanghai) timestamp.
+        sqt = r.get("source_quote_time")
+        minute = _minute_of(str(sqt)[11:16]) if sqt else _minute_of(str(r.get("timestamp") or ""))
         daymap = by.get(code, {}).get(date)
         if not code or minute is None or not daymap:
             continue
@@ -714,6 +747,41 @@ def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
     maximum = max(0, int(as_float(scoring_cfg.get("max_ranked_candidates_per_snapshot"), 30)))
     n = len(ranked)
     final_reason = base.get("decision_reason")
+    # Per-candidate rejection attribution. The agent evaluates the full entry gate
+    # (exec quality / shield / VWAP / entry score) ONLY for the single top pick, so we
+    # must NOT copy the snapshot's final reason onto every candidate (that mislabeled
+    # passes like `entry_momentum_spread_passed` as block reasons). Instead attribute
+    # only what each candidate's own quote+config verifies; otherwise mark it explicitly
+    # as a snapshot-level outcome that was not individually evaluated.
+    strategy_cfg = cfg.get("strategy", {}) if isinstance(cfg.get("strategy"), dict) else {}
+    filters_cfg = cfg.get("filters", {}) if isinstance(cfg.get("filters"), dict) else {}
+    blocked_entry_codes = {str(c).zfill(6) for c in (strategy_cfg.get("entry_blocked_codes") or [])}
+    entry_max_spread = as_float(filters_cfg.get("max_spread_pct"), 0.0)
+    a_buy_was_planned = bool(planned_buy_codes)
+
+    def candidate_rejection(qcode: str, q: dict[str, Any], rank: int) -> tuple[str, dict[str, Any]]:
+        spread = q.get("spread_pct")
+        gates = {
+            "bad_quote": as_float(q.get("currentPrice"), 0.0) <= 0,
+            "blocked_code": qcode in blocked_entry_codes,
+            "spread_too_wide": bool(entry_max_spread > 0 and spread is not None
+                                    and as_float(spread) > entry_max_spread),
+            "lost_ranking_to_planned_buy": a_buy_was_planned,
+            "individually_evaluated": True,
+        }
+        if gates["bad_quote"]:
+            return "bad_quote", gates
+        if gates["blocked_code"]:
+            return "blocked_code", gates
+        if gates["spread_too_wide"]:
+            return "spread_too_wide", gates
+        if a_buy_was_planned:
+            return f"not_selected_rank_{rank}", gates
+        # No trade this snapshot and nothing candidate-specific verifiable here: the
+        # deciding gate was only run for the top pick, so flag as snapshot-level.
+        gates["individually_evaluated"] = False
+        return f"snapshot_gate:{final_reason or 'unknown'}", gates
+
     for index, quote in enumerate(ranked[:maximum]):
         if not isinstance(quote, dict):
             continue
@@ -721,7 +789,8 @@ def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         if not code or code in planned_buy_codes:
             continue
         name = quote.get("name")
-        signal_name = quote.get("signal_name") or quote.get("entry_signal") or final_reason
+        signal_name = quote.get("signal_name") or quote.get("entry_signal")
+        cand_reason, cand_gates = candidate_rejection(code, quote, index + 1)
         candidate = dict(base)
         candidate.update({
             "decision_id": f"{trade_date}_{timestamp}_{code}_candidate_r{index + 1}",
@@ -738,10 +807,12 @@ def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
             "candidate_rank": index + 1,
             "candidate_count": n,
             "candidate_eligible": quote.get("entry_eligible"),
-            "candidate_rejection_reason": final_reason,
+            "candidate_rejection_reason": cand_reason,
+            "candidate_gates": cand_gates,
+            "snapshot_final_reason": final_reason,
             "sample_origin": "forward_live_no_trade_candidate",
             "signal_name": signal_name,
-            "decision_reason": f"ranked_no_trade_candidate; final={final_reason or 'unknown'}",
+            "decision_reason": f"ranked_no_trade_candidate; candidate={cand_reason}; snapshot={final_reason or 'unknown'}",
             "cross_sectional_percentile": index / max(1, n),
             "amount": quote.get("amount"),
             "spread_pct": quote.get("spread_pct"),

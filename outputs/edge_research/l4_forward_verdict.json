@@ -2,26 +2,26 @@
   "schemaVersion": "l4_forward_verdict_v1",
   "status": "diagnostic_only",
   "hypothesisId": "l4_selectivity_forward_v1",
-  "forwardDays": 0,
+  "forwardDays": 5,
   "minimumForwardDays": 20,
   "prospectiveAfter": "2026-06-18",
   "liveReady": false,
   "formalStrategyAllowed": false,
   "baseline": {
-    "total": 0.0,
-    "mean": null,
-    "std": null,
-    "worst": null,
-    "sharpe": null
+    "total": 680.49,
+    "mean": 136.1,
+    "std": 2208.76,
+    "worst": -3118.02,
+    "sharpe": 0.9781
   },
   "candidate": {
-    "total": 0.0,
-    "mean": null,
-    "std": null,
-    "worst": null,
-    "sharpe": null
+    "total": 680.49,
+    "mean": 136.1,
+    "std": 2208.76,
+    "worst": -3118.02,
+    "sharpe": 0.9781
   },
   "decision": "insufficient_forward_days",
   "recommendLive": false,
-  "daysRemaining": 20
+  "daysRemaining": 15
 }

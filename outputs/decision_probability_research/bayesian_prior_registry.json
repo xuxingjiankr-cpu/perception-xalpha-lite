@@ -2,29 +2,299 @@
   "schemaVersion": "decision_probability_bayesian_prior_registry_v1",
   "iterationId": "DSI-0010",
   "bayesianModelVersion": "DBAYES-1.0.1",
-  "generatedAt": "2026-06-22T08:10:55.290150+09:00",
-  "effectiveThrough": null,
+  "generatedAt": "2026-06-26T16:42:10.043038+09:00",
+  "effectiveThrough": "2026-06-26",
   "researchOnly": true,
   "allowedForTradeGate": false,
   "alpha": 2.0,
   "beta": 2.0,
   "confidenceK": 50.0,
   "overall": {
-    "count": 0,
-    "wins": 0,
-    "losses": 0,
-    "independentDays": 0,
-    "posteriorProbability": 0.5,
-    "confidence": 0.0
+    "count": 1359,
+    "wins": 840,
+    "losses": 519,
+    "independentDays": 5,
+    "posteriorProbability": 0.6177549523110785,
+    "confidence": 0.964513839602555
   },
   "byDimension": {
-    "market_regime": {},
-    "strategy_type": {},
-    "holding_horizon": {},
-    "symbol_group": {},
-    "signal_direction": {}
+    "market_regime": {
+      "neutral": {
+        "count": 1359,
+        "wins": 840,
+        "losses": 519,
+        "independentDays": 5,
+        "posteriorProbability": 0.6177549523110785,
+        "confidence": 0.964513839602555
+      }
+    },
+    "strategy_type": {
+      "breakout": {
+        "count": 55,
+        "wins": 30,
+        "losses": 25,
+        "independentDays": 4,
+        "posteriorProbability": 0.5423728813559322,
+        "confidence": 0.5238095238095238
+      },
+      "exit": {
+        "count": 72,
+        "wins": 72,
+        "losses": 0,
+        "independentDays": 1,
+        "posteriorProbability": 0.9736842105263158,
+        "confidence": 0.5901639344262295
+      },
+      "momentum_trend": {
+        "count": 24,
+        "wins": 23,
+        "losses": 1,
+        "independentDays": 2,
+        "posteriorProbability": 0.8928571428571429,
+        "confidence": 0.32432432432432434
+      },
+      "unclassified": {
+        "count": 1208,
+        "wins": 715,
+        "losses": 493,
+        "independentDays": 5,
+        "posteriorProbability": 0.5915841584158416,
+        "confidence": 0.9602543720190779
+      }
+    },
+    "holding_horizon": {
+      "intraday_to_close": {
+        "count": 1359,
+        "wins": 840,
+        "losses": 519,
+        "independentDays": 5,
+        "posteriorProbability": 0.6177549523110785,
+        "confidence": 0.964513839602555
+      }
+    },
+    "symbol_group": {
+      "broad_index": {
+        "count": 40,
+        "wins": 33,
+        "losses": 7,
+        "independentDays": 1,
+        "posteriorProbability": 0.7954545454545454,
+        "confidence": 0.4444444444444444
+      },
+      "cross_border": {
+        "count": 366,
+        "wins": 131,
+        "losses": 235,
+        "independentDays": 5,
+        "posteriorProbability": 0.35945945945945945,
+        "confidence": 0.8798076923076923
+      },
+      "financial_defensive": {
+        "count": 81,
+        "wins": 81,
+        "losses": 0,
+        "independentDays": 1,
+        "posteriorProbability": 0.9764705882352941,
+        "confidence": 0.6183206106870229
+      },
+      "resource_commodity": {
+        "count": 165,
+        "wins": 93,
+        "losses": 72,
+        "independentDays": 5,
+        "posteriorProbability": 0.5621301775147929,
+        "confidence": 0.7674418604651163
+      },
+      "sector_other": {
+        "count": 413,
+        "wins": 301,
+        "losses": 112,
+        "independentDays": 2,
+        "posteriorProbability": 0.7266187050359713,
+        "confidence": 0.8920086393088553
+      },
+      "technology_growth": {
+        "count": 294,
+        "wins": 201,
+        "losses": 93,
+        "independentDays": 2,
+        "posteriorProbability": 0.6812080536912751,
+        "confidence": 0.8546511627906976
+      }
+    },
+    "signal_direction": {
+      "BUY": {
+        "count": 1359,
+        "wins": 840,
+        "losses": 519,
+        "independentDays": 5,
+        "posteriorProbability": 0.6177549523110785,
+        "confidence": 0.964513839602555
+      }
+    }
   },
-  "jointSegments": {},
+  "jointSegments": {
+    "market_regime=neutral|strategy_type=breakout|holding_horizon=intraday_to_close|symbol_group=broad_index|signal_direction=BUY": {
+      "count": 3,
+      "wins": 3,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.7142857142857143,
+      "confidence": 0.05660377358490566
+    },
+    "market_regime=neutral|strategy_type=breakout|holding_horizon=intraday_to_close|symbol_group=cross_border|signal_direction=BUY": {
+      "count": 9,
+      "wins": 2,
+      "losses": 7,
+      "independentDays": 3,
+      "posteriorProbability": 0.3076923076923077,
+      "confidence": 0.15254237288135594
+    },
+    "market_regime=neutral|strategy_type=breakout|holding_horizon=intraday_to_close|symbol_group=sector_other|signal_direction=BUY": {
+      "count": 13,
+      "wins": 13,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.8823529411764706,
+      "confidence": 0.20634920634920634
+    },
+    "market_regime=neutral|strategy_type=breakout|holding_horizon=intraday_to_close|symbol_group=technology_growth|signal_direction=BUY": {
+      "count": 30,
+      "wins": 12,
+      "losses": 18,
+      "independentDays": 2,
+      "posteriorProbability": 0.4117647058823529,
+      "confidence": 0.375
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=broad_index|signal_direction=BUY": {
+      "count": 2,
+      "wins": 2,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.6666666666666666,
+      "confidence": 0.038461538461538464
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=cross_border|signal_direction=BUY": {
+      "count": 9,
+      "wins": 9,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.8461538461538461,
+      "confidence": 0.15254237288135594
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=financial_defensive|signal_direction=BUY": {
+      "count": 10,
+      "wins": 10,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.8571428571428571,
+      "confidence": 0.16666666666666666
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=resource_commodity|signal_direction=BUY": {
+      "count": 11,
+      "wins": 11,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.8666666666666667,
+      "confidence": 0.18032786885245902
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=sector_other|signal_direction=BUY": {
+      "count": 36,
+      "wins": 36,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.95,
+      "confidence": 0.4186046511627907
+    },
+    "market_regime=neutral|strategy_type=exit|holding_horizon=intraday_to_close|symbol_group=technology_growth|signal_direction=BUY": {
+      "count": 4,
+      "wins": 4,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.75,
+      "confidence": 0.07407407407407407
+    },
+    "market_regime=neutral|strategy_type=momentum_trend|holding_horizon=intraday_to_close|symbol_group=broad_index|signal_direction=BUY": {
+      "count": 3,
+      "wins": 3,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.7142857142857143,
+      "confidence": 0.05660377358490566
+    },
+    "market_regime=neutral|strategy_type=momentum_trend|holding_horizon=intraday_to_close|symbol_group=financial_defensive|signal_direction=BUY": {
+      "count": 3,
+      "wins": 3,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.7142857142857143,
+      "confidence": 0.05660377358490566
+    },
+    "market_regime=neutral|strategy_type=momentum_trend|holding_horizon=intraday_to_close|symbol_group=sector_other|signal_direction=BUY": {
+      "count": 13,
+      "wins": 13,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.8823529411764706,
+      "confidence": 0.20634920634920634
+    },
+    "market_regime=neutral|strategy_type=momentum_trend|holding_horizon=intraday_to_close|symbol_group=technology_growth|signal_direction=BUY": {
+      "count": 5,
+      "wins": 4,
+      "losses": 1,
+      "independentDays": 2,
+      "posteriorProbability": 0.6666666666666666,
+      "confidence": 0.09090909090909091
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=broad_index|signal_direction=BUY": {
+      "count": 32,
+      "wins": 25,
+      "losses": 7,
+      "independentDays": 1,
+      "posteriorProbability": 0.75,
+      "confidence": 0.3902439024390244
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=cross_border|signal_direction=BUY": {
+      "count": 348,
+      "wins": 120,
+      "losses": 228,
+      "independentDays": 5,
+      "posteriorProbability": 0.3465909090909091,
+      "confidence": 0.8743718592964824
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=financial_defensive|signal_direction=BUY": {
+      "count": 68,
+      "wins": 68,
+      "losses": 0,
+      "independentDays": 1,
+      "posteriorProbability": 0.9722222222222222,
+      "confidence": 0.576271186440678
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=resource_commodity|signal_direction=BUY": {
+      "count": 154,
+      "wins": 82,
+      "losses": 72,
+      "independentDays": 5,
+      "posteriorProbability": 0.5316455696202531,
+      "confidence": 0.7549019607843137
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=sector_other|signal_direction=BUY": {
+      "count": 351,
+      "wins": 239,
+      "losses": 112,
+      "independentDays": 2,
+      "posteriorProbability": 0.6788732394366197,
+      "confidence": 0.8753117206982544
+    },
+    "market_regime=neutral|strategy_type=unclassified|holding_horizon=intraday_to_close|symbol_group=technology_growth|signal_direction=BUY": {
+      "count": 255,
+      "wins": 181,
+      "losses": 74,
+      "independentDays": 2,
+      "posteriorProbability": 0.7065637065637066,
+      "confidence": 0.8360655737704918
+    }
+  },
   "configuredLikelihoodRatios": [],
   "autoLearnedLikelihoodRatios": []
 }

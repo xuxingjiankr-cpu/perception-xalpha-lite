@@ -27,6 +27,9 @@ catch {
     Write-SuiteLog "ERROR build_t0_observation_pool.py : $($_.Exception.Message)"
 }
 $scripts = @(
+    "select_daily_momentum_pool.py",
+    "research_orderbook_imbalance.py",
+    "build_obi_dashboard.py",
     "research_early_entry.py",
     "research_lead_lag.py",
     "research_regime.py",

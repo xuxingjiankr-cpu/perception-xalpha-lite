@@ -15,7 +15,7 @@ import random
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 from typing import Any
 
 import decision_probability as dp
@@ -36,6 +36,13 @@ BOOTSTRAPS = 2000
 
 
 FEATURES = ["total_score", *ds.SCORE_RANGES.keys()]
+FIXED_TOTAL_SCORE_BUCKETS = [
+    ("0-40", 0.0, 40.0),
+    ("40-60", 40.0, 60.0),
+    ("60-75", 60.0, 75.0),
+    ("75-90", 75.0, 90.0),
+    ("90+", 90.0, None),
+]
 
 
 def thresholds(feature: str) -> tuple[float, float]:
@@ -134,6 +141,40 @@ def feature_review(rows: list[dict[str, Any]], feature: str) -> dict[str, Any]:
     }
 
 
+def fixed_score_bucket_stats(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Summarize preregistered total-score ranges for BUY-direction forward outcomes."""
+    result: list[dict[str, Any]] = []
+    for label, low, high in FIXED_TOTAL_SCORE_BUCKETS:
+        members = [
+            row for row in rows
+            if as_float(row.get("total_score")) >= low
+            and (high is None or as_float(row.get("total_score")) < high)
+        ]
+        values = [row_return(row) for row in members]
+        values = [value for value in values if value is not None]
+        mae = [as_float(row.get("max_adverse_excursion")) for row in members
+               if row.get("max_adverse_excursion") is not None]
+        mfe = [as_float(row.get("max_favorable_excursion")) for row in members
+               if row.get("max_favorable_excursion") is not None]
+        result.append({
+            "bucket": label,
+            "lowInclusive": low,
+            "highExclusive": high,
+            "count": len(values),
+            "executedCount": sum(1 for row in members if row.get("decision_type") == "BUY"),
+            "candidateCount": sum(1 for row in members if row.get("decision_type") == "BUY_CANDIDATE"),
+            "winRate": sum(value > 0 for value in values) / len(values) if values else None,
+            "avgNetReturn": mean(values) if values else None,
+            "medianNetReturn": median(values) if values else None,
+            "expectancy": mean(values) if values else None,
+            "avgMAE": mean(mae) if mae else None,
+            "avgMFE": mean(mfe) if mfe else None,
+            "worstNetReturn": min(values) if values else None,
+            "bestNetReturn": max(values) if values else None,
+        })
+    return result
+
+
 def apply_holm(reviews: list[dict[str, Any]]) -> None:
     valid = [(index, review["bootstrap"]["pTwoSided"])
              for index, review in enumerate(reviews)
@@ -203,6 +244,7 @@ def build_review(records: list[dict[str, Any]], as_of_date: str) -> dict[str, An
             "ledgerRecordTypes": dict(ledger_counts),
             "decisionTypes": dict(decision_counts),
         },
+        "fixedTotalScoreBuckets": fixed_score_bucket_stats(buy_rows),
         "reviews": reviews,
         "adjustmentCandidates": [review["feature"] for review in reviews
                                  if review["suggestedAction"].startswith("candidate_")],
@@ -227,8 +269,22 @@ def render(review: dict[str, Any]) -> str:
              f"- ledger types: `{json.dumps(sample['ledgerRecordTypes'], ensure_ascii=False, sort_keys=True)}`",
              "- High/low comparisons are paired within the same market day; uncertainty resamples trading days.",
              "- Holm correction controls the eight simultaneous score tests.", "",
+             "## Fixed total-score buckets",
+             "",
+             "| total_score bucket | outcomes | executed | candidates | win rate | avg net | median net | expectancy | avg MAE | avg MFE | worst |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    for bucket in review.get("fixedTotalScoreBuckets", []):
+        lines.append(f"| {bucket['bucket']} | {bucket['count']} | {bucket['executedCount']} | "
+                     f"{bucket['candidateCount']} | {fmt(bucket['winRate'], True)} | "
+                     f"{fmt(bucket['avgNetReturn'], True)} | {fmt(bucket['medianNetReturn'], True)} | "
+                     f"{fmt(bucket['expectancy'], True)} | {fmt(bucket['avgMAE'], True)} | "
+                     f"{fmt(bucket['avgMFE'], True)} | {fmt(bucket['worstNetReturn'], True)} |")
+    lines.extend(["",
+             "## High/low score-part tests",
+             "",
              "| score part | high n | low n | paired days | high mean | low mean | paired high-low | 95% CI | Holm p | diagnostic flags | assessment |",
              "|---|---:|---:|---:|---:|---:|---:|---|---:|---|---|"]
+    )
     for item in review["reviews"]:
         ci = item["bootstrap"]["ci95"]
         flags = ", ".join(name for name, enabled in (

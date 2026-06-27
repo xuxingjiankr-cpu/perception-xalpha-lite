@@ -32,12 +32,26 @@ SUBSCORES = [
     "market_regime_score", "relative_strength_score", "liquidity_score",
     "entry_quality_score", "execution_score", "counterfactual_score", "risk_penalty",
 ]
+FIXED_TOTAL_SCORE_BUCKETS = [
+    ("0-40", 0.0, 40.0),
+    ("40-60", 40.0, 60.0),
+    ("60-75", 60.0, 75.0),
+    ("75-90", 75.0, 90.0),
+    ("90+", 90.0, None),
+]
 
 
 def _outcome(rec: dict[str, Any]) -> float | None:
-    for k in ("realized_return", "return_1d"):
-        if rec.get(k) is not None:
-            return float(rec[k])
+    decision_type = str(rec.get("decision_type") or "").upper()
+    signal_direction = str(rec.get("signal_direction") or "").upper()
+    if rec.get("counterfactual_return") is not None and (
+        decision_type == "BUY_CANDIDATE" or signal_direction == "BUY"
+    ):
+        return float(rec["counterfactual_return"])
+    if decision_type in ("BUY", "SELL"):
+        for k in ("realized_return", "return_1d"):
+            if rec.get(k) is not None:
+                return float(rec[k])
     return None
 
 
@@ -69,6 +83,13 @@ def _tertile_label(values: list[float], v: float) -> str:
         return "all"
     lo, hi = s[len(s) // 3], s[2 * len(s) // 3]
     return "low" if v <= lo else ("high" if v >= hi else "mid")
+
+
+def _fixed_total_score_bucket(total_score: float) -> str:
+    for label, low, high in FIXED_TOTAL_SCORE_BUCKETS:
+        if total_score >= low and (high is None or total_score < high):
+            return label
+    return "out_of_range"
 
 
 def load_records(date: str | None) -> list[dict[str, Any]]:
@@ -192,8 +213,21 @@ def build_report(records: list[dict[str, Any]]) -> str:
                      f"decisions and >= {MIN_OUTCOME_DAYS_FOR_CONCLUSION} days). No definitive conclusion is drawn below.")
     lines.append("")
 
-    # 1) by total-score bucket
-    lines.append("## 1. By total-score bucket")
+    # 1) by fixed total-score ranges requested for forward discrimination checks.
+    lines.append("## 1. By fixed total-score range")
+    lines.append("| total_score range | decisions | outcomes | trades | win_rate | avg_ret | median | expectancy | avg_MAE | avg_MFE | max_dd |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    for label, _, _ in FIXED_TOTAL_SCORE_BUCKETS:
+        group = [r for r in records if _fixed_total_score_bucket(as_float(r.get("total_score"))) == label]
+        g = _grp_stats(group)
+        lines.append(f"| {label} | {g['decision_count']} | {g['with_outcome']} | {g['trade_count']} | "
+                     f"{g.get('win_rate','-')} | {g.get('avg_return','-')} | "
+                     f"{g.get('median_return','-')} | {g.get('expectancy','-')} | "
+                     f"{g.get('avg_MAE','-')} | {g.get('avg_MFE','-')} | {g.get('max_drawdown','-')} |")
+    lines.append("")
+
+    # 2) by legacy semantic score bucket
+    lines.append("## 2. By legacy total-score bucket")
     lines.append("| bucket | decisions | trades | win_rate | avg_ret | median | expectancy | avg_MAE | avg_MFE | max_dd |")
     lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for b in ("A", "B", "C", "D", "E"):
@@ -203,8 +237,8 @@ def build_report(records: list[dict[str, Any]]) -> str:
                      f"{g.get('avg_MAE','-')} | {g.get('avg_MFE','-')} | {g.get('max_drawdown','-')} |")
     lines.append("")
 
-    # 2) by sub-score tertile
-    lines.append("## 2. By sub-score group (high/mid/low tertiles)")
+    # 3) by sub-score tertile
+    lines.append("## 3. By sub-score group (high/mid/low tertiles)")
     predictive: dict[str, float | None] = {}
     for sc in SUBSCORES:
         vals = [as_float(r.get(sc)) for r in records if r.get(sc) is not None]
@@ -225,8 +259,8 @@ def build_report(records: list[dict[str, Any]]) -> str:
             predictive[sc] = round(avg_by_grp["high"] - avg_by_grp["low"], 4)
         lines.append("")
 
-    # 3) mistake attribution
-    lines.append("## 3. Mistake attribution")
+    # 4) mistake attribution
+    lines.append("## 4. Mistake attribution")
     counts: dict[str, int] = {}
     for r in records:
         mt = r.get("mistake_type") or (classify_mistake(r) if _outcome(r) is not None else "UNKNOWN")
@@ -235,8 +269,8 @@ def build_report(records: list[dict[str, Any]]) -> str:
         lines.append(f"- {k}: {counts[k]}")
     lines.append("")
 
-    # 4) conclusions
-    lines.append("## 4. Scoring-logic conclusions")
+    # 5) conclusions
+    lines.append("## 5. Scoring-logic conclusions")
     if insufficient:
         lines.append("- sample_insufficient: outcomes too few for predictive claims.")
         lines.append("- Action: keep recording decisions + outcomes until the sample grows.")
@@ -262,7 +296,7 @@ def build_report(records: list[dict[str, Any]]) -> str:
         shadow = shadow_forward_stats(records, shadow_cfg)
         show = lambda value: "-" if value is None else f"{value:.4%}"
         lines.extend([
-            "## 5. Preregistered forward shadow: frozen score >= 71",
+            "## 6. Preregistered forward shadow: frozen score >= 71",
             "",
             f"- effective_from: {shadow['effective_from']}",
             f"- forward BUY outcome days: {shadow['days']}",
@@ -282,7 +316,7 @@ def build_report(records: list[dict[str, Any]]) -> str:
         neutral = probability["neutral_half"]
         show = lambda value: "-" if value is None else f"{value:.6f}"
         lines.extend([
-            "## 6. Preregistered probability calibration shadow",
+            "## 7. Preregistered probability calibration shadow",
             "",
             f"- effective_from: {probability['effective_from']}",
             f"- forward BUY outcomes: {probability['rows']} across {probability['days']} independent days",

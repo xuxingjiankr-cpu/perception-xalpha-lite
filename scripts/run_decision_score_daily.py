@@ -19,8 +19,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from run_etf_paper_trading_agent import ROOT
+from run_etf_paper_trading_agent import ROOT, as_float
 import decision_scoring as ds
+import decision_probability as dp
 import run_decision_score_report as rep
 import run_decision_probability_forward as probability_forward
 import research_decision_score_daily_review as score_review
@@ -36,6 +37,27 @@ def minute_quotes_for(date_compact: str) -> Path | None:
     iso = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:8]}"
     p = AGENT_OUT / f"minute_quotes_{iso}.jsonl"
     return p if p.exists() else None
+
+
+def minimum_complete_minute() -> int:
+    model = dp.load_shadow_model() or {}
+    return int(as_float(model.get("minimumHorizonCompleteMinute"), 895))
+
+
+def session_complete(price_index: dict, iso_date: str, minimum_minute: int | None = None) -> bool:
+    threshold = minimum_complete_minute() if minimum_minute is None else int(minimum_minute)
+    for by_date in price_index.values():
+        daymap = by_date.get(iso_date) if isinstance(by_date, dict) else None
+        if isinstance(daymap, dict) and daymap and max(daymap) >= threshold:
+            return True
+    return False
+
+
+def clear_outcomes(records: list[dict]) -> list[dict]:
+    for record in records:
+        for field in ds.OUTCOME_FIELDS:
+            record[field] = None
+    return records
 
 
 def main() -> None:
@@ -68,8 +90,15 @@ def main() -> None:
         if not quotes:
             print(f"  {date_compact}: no minute_quotes to enrich from yet (skipped)")
             continue
-        ds.enrich_from_price_index(recs, price_index, closes)
         iso = f"{date_compact[:4]}-{date_compact[4:6]}-{date_compact[6:8]}"
+        if not session_complete(price_index, iso):
+            if any(record.get(field) is not None for record in recs for field in ds.OUTCOME_FIELDS):
+                ds.write_scores(clear_outcomes(recs), iso)
+                print(f"  {date_compact}: session incomplete; cleared provisional outcomes and skipped")
+            else:
+                print(f"  {date_compact}: session incomplete; skipped")
+            continue
+        ds.enrich_from_price_index(recs, price_index, closes)
         ds.write_scores(recs, iso)
         n_out = sum(1 for r in recs if r.get("realized_return") is not None)
         n_probability = sum(1 for r in recs if r.get("probability_outcome") is not None)
