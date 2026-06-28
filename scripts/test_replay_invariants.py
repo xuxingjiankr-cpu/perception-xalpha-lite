@@ -2793,6 +2793,130 @@ def t66_forward_execution_friction_is_conservative_and_safe() -> None:
           and "submitOrder" not in source and "SkillClient" not in source)
 
 
+def t67_full_t0_depth_collector_is_point_in_time_and_safe() -> None:
+    """Depth collection must use the confirmed master, reject stale quotes, expose
+    missing-code coverage, and contain no account/order capability."""
+    import json as _json
+    from datetime import datetime as _datetime
+    from tempfile import TemporaryDirectory as _TemporaryDirectory
+    from zoneinfo import ZoneInfo as _ZoneInfo
+    import collect_l2_depth as depth
+
+    with _TemporaryDirectory() as td:
+        master = Path(td) / "master.jsonl"
+        master.write_text(
+            "\n".join(
+                [
+                    _json.dumps(
+                        {
+                            "code": "513100",
+                            "exchange": "SH",
+                            "name": "纳指ETF",
+                            "asset_class": "cross_border",
+                            "t0_confirmed": True,
+                            "is_money_like": False,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    _json.dumps(
+                        {
+                            "code": "510300",
+                            "exchange": "SH",
+                            "name": "沪深300ETF",
+                            "asset_class": "domestic_equity",
+                            "t0_confirmed": False,
+                            "is_money_like": False,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    _json.dumps(
+                        {
+                            "code": "511880",
+                            "exchange": "SH",
+                            "name": "货币ETF",
+                            "asset_class": "money",
+                            "t0_confirmed": True,
+                            "is_money_like": True,
+                        },
+                        ensure_ascii=False,
+                    ),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        universe = depth.load_confirmed_t0_universe(master)
+    check(
+        "T67 depth universe contains only product-level confirmed non-money T0 ETFs",
+        [row["code"] for row in universe] == ["513100"],
+        str(universe),
+    )
+
+    def payload(source_date: str, source_time: str) -> str:
+        fields = [""] * 33
+        fields[0] = "纳指ETF"
+        fields[2] = "2.000"
+        fields[3] = "2.010"
+        for level in range(5):
+            fields[10 + 2 * level] = str(1000 + level)
+            fields[11 + 2 * level] = f"{2.009 - 0.001 * level:.3f}"
+            fields[20 + 2 * level] = str(900 + level)
+            fields[21 + 2 * level] = f"{2.011 + 0.001 * level:.3f}"
+        fields[30] = source_date
+        fields[31] = source_time
+        return f'var hq_str_sh513100="{",".join(fields)}";'
+
+    cn = _ZoneInfo("Asia/Shanghai")
+    collected = _datetime(2026, 7, 1, 10, 0, 30, tzinfo=cn)
+    by_code = {row["code"]: row for row in universe}
+    fresh = depth.parse_sina_payload(
+        payload("2026-07-01", "10:00:00"),
+        by_code,
+        collected,
+        180,
+    )
+    stale = depth.parse_sina_payload(
+        payload("2026-06-30", "15:00:00"),
+        by_code,
+        collected,
+        180,
+    )
+    check(
+        "T67 source timestamp controls freshness instead of collector clock",
+        len(fresh) == 1
+        and fresh[0]["is_fresh"] is True
+        and stale[0]["is_fresh"] is False
+        and fresh[0]["bid_levels"] == 5
+        and fresh[0]["ask_levels"] == 5,
+    )
+
+    coverage = depth.coverage_record(
+        universe
+        + [
+            {
+                "code": "518880",
+                "exchange": "SH",
+                "name": "黄金ETF",
+                "asset_class": "gold",
+            }
+        ],
+        fresh,
+        {"provider": "synthetic"},
+        collected,
+    )
+    source = (ROOT / "scripts" / "collect_l2_depth.py").read_text(encoding="utf-8")
+    check(
+        "T67 incomplete full-T0 coverage is explicit and collector cannot trade",
+        coverage["expected_count"] == 2
+        and coverage["fresh_count"] == 1
+        and coverage["missing_codes"] == ["518880"]
+        and coverage["status"] == "partial_coverage"
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "cancelOrder" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3019,6 +3143,7 @@ if __name__ == "__main__":
     t64_hmm_nn_bl_research_is_frozen_and_safe()
     t65_literature_reversal_research_is_point_in_time()
     t66_forward_execution_friction_is_conservative_and_safe()
+    t67_full_t0_depth_collector_is_point_in_time_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
