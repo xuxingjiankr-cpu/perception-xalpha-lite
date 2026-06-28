@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "forward_execution_friction_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T10:00:00+08:00",
+  "hypothesis": "Real point-in-time bid/ask data and conservative passive-fill proxies can determine whether the previously observed high-dispersion overnight-reversal gross edge can survive an approximately 8.3 bps break-even execution budget.",
+  "literature": [
+    {
+      "title": "Optimal Order Placement in Limit Order Markets",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2155218",
+      "testableClaim": "The market-versus-limit decision depends jointly on book state, order flow, fees and execution probability."
+    },
+    {
+      "title": "Empirical Analysis of Limit Order Markets",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=274239",
+      "testableClaim": "Limit orders trade better price against fill risk and winner's-curse adverse selection."
+    },
+    {
+      "title": "A Deep Learning Approach to Estimating Fill Probabilities in a Limit Order Book",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3897438",
+      "testableClaim": "Conditional time-to-fill is the key input to choosing passive versus aggressive execution."
+    }
+  ],
+  "data": {
+    "quoteDirectory": "outputs/t0_intraday_agent",
+    "filePattern": "minute_quotes_2026-06-*.jsonl",
+    "startDate": "2026-06-22",
+    "assetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "master": "outputs/edge_research/t0_etf_master_latest.jsonl",
+    "minimumCodesForStrategyDay": 20
+  },
+  "execution": {
+    "passiveLimit": "current_best_bid",
+    "passiveFillWindowMinutes": 10,
+    "touchFillProxy": "subsequent_current_price_at_or_below_initial_bid",
+    "conservativeFillProxy": "subsequent_best_ask_at_or_below_initial_bid",
+    "genericExitHorizonMinutes": 30,
+    "aggressiveEntry": "current_best_ask",
+    "aggressiveExit": "future_best_bid",
+    "strategyExit": "last_valid_best_bid",
+    "breakEvenExecutionBudgetBps": 8.3
+  },
+  "sampling": {
+    "bucketMinutes": 30,
+    "oneObservationPerCodePerBucket": true,
+    "minimumForwardDaysForConclusion": 20
+  },
+  "strategyShadow": {
+    "name": "overnight_reversal_high_dispersion",
+    "trainingDispersionThreshold": 0.00785,
+    "maxAssets": 5,
+    "signalCutoffTime": "10:00",
+    "entry": "next_observed_quote",
+    "requiresMinimumCodes": 20
+  },
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false
+  }
+}

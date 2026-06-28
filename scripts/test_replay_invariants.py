@@ -2732,6 +2732,67 @@ def t65_literature_reversal_research_is_point_in_time() -> None:
           and "latest_strategy_overlay" not in sources)
 
 
+def t66_forward_execution_friction_is_conservative_and_safe() -> None:
+    """Forward execution research must use China quote time, separate optimistic and
+    conservative passive-fill proxies, and remain descriptive until enough days accrue."""
+    import json as _json
+    from datetime import datetime as _datetime
+    from zoneinfo import ZoneInfo as _ZoneInfo
+    import research_forward_execution_friction as friction
+
+    fallback_time = friction.parse_china_time(
+        {"timestamp": "2026-07-01T10:31:00+09:00"}
+    )
+    source_time = friction.parse_china_time(
+        {
+            "timestamp": "2026-07-01T10:31:00+09:00",
+            "source_quote_time": "2026-07-01T09:31:02+08:00",
+        }
+    )
+    check("T66 execution research normalizes timestamps to China time",
+          fallback_time is not None and fallback_time.strftime("%H:%M") == "09:31"
+          and source_time is not None and source_time.strftime("%H:%M:%S") == "09:31:02")
+
+    tz = _ZoneInfo("Asia/Shanghai")
+    rows = [
+        {"timestamp": _datetime(2026, 7, 1, 10, 0, tzinfo=tz), "bid": 1.000,
+         "ask": 1.002, "mid": 1.001, "current": 1.001, "spread_bps": 19.98,
+         "trade_date": "2026-07-01", "code": "513100"},
+        {"timestamp": _datetime(2026, 7, 1, 10, 5, tzinfo=tz), "bid": 0.999,
+         "ask": 1.001, "mid": 1.000, "current": 1.000, "spread_bps": 20.0,
+         "trade_date": "2026-07-01", "code": "513100"},
+        {"timestamp": _datetime(2026, 7, 1, 10, 10, tzinfo=tz), "bid": 0.998,
+         "ask": 0.999, "mid": 0.9985, "current": 0.999, "spread_bps": 10.02,
+         "trade_date": "2026-07-01", "code": "513100"},
+        {"timestamp": _datetime(2026, 7, 1, 10, 30, tzinfo=tz), "bid": 1.003,
+         "ask": 1.005, "mid": 1.004, "current": 1.004, "spread_bps": 19.92,
+         "trade_date": "2026-07-01", "code": "513100"},
+    ]
+    fills = friction.passive_fill_proxies(rows, 0, 10)
+    check("T66 passive fill proxies require a later quote and distinguish ask-cross",
+          fills["touch_fill"] is True and fills["conservative_fill"] is True
+          and fills["touch_fill_time"] > rows[0]["timestamp"])
+
+    config = _json.loads(
+        (ROOT / "configs" / "research" / "forward_execution_friction_preregistered.json")
+        .read_text(encoding="utf-8")
+    )
+    observation = friction.execution_observation(rows, 0, config)
+    check("T66 aggressive execution cost is measured against the midpoint path",
+          observation is not None and observation["aggressive_cost_bps"] > 0)
+    sparse = friction.forward_strategy_shadow(
+        {("2026-07-01", "513100"): rows}, config
+    )
+    source = (ROOT / "scripts" / "research_forward_execution_friction.py").read_text(
+        encoding="utf-8"
+    )
+    check("T66 thin forward execution sample fails closed and cannot trade",
+          sparse["status"] == "insufficient_forward_execution_days"
+          and config["safety"]["tradeGateEnabled"] is False
+          and config["safety"]["writesStrategyOverlay"] is False
+          and "submitOrder" not in source and "SkillClient" not in source)
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -2957,6 +3018,7 @@ if __name__ == "__main__":
     t63_hsmm_regime_research_is_point_in_time()
     t64_hmm_nn_bl_research_is_frozen_and_safe()
     t65_literature_reversal_research_is_point_in_time()
+    t66_forward_execution_friction_is_conservative_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
