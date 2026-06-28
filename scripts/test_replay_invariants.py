@@ -3320,6 +3320,94 @@ def t70_option_pressure_collector_is_forward_and_unsigned() -> None:
     )
 
 
+def t71_same_index_underreaction_is_next_bar_oos_and_safe() -> None:
+    """The clone-laggard research must form signals with past data, enter on
+    the next bar, charge the preregistered cost, and remain offline-only."""
+    import json
+    import research_same_index_underreaction as clone
+
+    index = clone.pd.date_range(
+        "2026-06-01 09:45:00", "2026-06-01 10:35:00", freq="5min"
+    )
+    prices = clone.pd.DataFrame(
+        {
+            "A": [1.0, 1.0, 1.0, 1.004, 1.004, 1.004, 1.004, 1.004, 1.004, 1.004, 1.005],
+            "B": [1.0, 1.0, 1.0, 1.004, 1.004, 1.004, 1.004, 1.004, 1.004, 1.004, 1.005],
+            "C": [1.0, 1.0, 1.0, 1.000, 1.000, 1.002, 1.004, 1.008, 1.012, 1.016, 1.020],
+        },
+        index=index,
+    )
+    config = {
+        "data": {"minimumMembersPerBenchmark": 2},
+        "signal": {
+            "formationBars": 3,
+            "groupMomentumMinimum": 0.002,
+            "laggardResidualMaximum": -0.0015,
+            "decisionTimes": ["10:00"],
+            "maximumBenchmarkSignalsPerDecision": 5,
+        },
+        "execution": {
+            "holdingBars": 6,
+            "maximumEntryDelayMinutes": 10,
+        },
+    }
+    signals = clone.generate_signals(prices, {"IDX": ["A", "B", "C"]}, config)
+    check(
+        "T71 fixed same-index signal identifies the planted laggard",
+        len(signals) == 1
+        and signals[0]["laggard"] == "C"
+        and signals[0]["group_momentum"] >= 0.002
+        and signals[0]["laggard_residual"] <= -0.0015,
+        str(signals),
+    )
+    check(
+        "T71 same-index replay enters strictly after the decision bar",
+        signals[0]["entry_time"] > signals[0]["decision_time"]
+        and abs(signals[0]["candidate_gross_return"] - 0.02) < 1e-12,
+        str(signals[0]),
+    )
+
+    daily12, _, edge12, intervals12 = clone.daily_portfolios(
+        signals, cost_bps=12, max_weight=0.2
+    )
+    daily20, _, edge20, _ = clone.daily_portfolios(
+        signals, cost_bps=20, max_weight=0.2
+    )
+    day = "2026-06-01"
+    check(
+        "T71 higher registered cost lowers candidate return by exact exposure",
+        abs((daily12[day] - daily20[day]) - 0.2 * 8 / 10_000) < 1e-12
+        and intervals12[0]["exposure"] == 0.2,
+    )
+    check(
+        "T71 equal candidate/control costs cancel only in paired relative edge",
+        abs(edge12[day] - edge20[day]) < 1e-12,
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "same_index_underreaction_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_same_index_underreaction.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T71 same-index research is diagnostic-only and cannot trade or promote",
+        prereg["status"] == "diagnostic_only"
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3550,6 +3638,7 @@ if __name__ == "__main__":
     t68_paper_order_lifecycle_uses_confirmed_fills_only()
     t69_iopv_pcf_collector_preserves_source_tiers()
     t70_option_pressure_collector_is_forward_and_unsigned()
+    t71_same_index_underreaction_is_next_bar_oos_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "same_index_underreaction_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T15:20:00+08:00",
+  "hypothesis": "When several T0 ETFs track the same benchmark and the group has risen over the preceding 15 minutes, a liquid clone that materially lags the group may underreact and partially catch up over the next 30 minutes.",
+  "literature": [
+    {
+      "title": "The Returns and Limits to Relative-Value ETF Arbitrage",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2816849"
+    },
+    {
+      "title": "Value of ETF Liquidity",
+      "url": "https://academic.oup.com/rfs/article/37/10/3092/7738093"
+    },
+    {
+      "title": "Intraday Arbitrage Between ETFs and their Underlying Portfolios",
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3322400"
+    }
+  ],
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "master": "outputs/edge_research/t0_etf_master_latest.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "allowedAssetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "minimumTrainingCoverageRatio": 0.8,
+    "minimumTrainingAverageDailyAmount": 50000000,
+    "maximumMembersPerBenchmark": 5,
+    "minimumMembersPerBenchmark": 2
+  },
+  "signal": {
+    "formationBars": 3,
+    "groupMomentumMinimum": 0.002,
+    "laggardResidualMaximum": -0.0015,
+    "decisionTimes": [
+      "10:00",
+      "10:30",
+      "11:00",
+      "13:30",
+      "14:00"
+    ],
+    "oneLaggardPerBenchmark": true,
+    "maximumBenchmarkSignalsPerDecision": 5
+  },
+  "execution": {
+    "entry": "next_observed_5m_bar",
+    "holdingBars": 6,
+    "maximumEntryDelayMinutes": 10,
+    "maxWeightPerSignal": 0.2,
+    "primaryRoundTripCostBps": 12,
+    "costStressBps": [
+      6,
+      12,
+      20
+    ]
+  },
+  "evidenceGates": {
+    "minimumOosDays": 15,
+    "minimumOosTrades": 30,
+    "requirePositiveCandidateNetAt12Bps": true,
+    "requirePositiveCandidateNetAt20Bps": true,
+    "requirePositivePairedEdge": true,
+    "requirePairedBootstrapLowerBoundPositive": true,
+    "requireDmSignificantVsCash": true,
+    "requireDmSignificantVsPeerControl": true,
+    "requireDsrSignificant": true,
+    "requireSpaReject": true
+  },
+  "knownLimitations": [
+    "Current benchmark membership can create survivorship bias.",
+    "Yahoo bid/ask is synthetic and fixed cost is only a proxy.",
+    "The trade is long-only rather than a market-neutral pair.",
+    "The OOS window has only about 21 trading days."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}
