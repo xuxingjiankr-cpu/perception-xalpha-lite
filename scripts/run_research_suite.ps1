@@ -30,6 +30,7 @@ $scripts = @(
     "select_daily_momentum_pool.py",
     "compute_trend_regime.py",
     "research_orderbook_imbalance.py",
+    "research_iopv_premium.py",
     "build_obi_dashboard.py",
     "archive_paper_order_lifecycle.py",
     "research_forward_execution_friction.py",
