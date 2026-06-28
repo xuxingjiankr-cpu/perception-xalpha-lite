@@ -3408,6 +3408,117 @@ def t71_same_index_underreaction_is_next_bar_oos_and_safe() -> None:
     )
 
 
+def t72_trend_pullback_recovery_is_causal_costed_and_safe() -> None:
+    """Trend/pullback research must use a causal VWAP, enter and exit after
+    observed triggers, retain unfilled selections as cash, and stay offline."""
+    import json
+    import research_trend_pullback_recovery as tpr
+
+    index = tpr.pd.date_range("2026-06-01 10:20:00", periods=6, freq="5min")
+    prices = tpr.pd.Series(
+        [1.000, 1.005, 1.010, 1.006, 1.007, 1.008], index=index
+    )
+    amount = tpr.pd.Series([100.0] * 6, index=index)
+    vwap_at_decision = tpr.causal_vwap(prices, amount, 2)
+    amount_with_future_shock = amount.copy()
+    amount_with_future_shock.iloc[3:] = 1_000_000.0
+    check(
+        "T72 causal VWAP is invariant to future volume and price rows",
+        abs(vwap_at_decision - tpr.causal_vwap(prices, amount_with_future_shock, 2))
+        < 1e-12,
+        str(vwap_at_decision),
+    )
+
+    entry = tpr.find_pullback_entry(
+        prices,
+        amount,
+        decision_index=2,
+        reference_high=1.010,
+        minimum_pullback=0.003,
+        maximum_wait_bars=3,
+        require_non_negative_last_bar=True,
+        require_above_vwap=True,
+    )
+    check(
+        "T72 pullback waits for recovery and enters on the following bar",
+        entry is not None
+        and entry["trigger_index"] == 4
+        and entry["entry_index"] == 5
+        and entry["entry_index"] > entry["trigger_index"],
+        str(entry),
+    )
+    no_volume_entry = tpr.find_pullback_entry(
+        prices,
+        tpr.pd.Series([0.0] * 6, index=index),
+        decision_index=2,
+        reference_high=1.010,
+        minimum_pullback=0.003,
+        maximum_wait_bars=3,
+        require_non_negative_last_bar=True,
+        require_above_vwap=True,
+    )
+    check(
+        "T72 missing causal volume cannot fake a VWAP-confirmed entry",
+        no_volume_entry is None,
+    )
+
+    exit_prices = tpr.pd.Series([1.000, 1.005, 1.011, 1.008])
+    recovery = tpr.recovery_exit(
+        exit_prices, entry_index=0, reference_high=1.010, holding_bars=3
+    )
+    check(
+        "T72 known-high exit fills one bar after the observed trigger",
+        recovery is not None
+        and recovery["exit_reason"] == "known_high_recovery"
+        and recovery["exit_index"] == 3
+        and abs(recovery["gross_return"] - 0.008) < 1e-12,
+        str(recovery),
+    )
+
+    row = {
+        "trade_date": "2026-06-01",
+        "decision_time": "2026-06-01T10:30:00+08:00",
+        "immediate_hold_gross_return": 0.01,
+        "pullback_hold_gross_return": None,
+        "pullback_recovery_gross_return": None,
+    }
+    daily, trades = tpr.daily_portfolios([row], cost_bps=12, max_weight=0.2)
+    check(
+        "T72 unfilled pullback remains cash instead of disappearing from the sample",
+        daily["pullback_hold_ablation"]["2026-06-01"] == 0.0
+        and daily["pullback_recovery_candidate"]["2026-06-01"] == 0.0
+        and trades["pullback_recovery_candidate"] == 0,
+    )
+    check(
+        "T72 immediate control deducts registered round-trip cost",
+        abs(daily["immediate_hold_control"]["2026-06-01"] - 0.2 * (0.01 - 0.0012))
+        < 1e-12,
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "trend_pullback_recovery_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_trend_pullback_recovery.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T72 trend-pullback research cannot trade, promote or alter overlays",
+        prereg["status"] == "diagnostic_only"
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3639,6 +3750,7 @@ if __name__ == "__main__":
     t69_iopv_pcf_collector_preserves_source_tiers()
     t70_option_pressure_collector_is_forward_and_unsigned()
     t71_same_index_underreaction_is_next_bar_oos_and_safe()
+    t72_trend_pullback_recovery_is_causal_costed_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

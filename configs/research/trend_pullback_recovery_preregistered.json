@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "trend_pullback_recovery_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-06-28T18:10:00+08:00",
+  "hypothesis": "Among liquid confirmed T+0 cross-border and gold ETFs, slow relative strength can select the instrument while a short pullback and causal-VWAP recovery can improve entry price; a pre-entry local high is a point-in-time exit anchor.",
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "allowedAssetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "trainingUniverseSize": 40,
+    "minimumTrainingCoverageRatio": 0.8
+  },
+  "selection": {
+    "decisionTimes": [
+      "10:30",
+      "13:30"
+    ],
+    "trendLookbackBars": 12,
+    "minimumTrendReturn": 0.0,
+    "topFraction": 0.2,
+    "maximumSelectionsPerDecision": 5,
+    "requirePriceAtOrAboveCausalVwap": true
+  },
+  "entry": {
+    "referenceHighBars": 6,
+    "minimumPullbackFromKnownHigh": 0.003,
+    "maximumWaitBars": 3,
+    "requireNonNegativeLastBar": true,
+    "requirePriceAtOrAboveCausalVwap": true,
+    "fill": "next_observed_5m_close_after_recovery"
+  },
+  "exit": {
+    "holdingBars": 6,
+    "recoveryTarget": "pre_entry_known_reference_high",
+    "stopDistance": "same_as_entry_to_target_distance",
+    "triggerFill": "next_observed_5m_close",
+    "timeExit": "entry_plus_6_bars"
+  },
+  "portfolio": {
+    "maximumWeightPerSelection": 0.2,
+    "primaryRoundTripCostBps": 12,
+    "costStressBps": [
+      6,
+      12,
+      20
+    ],
+    "unfilledPullbackReturn": 0.0
+  },
+  "variants": [
+    "immediate_hold_control",
+    "pullback_hold_ablation",
+    "pullback_recovery_candidate"
+  ],
+  "evidenceGates": {
+    "minimumOosDays": 15,
+    "minimumOosCandidateTrades": 20,
+    "requirePositiveCandidateNetAt12Bps": true,
+    "requirePositiveCandidateNetAt20Bps": true,
+    "requirePositivePairedImprovementAt12Bps": true,
+    "requirePairedBootstrapLowerBoundPositive": true,
+    "requireNoWorseDailyStd": true,
+    "requireNoWorseWorstDay": true,
+    "requireDmSignificant": true,
+    "requireDsrSignificant": true,
+    "requireSpaReject": true
+  },
+  "interpretation": {
+    "oosReuseDisclosure": "The hypothesis was inspired by diagnostics from this same 60-day sample, so the nominal OOS window is reused and can establish historical plausibility only.",
+    "minimumForwardDaysBeforeAnyPaperGateProposal": 20,
+    "historicalPassMayEnableRecordOnlyShadow": true,
+    "historicalPassMayEnableTrading": false
+  },
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}
