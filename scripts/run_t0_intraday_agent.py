@@ -3080,7 +3080,8 @@ def build_decision(
                 q["cross_etf_divergence_pct"] = 0.0
         else:
             q["cross_etf_divergence_pct"] = 0.0
-    ranked = sorted(liquid_quotes, key=lambda x: as_float(x.get("momentum"), -999), reverse=True)
+    from frontier_competition_policy import rank_quotes as rank_frontier_quotes
+    ranked = rank_frontier_quotes(liquid_quotes, strategy)
     # Holdings first, so the entry candidate excludes names we already hold: with
     # target_holdings>1 we add a NEW name each entry run, up to the cap.
     sellable_by_code = {}
@@ -3651,6 +3652,8 @@ def build_decision(
                     "entry_score": entry_score,
                     "execution_quality": best.get("execution_quality"),
                     "safe_policy_shield": best.get("safe_policy_shield"),
+                    "frontier_competition_policy": best.get("frontier_policy"),
+                    "frontier_rank_score": best.get("frontier_rank_score"),
                     "baseline_available_quantity": as_float(positions.get(str(best["stockCode"]).zfill(6), {}).get("availableQuantity"), 0.0),
                     "inventory_scope": "t0_intraday_inventory_only",
                     "t0_eligible": True,
@@ -3751,6 +3754,14 @@ def build_decision(
         },
         "risk_checks": checks,
         "market_correlation_stress": market_correlation_stress,
+        "frontier_competition_policy": cfg.get(
+            "_frontier_competition_policy",
+            {
+                "enabled": False,
+                "appliedToRanking": False,
+                "reason": "not_evaluated",
+            },
+        ),
         "sector_diversification": sector_diversification_detail,
         "approved_for_submit": bool(approved),
         "orders": orders_list,
@@ -3855,6 +3866,22 @@ def run_agent(config_path: Path, execute: bool = False) -> dict[str, Any]:
     minute_csv_path = dated_output_path(out_dir, cfg["outputs"]["minute_quotes_csv"], trade_date)
     history = load_recent_quotes(minute_path, universe_size=len(cfg["universe"]))
     quotes = compute_snapshot_momentum(quotes, history, int(cfg["strategy"]["lookback_minutes"]), cfg["strategy"])
+    try:
+        from frontier_competition_policy import apply_frontier_policy
+        quotes, frontier_policy_meta = apply_frontier_policy(
+            quotes,
+            cfg.get("strategy", {}),
+            trade_date,
+            now=current_dt(),
+        )
+    except Exception as exc:
+        frontier_policy_meta = {
+            "enabled": True,
+            "appliedToRanking": False,
+            "reason": f"frontier_policy_error:{type(exc).__name__}",
+            "alphaValidated": False,
+        }
+    cfg["_frontier_competition_policy"] = frontier_policy_meta
     market_correlation_stress = compute_market_correlation_stress(
         history,
         quotes,

@@ -303,6 +303,42 @@
         "acceleration"
       ]
     },
+    "frontier_competition_policy": {
+      "enabled": true,
+      "mode": "active_rerank",
+      "paper_competition_only": true,
+      "note": "Experimental paper-contest candidate reranking only. It cannot bypass entry/risk/execution checks or change sizing. Fresh L2 coverage is mandatory; otherwise ranking falls back to baseline momentum.",
+      "allowed_asset_classes": [
+        "gold_etf",
+        "cross_border_etf",
+        "hk_etf"
+      ],
+      "depth_files": [
+        "outputs/l2_depth/depth_{trade_date}.jsonl"
+      ],
+      "premium_files": [
+        "data/research/etf_iopv/iopv_{trade_date}.jsonl",
+        "outputs/iopv_premium/iopv_{trade_date}.jsonl"
+      ],
+      "maximum_depth_rows": 60000,
+      "maximum_premium_rows": 30000,
+      "max_depth_age_seconds": 120,
+      "max_premium_age_seconds": 180,
+      "minimum_depth_coverage": 0.5,
+      "minimum_premium_history": 10,
+      "execution_buffer_bps": 4,
+      "feature_weights": {
+        "momentum": 0.25,
+        "acceleration": 0.15,
+        "vwap_distance": 0.1,
+        "idiosyncratic_obi": 0.2,
+        "microprice": 0.1,
+        "relative_discount": 0.15,
+        "spread_cost": 0.05
+      },
+      "alpha_validated": false,
+      "auto_promotion_allowed": false
+    },
     "target_holdings": 5,
     "legacy_inventory_codes": ["159915", "588000", "588030", "159546"],
     "legacy_inventory_note": "存量持仓:按各自卖出条件退出(不强平),且不占用 target_holdings 的新增豪赌仓位配额。某只清空后会自然离开 committed,可从此列表移除;比赛结束后清空整个列表。",

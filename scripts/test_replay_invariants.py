@@ -3519,6 +3519,191 @@ def t72_trend_pullback_recovery_is_causal_costed_and_safe() -> None:
     )
 
 
+def t73_frontier_competition_ranker_is_fresh_paper_only_and_auditable() -> None:
+    """The contest ranker may reorder paper candidates only with fresh external
+    coverage; stale data must restore baseline momentum ordering."""
+    import json
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import frontier_competition_policy as frontier
+
+    cn = ZoneInfo("Asia/Shanghai")
+    now = datetime(2026, 6, 30, 10, 0, 0, tzinfo=cn)
+    quotes = [
+        {
+            "stockCode": "513100",
+            "asset_class": "cross_border_etf",
+            "momentum": 0.0020,
+            "acceleration": 0.0010,
+            "vwap_distance_pct": 0.0010,
+            "spread_pct": 0.0002,
+        },
+        {
+            "stockCode": "513500",
+            "asset_class": "cross_border_etf",
+            "momentum": 0.0030,
+            "acceleration": -0.0010,
+            "vwap_distance_pct": 0.0002,
+            "spread_pct": 0.0010,
+        },
+        {
+            "stockCode": "518880",
+            "asset_class": "gold_etf",
+            "momentum": 0.0010,
+            "acceleration": 0.0,
+            "vwap_distance_pct": 0.0005,
+            "spread_pct": 0.0004,
+        },
+    ]
+    depth = [
+        {
+            "code": "513100",
+            "collected_at": "2026-06-30T09:59:30+08:00",
+            "is_fresh": True,
+            "obi": 0.8,
+            "micro_dev_bps": 3.0,
+            "half_spread_bps": 1.0,
+        },
+        {
+            "code": "513500",
+            "collected_at": "2026-06-30T09:59:30+08:00",
+            "is_fresh": True,
+            "obi": -0.8,
+            "micro_dev_bps": -3.0,
+            "half_spread_bps": 5.0,
+        },
+        {
+            "code": "518880",
+            "collected_at": "2026-06-30T09:59:30+08:00",
+            "is_fresh": True,
+            "obi": 0.0,
+            "micro_dev_bps": 0.0,
+            "half_spread_bps": 2.0,
+        },
+    ]
+    premium = []
+    for code, history, latest in (
+        ("513100", 0.20, 0.00),
+        ("513500", 0.00, 0.20),
+        ("518880", 0.10, 0.10),
+    ):
+        premium.extend(
+            [
+                {
+                    "stockCode": code,
+                    "collected_at": f"2026-06-30T09:5{minute}:00+08:00",
+                    "premium_pct": history,
+                }
+                for minute in range(3)
+            ]
+        )
+        premium.append(
+            {
+                "stockCode": code,
+                "collected_at": "2026-06-30T09:59:30+08:00",
+                "premium_pct": latest,
+            }
+        )
+    cfg = {
+        "enabled": True,
+        "mode": "active_rerank",
+        "paper_competition_only": True,
+        "minimum_depth_coverage": 0.5,
+        "max_depth_age_seconds": 120,
+        "max_premium_age_seconds": 180,
+        "minimum_premium_history": 4,
+        "execution_buffer_bps": 4,
+    }
+    enriched, meta = frontier.enrich_quotes(
+        quotes, depth, premium, cfg, now=now
+    )
+    ranked = frontier.rank_quotes(
+        enriched, {"frontier_competition_policy": cfg}
+    )
+    by_code = {row["stockCode"]: row for row in enriched}
+    check(
+        "T73 fresh broad depth coverage activates paper-contest reranking",
+        meta["appliedToRanking"] is True
+        and meta["depthCoverage"] == 1.0
+        and ranked[0]["stockCode"] == "513100",
+        str(meta),
+    )
+    check(
+        "T73 ranker removes common OBI and uses own-history premium residual",
+        abs(
+            by_code["513100"]["frontier_policy"]["rawFeatures"][
+                "idiosyncratic_obi"
+            ]
+            - 0.8
+        )
+        < 1e-12
+        and by_code["513100"]["frontier_policy"]["premium"][
+            "discountResidualBps"
+        ]
+        > 0,
+        str(by_code["513100"]["frontier_policy"]),
+    )
+    check(
+        "T73 execution cost is explicit rather than treated as free alpha",
+        by_code["513100"]["frontier_policy"][
+            "estimatedAggressiveRoundTripCostBps"
+        ]
+        == 6.0,
+    )
+
+    stale_depth = [
+        {**row, "collected_at": "2026-06-30T09:50:00+08:00"}
+        for row in depth
+    ]
+    stale_enriched, stale_meta = frontier.enrich_quotes(
+        quotes, stale_depth, premium, cfg, now=now
+    )
+    stale_ranked = frontier.rank_quotes(
+        stale_enriched, {"frontier_competition_policy": cfg}
+    )
+    check(
+        "T73 stale depth disables frontier ordering and restores momentum baseline",
+        stale_meta["appliedToRanking"] is False
+        and stale_ranked[0]["stockCode"] == "513500",
+        str(stale_meta),
+    )
+
+    live_cfg = json.loads(
+        (ROOT / "configs" / "t0_intraday_paper_agent.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    policy_cfg = live_cfg["strategy"]["frontier_competition_policy"]
+    policy_source = (
+        ROOT / "scripts" / "frontier_competition_policy.py"
+    ).read_text(encoding="utf-8")
+    agent_source = (
+        ROOT / "scripts" / "run_t0_intraday_agent.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T73 frontier strategy is explicitly experimental paper competition only",
+        live_cfg["mode"] == "paper_execute"
+        and live_cfg["execution_enabled"] is True
+        and policy_cfg["paper_competition_only"] is True
+        and policy_cfg["alpha_validated"] is False
+        and policy_cfg["auto_promotion_allowed"] is False,
+    )
+    check(
+        "T73 ranker cannot submit, size, sell or write an overlay",
+        "SkillClient" not in policy_source
+        and "submitOrder" not in policy_source
+        and "submit_order" not in policy_source
+        and "quantity" not in policy_source
+        and "latest_strategy_overlay" not in policy_source,
+    )
+    check(
+        "T73 triple execution lock and SELL path remain outside frontier policy",
+        "if execute and decision.get(\"approved_for_submit\")" in agent_source
+        and "pre_sell_position_check" in agent_source
+        and "rank_frontier_quotes(liquid_quotes, strategy)" in agent_source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3751,6 +3936,7 @@ if __name__ == "__main__":
     t70_option_pressure_collector_is_forward_and_unsigned()
     t71_same_index_underreaction_is_next_bar_oos_and_safe()
     t72_trend_pullback_recovery_is_causal_costed_and_safe()
+    t73_frontier_competition_ranker_is_fresh_paper_only_and_auditable()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
