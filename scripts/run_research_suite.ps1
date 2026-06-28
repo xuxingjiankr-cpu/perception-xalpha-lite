@@ -31,6 +31,8 @@ $scripts = @(
     "compute_trend_regime.py",
     "research_orderbook_imbalance.py",
     "build_obi_dashboard.py",
+    "archive_paper_order_lifecycle.py",
+    "research_forward_execution_friction.py",
     "research_early_entry.py",
     "research_lead_lag.py",
     "research_regime.py",

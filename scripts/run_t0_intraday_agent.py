@@ -1508,6 +1508,7 @@ def reconcile_t0_inventory_from_trade_history(state: dict[str, Any], trade_date:
 
     trades = trade_rows(trades_resp)
     reconciled_codes: list[str] = []
+    confirmed_trades: dict[tuple[str, str, str], dict[str, Any]] = {}
     for code, node in day.items():
         if not isinstance(node, dict):
             continue
@@ -1537,10 +1538,32 @@ def reconcile_t0_inventory_from_trade_history(state: dict[str, Any], trade_date:
                 buy_qty += qty
                 buy_amount += amount
                 matched_order_ids.append(order_id)
+                confirmed_trades[(order_id, direction, str(tr.get("filledTime") or ""))] = {
+                    "orderId": order_id,
+                    "stockCode": str(tr.get("stockCode") or code).zfill(6),
+                    "exchange": tr.get("exchange"),
+                    "direction": direction,
+                    "filledPrice": px,
+                    "filledQuantity": qty,
+                    "filledAmount": amount,
+                    "fee": as_float(tr.get("fee"), 0.0),
+                    "filledTime": tr.get("filledTime"),
+                }
             elif order_id in sell_ids and direction == "sell":
                 sell_qty += qty
                 sell_amount += amount
                 matched_order_ids.append(order_id)
+                confirmed_trades[(order_id, direction, str(tr.get("filledTime") or ""))] = {
+                    "orderId": order_id,
+                    "stockCode": str(tr.get("stockCode") or code).zfill(6),
+                    "exchange": tr.get("exchange"),
+                    "direction": direction,
+                    "filledPrice": px,
+                    "filledQuantity": qty,
+                    "filledAmount": amount,
+                    "fee": as_float(tr.get("fee"), 0.0),
+                    "filledTime": tr.get("filledTime"),
+                }
         node["buy_quantity_filled"] = buy_qty
         node["sell_quantity_filled"] = sell_qty
         node["filled_buy_vwap"] = buy_amount / buy_qty if buy_qty > 0 else None
@@ -1577,6 +1600,10 @@ def reconcile_t0_inventory_from_trade_history(state: dict[str, Any], trade_date:
         "ok": True,
         "reconciled_codes": reconciled_codes,
         "trade_count": len(trades),
+        # Record-only evidence for the offline order-lifecycle ledger. This is a
+        # sanitized copy of broker-confirmed fills already consumed above; it does
+        # not change position, PnL, order or gating behavior.
+        "confirmed_trades": list(confirmed_trades.values()),
     }
     state["last_fill_reconciliation"] = {**result, "trade_date": trade_date, "timestamp": now_iso()}
     return result

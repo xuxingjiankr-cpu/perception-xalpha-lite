@@ -2917,6 +2917,214 @@ def t67_full_t0_depth_collector_is_point_in_time_and_safe() -> None:
     )
 
 
+def t68_paper_order_lifecycle_uses_confirmed_fills_only() -> None:
+    """Lifecycle research must preserve unresolved orders, consume broker-confirmed
+    fill evidence, calculate forward markouts, and remain unable to trade."""
+    import json as _json
+    from tempfile import TemporaryDirectory as _TemporaryDirectory
+    import archive_paper_order_lifecycle as lifecycle
+
+    with _TemporaryDirectory() as td:
+        root = Path(td)
+        intents = root / "intents.jsonl"
+        runs = root / "runs.jsonl"
+        state = root / "state.json"
+        quote_dir = root / "quotes"
+        quote_dir.mkdir()
+        intents.write_text(
+            _json.dumps(
+                {
+                    "timestamp": "2026-07-01T09:31:01+08:00",
+                    "event_type": "submit_results_recorded",
+                    "agent_name": "t0_intraday_paper_agent",
+                    "trade_date": "2026-07-01",
+                    "orders": [
+                        {
+                            "stockCode": "513100",
+                            "exchange": "SH",
+                            "direction": "buy",
+                            "quantity": 1000,
+                            "orderType": "limit",
+                            "price": 1.000,
+                            "submission_mid": 1.001,
+                            "execution_style": "passive",
+                        }
+                    ],
+                    "submit_results": [
+                        {
+                            "ok": True,
+                            "data": {
+                                "orderId": "42",
+                                "status": "pending",
+                                "submitTime": "2026-07-01T09:31:01+08:00",
+                            },
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        runs.write_text(
+            "\n".join(
+                [
+                    _json.dumps(
+                        {
+                            "timestamp": "2026-07-01T09:32:00+08:00",
+                            "pending_t0_orders": [
+                                {
+                                    "orderId": "42",
+                                    "stockCode": "513100",
+                                    "exchange": "SH",
+                                    "direction": "buy",
+                                    "price": 1.000,
+                                    "quantity": 1000,
+                                    "filledQuantity": 0,
+                                    "status": "pending",
+                                }
+                            ],
+                        }
+                    ),
+                    _json.dumps(
+                        {
+                            "timestamp": "2026-07-01T09:34:00+08:00",
+                            "fill_reconciliation": {
+                                "confirmed_trades": [
+                                    {
+                                        "orderId": "42",
+                                        "stockCode": "513100",
+                                        "exchange": "SH",
+                                        "direction": "buy",
+                                        "filledPrice": 1.000,
+                                        "filledQuantity": 1000,
+                                        "filledAmount": 1000.0,
+                                        "fee": 0.3,
+                                        "filledTime": "2026-07-01T09:33:00+08:00",
+                                    }
+                                ]
+                            },
+                        }
+                    ),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        state.write_text("{}\n", encoding="utf-8")
+        (quote_dir / "minute_quotes_2026-07-01.jsonl").write_text(
+            "\n".join(
+                _json.dumps(row)
+                for row in [
+                    {
+                        "timestamp": "2026-07-01T09:31:00+08:00",
+                        "stockCode": "513100",
+                        "bidPrice1": 1.000,
+                        "askPrice1": 1.002,
+                    },
+                    {
+                        "timestamp": "2026-07-01T09:34:00+08:00",
+                        "stockCode": "513100",
+                        "bidPrice1": 1.001,
+                        "askPrice1": 1.003,
+                    },
+                    {
+                        "timestamp": "2026-07-01T09:38:00+08:00",
+                        "stockCode": "513100",
+                        "bidPrice1": 1.003,
+                        "askPrice1": 1.005,
+                    },
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        rows, summary = lifecycle.build_lifecycle(intents, runs, state, quote_dir)
+
+    check(
+        "T68 broker-confirmed fill overrides pending status with exact lifecycle evidence",
+        len(rows) == 1
+        and rows[0]["status"] == "filled_confirmed_exact"
+        and rows[0]["fill_time_known"] is True
+        and rows[0]["filledQuantity"] == 1000
+        and summary["confirmed_fills"] == 1,
+        str(rows),
+    )
+    check(
+        "T68 signed implementation shortfall and post-fill markout use recorded times",
+        rows[0]["implementation_shortfall_bps"] < 0
+        and rows[0]["fill_delay_seconds"] == 119.0
+        and rows[0]["markout_1m_bps"] > 0,
+        str(rows[0]),
+    )
+
+    agent_state = {
+        "t0_inventory_by_date": {
+            "2026-07-01": {
+                "513100": {
+                    "buy_order_ids": ["42"],
+                    "buy_quantity_submitted": 1000,
+                    "sell_order_ids": [],
+                }
+            }
+        }
+    }
+    reconciled = agent.reconcile_t0_inventory_from_trade_history(
+        agent_state,
+        "2026-07-01",
+        {
+            "ok": True,
+            "data": {
+                "trades": [
+                    {
+                        "orderId": "42",
+                        "stockCode": "513100",
+                        "exchange": "SH",
+                        "direction": "buy",
+                        "filledPrice": 1.0,
+                        "filledQuantity": 1000,
+                        "filledAmount": 1000.0,
+                        "fee": 0.3,
+                        "filledTime": "2026-07-01T09:33:00+08:00",
+                    }
+                ]
+            },
+        },
+    )
+    check(
+        "T68 live reconciliation exposes sanitized confirmed trade without changing fill rule",
+        reconciled["confirmed_trades"][0]["orderId"] == "42"
+        and reconciled["confirmed_trades"][0]["filledTime"]
+        == "2026-07-01T09:33:00+08:00"
+        and agent_state["t0_inventory_by_date"]["2026-07-01"]["513100"][
+            "buy_quantity_filled"
+        ]
+        == 1000,
+    )
+
+    source = (ROOT / "scripts" / "archive_paper_order_lifecycle.py").read_text(
+        encoding="utf-8"
+    )
+    suite = (ROOT / "scripts" / "run_research_suite.ps1").read_text(encoding="utf-8")
+    friction_cfg = _json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "forward_execution_friction_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    check(
+        "T68 lifecycle job is daily, forward-extensible and cannot call the broker",
+        "archive_paper_order_lifecycle.py" in suite
+        and "research_forward_execution_friction.py" in suite
+        and friction_cfg["data"]["filePattern"] == "minute_quotes_*.jsonl"
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "cancelOrder" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3144,6 +3352,7 @@ if __name__ == "__main__":
     t65_literature_reversal_research_is_point_in_time()
     t66_forward_execution_friction_is_conservative_and_safe()
     t67_full_t0_depth_collector_is_point_in_time_and_safe()
+    t68_paper_order_lifecycle_uses_confirmed_fills_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

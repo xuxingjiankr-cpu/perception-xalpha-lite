@@ -22,7 +22,7 @@
   ],
   "data": {
     "quoteDirectory": "outputs/t0_intraday_agent",
-    "filePattern": "minute_quotes_2026-06-*.jsonl",
+    "filePattern": "minute_quotes_*.jsonl",
     "startDate": "2026-06-22",
     "assetClasses": [
       "cross_border",
