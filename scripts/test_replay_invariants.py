@@ -3220,6 +3220,106 @@ def t69_iopv_pcf_collector_preserves_source_tiers() -> None:
     )
 
 
+def t70_option_pressure_collector_is_forward_and_unsigned() -> None:
+    """Option pressure must recover IV, avoid confusing last-trade time with
+    snapshot time, and refuse to invent a dealer gamma sign."""
+    from datetime import datetime as _datetime
+    from zoneinfo import ZoneInfo as _ZoneInfo
+    import collect_etf_option_pressure as options
+
+    price, _, _ = options.black_scholes(
+        "call", 3.0, 3.0, 30 / 365, 0.015, 0.0, 0.25
+    )
+    recovered = options.implied_volatility(
+        "call", price, 3.0, 3.0, 30 / 365, 0.015, 0.0
+    )
+    check(
+        "T70 Black-Scholes inversion recovers a planted implied volatility",
+        recovered is not None and abs(recovered - 0.25) < 1e-5,
+        str(recovered),
+    )
+
+    fields = ["0"] * 51
+    fields[1] = "0.10"
+    fields[2] = "0.101"
+    fields[3] = "0.102"
+    fields[5] = "1000"
+    fields[7] = "3.000"
+    fields[8] = "0.099"
+    fields[32] = "2026-07-01 09:45:00"
+    fields[37] = "50ETF购7月3000"
+    fields[41] = "2000"
+    fields[42] = "1000000"
+    fields[45] = "C"
+    fields[46] = "2026-07-22"
+    cn = _ZoneInfo("Asia/Shanghai")
+    collected = _datetime(2026, 7, 1, 10, 0, 0, tzinfo=cn)
+    row = options.parse_contract_quote(
+        "CON_OP_10000001",
+        fields,
+        {"underlying": "510050", "expiry_month": "202607", "option_type": "call"},
+        {"spot": 3.0, "name": "上证50ETF"},
+        collected,
+        risk_free_rate=0.015,
+        dividend_yield=0.0,
+        max_quote_age_seconds=180,
+        snapshot_trade_date_verified=True,
+    )
+    check(
+        "T70 inactive option stays in the point-in-time snapshot without fake timestamp freshness",
+        row is not None
+        and row["is_fresh"] is True
+        and row["last_trade_recent"] is False
+        and row["source_quote_time_semantics"] == "last_trade_time"
+        and row["implied_volatility"] is not None,
+        str(row),
+    )
+
+    call = {
+        **row,
+        "option_type": "call",
+        "delta": 0.25,
+        "implied_volatility": 0.20,
+        "volume": 100.0,
+        "open_interest": 200.0,
+        "gamma": 0.4,
+    }
+    put = {
+        **row,
+        "contract_symbol": "CON_OP_10000002",
+        "option_type": "put",
+        "delta": -0.25,
+        "implied_volatility": 0.24,
+        "volume": 150.0,
+        "open_interest": 300.0,
+        "gamma": 0.45,
+    }
+    state = options.aggregate_option_states([call, put], collected)[0]
+    check(
+        "T70 pressure state exposes PCR/skew but keeps gamma direction unknown",
+        state["put_call_volume_ratio"] == 1.5
+        and abs(state["put_minus_call_25delta_iv"] - 0.04) < 1e-9
+        and state["unsigned_gamma_oi_exposure_1pct_move"] > 0
+        and state["gamma_sign_status"] == "unknown_no_dealer_position_sign",
+        str(state),
+    )
+
+    source = (ROOT / "scripts" / "collect_etf_option_pressure.py").read_text(
+        encoding="utf-8"
+    )
+    task = (
+        ROOT / "scripts" / "install_etf_option_pressure_task.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T70 option collection is weekday research-only and cannot trade",
+        "Monday,Tuesday,Wednesday,Thursday,Friday" in task
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "cancelOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3449,6 +3549,7 @@ if __name__ == "__main__":
     t67_full_t0_depth_collector_is_point_in_time_and_safe()
     t68_paper_order_lifecycle_uses_confirmed_fills_only()
     t69_iopv_pcf_collector_preserves_source_tiers()
+    t70_option_pressure_collector_is_forward_and_unsigned()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
