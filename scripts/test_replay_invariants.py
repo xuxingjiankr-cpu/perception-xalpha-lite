@@ -3125,6 +3125,101 @@ def t68_paper_order_lifecycle_uses_confirmed_fills_only() -> None:
     )
 
 
+def t69_iopv_pcf_collector_preserves_source_tiers() -> None:
+    """PCF must remain official/raw while vendor IOPV stays explicitly labelled,
+    timestamped and unable to affect trading."""
+    from datetime import datetime as _datetime
+    from zoneinfo import ZoneInfo as _ZoneInfo
+    import collect_etf_iopv_pcf as iopv
+
+    xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<SSEPortfolioCompositionFile>
+  <FundInstrumentID>513100</FundInstrumentID>
+  <CreationRedemptionUnit>1000000</CreationRedemptionUnit>
+  <TradingDay>20260701</TradingDay>
+  <PreTradingDay>20260630</PreTradingDay>
+  <NAVperCU>2000000.00</NAVperCU>
+  <NAV>2.0000</NAV>
+  <EstimatedCashComponent>-100.00</EstimatedCashComponent>
+  <PublishIOPVFlag>1</PublishIOPVFlag>
+  <CreationRedemptionSwitch>3</CreationRedemptionSwitch>
+  <CreationRedemptionMechanism>0</CreationRedemptionMechanism>
+  <RecordNumber>1</RecordNumber>
+  <ComponentList><Component>
+    <InstrumentID>AAPL</InstrumentID>
+    <SubstitutionFlag>1</SubstitutionFlag>
+    <CreationPremiumRate>0.10</CreationPremiumRate>
+    <RedemptionDiscountRate>0.02</RedemptionDiscountRate>
+  </Component></ComponentList>
+</SSEPortfolioCompositionFile>"""
+    pcf = iopv.parse_sse_pcf(xml)
+    check(
+        "T69 official PCF parser retains creation/redemption and IOPV publication state",
+        pcf["fund_code"] == "513100"
+        and pcf["trading_day"] == "20260701"
+        and pcf["publish_iopv"] is True
+        and pcf["creation_redemption_switch"] == "3"
+        and pcf["record_number"] == pcf["parsed_components"] == 1,
+        str(pcf),
+    )
+
+    cn = _ZoneInfo("Asia/Shanghai")
+    collected = _datetime(2026, 7, 1, 10, 0, 30, tzinfo=cn)
+    universe = [
+        {
+            "code": "513100",
+            "exchange": "SH",
+            "name": "纳指ETF",
+            "asset_class": "cross_border",
+        }
+    ]
+    item = {
+        "f2": 2.1,
+        "f12": "513100",
+        "f14": "纳指ETF",
+        "f18": 2.0,
+        "f31": 2.099,
+        "f32": 2.101,
+        "f124": int(
+            _datetime(2026, 7, 1, 10, 0, 0, tzinfo=cn).timestamp()
+        ),
+        "f130": 2.0,
+        "f131": 2.0,
+    }
+    rows = iopv.parse_iopv_items(
+        [item],
+        universe,
+        collected,
+        pcf_manifest={"513100": {"publish_iopv": True}},
+    )
+    check(
+        "T69 vendor IOPV is point-in-time, premium-correct and never mislabeled direct-feed",
+        len(rows) == 1
+        and rows[0]["is_fresh"] is True
+        and rows[0]["premium_pct"] == 5.0
+        and rows[0]["iopv_source"] == "eastmoney_public_quote_field_f131"
+        and rows[0]["iopv_source_tier"] == "vendor_not_direct_exchange_feed"
+        and rows[0]["iopv_validation_status"]
+        == "vendor_field_with_official_sse_publish_flag",
+        str(rows),
+    )
+
+    source = (ROOT / "scripts" / "collect_etf_iopv_pcf.py").read_text(
+        encoding="utf-8"
+    )
+    task = (ROOT / "scripts" / "install_iopv_pcf_task.ps1").read_text(
+        encoding="utf-8"
+    )
+    check(
+        "T69 IOPV/PCF pipeline is weekday market-data-only",
+        "Monday,Tuesday,Wednesday,Thursday,Friday" in task
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "cancelOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 def t61_daily_momentum_pool_failopen() -> None:
     """Nightly daily-momentum pool RESTRICTS the universe when fresh, but is FAIL-OPEN:
     missing/stale/no-ref -> empty set -> caller keeps the full eligible universe (trading
@@ -3353,6 +3448,7 @@ if __name__ == "__main__":
     t66_forward_execution_friction_is_conservative_and_safe()
     t67_full_t0_depth_collector_is_point_in_time_and_safe()
     t68_paper_order_lifecycle_uses_confirmed_fills_only()
+    t69_iopv_pcf_collector_preserves_source_tiers()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
