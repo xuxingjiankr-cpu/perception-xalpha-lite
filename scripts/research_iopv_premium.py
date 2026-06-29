@@ -1,5 +1,8 @@
 """ETF premium / IOPV reversion audit -- does the cross-border ETF premium predict forward
-return, and does the edge clear cost? Reads collect_iopv_premium.py logs.
+return, and does the edge clear cost? Reads the authoritative PCF/f131 IOPV feed produced by
+collect_etf_iopv_pcf.py (data/etf_iopv/iopv_{day}.jsonl; official SSE PCF basket + vendor IOPV,
+is_fresh rows only). My earlier akshare-only collect_iopv_premium.py was a redundant duplicate of
+that feed and has been removed; this harness now consumes the superior source.
 
 Two honest tests:
   (1) CROSS-SECTIONAL: rank ETFs by premium each snapshot; do LOW-premium (cheap vs NAV) names
@@ -23,7 +26,8 @@ import numpy as np
 
 from run_etf_paper_trading_agent import ROOT
 
-DEPTH_DIR = ROOT / "outputs" / "iopv_premium"
+IOPV_DATA_DIR = ROOT / "data" / "etf_iopv"          # authoritative PCF/f131 feed (input)
+OUT_DIR = ROOT / "outputs" / "iopv_premium"          # audit artifacts (output)
 HORIZONS = [1, 3, 6]      # polls ahead
 COST_RT = 0.0008          # ~8 bps breakeven (the candidate-edge floor from the reversal suite)
 MIN_OBS = 1500
@@ -31,16 +35,24 @@ MIN_DAYS = 3
 
 
 def load():
+    """Read collect_etf_iopv_pcf.py records. Field aliases: stockCode->code, current->price,
+    premium_pct->premium, collected_at(ISO)->(date, ts). Only is_fresh rows are written, so no
+    extra staleness filter is needed here."""
     series = defaultdict(list)   # code -> [(date, ts, price, premium)]
-    for p in sorted(DEPTH_DIR.glob("iopv_*.jsonl")):
+    for p in sorted(IOPV_DATA_DIR.glob("iopv_*.jsonl")):
         for line in p.read_text(encoding="utf-8").splitlines():
             try:
                 r = json.loads(line)
             except Exception:
                 continue
-            if r.get("price") and r.get("premium_pct") is not None:
-                series[r["code"]].append((r.get("date"), r.get("ts"),
-                                          float(r["price"]), float(r["premium_pct"])))
+            code = r.get("stockCode") or r.get("code")
+            price = r.get("current") if r.get("current") is not None else r.get("price")
+            prem = r.get("premium_pct")
+            ca = r.get("collected_at") or ""
+            date = ca[:10] if ca else r.get("date")
+            ts = ca[11:19] if len(ca) >= 19 else r.get("ts")
+            if code and price and prem is not None:
+                series[code].append((date, ts, float(price), float(prem)))
     return series
 
 
@@ -117,10 +129,10 @@ def render(r) -> str:
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     r = analyze()
-    DEPTH_DIR.mkdir(parents=True, exist_ok=True)
-    (DEPTH_DIR / "iopv_premium_audit.json").write_text(json.dumps(r, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_DIR / "iopv_premium_audit.json").write_text(json.dumps(r, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     report = render(r)
-    (DEPTH_DIR / "iopv_premium_audit.md").write_text(report, encoding="utf-8")
+    (OUT_DIR / "iopv_premium_audit.md").write_text(report, encoding="utf-8")
     print(report)
     return 0
 
