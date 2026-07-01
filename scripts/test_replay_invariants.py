@@ -1155,6 +1155,7 @@ def t23_sector_diversification_entry_filter() -> None:
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
     cfg["strategy"]["intraday_momentum"]["enabled"] = False
     cfg["strategy"]["t0_entry_eligibility"] = {"enabled": False}
+    cfg["strategy"]["entry_logic_v2"] = {"enabled": False}  # isolate: this test is about sector diversification, not entry timing
     cfg["strategy"]["target_holdings"] = 5
     cfg["sector_diversification"] = {
         "enabled": True,
@@ -1231,6 +1232,7 @@ def t24_sector_limit_never_blocks_sells() -> None:
     cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
     cfg["strategy"]["intraday_momentum"]["enabled"] = False
     cfg["strategy"]["t0_entry_eligibility"] = {"enabled": False}
+    cfg["strategy"]["entry_logic_v2"] = {"enabled": False}  # isolate: this test is about sector diversification, not entry timing
     cfg["strategy"]["target_holdings"] = 5
     cfg["sector_diversification"] = {
         "enabled": True,
