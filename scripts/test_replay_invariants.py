@@ -3984,6 +3984,79 @@ def t78_l2_sell_slicing_uses_visible_depth_and_exact_lots() -> None:
           and "latest_strategy_overlay" not in source)
 
 
+def t79_exit_policy_matrix_is_causal_complete_and_shadow_only() -> None:
+    """Exit matrix keeps actual hard exits and fills every trigger on the next bar."""
+    from datetime import datetime, timedelta, timezone
+
+    import research_exit_policy_matrix as matrix
+
+    tz = timezone(timedelta(hours=8))
+
+    def bar(minute: int, price: float, bid: float | None = None) -> dict:
+        return {
+            "time": datetime(2026, 7, 1, 10, minute, tzinfo=tz),
+            "price": price,
+            "bid": price if bid is None else bid,
+            "spread": 0.0008,
+        }
+
+    stop_path = [bar(0, 100.0), bar(5, 98.5), bar(10, 98.0, 97.9)]
+    stopped = matrix.simulate_policy(
+        stop_path,
+        {"name": "test_stop", "family": "fixed_stop", "kind": "stop", "pct": 0.01},
+    )
+    check("T79 fixed stop trigger fills on the following bar bid",
+          stopped["exit_index"] == 2 and stopped["exit_price"] == 97.9)
+
+    armed_path = [
+        bar(0, 100.0),
+        bar(5, 101.0),
+        bar(10, 102.5),
+        bar(15, 101.8),
+        bar(20, 100.3),
+        bar(25, 100.0, 99.9),
+    ]
+    armed = matrix.simulate_policy(
+        armed_path,
+        {
+            "name": "test_armed",
+            "family": "profit_protection",
+            "kind": "armed_trail",
+            "arm": 0.02,
+            "trail": 0.02,
+        },
+    )
+    check("T79 profit trail waits for arming and a subsequent drawdown",
+          armed["reason"] == "profit_armed_trailing_stop"
+          and armed["exit_index"] == 5
+          and armed["exit_price"] == 99.9)
+
+    lifecycle = [
+        {
+            "status": "filled", "fill_time": "2026-07-01T10:00:00+08:00",
+            "filled_qty": 100, "side": "buy", "stockCode": "513100",
+            "fill_price": 2.0, "reason": "entry",
+        },
+        {
+            "status": "filled", "fill_time": "2026-07-01T10:10:00+08:00",
+            "filled_qty": 100, "side": "sell", "stockCode": "513100",
+            "fill_price": 1.9, "reason": "emergency_stop_exit",
+        },
+    ]
+    lots, diagnostics = matrix.pair_all_filled_lots(lifecycle)
+    check("T79 hard exits remain in the complete policy population",
+          len(lots) == 1
+          and diagnostics["hard_exit_lots"] == 1
+          and lots[0]["baseline_exit_reason"] == "emergency_stop_exit")
+
+    source = (ROOT / "scripts" / "research_exit_policy_matrix.py").read_text(encoding="utf-8")
+    check("T79 exit policy matrix is offline and cannot promote itself",
+          "STRICTLY OFFLINE / SHADOW" in source
+          and "order_submit_calls_made" in source
+          and "submitOrder" not in source
+          and "latest_strategy_overlay" not in source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4134,6 +4207,7 @@ if __name__ == "__main__":
     t76_l2_exit_timing_is_forward_day_clustered_and_safe()
     t77_l2_sell_execution_is_next_snapshot_conservative_and_safe()
     t78_l2_sell_slicing_uses_visible_depth_and_exact_lots()
+    t79_exit_policy_matrix_is_causal_complete_and_shadow_only()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
