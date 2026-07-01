@@ -3898,6 +3898,40 @@ def t76_l2_exit_timing_is_forward_day_clustered_and_safe() -> None:
           and "latest_strategy_overlay" not in source)
 
 
+def t77_l2_sell_execution_is_next_snapshot_conservative_and_safe() -> None:
+    """Passive sell research requires displayed crossing and accounts for timeout loss."""
+    import research_l2_sell_execution as execution
+
+    start = {
+        "bid": 99.9, "ask": 100.1, "midpoint": 100.0,
+        "idiosyncratic_obi": 0.0, "micro_dev_bps": 0.0,
+    }
+    future = [
+        {"bid": 99.95},
+        {"bid": 100.0},
+        {"bid": 99.8},
+    ]
+    midpoint = execution.execute_policy(start, future, "midpoint_then_cross")
+    check("T77 midpoint limit fills only after a later displayed bid reaches it",
+          midpoint["passive_filled"] is True and midpoint["fill_after_polls"] == 2
+          and abs(midpoint["proceeds"] - 100.0) < 1e-9)
+    ask = execution.execute_policy(start, future, "ask_then_cross")
+    check("T77 unfilled ask limit crosses at timeout and records adverse drift",
+          ask["passive_filled"] is False and ask["timed_out"] is True
+          and ask["proceeds"] == 99.8 and ask["improvement_bps"] < 0)
+    adverse = dict(start, idiosyncratic_obi=-0.3, micro_dev_bps=-2.0)
+    conditional = execution.execute_policy(adverse, future, "conditional_midpoint")
+    check("T77 conditional policy crosses immediately on adverse L2",
+          conditional["passive_attempted"] is False
+          and conditional["improvement_bps"] == 0.0)
+    source = (ROOT / "scripts" / "research_l2_sell_execution.py").read_text(encoding="utf-8")
+    check("T77 sell execution audit is offline and cannot change live execution",
+          "STRICTLY OFFLINE / SHADOW" in source
+          and "order_submit_calls_made" in source
+          and "submitOrder" not in source
+          and "latest_strategy_overlay" not in source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4046,6 +4080,7 @@ if __name__ == "__main__":
     t74_entry_logic_v2_pullback_gate()
     t75_actual_trade_exit_research_is_causal_and_safe()
     t76_l2_exit_timing_is_forward_day_clustered_and_safe()
+    t77_l2_sell_execution_is_next_snapshot_conservative_and_safe()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
