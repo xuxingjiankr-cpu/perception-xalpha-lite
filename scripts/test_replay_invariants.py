@@ -3932,6 +3932,58 @@ def t77_l2_sell_execution_is_next_snapshot_conservative_and_safe() -> None:
           and "latest_strategy_overlay" not in source)
 
 
+def t78_l2_sell_slicing_uses_visible_depth_and_exact_lots() -> None:
+    """Block and sliced execution consume real displayed depth without invented fills."""
+    from datetime import datetime, timedelta, timezone
+
+    import research_l2_sell_slicing as slicing
+
+    book = {
+        "bid_prices": [10.0, 9.9],
+        "bid_volumes": [100, 100],
+        "bid1": 10.0,
+    }
+    vwap = slicing.sweep_sell_vwap(book, 150)
+    check("T78 five-level sell sweep computes volume-weighted proceeds",
+          vwap is not None and abs(vwap - ((100 * 10.0 + 50 * 9.9) / 150)) < 1e-9)
+    check("T78 insufficient displayed depth fails closed",
+          slicing.sweep_sell_vwap(book, 300) is None)
+    slices = slicing.split_lots(1000, (0.5, 1 / 6, 1 / 6, 1 / 6))
+    check("T78 slicing preserves exact quantity in whole lots",
+          sum(slices) == 1000 and all(value % 100 == 0 for value in slices), str(slices))
+    adverse_path = [
+        {
+            **book,
+            "midpoint": 10.0,
+            "idiosyncratic_obi": -0.3,
+            "micro_dev_bps": -2.0,
+        }
+        for _ in range(4)
+    ]
+    check("T78 conditional urgency uses immediate block on adverse book",
+          slicing.policy_vwap(adverse_path, 100, "conditional_urgency")
+          == slicing.policy_vwap(adverse_path, 100, "block_now"))
+    unmatched = slicing.evaluate_actual_signals(
+        [{
+            "timestamp": datetime(2026, 7, 1, 10, 0, tzinfo=timezone(timedelta(hours=8))),
+            "stockCode": "513100",
+            "quantity": 100,
+            "broker_order_id": "audit",
+        }],
+        {},
+    )
+    check("T78 unmatched actual sell remains visible in attrition audit",
+          len(unmatched) == 1
+          and unmatched[0]["paired"] is False
+          and unmatched[0]["reason"] == "no_l2_book")
+    source = (ROOT / "scripts" / "research_l2_sell_slicing.py").read_text(encoding="utf-8")
+    check("T78 slicing audit is offline and cannot alter execution",
+          "STRICTLY OFFLINE / SHADOW" in source
+          and "order_submit_calls_made" in source
+          and "submitOrder" not in source
+          and "latest_strategy_overlay" not in source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4081,6 +4133,7 @@ if __name__ == "__main__":
     t75_actual_trade_exit_research_is_causal_and_safe()
     t76_l2_exit_timing_is_forward_day_clustered_and_safe()
     t77_l2_sell_execution_is_next_snapshot_conservative_and_safe()
+    t78_l2_sell_slicing_uses_visible_depth_and_exact_lots()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
