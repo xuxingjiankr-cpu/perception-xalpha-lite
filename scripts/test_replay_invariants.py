@@ -3830,6 +3830,50 @@ def t74_entry_logic_v2_pullback_gate() -> None:
           st3["pending_entry_v2_by_date"]["2026-06-22"]["pending"]["code"] == "159915")
 
 
+def t75_actual_trade_exit_research_is_causal_and_safe() -> None:
+    """Exit research fills after its trigger and never delays hard exits."""
+    from datetime import datetime, timedelta
+    import research_exit_timing_actual_trades as exit_research
+
+    base = datetime.fromisoformat("2026-06-22T10:00:00+08:00")
+    prices = [100.0, 101.0, 102.0, 101.3, 101.0, 100.8]
+    path = [
+        {
+            "time": base + timedelta(minutes=5 * idx),
+            "price": price,
+            "bid": price - 0.05,
+            "spread": 0.001,
+        }
+        for idx, price in enumerate(prices)
+    ]
+    fixed = exit_research.simulate_exit(path, "fixed_trail_0p6")
+    check("T75 trailing exit fills on the bar after the causal trigger",
+          fixed["triggered"] is True and fixed["exit_index"] == 4
+          and abs(fixed["exit_price"] - 100.95) < 1e-9,
+          str(fixed))
+    baseline = exit_research.simulate_exit(path, "current_baseline")
+    check("T75 baseline remains the recorded final replay fill",
+          baseline["triggered"] is False and baseline["exit_index"] == len(path) - 1
+          and baseline["exit_price"] == prices[-1],
+          str(baseline))
+
+    lifecycle = [
+        {"status": "filled", "fill_time": "2026-06-22T10:00:00+08:00",
+         "filled_qty": 100, "side": "buy", "stockCode": "513100",
+         "fill_price": 2.0, "reason": "entry_momentum_spread_passed"},
+        {"status": "filled", "fill_time": "2026-06-22T10:20:00+08:00",
+         "filled_qty": 100, "side": "sell", "stockCode": "513100",
+         "fill_price": 1.96, "reason": "emergency_stop_exit"},
+    ]
+    lots, diagnostic = exit_research.pair_filled_lots(lifecycle)
+    check("T75 emergency exits are excluded and never delayed",
+          not lots and diagnostic["hard_exit_slices_excluded"] == 1)
+    source = (ROOT / "scripts" / "research_exit_timing_actual_trades.py").read_text(encoding="utf-8")
+    check("T75 exit research is offline and cannot submit orders",
+          "STRICTLY OFFLINE" in source and "order_submit_calls_made" in source
+          and "submitOrder" not in source and "latest_strategy_overlay" not in source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -3976,6 +4020,7 @@ if __name__ == "__main__":
     t59_every_decision_and_daily_score_review()
     t60_sell_logic_v2_timing_gate()
     t74_entry_logic_v2_pullback_gate()
+    t75_actual_trade_exit_research_is_causal_and_safe()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
