@@ -3779,6 +3779,55 @@ def t60_sell_logic_v2_timing_gate() -> None:
           do_str is False and r_str == "v2_suppress_strong_tape")
 
 
+def t74_entry_logic_v2_pullback_gate() -> None:
+    """entry_logic_v2 gates a fresh momentum candidate behind a brief pullback wait, behind
+    a default-OFF flag. Flag off == baseline; fail-open on timeout (never silently drop the
+    signal); single pending slot (a different candidate mid-wait is ignored, not leaked)."""
+    from datetime import datetime
+    lt0 = datetime(2026, 6, 22, 10, 0)
+    lt_mid = datetime(2026, 6, 22, 10, 10)   # +10min, within the 15min wait
+    lt_late = datetime(2026, 6, 22, 10, 20)  # +20min, past the 15min wait
+    cand = {"stockCode": "159915", "currentPrice": 10.0}
+
+    # (a) flag OFF -> exact baseline no-op (candidate passes straight through)
+    off = {"entry_logic_v2": {"enabled": False}}
+    out, reason = agent.apply_entry_logic_v2(off, {}, "2026-06-22", cand, [], lt0)
+    check("T74 v2 disabled is baseline no-op", out == cand and reason == "entry_score_gate")
+    out_none, reason_none = agent.apply_entry_logic_v2(off, {}, "2026-06-22", None, [], lt0)
+    check("T74 v2 disabled passes None through unchanged", out_none is None and reason_none == "entry_score_gate")
+
+    # (b) first sighting registers a pending wait, does not buy this round
+    on = {"entry_logic_v2": {"enabled": True, "pullback_frac": 0.004, "max_wait_minutes": 15}}
+    st: dict = {}
+    out1, r1 = agent.apply_entry_logic_v2(on, st, "2026-06-22", cand, [], lt0)
+    check("T74 first sighting awaits pullback, no buy", out1 is None and r1 == "entry_v2_awaiting_pullback")
+
+    # (c) price dips >= pullback_frac on a later round -> fills at the dip price
+    quotes_dip = [{"stockCode": "159915", "currentPrice": 9.95}]   # -0.5% > 0.4% pullback_frac
+    out2, r2 = agent.apply_entry_logic_v2(on, st, "2026-06-22", None, quotes_dip, lt_mid)
+    check("T74 pullback dip fills at dip price",
+          out2 is not None and abs(out2["currentPrice"] - 9.95) < 1e-9 and r2 == "entry_v2_pullback_filled")
+    check("T74 pending slot cleared after fill", st["pending_entry_v2_by_date"]["2026-06-22"]["pending"] is None)
+
+    # (d) no dip within max_wait_minutes -> fail-open, buys at whatever price is quoted
+    st2: dict = {}
+    agent.apply_entry_logic_v2(on, st2, "2026-06-22", cand, [], lt0)
+    quotes_flat = [{"stockCode": "159915", "currentPrice": 10.02}]  # no pullback, price drifted up
+    out3, r3 = agent.apply_entry_logic_v2(on, st2, "2026-06-22", None, quotes_flat, lt_late)
+    check("T74 wait-expired fail-open still buys (never silently drops the signal)",
+          out3 is not None and abs(out3["currentPrice"] - 10.02) < 1e-9 and r3 == "entry_v2_wait_expired_fail_open")
+
+    # (e) a pending wait blocks a DIFFERENT candidate from being registered mid-wait
+    st3: dict = {}
+    agent.apply_entry_logic_v2(on, st3, "2026-06-22", cand, [], lt0)
+    other_cand = {"stockCode": "588000", "currentPrice": 5.0}
+    out4, r4 = agent.apply_entry_logic_v2(on, st3, "2026-06-22", other_cand, [], lt_mid)
+    check("T74 pending wait ignores a different mid-wait candidate (not leaked)",
+          out4 is None and r4 == "entry_v2_awaiting_pullback")
+    check("T74 pending still tracks the ORIGINAL code, not the new candidate",
+          st3["pending_entry_v2_by_date"]["2026-06-22"]["pending"]["code"] == "159915")
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -3924,6 +3973,7 @@ if __name__ == "__main__":
     t58_forward_probability_ledger_and_priors()
     t59_every_decision_and_daily_score_review()
     t60_sell_logic_v2_timing_gate()
+    t74_entry_logic_v2_pullback_gate()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()

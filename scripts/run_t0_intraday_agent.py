@@ -106,6 +106,7 @@ SELL_BYPASS_CHECKS = {
 IM_BUY_BYPASS_CHECKS = {
     "no_new_entry_afternoon_cutoff",
     "entry_score_gate",
+    "entry_logic_v2_gate",
     "rolling_vwap_entry_filter",
     "reentry_cooldown",
 }
@@ -2273,6 +2274,57 @@ def apply_sell_logic_v2(
     return True, frac, "unified_sell_score_exit" if frac >= 1.0 else "unified_sell_score_exit_v2_scaled"
 
 
+def apply_entry_logic_v2(
+    strategy: dict[str, Any], state: dict[str, Any], trade_date: str,
+    candidate: dict[str, Any] | None, quotes: list[dict[str, Any]], local_time: datetime,
+) -> tuple[dict[str, Any] | None, str]:
+    """Gate a fresh momentum-breakout entry candidate behind a brief pullback wait (does
+    buying NEAR a small dip beat chasing the breakout print?). Returns (candidate_to_use,
+    reason); candidate_to_use is None when no entry should fire this round. When
+    `entry_logic_v2.enabled` is false this is a no-op: returns (candidate, "entry_score_gate")
+    unchanged -> byte-identical baseline behavior, same contract as apply_sell_logic_v2.
+
+    Single pending slot per trade_date (one wait at a time, not per-code): keeps the state
+    machine simple and avoids leaking a stale per-code pending entry when a DIFFERENT code
+    becomes the top-ranked candidate mid-wait (entry candidates are re-ranked fresh every
+    round, unlike held positions). While a wait is pending, no new candidate is considered.
+
+    Fail-open on timeout (per repo convention: never silently lose a signal) -- if no
+    pullback materializes within `max_wait_minutes`, take the original candidate at its
+    current price rather than missing the trade entirely. Pending state lives in
+    state['pending_entry_v2_by_date'][trade_date]."""
+    cfg = strategy.get("entry_logic_v2", {})
+    if not isinstance(cfg, dict) or not cfg.get("enabled"):
+        return candidate, "entry_score_gate"
+    pullback_frac = as_float(cfg.get("pullback_frac"), 0.004)
+    max_wait_minutes = as_float(cfg.get("max_wait_minutes"), 15)
+    bucket = state.setdefault("pending_entry_v2_by_date", {}).setdefault(trade_date, {})
+    pend = bucket.get("pending")
+    now_min = local_time.hour * 60 + local_time.minute
+
+    if pend:
+        q = quote_for_code(quotes, pend["code"])
+        current = as_float(q.get("currentPrice")) if q else 0.0
+        if current > 0 and current <= pend["signal_price"] * (1 - pullback_frac):
+            bucket["pending"] = None
+            return dict(q), "entry_v2_pullback_filled"
+        if now_min - pend["first_seen_min"] >= max_wait_minutes:
+            bucket["pending"] = None
+            if current > 0:
+                return dict(q), "entry_v2_wait_expired_fail_open"
+            return None, "entry_v2_wait_expired_no_quote"
+        return None, "entry_v2_awaiting_pullback"
+
+    if candidate is None:
+        return None, "entry_score_gate"
+    code = str(candidate.get("stockCode", "")).zfill(6)
+    signal_price = as_float(candidate.get("currentPrice"))
+    if signal_price <= 0:
+        return candidate, "entry_score_gate"
+    bucket["pending"] = {"code": code, "signal_price": signal_price, "first_seen_min": now_min}
+    return None, "entry_v2_awaiting_pullback"
+
+
 def evaluate_exit_for_code(
     code: str,
     *,
@@ -3514,6 +3566,10 @@ def build_decision(
         ) if best else {"score": 0.0, "threshold": as_float(strategy.get("entry_score_threshold"), 50), "components": {}, "details": {}}
         entry_score_passed = as_float(entry_score.get("score"), 0.0) >= as_float(entry_score.get("threshold"), 50)
         add("entry_score_gate", entry_score_passed, entry_score)
+        entry_v2_candidate_in = best if entry_score_passed else None
+        best, entry_v2_reason = apply_entry_logic_v2(strategy, state, trade_date, entry_v2_candidate_in, quotes, local_time)
+        entry_score_passed = best is not None
+        add("entry_logic_v2_gate", entry_score_passed, {"reason": entry_v2_reason})
         skip_dates: list[str] = strategy.get("skip_dates") or []
         today_skipped = trade_date in skip_dates
         add("skip_date_guard", not today_skipped, {"trade_date": trade_date, "skip_dates": skip_dates, "skipped": today_skipped})
