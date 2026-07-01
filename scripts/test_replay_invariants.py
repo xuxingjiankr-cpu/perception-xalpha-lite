@@ -3874,6 +3874,30 @@ def t75_actual_trade_exit_research_is_causal_and_safe() -> None:
           and "submitOrder" not in source and "latest_strategy_overlay" not in source)
 
 
+def t76_l2_exit_timing_is_forward_day_clustered_and_safe() -> None:
+    """L2 exit trigger removes common pressure and interprets sell proceeds correctly."""
+    import research_l2_exit_timing as l2_exit
+
+    triggers = l2_exit.classify_triggers(obi=-0.55, idiosyncratic_obi=-0.25,
+                                         micro_dev_bps=-1.5)
+    check("T76 adverse idiosyncratic OBI plus microprice activates primary trigger",
+          l2_exit.PRIMARY_TRIGGER in triggers)
+    check("T76 common market pressure alone does not activate idiosyncratic trigger",
+          "idiosyncratic_obi_adverse"
+          not in l2_exit.classify_triggers(obi=-0.55, idiosyncratic_obi=-0.05,
+                                           micro_dev_bps=0.2))
+    check("T76 positive advantage means sell-now bid exceeds later bid",
+          l2_exit.sell_now_advantage_bps(10.0, 9.9) > 0
+          and l2_exit.sell_now_advantage_bps(9.9, 10.0) < 0)
+    source = (ROOT / "scripts" / "research_l2_exit_timing.py").read_text(encoding="utf-8")
+    check("T76 L2 exit audit is shadow-only and cannot submit or promote",
+          "STRICTLY OFFLINE / SHADOW" in source
+          and "order_submit_calls_made" in source
+          and "MIN_COMPLETE_DAYS = 20" in source
+          and "submitOrder" not in source
+          and "latest_strategy_overlay" not in source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4021,6 +4045,7 @@ if __name__ == "__main__":
     t60_sell_logic_v2_timing_gate()
     t74_entry_logic_v2_pullback_gate()
     t75_actual_trade_exit_research_is_causal_and_safe()
+    t76_l2_exit_timing_is_forward_day_clustered_and_safe()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()
