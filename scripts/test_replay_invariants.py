@@ -4057,6 +4057,74 @@ def t79_exit_policy_matrix_is_causal_complete_and_shadow_only() -> None:
           and "latest_strategy_overlay" not in source)
 
 
+def t80_exit_diagnostics_separates_labels_from_observables() -> None:
+    """Failure labels remain ex-post outcomes and cannot silently become exit gates."""
+    import copy
+
+    import research_exit_diagnostics_phase2 as diagnostics
+
+    source = {
+        "rounds_total": 2,
+        "trade_count": 1,
+        "total_pnl": 12.5,
+        "order_lifecycle": [{"order_id": "x", "status": "filled"}],
+    }
+    check("T80 exact replay integrity accepts identical frozen lifecycle",
+          diagnostics.verify_exact_replay(source, copy.deepcopy(source))["passed"])
+    changed = copy.deepcopy(source)
+    changed["order_lifecycle"][0]["status"] = "rejected"
+    check("T80 exact replay integrity rejects changed lifecycle",
+          not diagnostics.verify_exact_replay(source, changed)["passed"])
+
+    template = {
+        "early15_mae_pct": 0.0,
+        "mfe_pct": 0.5,
+        "giveback_pct": 0.2,
+        "holding_bars": 10,
+        "mae_pct": -0.2,
+        "post_exit_3bar_return_pct": 0.0,
+        "post_exit_5bar_return_pct": 0.0,
+    }
+    immediate = {**template, "early15_mae_pct": -1.2}
+    flags, primary = diagnostics.classify_trade(immediate)
+    check("T80 immediate-loser label follows preregistered early-path threshold",
+          flags["immediate_loser"] and primary == "immediate_loser")
+    runner = {
+        **template,
+        "post_exit_3bar_return_pct": 0.6,
+        "post_exit_5bar_return_pct": 0.8,
+    }
+    flags, primary = diagnostics.classify_trade(runner)
+    check("T80 post-exit runner remains an outcome label",
+          flags["trend_runner"] and primary == "trend_runner")
+
+    forbidden = {
+        "realized_return_pct",
+        "mfe_pct",
+        "mae_pct",
+        "giveback_pct",
+        "exit_efficiency_pct",
+        "post_exit_1bar_return_pct",
+        "post_exit_3bar_return_pct",
+        "post_exit_5bar_return_pct",
+        "primary_group",
+    }
+    check("T80 ex-post labels never enter the observable feature contract",
+          forbidden.isdisjoint(diagnostics.OBSERVABLES))
+    check("T80 mechanical early loss is excluded from immediate-loser discovery",
+          "immediate_loser"
+          in diagnostics.OBSERVABLES["early15_mae_pct"]["exclude_groups"])
+
+    script_source = (
+        ROOT / "scripts" / "research_exit_diagnostics_phase2.py"
+    ).read_text(encoding="utf-8")
+    check("T80 diagnostics are shadow-only and cannot alter live execution",
+          "STRICTLY OFFLINE / SHADOW" in script_source
+          and "order_submit_calls_made" in script_source
+          and "submitOrder" not in script_source
+          and "latest_strategy_overlay" not in script_source)
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4208,6 +4276,7 @@ if __name__ == "__main__":
     t77_l2_sell_execution_is_next_snapshot_conservative_and_safe()
     t78_l2_sell_slicing_uses_visible_depth_and_exact_lots()
     t79_exit_policy_matrix_is_causal_complete_and_shadow_only()
+    t80_exit_diagnostics_separates_labels_from_observables()
     t61_daily_momentum_pool_failopen()
     t62_trend_deploy_factor()
     t63_hsmm_regime_research_is_point_in_time()

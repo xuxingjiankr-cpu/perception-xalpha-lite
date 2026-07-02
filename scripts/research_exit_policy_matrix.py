@@ -179,9 +179,12 @@ def pair_all_filled_lots(
             queues[code].append(
                 {
                     "remaining": quantity,
+                    "entry_order_id": str(row.get("order_id") or ""),
+                    "entry_signal_time": str(row.get("signal_time") or row["fill_time"]),
                     "entry_time": str(row["fill_time"]),
                     "entry_price": as_float(row.get("fill_price"), 0.0),
                     "entry_reason": str(row.get("reason") or ""),
+                    "exchange": str(row.get("exchange") or ""),
                 }
             )
             continue
@@ -195,7 +198,10 @@ def pair_all_filled_lots(
             lots.append(
                 {
                     "stockCode": code,
+                    "exchange": entry["exchange"],
                     "quantity": take,
+                    "entry_order_id": entry["entry_order_id"],
+                    "entry_signal_time": entry["entry_signal_time"],
                     "entry_time": entry["entry_time"],
                     "entry_price": entry["entry_price"],
                     "entry_reason": entry["entry_reason"],
