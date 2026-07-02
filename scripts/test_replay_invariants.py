@@ -3829,6 +3829,12 @@ def t74_entry_logic_v2_pullback_gate() -> None:
     check("T74 pending still tracks the ORIGINAL code, not the new candidate",
           st3["pending_entry_v2_by_date"]["2026-06-22"]["pending"]["code"] == "159915")
 
+    # (f) an awaiting-pullback round must never block a SELL batch: the gate is entry-only,
+    # so it belongs in SELL_BYPASS_CHECKS (same bug class as T81's breadth block -- a
+    # buy-side gate must never delay an exit).
+    check("T74 entry_logic_v2_gate is sell-bypassed (buy gate never blocks an exit)",
+          "entry_logic_v2_gate" in agent.SELL_BYPASS_CHECKS)
+
 
 def t75_actual_trade_exit_research_is_causal_and_safe() -> None:
     """Exit research fills after its trigger and never delays hard exits."""
@@ -4125,6 +4131,44 @@ def t80_exit_diagnostics_separates_labels_from_observables() -> None:
           and "latest_strategy_overlay" not in script_source)
 
 
+def t81_breadth_block_never_blocks_sells() -> None:
+    """Risk-off guards in the rebalance agent (market-breadth block / momentum warm-up) block
+    new BUYING only -- every sell reduces exposure and must pass. Regression for 2026-07-02:
+    the old filter kept only stop_loss_exit sells, holding a falling rebalance-out sell
+    (159915, planned 09:30 @4.178) until its hard stop fired 15 minutes later @4.088 (-2.2%)."""
+    import run_etf_paper_trading_agent as reb
+
+    def q(code, score, price=4.0):
+        return {"stockCode": code, "exchange": "SZ", "name": code, "quote_ok": True,
+                "isSuspended": False, "currentPrice": price, "bidPrice1": price - 0.002,
+                "askPrice1": price + 0.002, "score": score, "signal_type": "momentum_5d",
+                "t0_eligible": False, "asset_class": "domestic_equity_etf"}
+
+    cfg = {
+        "risk": {"max_position_pct": 0.25, "max_single_order_pct": 0.25, "quantity_lot": 100,
+                 "min_order_quantity": 100, "order_type": "limit", "limit_price_slippage_pct": 0.002,
+                 "max_daily_orders": 5, "stop_loss_enabled": True, "stop_loss_pct": -0.03},
+        "strategy": {"target_holdings": 2, "force_build_position": True, "cash_reserve_pct": 0.05,
+                      "rebalance_drift_threshold_pct": 0.03, "entry_score_threshold_pct": 0.0,
+                      "min_positive_momentum_count_for_buy": 4,   # 4 scores, all negative -> breadth block ON
+                      "score": {"use_intraday_return": True}},
+    }
+    # 4 valid momentum scores, none >= threshold -> market_breadth_block_active. The held name
+    # 159915 (down 1%, ABOVE the -3% stop) is not in the selected top-2 -> rebalance-out sell.
+    quotes = [q("510300", -0.01), q("510500", -0.012), q("588000", -0.015), q("159915", -0.02, price=4.13)]
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 800_000.0}}
+    positions = {"159915": {"availableQuantity": 48700, "costPrice": 4.17, "marketValue": 201131.0}}
+    plan = reb.build_plan(cfg, quotes, balance, positions)
+    sells = [o for o in plan["orders"] if o.get("direction") == "sell"]
+    buys = [o for o in plan["orders"] if o.get("direction") == "buy"]
+    check("T81 breadth block is active in this scenario", plan.get("market_breadth_block_active") is True,
+          str({k: plan.get(k) for k in ("market_breadth_block_active", "positive_momentum_count")}))
+    check("T81 rebalance-out sell passes the breadth block (not held until the hard stop)",
+          any(o.get("stockCode") == "159915" and o.get("reason") == "not_in_selected_etf_set" for o in sells),
+          str(plan["orders"]))
+    check("T81 breadth block still blocks all buys", not buys, str(buys))
+
+
 def t59_every_decision_and_daily_score_review() -> None:
     from datetime import date, timedelta
     import decision_scoring as scoring
@@ -4271,6 +4315,7 @@ if __name__ == "__main__":
     t59_every_decision_and_daily_score_review()
     t60_sell_logic_v2_timing_gate()
     t74_entry_logic_v2_pullback_gate()
+    t81_breadth_block_never_blocks_sells()
     t75_actual_trade_exit_research_is_causal_and_safe()
     t76_l2_exit_timing_is_forward_day_clustered_and_safe()
     t77_l2_sell_execution_is_next_snapshot_conservative_and_safe()

@@ -90,6 +90,7 @@ SELL_BYPASS_CHECKS = {
     "reentry_cooldown",
     "daily_entry_limit",
     "entry_score_gate",
+    "entry_logic_v2_gate",
     "skip_date_guard",
     "kill_switch_inactive",
     # BUY budget/count caps: gate new risk only, never block an exit

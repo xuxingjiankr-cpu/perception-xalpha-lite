@@ -1092,8 +1092,12 @@ def build_plan(cfg: dict[str, Any], quotes: list[dict[str, Any]], balance: dict[
         orders = [o for o in orders if o.get("direction") != "buy"]
         non_risk_orders_blocked_reason = "cash_defense_active"
     if momentum_warmup_active or market_breadth_block_active:
-        # During warm-up or weak breadth, preserve only explicit risk exits.
-        orders = [o for o in orders if o.get("reason") == "stop_loss_exit"]
+        # During warm-up or weak breadth, block new BUYING only -- every sell reduces
+        # exposure, which is exactly what a risk-off state wants. This used to keep only
+        # stop_loss_exit sells, which on 2026-07-02 held a falling rebalance-out sell
+        # (159915, planned 09:30 @4.178) for 15 minutes until its hard stop fired @4.088
+        # (-2.2%). A risk-off guard must never delay risk reduction.
+        orders = [o for o in orders if o.get("direction") != "buy"]
         non_risk_orders_blocked_reason = "momentum_warmup_active" if momentum_warmup_active else "market_breadth_block_active"
     target_holdings_actual = 0 if cash_defense_active else len(selected)
     return {
