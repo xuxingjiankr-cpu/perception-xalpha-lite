@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "tail_probability_bounds_result_v1",
+  "generatedAt": "2026-07-04T05:25:08+09:00",
+  "status": "diagnostic_only",
+  "config": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\configs\\research\\tail_probability_bounds_preregistered.json",
+  "inputDays": 60,
+  "evaluationDays": 40,
+  "lookbackDays": 20,
+  "dailyLossThresholdPct": 0.01,
+  "maximumTailProbability": 0.1,
+  "metrics": {
+    "baseline": {
+      "days": 40,
+      "totalPnl": 35758.39166655404,
+      "totalReturn": 0.035758391666554035,
+      "meanDailyReturn": 0.0008869440000000001,
+      "dailyStd": 0.004107255875473213,
+      "dailySharpe": 3.4280307660216196,
+      "worstDay": -0.0071848,
+      "maxDrawdown": -0.012121938875310323,
+      "averageExposure": 1.0,
+      "zeroExposureDays": 0,
+      "fullExposureDays": 40
+    },
+    "cantelli": {
+      "days": 40,
+      "totalPnl": 30282.06513673015,
+      "totalReturn": 0.030282065136730152,
+      "meanDailyReturn": 0.00075055925,
+      "dailyStd": 0.003029138636738205,
+      "dailySharpe": 3.933381778506124,
+      "worstDay": -0.0053886,
+      "maxDrawdown": -0.009100461774886104,
+      "averageExposure": 0.69375,
+      "zeroExposureDays": 0,
+      "fullExposureDays": 1
+    },
+    "chernoff_ucb": {
+      "days": 40,
+      "totalPnl": 0.0,
+      "totalReturn": 0.0,
+      "meanDailyReturn": 0.0,
+      "dailyStd": 0.0,
+      "dailySharpe": null,
+      "worstDay": 0.0,
+      "maxDrawdown": 0.0,
+      "averageExposure": 0.0,
+      "zeroExposureDays": 40,
+      "fullExposureDays": 0
+    },
+    "best_valid_bound": {
+      "days": 40,
+      "totalPnl": 30282.06513673015,
+      "totalReturn": 0.030282065136730152,
+      "meanDailyReturn": 0.00075055925,
+      "dailyStd": 0.003029138636738205,
+      "dailySharpe": 3.933381778506124,
+      "worstDay": -0.0053886,
+      "maxDrawdown": -0.009100461774886104,
+      "averageExposure": 0.69375,
+      "zeroExposureDays": 0,
+      "fullExposureDays": 1
+    }
+  },
+  "evidence": {
+    "gateChecks": {
+      "minimumEvaluationDays": true,
+      "lowerDailyStd": true,
+      "betterWorstDay": true,
+      "betterMaxDrawdown": true,
+      "minimumReturnRetention": true,
+      "freshUnseenForwardWindow": false,
+      "pointInTimeUniverse": false
+    }
+  },
+  "verdict": "historical_risk_shape_supported_forward_shadow_required",
+  "verdictReason": "The fixed Cantelli budget preserved at least 80% of historical return while reducing dispersion and drawdown, but reused and look-ahead-contaminated data prohibit deployment.",
+  "limitations": [
+    "The 60-day replay and its test window have already been inspected; this is not clean OOS evidence.",
+    "The historical universe used same-day final turnover and is contaminated by liquidity look-ahead.",
+    "Scaling an already known daily PnL mechanically reduces both gains and losses; it does not prove tail-event predictability.",
+    "Cantelli uses only mean and variance and is generally loose.",
+    "The finite-sample Chernoff calculation additionally assumes independent observations and true daily returns bounded within plus or minus 5%.",
+    "Twenty rolling observations are too few for stable tail inference.",
+    "The replay summaries come from different historical replay stages and are suitable only for a diagnostic risk-shape test."
+  ],
+  "liveChanges": false
+}

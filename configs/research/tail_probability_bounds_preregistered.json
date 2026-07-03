@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "tail_probability_bounds_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-07-04T09:30:00+08:00",
+  "hypothesis": "A point-in-time one-sided probability bound can scale next-session exposure to reduce daily PnL variance, worst-day loss and drawdown without changing entry or exit logic.",
+  "methodBoundary": "This is risk budgeting, not alpha prediction. Any reduction in loss must be evaluated together with foregone positive PnL.",
+  "data": {
+    "trainingReplaySummary": "outputs/t0_replay/oos_train_baseline_current_summary.json",
+    "continuationReplaySummary": "outputs/t0_replay/oos_variance_baseline_summary.json",
+    "initialEquity": 1000000,
+    "rollingLookbackDays": 20,
+    "replayWindowPreviouslyReused": true,
+    "knownUniverseLookaheadContamination": true
+  },
+  "riskBudget": {
+    "dailyLossThresholdPct": 0.01,
+    "maximumTailProbability": 0.1,
+    "exposureGrid": [
+      1.0,
+      0.75,
+      0.5,
+      0.25,
+      0.0
+    ]
+  },
+  "chernoff": {
+    "assumedDailyReturnLowerBound": -0.05,
+    "assumedDailyReturnUpperBound": 0.05,
+    "mgfConfidence": 0.95,
+    "lambdaGrid": [
+      10.0,
+      20.0,
+      40.0,
+      80.0,
+      120.0,
+      160.0
+    ],
+    "finiteSampleMgfUpperBound": "hoeffding_union_bound"
+  },
+  "evidenceGates": {
+    "minimumEvaluationDays": 40,
+    "requireLowerDailyStd": true,
+    "requireBetterWorstDay": true,
+    "requireBetterMaxDrawdown": true,
+    "minimumReturnRetention": 0.8,
+    "requireFreshUnseenForwardWindow": true
+  },
+  "knownLimitations": [
+    "The 60-day replay and its test window have already been inspected; this is not clean OOS evidence.",
+    "The historical universe used same-day final turnover and is contaminated by liquidity look-ahead.",
+    "Scaling an already known daily PnL mechanically reduces both gains and losses; it does not prove tail-event predictability.",
+    "Cantelli uses only mean and variance and is generally loose.",
+    "The finite-sample Chernoff calculation additionally assumes independent observations and true daily returns bounded within plus or minus 5%.",
+    "Twenty rolling observations are too few for stable tail inference.",
+    "The replay summaries come from different historical replay stages and are suitable only for a diagnostic risk-shape test."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}

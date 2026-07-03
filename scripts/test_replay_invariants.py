@@ -4452,6 +4452,79 @@ def t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe() -> None:
     )
 
 
+def t84_tail_probability_bounds_are_causal_conservative_and_safe() -> None:
+    """Tail bounds must be one-sided, prefix-only and offline."""
+    import json
+    import research_tail_probability_bounds as tail
+
+    quiet = tail.np.asarray(
+        [-0.004, -0.002, 0.000, 0.002, 0.004] * 4, dtype=float
+    )
+    cantelli_near = tail.cantelli_lower_tail_bound(quiet, 0.005)
+    cantelli_far = tail.cantelli_lower_tail_bound(quiet, 0.020)
+    check(
+        "T84 Cantelli lower-tail bound decreases for a more remote loss",
+        0 <= cantelli_far < cantelli_near <= 1,
+        str((cantelli_near, cantelli_far)),
+    )
+    exposure, bound = tail.select_exposure(
+        quiet,
+        daily_loss_threshold=0.01,
+        maximum_tail_probability=0.10,
+        exposure_grid=[1.0, 0.75, 0.5, 0.25, 0.0],
+        bound_function=tail.cantelli_lower_tail_bound,
+    )
+    shocked_future = tail.np.append(quiet, -0.05)
+    same_exposure, same_bound = tail.select_exposure(
+        shocked_future[:-1],
+        daily_loss_threshold=0.01,
+        maximum_tail_probability=0.10,
+        exposure_grid=[1.0, 0.75, 0.5, 0.25, 0.0],
+        bound_function=tail.cantelli_lower_tail_bound,
+    )
+    check(
+        "T84 next-session exposure is invariant to an unseen future shock",
+        exposure == same_exposure and abs(bound - same_bound) < 1e-12,
+    )
+    invalid_support = tail.chernoff_ucb_lower_tail_bound(
+        shocked_future,
+        0.01,
+        return_lower_bound=-0.04,
+        return_upper_bound=0.04,
+        confidence=0.95,
+        lambdas=[10.0, 20.0],
+    )
+    check(
+        "T84 Chernoff bound fails closed when assumed support is violated",
+        invalid_support == 1.0,
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "tail_probability_bounds_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_tail_probability_bounds.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T84 tail-bound research cannot trade, size or mutate live config",
+        prereg["status"] == "diagnostic_only"
+        and prereg["data"]["replayWindowPreviouslyReused"] is True
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["positionSizingEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4535,6 +4608,7 @@ if __name__ == "__main__":
     t73_frontier_competition_ranker_is_fresh_paper_only_and_auditable()
     t82_local_news_watchlist_is_causal_no_api_and_shadow_only()
     t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe()
+    t84_tail_probability_bounds_are_causal_conservative_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
