@@ -4361,6 +4361,97 @@ def t82_local_news_watchlist_is_causal_no_api_and_shadow_only() -> None:
           and config["positionSizingEnabled"] is False)
 
 
+def t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe() -> None:
+    """The Laplace-copula chain score must be frozen, causal and offline."""
+    import json
+    import research_laplace_copula_price_chain as chain
+
+    leader = chain.np.asarray(
+        [-0.010, -0.006, -0.003, 0.000, 0.003, 0.006, 0.010] * 20
+    )
+    lagger = 0.9 * leader + chain.np.asarray(
+        [-0.001, 0.000, 0.001, 0.000, -0.001, 0.001, 0.000] * 20
+    )
+    config = {
+        "model": {
+            "minimumTrainingPairObservations": 100,
+            "minimumFrozenGaussianCopulaRho": 0.6,
+            "cdfClip": 1e-6,
+            "formationBars": 3,
+            "decisionTimes": ["10:00"],
+        },
+        "signal": {
+            "leaderMomentumMinimum": 0.002,
+            "leaderLaggerReturnGapMinimum": 0.0015,
+            "conditionalLowerTailMaximum": 0.05,
+            "maximumBenchmarkSignalsPerDecision": 5,
+        },
+        "execution": {
+            "holdingBars": 2,
+            "maximumEntryDelayMinutes": 10,
+        },
+    }
+    models, audit = chain.fit_frozen_pair_models(
+        {("IDX", "LEAD", "LAG"): (leader, lagger)}, config
+    )
+    model = models[("IDX", "LEAD", "LAG")]
+    ordinary_tail = chain.conditional_lower_tail(
+        0.006, 0.0054, model, clip=1e-6
+    )
+    abnormal_tail = chain.conditional_lower_tail(
+        0.006, -0.006, model, clip=1e-6
+    )
+    check(
+        "T83 frozen Laplace copula ranks an abnormal lag below an ordinary pair",
+        audit["acceptedOrderedPairs"] == 1 and abnormal_tail < ordinary_tail,
+        str((audit, abnormal_tail, ordinary_tail)),
+    )
+
+    index = chain.pd.date_range("2026-06-01 09:45:00", periods=7, freq="5min")
+    prices = chain.pd.DataFrame(
+        {
+            "LEAD": [1.0, 1.0, 1.0, 1.006, 1.006, 1.006, 1.006],
+            "LAG": [1.0, 1.0, 1.0, 0.994, 1.000, 1.010, 1.020],
+        },
+        index=index,
+    )
+    signals = chain.generate_price_chain_signals(
+        prices, {"IDX": ["LEAD", "LAG"]}, models, config
+    )
+    check(
+        "T83 price-chain replay enters after the completed decision bar",
+        len(signals) == 1
+        and signals[0]["entry_time"] > signals[0]["decision_time"]
+        and signals[0]["laggard"] == "LAG"
+        and abs(signals[0]["candidate_gross_return"] - 0.02) < 1e-12,
+        str(signals),
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "laplace_copula_price_chain_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_laplace_copula_price_chain.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T83 Laplace-copula research cannot trade, promote or mutate live config",
+        prereg["status"] == "diagnostic_only"
+        and prereg["data"]["oosWindowPreviouslyReused"] is True
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4443,6 +4534,7 @@ if __name__ == "__main__":
     t72_trend_pullback_recovery_is_causal_costed_and_safe()
     t73_frontier_competition_ranker_is_fresh_paper_only_and_auditable()
     t82_local_news_watchlist_is_causal_no_api_and_shadow_only()
+    t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

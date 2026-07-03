@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "laplace_copula_price_chain_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-07-04T09:00:00+08:00",
+  "hypothesis": "Within liquid T0 ETFs tracking the same benchmark, an ETF whose completed 15-minute return is in the lower 5% of its frozen Laplace-Gaussian-copula conditional distribution given a positively moving leader may catch up over the next 30 minutes.",
+  "methodBoundary": "This is a causal long-only adaptation of the paper's Laplace-marginal Gaussian-copula relative-value method, not a direct replication of its long-short one-day trade.",
+  "literature": [
+    {
+      "title": "Revisiting the Copula-Based Trading Method Using the Laplace Marginal Distribution Function",
+      "file": "C:/Users/XU XINGJIAN/Downloads/mathematics-10-00783.pdf"
+    }
+  ],
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "master": "outputs/edge_research/t0_etf_master_latest.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true,
+    "allowedAssetClasses": [
+      "cross_border",
+      "gold"
+    ],
+    "minimumTrainingCoverageRatio": 0.8,
+    "minimumTrainingAverageDailyAmount": 50000000,
+    "maximumMembersPerBenchmark": 5,
+    "minimumMembersPerBenchmark": 2
+  },
+  "model": {
+    "formationBars": 3,
+    "decisionTimes": [
+      "10:00",
+      "10:30",
+      "11:00",
+      "13:30",
+      "14:00"
+    ],
+    "minimumTrainingPairObservations": 100,
+    "minimumFrozenGaussianCopulaRho": 0.6,
+    "cdfClip": 1e-06
+  },
+  "signal": {
+    "leaderMomentumMinimum": 0.002,
+    "leaderLaggerReturnGapMinimum": 0.0015,
+    "conditionalLowerTailMaximum": 0.05,
+    "maximumBenchmarkSignalsPerDecision": 5
+  },
+  "execution": {
+    "entry": "next_observed_5m_bar",
+    "holdingBars": 6,
+    "maximumEntryDelayMinutes": 10,
+    "maxWeightPerSignal": 0.2,
+    "primaryRoundTripCostBps": 12,
+    "costStressBps": [
+      6,
+      12,
+      20
+    ]
+  },
+  "evidenceGates": {
+    "minimumOosDays": 15,
+    "minimumOosTrades": 30,
+    "requirePositiveCandidateNetAt12Bps": true,
+    "requirePositiveCandidateNetAt20Bps": true,
+    "requirePositivePairedEdge": true,
+    "requirePairedBootstrapLowerBoundPositive": true,
+    "requireDmSignificantVsCash": true,
+    "requireDmSignificantVsPeerControl": true,
+    "requireDsrSignificant": true,
+    "requireSpaReject": true,
+    "requireFreshUnseenOosForPromotion": true
+  },
+  "knownLimitations": [
+    "The 2026-05-21 to 2026-06-18 test window has already been inspected by other research and is not a clean untouched OOS window for this new hypothesis.",
+    "Current benchmark membership can create survivorship bias.",
+    "Yahoo five-minute prices and fixed round-trip costs do not reproduce order-book fills.",
+    "The paper uses a long-short pair; this system is long-only, so the peer move is a control rather than a hedge.",
+    "Laplace marginals are symmetric and the Gaussian copula has no non-degenerate tail dependence.",
+    "A better marginal likelihood does not by itself establish predictive alpha."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}

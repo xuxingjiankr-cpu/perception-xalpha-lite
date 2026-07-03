@@ -1,0 +1,450 @@
+{
+  "schemaVersion": "laplace_copula_price_chain_result_v1",
+  "generatedAt": "2026-07-04T00:44:43+09:00",
+  "status": "diagnostic_only",
+  "config": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\configs\\research\\laplace_copula_price_chain_preregistered.json",
+  "split": {
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosDays": 21,
+    "oosWindowPreviouslyReused": true
+  },
+  "universe": {
+    "selectionUsesOos": false,
+    "trainingDates": 39,
+    "minimumCoverageDays": 32,
+    "benchmarks": 12,
+    "codes": 37,
+    "groups": {
+      "N225": [
+        "513520",
+        "513880",
+        "513000"
+      ],
+      "HSTECH": [
+        "513130",
+        "513180",
+        "513010",
+        "513260",
+        "513380"
+      ],
+      "931573": [
+        "513980",
+        "513020",
+        "513860",
+        "513150",
+        "513560"
+      ],
+      "931637": [
+        "513040",
+        "513770",
+        "520650"
+      ],
+      "NDX": [
+        "513100",
+        "513300",
+        "513110",
+        "513390",
+        "513870"
+      ],
+      "HSSCT": [
+        "520980",
+        "513160"
+      ],
+      "SPX": [
+        "513500",
+        "513650"
+      ],
+      "HSI": [
+        "513660",
+        "513600"
+      ],
+      "931250": [
+        "513780",
+        "520700",
+        "520970"
+      ],
+      "931239": [
+        "520600",
+        "520720"
+      ],
+      "931722": [
+        "520990",
+        "520660",
+        "520900"
+      ],
+      "HSSCPB": [
+        "520880",
+        "520690"
+      ]
+    },
+    "liquidity": {
+      "513000": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 167452322.67
+      },
+      "513010": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 1222590211.42
+      },
+      "513020": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 201271057.94
+      },
+      "513040": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 507339147.4
+      },
+      "513100": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 626657920.8
+      },
+      "513110": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 187737734.51
+      },
+      "513130": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 4136924903.33
+      },
+      "513150": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 85086008.75
+      },
+      "513160": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 387408935.42
+      },
+      "513180": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 3906817546.73
+      },
+      "513260": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 319993557.33
+      },
+      "513300": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 439910352.32
+      },
+      "513380": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 303207715.46
+      },
+      "513390": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 102706418.43
+      },
+      "513500": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 300678677.77
+      },
+      "513520": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 317899483.95
+      },
+      "513560": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 76923462.13
+      },
+      "513600": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 114642314.68
+      },
+      "513650": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 231518657.85
+      },
+      "513660": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 121447459.65
+      },
+      "513770": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 451890985.16
+      },
+      "513780": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 305264549.11
+      },
+      "513860": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 168422506.84
+      },
+      "513870": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 86281464.92
+      },
+      "513880": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 187232846.16
+      },
+      "513980": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 528034670.28
+      },
+      "520600": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 300525293.37
+      },
+      "520650": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 92537292.09
+      },
+      "520660": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 110945789.32
+      },
+      "520690": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 115678913.68
+      },
+      "520700": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 203890491.9
+      },
+      "520720": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 73939721.08
+      },
+      "520880": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 400156298.52
+      },
+      "520900": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 96792265.25
+      },
+      "520970": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 77210127.24
+      },
+      "520980": {
+        "trainingDays": 39,
+        "averageTrainingDailyAmount": 415857596.41
+      },
+      "520990": {
+        "trainingDays": 38,
+        "averageTrainingDailyAmount": 176726690.93
+      }
+    }
+  },
+  "modelAudit": {
+    "candidateOrderedPairs": 94,
+    "acceptedOrderedPairs": 88,
+    "rejected": {
+      "copula_rho_below_floor": 6
+    },
+    "laplaceMarginalFit": {
+      "comparisons": 176,
+      "fractionHigherLikelihoodThanGaussian": 0.6704545454545454,
+      "medianLogLikelihoodAdvantage": 2.1717483966075406
+    }
+  },
+  "signals": {
+    "train": 43,
+    "oos": 39
+  },
+  "costStress": {
+    "6": {
+      "candidate": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.005246149384486198,
+        "meanDailyReturn": -0.00025010466724763634,
+        "dailyStd": 0.0008425654557627839,
+        "dailySharpe": -4.712142517222588,
+        "winDayRate": 0.23809523809523808,
+        "worstDay": -0.002440339298789102,
+        "maxDrawdown": -0.005312395262820568
+      },
+      "peerControl": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.008069956143333501,
+        "meanDailyReturn": -0.00038543952976547824,
+        "dailyStd": 0.000830227163519726,
+        "dailySharpe": -7.369865882656612,
+        "winDayRate": 0.19047619047619047,
+        "worstDay": -0.0030846769017317814,
+        "maxDrawdown": -0.008159562649789232
+      },
+      "pairedEdge": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": 0.0028444436017862618,
+        "meanDailyReturn": 0.00013533486251784198,
+        "dailyStd": 0.00037868560340066317,
+        "dailySharpe": 5.673240071297088,
+        "winDayRate": 0.5714285714285714,
+        "worstDay": -0.000985123135303534,
+        "maxDrawdown": -0.0009851231353035228
+      }
+    },
+    "12": {
+      "candidate": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.009892927622998982,
+        "meanDailyReturn": -0.0004729618101047792,
+        "dailyStd": 0.000873516642230419,
+        "dailySharpe": -8.595183665692216,
+        "winDayRate": 0.23809523809523808,
+        "worstDay": -0.0028003392987891026,
+        "maxDrawdown": -0.00921479585203544
+      },
+      "peerControl": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.012704229353417973,
+        "meanDailyReturn": -0.0006082966726226212,
+        "dailyStd": 0.0008651456773844135,
+        "dailySharpe": -11.16160037213536,
+        "winDayRate": 0.14285714285714285,
+        "worstDay": -0.003444676901731782,
+        "maxDrawdown": -0.01219615748405145
+      },
+      "pairedEdge": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": 0.0028444436017862618,
+        "meanDailyReturn": 0.00013533486251784198,
+        "dailyStd": 0.00037868560340066317,
+        "dailySharpe": 5.673240071297088,
+        "winDayRate": 0.5714285714285714,
+        "worstDay": -0.000985123135303534,
+        "maxDrawdown": -0.0009851231353035228
+      }
+    },
+    "20": {
+      "candidate": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.01605711324175063,
+        "meanDailyReturn": -0.0007701046672476366,
+        "dailyStd": 0.0009475500128921162,
+        "dailySharpe": -12.901728069055766,
+        "winDayRate": 0.19047619047619047,
+        "worstDay": -0.0032803392987891026,
+        "maxDrawdown": -0.015225531536155912
+      },
+      "peerControl": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": -0.018851821637489996,
+        "meanDailyReturn": -0.0009054395297654784,
+        "dailyStd": 0.0009441452447398317,
+        "dailySharpe": -15.22372433466109,
+        "winDayRate": 0.047619047619047616,
+        "worstDay": -0.0039246769017317815,
+        "maxDrawdown": -0.01818974289708164
+      },
+      "pairedEdge": {
+        "days": 21,
+        "trades": 39,
+        "totalReturn": 0.0028444436017862618,
+        "meanDailyReturn": 0.00013533486251784198,
+        "dailyStd": 0.0003786856034006631,
+        "dailySharpe": 5.673240071297089,
+        "winDayRate": 0.5714285714285714,
+        "worstDay": -0.000985123135303534,
+        "maxDrawdown": -0.0009851231353035228
+      }
+    }
+  },
+  "evidence": {
+    "gateChecks": {
+      "minimumOosDays": true,
+      "minimumOosTrades": true,
+      "positiveCandidateNetAt12Bps": false,
+      "positiveCandidateNetAt20Bps": false,
+      "positivePairedEdge": true,
+      "pairedBootstrapLowerPositive": false,
+      "dmVsCashSignificant": false,
+      "dmVsPeerSignificant": false,
+      "dsrSignificant": false,
+      "spaReject": false,
+      "freshUnseenOosForPromotion": false
+    },
+    "pairedBootstrap": {
+      "days": 21,
+      "mean": 0.00013533486251784198,
+      "lower95": -2.9998521810992425e-05,
+      "upper95": 0.00028653285402562196
+    },
+    "dmVsCash": {
+      "n_days": 21,
+      "alpha": 0.05,
+      "dm_star": -2.4812,
+      "t_critical": 1.725,
+      "significant": false,
+      "mean_diff": -0.0005,
+      "reason": "ok",
+      "df": 20
+    },
+    "dmVsPeer": {
+      "n_days": 21,
+      "alpha": 0.05,
+      "dm_star": 1.6377,
+      "t_critical": 1.725,
+      "significant": false,
+      "mean_diff": 0.0001,
+      "reason": "ok",
+      "df": 20
+    },
+    "dsr": {
+      "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+      "significant": false,
+      "alpha": 0.1,
+      "n_days": 21,
+      "n_trials": 2,
+      "reason": "ok",
+      "mean_diff": -0.0005,
+      "std_diff": 0.0009,
+      "sharpe_diff_daily": -0.5414,
+      "t_stat": -2.4812,
+      "selection_bias_t": 0.0,
+      "deflated_t": -2.4812,
+      "p_value": 0.9935
+    },
+    "spa": {
+      "method": "studentized_hansen_spa_lite",
+      "p_value": 1.0,
+      "t_max": 0.0,
+      "n_obs": 21,
+      "reject": false,
+      "best_alt": "candidate",
+      "alpha": 0.05,
+      "reason": "ok",
+      "active_alternatives": [
+        "candidate",
+        "peer_control"
+      ],
+      "candidate_stats": {
+        "candidate": {
+          "mean_diff": -0.000473,
+          "sd_diff": 0.000874,
+          "t_stat": -2.481216
+        },
+        "peer_control": {
+          "mean_diff": -0.000608,
+          "sd_diff": 0.000865,
+          "t_stat": -3.222076
+        }
+      }
+    }
+  },
+  "verdict": "no_validated_laplace_copula_price_chain_edge",
+  "verdictReason": "The frozen conditional-tail rule failed at least one return, cost, sample, paired-control or statistical gate.",
+  "limitations": [
+    "The 2026-05-21 to 2026-06-18 test window has already been inspected by other research and is not a clean untouched OOS window for this new hypothesis.",
+    "Current benchmark membership can create survivorship bias.",
+    "Yahoo five-minute prices and fixed round-trip costs do not reproduce order-book fills.",
+    "The paper uses a long-short pair; this system is long-only, so the peer move is a control rather than a hedge.",
+    "Laplace marginals are symmetric and the Gaussian copula has no non-degenerate tail dependence.",
+    "A better marginal likelihood does not by itself establish predictive alpha."
+  ],
+  "liveChanges": false
+}
