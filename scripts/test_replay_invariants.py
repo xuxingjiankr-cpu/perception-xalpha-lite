@@ -4681,6 +4681,73 @@ def t86_minute_model_fusion_is_causal_and_shadow_only() -> None:
     )
 
 
+def t87_conditional_minute_tail_preserves_dependence_safely() -> None:
+    """Conditional tail research must be conservative and shadow-only."""
+    import json
+    import research_conditional_minute_tail as conditional
+
+    weights = conditional.np.asarray([0.7, 0.3])
+    means = conditional.np.asarray([-0.001, 0.002])
+    variances = conditional.np.asarray([1e-6, 4e-6])
+    lambdas = conditional.np.geomspace(0.1, 5000.0, 200)
+    near_probability = conditional.gaussian_mixture_tail_probability(
+        weights, means, variances, 0.002
+    )
+    far_probability = conditional.gaussian_mixture_tail_probability(
+        weights, means, variances, 0.005
+    )
+    near_bound = conditional.gaussian_mixture_chernoff_bound(
+        weights, means, variances, 0.002, lambdas
+    )
+    check(
+        "T87 conditional tail probability and Chernoff bound are ordered",
+        0 <= far_probability < near_probability <= near_bound <= 1,
+        str(
+            {
+                "far": far_probability,
+                "near": near_probability,
+                "bound": near_bound,
+            }
+        ),
+    )
+    updated = conditional.ewma_variance_update(
+        previous=1e-6,
+        residual=0.01,
+        half_life_bars=24,
+        variance_floor=1e-8,
+    )
+    check(
+        "T87 EWMA variance responds to a completed residual",
+        updated > 1e-6,
+        str(updated),
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "conditional_minute_tail_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_conditional_minute_tail.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T87 conditional dependence research cannot trade or size",
+        prereg["status"] == "diagnostic_only"
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["recordOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["positionSizingEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4767,6 +4834,7 @@ if __name__ == "__main__":
     t84_tail_probability_bounds_are_causal_conservative_and_safe()
     t85_minute_forecast_is_next_bar_point_in_time_and_safe()
     t86_minute_model_fusion_is_causal_and_shadow_only()
+    t87_conditional_minute_tail_preserves_dependence_safely()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

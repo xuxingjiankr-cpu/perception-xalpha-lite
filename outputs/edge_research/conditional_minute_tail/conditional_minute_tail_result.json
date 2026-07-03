@@ -1,0 +1,938 @@
+{
+  "schemaVersion": "conditional_minute_tail_result_v1",
+  "generatedAt": "2026-07-04T07:03:22+09:00",
+  "status": "diagnostic_only",
+  "config": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\configs\\research\\conditional_minute_tail_preregistered.json",
+  "split": {
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true
+  },
+  "universe": {
+    "count": 50,
+    "selectionUsesOos": false,
+    "codes": [
+      "511010",
+      "511030",
+      "511060",
+      "511070",
+      "511090",
+      "511100",
+      "511110",
+      "511120",
+      "511130",
+      "511150",
+      "511180",
+      "511190",
+      "511200",
+      "511220",
+      "511260",
+      "511270",
+      "511360",
+      "511380",
+      "511520",
+      "511580",
+      "513010",
+      "513040",
+      "513050",
+      "513060",
+      "513090",
+      "513100",
+      "513120",
+      "513130",
+      "513180",
+      "513310",
+      "513330",
+      "513350",
+      "513750",
+      "513980",
+      "518800",
+      "518850",
+      "518880",
+      "520500",
+      "551000",
+      "551030",
+      "551060",
+      "551300",
+      "551500",
+      "551510",
+      "551520",
+      "551550",
+      "551560",
+      "551580",
+      "551800",
+      "551900"
+    ]
+  },
+  "observations": 42577,
+  "oosDays": 21,
+  "hmm": {
+    "means": [
+      9.693605225883316e-07,
+      9.721117332968703e-07,
+      9.197753286174106e-05
+    ],
+    "standardDeviations": [
+      0.0001,
+      0.0001,
+      0.0014519192135534116
+    ],
+    "transition": [
+      [
+        0.9297485558504343,
+        0.021916009589905732,
+        0.048335434559659975
+      ],
+      [
+        0.03225177218066169,
+        0.9541575782190377,
+        0.0135906496003005
+      ],
+      [
+        0.5736461440905459,
+        0.42632562548182235,
+        2.8230427631692534e-05
+      ]
+    ]
+  },
+  "dependenceAudit": {
+    "medianLag1SquaredReturnCorrelation": 0.22515656710407878,
+    "medianLag1SquaredStandardizedResidualCorrelation": 0.13305544435380082,
+    "rawCrossSectionalAbsoluteCorrelation": 0.1273992342569174,
+    "factorResidualCrossSectionalAbsoluteCorrelation": 0.12676343223931857
+  },
+  "thresholds": {
+    "0.0020": {
+      "lossThresholdPct": 0.002,
+      "observations": 42577,
+      "tailEvents": 2156,
+      "actualTailRate": 0.05063766822462832,
+      "conditional": {
+        "meanProbability": 0.06513031122933219,
+        "auc": 0.8836648954356511,
+        "brier": 0.042973718428540475
+      },
+      "static": {
+        "meanProbability": 0.0664028054786149,
+        "auc": 0.8715647161950709,
+        "brier": 0.04385062976041302
+      },
+      "ewmaOnly": {
+        "meanProbability": 0.06366406433178538,
+        "auc": 0.88271717079409,
+        "brier": 0.04295283929937493
+      },
+      "medianPerCodeConditionalAuc": 0.5847978818771239,
+      "codesWithDefinedAuc": 21,
+      "meanDailyBrierImprovement": 0.0009185464270912429,
+      "dailyBrierImprovementT": 2.0913857983554056,
+      "dailyPredictedVsActualCorrelation": 0.6235398578189016,
+      "riskQuartiles": [
+        {
+          "quartile": 1,
+          "observations": 10645,
+          "meanPredictedProbability": 2.02085817106614e-54,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 2,
+          "observations": 10644,
+          "meanPredictedProbability": 8.651596977570197e-15,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 3,
+          "observations": 10644,
+          "meanPredictedProbability": 0.04361714851243652,
+          "actualTailRate": 0.028560691469372415
+        },
+        {
+          "quartile": 4,
+          "observations": 10644,
+          "meanPredictedProbability": 0.2169102153743715,
+          "actualTailRate": 0.17399473881999247
+        }
+      ],
+      "daily": [
+        {
+          "trade_date": "2026-05-21",
+          "actualTailRate": 0.05571565802113353,
+          "predictedTailRate": 0.06592386437252824,
+          "conditionalBrier": 0.04455210398589198,
+          "staticBrier": 0.04467343573903265
+        },
+        {
+          "trade_date": "2026-05-22",
+          "actualTailRate": 0.038159958180867745,
+          "predictedTailRate": 0.06561796403536532,
+          "conditionalBrier": 0.035347602064407554,
+          "staticBrier": 0.03631220498534365
+        },
+        {
+          "trade_date": "2026-05-25",
+          "actualTailRate": 0.02137643378519291,
+          "predictedTailRate": 0.04089585995188252,
+          "conditionalBrier": 0.019239598412867893,
+          "staticBrier": 0.024507055937144345
+        },
+        {
+          "trade_date": "2026-05-26",
+          "actualTailRate": 0.048597194388777555,
+          "predictedTailRate": 0.06125647455619126,
+          "conditionalBrier": 0.041036070699984384,
+          "staticBrier": 0.04106696357781626
+        },
+        {
+          "trade_date": "2026-05-27",
+          "actualTailRate": 0.05085599194360524,
+          "predictedTailRate": 0.058687504778761536,
+          "conditionalBrier": 0.04339274523718267,
+          "staticBrier": 0.04436023890615251
+        },
+        {
+          "trade_date": "2026-05-28",
+          "actualTailRate": 0.0551061678463094,
+          "predictedTailRate": 0.060056865609099196,
+          "conditionalBrier": 0.04606495969928425,
+          "staticBrier": 0.04622269497051482
+        },
+        {
+          "trade_date": "2026-05-29",
+          "actualTailRate": 0.04580545548121462,
+          "predictedTailRate": 0.06849239190713914,
+          "conditionalBrier": 0.041444320302640135,
+          "staticBrier": 0.041505348793008594
+        },
+        {
+          "trade_date": "2026-06-01",
+          "actualTailRate": 0.053266331658291456,
+          "predictedTailRate": 0.07078214417826513,
+          "conditionalBrier": 0.043937084356098034,
+          "staticBrier": 0.04598874294676099
+        },
+        {
+          "trade_date": "2026-06-02",
+          "actualTailRate": 0.048514851485148516,
+          "predictedTailRate": 0.07712026883369479,
+          "conditionalBrier": 0.04331432930825621,
+          "staticBrier": 0.042713787918731455
+        },
+        {
+          "trade_date": "2026-06-03",
+          "actualTailRate": 0.05239960822722821,
+          "predictedTailRate": 0.06235514554490124,
+          "conditionalBrier": 0.04422438307270898,
+          "staticBrier": 0.04578902357140664
+        },
+        {
+          "trade_date": "2026-06-04",
+          "actualTailRate": 0.04786485218207415,
+          "predictedTailRate": 0.055699915249018975,
+          "conditionalBrier": 0.03942550585358232,
+          "staticBrier": 0.04009521775435227
+        },
+        {
+          "trade_date": "2026-06-05",
+          "actualTailRate": 0.050281954887218046,
+          "predictedTailRate": 0.0567128950000476,
+          "conditionalBrier": 0.04161129289005821,
+          "staticBrier": 0.04263620443274328
+        },
+        {
+          "trade_date": "2026-06-08",
+          "actualTailRate": 0.05986590038314176,
+          "predictedTailRate": 0.057669562293763396,
+          "conditionalBrier": 0.04808715641000493,
+          "staticBrier": 0.04919916296779113
+        },
+        {
+          "trade_date": "2026-06-09",
+          "actualTailRate": 0.05965241897604509,
+          "predictedTailRate": 0.07389452208219079,
+          "conditionalBrier": 0.05099570030241909,
+          "staticBrier": 0.049731161153932876
+        },
+        {
+          "trade_date": "2026-06-10",
+          "actualTailRate": 0.06550424128180961,
+          "predictedTailRate": 0.09923916192355461,
+          "conditionalBrier": 0.05728565702534904,
+          "staticBrier": 0.05262954726750711
+        },
+        {
+          "trade_date": "2026-06-11",
+          "actualTailRate": 0.06907593778591034,
+          "predictedTailRate": 0.07834939713997645,
+          "conditionalBrier": 0.05586131406867529,
+          "staticBrier": 0.056161760196080074
+        },
+        {
+          "trade_date": "2026-06-12",
+          "actualTailRate": 0.05173255246461689,
+          "predictedTailRate": 0.079495738138745,
+          "conditionalBrier": 0.04601494383669394,
+          "staticBrier": 0.045818756451908596
+        },
+        {
+          "trade_date": "2026-06-15",
+          "actualTailRate": 0.03967855349070819,
+          "predictedTailRate": 0.06501118778164083,
+          "conditionalBrier": 0.03580975431040432,
+          "staticBrier": 0.03855614211222448
+        },
+        {
+          "trade_date": "2026-06-16",
+          "actualTailRate": 0.04774260508562533,
+          "predictedTailRate": 0.058695601937844295,
+          "conditionalBrier": 0.04022181966163307,
+          "staticBrier": 0.04287591935130176
+        },
+        {
+          "trade_date": "2026-06-17",
+          "actualTailRate": 0.049073610415623435,
+          "predictedTailRate": 0.04892586122446951,
+          "conditionalBrier": 0.04038013577106286,
+          "staticBrier": 0.042697142684567334
+        },
+        {
+          "trade_date": "2026-06-18",
+          "actualTailRate": 0.04742478327383988,
+          "predictedTailRate": 0.058674905189566556,
+          "conditionalBrier": 0.04003389164761505,
+          "staticBrier": 0.044029332167415475
+        }
+      ]
+    },
+    "0.0030": {
+      "lossThresholdPct": 0.003,
+      "observations": 42577,
+      "tailEvents": 1167,
+      "actualTailRate": 0.02740916457242173,
+      "conditional": {
+        "meanProbability": 0.03435144082096618,
+        "auc": 0.8800624805097602,
+        "brier": 0.025222076129961173
+      },
+      "static": {
+        "meanProbability": 0.03341987280309891,
+        "auc": 0.8698187932781616,
+        "brier": 0.025717391345944432
+      },
+      "ewmaOnly": {
+        "meanProbability": 0.032970809269708724,
+        "auc": 0.8806989150855645,
+        "brier": 0.02517903226249952
+      },
+      "medianPerCodeConditionalAuc": 0.5866580046391587,
+      "codesWithDefinedAuc": 20,
+      "meanDailyBrierImprovement": 0.0005219457084677397,
+      "dailyBrierImprovementT": 1.8828557664939194,
+      "dailyPredictedVsActualCorrelation": 0.6725983946031188,
+      "riskQuartiles": [
+        {
+          "quartile": 1,
+          "observations": 10645,
+          "meanPredictedProbability": 1.6465818762498348e-115,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 2,
+          "observations": 10644,
+          "meanPredictedProbability": 1.3857319564170515e-27,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 3,
+          "observations": 10644,
+          "meanPredictedProbability": 0.012723349041856699,
+          "actualTailRate": 0.015125892521608418
+        },
+        {
+          "quartile": 4,
+          "observations": 10644,
+          "meanPredictedProbability": 0.12468564154760937,
+          "actualTailRate": 0.09451334084930477
+        }
+      ],
+      "daily": [
+        {
+          "trade_date": "2026-05-21",
+          "actualTailRate": 0.03506243996157541,
+          "predictedTailRate": 0.035146226745669265,
+          "conditionalBrier": 0.028918454312963155,
+          "staticBrier": 0.028556257654776304
+        },
+        {
+          "trade_date": "2026-05-22",
+          "actualTailRate": 0.020909566126502875,
+          "predictedTailRate": 0.033343355577564085,
+          "conditionalBrier": 0.020459222415439734,
+          "staticBrier": 0.02128525171961363
+        },
+        {
+          "trade_date": "2026-05-25",
+          "actualTailRate": 0.0072992700729927005,
+          "predictedTailRate": 0.016490760061889913,
+          "conditionalBrier": 0.006685638765257139,
+          "staticBrier": 0.008665071369664644
+        },
+        {
+          "trade_date": "2026-05-26",
+          "actualTailRate": 0.028557114228456915,
+          "predictedTailRate": 0.0306294215575536,
+          "conditionalBrier": 0.02590683417140956,
+          "staticBrier": 0.025925761028793265
+        },
+        {
+          "trade_date": "2026-05-27",
+          "actualTailRate": 0.026183282980866064,
+          "predictedTailRate": 0.027294978607572094,
+          "conditionalBrier": 0.023670039252544465,
+          "staticBrier": 0.024487488162132205
+        },
+        {
+          "trade_date": "2026-05-28",
+          "actualTailRate": 0.037917087967644085,
+          "predictedTailRate": 0.028527015099733693,
+          "conditionalBrier": 0.03332759053867255,
+          "staticBrier": 0.03312960518623466
+        },
+        {
+          "trade_date": "2026-05-29",
+          "actualTailRate": 0.02573340195573855,
+          "predictedTailRate": 0.03618072431807746,
+          "conditionalBrier": 0.025420262418169963,
+          "staticBrier": 0.025568602617139155
+        },
+        {
+          "trade_date": "2026-06-01",
+          "actualTailRate": 0.035678391959798994,
+          "predictedTailRate": 0.03920766132841068,
+          "conditionalBrier": 0.03050381257571083,
+          "staticBrier": 0.03257784363142157
+        },
+        {
+          "trade_date": "2026-06-02",
+          "actualTailRate": 0.030198019801980197,
+          "predictedTailRate": 0.04521635370768845,
+          "conditionalBrier": 0.029185243039895302,
+          "staticBrier": 0.028319885044618548
+        },
+        {
+          "trade_date": "2026-06-03",
+          "actualTailRate": 0.023506366307541625,
+          "predictedTailRate": 0.031602405053406356,
+          "conditionalBrier": 0.02230160169612443,
+          "staticBrier": 0.023462945746299108
+        },
+        {
+          "trade_date": "2026-06-04",
+          "actualTailRate": 0.023932426091037073,
+          "predictedTailRate": 0.026433667171742812,
+          "conditionalBrier": 0.021228729578339312,
+          "staticBrier": 0.021317015633423864
+        },
+        {
+          "trade_date": "2026-06-05",
+          "actualTailRate": 0.027725563909774435,
+          "predictedTailRate": 0.02735000379726147,
+          "conditionalBrier": 0.025013855938099683,
+          "staticBrier": 0.025859244232911173
+        },
+        {
+          "trade_date": "2026-06-08",
+          "actualTailRate": 0.032088122605363985,
+          "predictedTailRate": 0.026860023936537424,
+          "conditionalBrier": 0.027925541802351225,
+          "staticBrier": 0.0285083639166198
+        },
+        {
+          "trade_date": "2026-06-09",
+          "actualTailRate": 0.035227806481916396,
+          "predictedTailRate": 0.043496358005180036,
+          "conditionalBrier": 0.03326097718152767,
+          "staticBrier": 0.032081006732496954
+        },
+        {
+          "trade_date": "2026-06-10",
+          "actualTailRate": 0.041941564561734215,
+          "predictedTailRate": 0.06763784304274506,
+          "conditionalBrier": 0.03943494457136402,
+          "staticBrier": 0.036675231864262046
+        },
+        {
+          "trade_date": "2026-06-11",
+          "actualTailRate": 0.036139066788655076,
+          "predictedTailRate": 0.046426044577828174,
+          "conditionalBrier": 0.033067529997971565,
+          "staticBrier": 0.032949439218758966
+        },
+        {
+          "trade_date": "2026-06-12",
+          "actualTailRate": 0.027330405075646658,
+          "predictedTailRate": 0.044930024279713564,
+          "conditionalBrier": 0.02603910175503942,
+          "staticBrier": 0.026111016224684393
+        },
+        {
+          "trade_date": "2026-06-15",
+          "actualTailRate": 0.014063284781516826,
+          "predictedTailRate": 0.0329004855128934,
+          "conditionalBrier": 0.015340089412796224,
+          "staticBrier": 0.01683581526964732
+        },
+        {
+          "trade_date": "2026-06-16",
+          "actualTailRate": 0.019200830306175403,
+          "predictedTailRate": 0.027268980949067836,
+          "conditionalBrier": 0.019049622159707978,
+          "staticBrier": 0.02062416942457219
+        },
+        {
+          "trade_date": "2026-06-17",
+          "actualTailRate": 0.01702553830746119,
+          "predictedTailRate": 0.02098851489125886,
+          "conditionalBrier": 0.01590277103960294,
+          "staticBrier": 0.01830290384712008
+        },
+        {
+          "trade_date": "2026-06-18",
+          "actualTailRate": 0.026007139214686385,
+          "predictedTailRate": 0.029458676494828213,
+          "conditionalBrier": 0.023744675322053575,
+          "staticBrier": 0.026104479297673393
+        }
+      ]
+    },
+    "0.0050": {
+      "lossThresholdPct": 0.005,
+      "observations": 42577,
+      "tailEvents": 314,
+      "actualTailRate": 0.007374873758132325,
+      "conditional": {
+        "meanProbability": 0.010225957316049448,
+        "auc": 0.914997925486614,
+        "brier": 0.007270107680858501
+      },
+      "static": {
+        "meanProbability": 0.00983751631284046,
+        "auc": 0.9020013967737059,
+        "brier": 0.007618040512999117
+      },
+      "ewmaOnly": {
+        "meanProbability": 0.009276858350278954,
+        "auc": 0.9174974390723784,
+        "brier": 0.007258318584775919
+      },
+      "medianPerCodeConditionalAuc": 0.6181035751066648,
+      "codesWithDefinedAuc": 17,
+      "meanDailyBrierImprovement": 0.00036647051641446266,
+      "dailyBrierImprovementT": 2.0996009137172043,
+      "dailyPredictedVsActualCorrelation": 0.7321252567681761,
+      "riskQuartiles": [
+        {
+          "quartile": 1,
+          "observations": 10645,
+          "meanPredictedProbability": 1.25678823370062e-309,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 2,
+          "observations": 10644,
+          "meanPredictedProbability": 2.6575306631188325e-67,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 3,
+          "observations": 10644,
+          "meanPredictedProbability": 0.0012461366046745115,
+          "actualTailRate": 0.0024426907177752723
+        },
+        {
+          "quartile": 4,
+          "observations": 10644,
+          "meanPredictedProbability": 0.03965865338456237,
+          "actualTailRate": 0.02705749718151071
+        }
+      ],
+      "daily": [
+        {
+          "trade_date": "2026-05-21",
+          "actualTailRate": 0.008645533141210375,
+          "predictedTailRate": 0.011278474400715242,
+          "conditionalBrier": 0.006724392569524946,
+          "staticBrier": 0.006719283675557284
+        },
+        {
+          "trade_date": "2026-05-22",
+          "actualTailRate": 0.004704652378463147,
+          "predictedTailRate": 0.009604585724726923,
+          "conditionalBrier": 0.004903337457360919,
+          "staticBrier": 0.005515077803236891
+        },
+        {
+          "trade_date": "2026-05-25",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.003989321753617399,
+          "conditionalBrier": 0.00020953477927454769,
+          "staticBrier": 0.0012539063012122834
+        },
+        {
+          "trade_date": "2026-05-26",
+          "actualTailRate": 0.00751503006012024,
+          "predictedTailRate": 0.0071469079134222286,
+          "conditionalBrier": 0.007236636741192763,
+          "staticBrier": 0.007546476357659285
+        },
+        {
+          "trade_date": "2026-05-27",
+          "actualTailRate": 0.004028197381671702,
+          "predictedTailRate": 0.005290722890545161,
+          "conditionalBrier": 0.003832214309494258,
+          "staticBrier": 0.00419154715933158
+        },
+        {
+          "trade_date": "2026-05-28",
+          "actualTailRate": 0.01314459049544995,
+          "predictedTailRate": 0.0065258079469526446,
+          "conditionalBrier": 0.012231918169585684,
+          "staticBrier": 0.012493790588358328
+        },
+        {
+          "trade_date": "2026-05-29",
+          "actualTailRate": 0.008234688625836336,
+          "predictedTailRate": 0.009640769935755796,
+          "conditionalBrier": 0.007904323383564317,
+          "staticBrier": 0.008902904030662224
+        },
+        {
+          "trade_date": "2026-06-01",
+          "actualTailRate": 0.009547738693467337,
+          "predictedTailRate": 0.012268559308603353,
+          "conditionalBrier": 0.008444114638362057,
+          "staticBrier": 0.00945069650322685
+        },
+        {
+          "trade_date": "2026-06-02",
+          "actualTailRate": 0.006435643564356435,
+          "predictedTailRate": 0.01391632872728522,
+          "conditionalBrier": 0.00669499666078275,
+          "staticBrier": 0.006954457654083271
+        },
+        {
+          "trade_date": "2026-06-03",
+          "actualTailRate": 0.0053868756121449556,
+          "predictedTailRate": 0.006964438836451509,
+          "conditionalBrier": 0.005320502168598771,
+          "staticBrier": 0.00631031075772274
+        },
+        {
+          "trade_date": "2026-06-04",
+          "actualTailRate": 0.005161895823557016,
+          "predictedTailRate": 0.005842231591690213,
+          "conditionalBrier": 0.0049340180415067105,
+          "staticBrier": 0.00523603014133048
+        },
+        {
+          "trade_date": "2026-06-05",
+          "actualTailRate": 0.007048872180451127,
+          "predictedTailRate": 0.005984889594841362,
+          "conditionalBrier": 0.006731740887333193,
+          "staticBrier": 0.007278531001656361
+        },
+        {
+          "trade_date": "2026-06-08",
+          "actualTailRate": 0.007662835249042145,
+          "predictedTailRate": 0.005902164147461469,
+          "conditionalBrier": 0.006800348360846153,
+          "staticBrier": 0.007181841726577652
+        },
+        {
+          "trade_date": "2026-06-09",
+          "actualTailRate": 0.012212306247064349,
+          "predictedTailRate": 0.01514004328136777,
+          "conditionalBrier": 0.012633586646357144,
+          "staticBrier": 0.012242108015816277
+        },
+        {
+          "trade_date": "2026-06-10",
+          "actualTailRate": 0.01649387370405278,
+          "predictedTailRate": 0.03293892997442249,
+          "conditionalBrier": 0.01767594506580779,
+          "staticBrier": 0.015181700132212993
+        },
+        {
+          "trade_date": "2026-06-11",
+          "actualTailRate": 0.010978956999085087,
+          "predictedTailRate": 0.016639541091821537,
+          "conditionalBrier": 0.011803535485765463,
+          "staticBrier": 0.011311257213334584
+        },
+        {
+          "trade_date": "2026-06-12",
+          "actualTailRate": 0.008296730112249878,
+          "predictedTailRate": 0.01545346968646843,
+          "conditionalBrier": 0.008402146676127988,
+          "staticBrier": 0.008672360893689819
+        },
+        {
+          "trade_date": "2026-06-15",
+          "actualTailRate": 0.0030135610246107484,
+          "predictedTailRate": 0.009313237340607313,
+          "conditionalBrier": 0.003600677451692955,
+          "staticBrier": 0.004309872806210372
+        },
+        {
+          "trade_date": "2026-06-16",
+          "actualTailRate": 0.005189413596263622,
+          "predictedTailRate": 0.005865264165073428,
+          "conditionalBrier": 0.005380563015543871,
+          "staticBrier": 0.006302811833961736
+        },
+        {
+          "trade_date": "2026-06-17",
+          "actualTailRate": 0.0025037556334501754,
+          "predictedTailRate": 0.004407761046494376,
+          "conditionalBrier": 0.002530267364564835,
+          "staticBrier": 0.00362819598056251
+        },
+        {
+          "trade_date": "2026-06-18",
+          "actualTailRate": 0.0071392146863844975,
+          "predictedTailRate": 0.008362980481497407,
+          "conditionalBrier": 0.007090484797010942,
+          "staticBrier": 0.00809800493859825
+        }
+      ]
+    },
+    "0.0100": {
+      "lossThresholdPct": 0.01,
+      "observations": 42577,
+      "tailEvents": 32,
+      "actualTailRate": 0.0007515794912746318,
+      "conditional": {
+        "meanProbability": 0.0014509341659578112,
+        "auc": 0.9199575449524033,
+        "brier": 0.0008800374016258859
+      },
+      "static": {
+        "meanProbability": 0.0013670858620578635,
+        "auc": 0.9192920730990717,
+        "brier": 0.0007910378006064175
+      },
+      "ewmaOnly": {
+        "meanProbability": 0.0012474797491862138,
+        "auc": 0.9403447819955342,
+        "brier": 0.0008798871279405294
+      },
+      "medianPerCodeConditionalAuc": 0.5829145728643216,
+      "codesWithDefinedAuc": 11,
+      "meanDailyBrierImprovement": -8.255326736845207e-05,
+      "dailyBrierImprovementT": -0.874463825838547,
+      "dailyPredictedVsActualCorrelation": 0.4443401757891642,
+      "riskQuartiles": [
+        {
+          "quartile": 1,
+          "observations": 21289,
+          "meanPredictedProbability": 6.772607869493761e-251,
+          "actualTailRate": 0.0
+        },
+        {
+          "quartile": 2,
+          "observations": 10644,
+          "meanPredictedProbability": 1.710928711185442e-05,
+          "actualTailRate": 0.00018789928598271326
+        },
+        {
+          "quartile": 3,
+          "observations": 10644,
+          "meanPredictedProbability": 0.0057867636914662865,
+          "actualTailRate": 0.002818489289740699
+        }
+      ],
+      "daily": [
+        {
+          "trade_date": "2026-05-21",
+          "actualTailRate": 0.0004803073967339097,
+          "predictedTailRate": 0.001463189774905285,
+          "conditionalBrier": 0.0004894602184715681,
+          "staticBrier": 0.0004930842934651524
+        },
+        {
+          "trade_date": "2026-05-22",
+          "actualTailRate": 0.0005227391531625719,
+          "predictedTailRate": 0.0009499365206316814,
+          "conditionalBrier": 0.0005473031627521607,
+          "staticBrier": 0.000583806917467721
+        },
+        {
+          "trade_date": "2026-05-25",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.0002423137397641598,
+          "conditionalBrier": 4.4202537663459296e-07,
+          "staticBrier": 5.8492943094801196e-05
+        },
+        {
+          "trade_date": "2026-05-26",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00039408452655390015,
+          "conditionalBrier": 2.019819619811155e-06,
+          "staticBrier": 5.620714533565216e-05
+        },
+        {
+          "trade_date": "2026-05-27",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00024561282188407954,
+          "conditionalBrier": 4.564421578442243e-07,
+          "staticBrier": 5.4232055761522e-05
+        },
+        {
+          "trade_date": "2026-05-28",
+          "actualTailRate": 0.0010111223458038423,
+          "predictedTailRate": 0.00039408856205880646,
+          "conditionalBrier": 0.0010031973553820193,
+          "staticBrier": 0.0010284247030255174
+        },
+        {
+          "trade_date": "2026-05-29",
+          "actualTailRate": 0.001029336078229542,
+          "predictedTailRate": 0.0004259210629852924,
+          "conditionalBrier": 0.001029747677270207,
+          "staticBrier": 0.0010847166777928337
+        },
+        {
+          "trade_date": "2026-06-01",
+          "actualTailRate": 0.003015075376884422,
+          "predictedTailRate": 0.0012947521713773716,
+          "conditionalBrier": 0.0029700819793623302,
+          "staticBrier": 0.003017196366339176
+        },
+        {
+          "trade_date": "2026-06-02",
+          "actualTailRate": 0.0004950495049504951,
+          "predictedTailRate": 0.0008527221256119601,
+          "conditionalBrier": 0.0005088218816362336,
+          "staticBrier": 0.0005550728589639444
+        },
+        {
+          "trade_date": "2026-06-03",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00028696479159528597,
+          "conditionalBrier": 1.1288535464400367e-06,
+          "staticBrier": 5.4940972371697124e-05
+        },
+        {
+          "trade_date": "2026-06-04",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.0002805645311582298,
+          "conditionalBrier": 6.028192713897423e-07,
+          "staticBrier": 5.482063341305662e-05
+        },
+        {
+          "trade_date": "2026-06-05",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00026045309280049587,
+          "conditionalBrier": 5.282540639952188e-07,
+          "staticBrier": 5.700534257325047e-05
+        },
+        {
+          "trade_date": "2026-06-08",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00038424313479405964,
+          "conditionalBrier": 2.245247930017965e-06,
+          "staticBrier": 5.809739894334161e-05
+        },
+        {
+          "trade_date": "2026-06-09",
+          "actualTailRate": 0.0037576326914044154,
+          "predictedTailRate": 0.0024112327485929074,
+          "conditionalBrier": 0.003980252344809176,
+          "staticBrier": 0.0037391738548195235
+        },
+        {
+          "trade_date": "2026-06-10",
+          "actualTailRate": 0.001885014137606032,
+          "predictedTailRate": 0.011063903496895466,
+          "conditionalBrier": 0.0037976644998975882,
+          "staticBrier": 0.0018791321569978756
+        },
+        {
+          "trade_date": "2026-06-11",
+          "actualTailRate": 0.0009149130832570906,
+          "predictedTailRate": 0.003059893452111848,
+          "conditionalBrier": 0.0012930243826888802,
+          "staticBrier": 0.0009661889764904708
+        },
+        {
+          "trade_date": "2026-06-12",
+          "actualTailRate": 0.0014641288433382138,
+          "predictedTailRate": 0.003020910450832893,
+          "conditionalBrier": 0.0014640000676551274,
+          "staticBrier": 0.001466256352930489
+        },
+        {
+          "trade_date": "2026-06-15",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.0013004451903548037,
+          "conditionalBrier": 7.709780492209417e-05,
+          "staticBrier": 6.092786077619596e-05
+        },
+        {
+          "trade_date": "2026-06-16",
+          "actualTailRate": 0.0,
+          "predictedTailRate": 0.00038496325825655074,
+          "conditionalBrier": 2.875288098562264e-06,
+          "staticBrier": 6.062416604758356e-05
+        },
+        {
+          "trade_date": "2026-06-17",
+          "actualTailRate": 0.000500751126690035,
+          "predictedTailRate": 0.0004342015298344699,
+          "conditionalBrier": 0.0004754027134586288,
+          "staticBrier": 0.0005419752963609377
+        },
+        {
+          "trade_date": "2026-06-18",
+          "actualTailRate": 0.0005099439061703213,
+          "predictedTailRate": 0.0005299128625102526,
+          "conditionalBrier": 0.0005086179049480791,
+          "staticBrier": 0.0005509751556105524
+        }
+      ]
+    }
+  },
+  "conditionalChernoffAudit": {
+    "meanConditionalProbability": 0.010225957316049448,
+    "meanConditionalChernoffBound": 0.07439109635830654,
+    "boundDominatesModelProbabilityFraction": 1.0,
+    "modelConditionalNotDistributionFree": true
+  },
+  "evidence": {
+    "gates": {
+      "minimumOosDays": true,
+      "minimumPrimaryTailEvents": true,
+      "conditionalAucAboveStatic": true,
+      "conditionalBrierBelowStatic": true,
+      "conditionalAucAboveEwmaOnly": false,
+      "conditionalBrierBelowEwmaOnly": false,
+      "positiveDailyBrierImprovement": true,
+      "lowerCrossSectionalResidualCorrelation": true,
+      "freshUnseenForwardWindow": false
+    }
+  },
+  "verdict": "conditional_dependence_risk_signal_not_supported",
+  "verdictReason": "The conditional model failed at least one sample, calibration, ranking or dependence-reduction gate.",
+  "limitations": [
+    "The observations are five-minute bars, not true one-minute quotes.",
+    "The 2026-05-21 to 2026-06-18 window has already been inspected and is not fresh OOS evidence.",
+    "The conditional Gaussian mixture is a model assumption, not a distribution-free probability guarantee.",
+    "The common factor is contemporaneously observed only when updating the next forecast; each forecast is made before the current bar is observed.",
+    "Row-level AUC and Brier observations are cross-sectionally dependent, so daily-block diagnostics are reported separately.",
+    "The training-only universe retains possible survivorship bias.",
+    "Historical Yahoo bars do not contain executable historical bid, ask, depth or IOPV.",
+    "A tail-risk ranking can reduce exposure to volatile ETFs but cannot create positive expected return."
+  ],
+  "liveChanges": false
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "conditional_minute_tail_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-07-04T07:10:00+09:00",
+  "hypothesis": "ETF five-minute returns can be treated as conditionally independent innovations after preserving dependence through a causal common market factor, a filtered HMM state distribution and predictable idiosyncratic EWMA variance.",
+  "methodBoundary": "This is a next-bar tail-risk score. It is not a directional alpha model and cannot authorize a trade or alter position size.",
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true,
+    "historicalResolutionMinutes": 5,
+    "universeSize": 50,
+    "universeSelection": "training-period coverage and average cumulative amount only"
+  },
+  "model": {
+    "marketFactor": "cross-sectional median five-minute return",
+    "factorLoading": "training-only OLS alpha and beta per ETF",
+    "states": 3,
+    "hmmIterations": 40,
+    "varianceFloor": 1e-8,
+    "idiosyncraticVarianceHalfLifeBars": 24,
+    "lossThresholdsPct": [
+      0.002,
+      0.003,
+      0.005,
+      0.01
+    ],
+    "primaryLossThresholdPct": 0.005,
+    "chernoffLambdaMinimum": 0.1,
+    "chernoffLambdaMaximum": 5000.0,
+    "chernoffLambdaCount": 100
+  },
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "minimumPrimaryTailEvents": 100,
+    "requireConditionalAucAboveStatic": true,
+    "requireConditionalBrierBelowStatic": true,
+    "requireConditionalAucAboveEwmaOnly": true,
+    "requireConditionalBrierBelowEwmaOnly": true,
+    "requirePositiveDailyBrierImprovement": true,
+    "requireLowerCrossSectionalResidualCorrelation": true,
+    "requireFreshUnseenForwardWindow": true
+  },
+  "knownLimitations": [
+    "The observations are five-minute bars, not true one-minute quotes.",
+    "The 2026-05-21 to 2026-06-18 window has already been inspected and is not fresh OOS evidence.",
+    "The conditional Gaussian mixture is a model assumption, not a distribution-free probability guarantee.",
+    "The common factor is contemporaneously observed only when updating the next forecast; each forecast is made before the current bar is observed.",
+    "Row-level AUC and Brier observations are cross-sectionally dependent, so daily-block diagnostics are reported separately.",
+    "The training-only universe retains possible survivorship bias.",
+    "Historical Yahoo bars do not contain executable historical bid, ask, depth or IOPV.",
+    "A tail-risk ranking can reduce exposure to volatile ETFs but cannot create positive expected return."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}
