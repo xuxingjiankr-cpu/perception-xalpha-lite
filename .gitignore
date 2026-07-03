@@ -50,3 +50,6 @@ _external/
 
 # Keep downloaded installation docs local unless intentionally sanitized.
 htsc-skills-bundle_INSTALL_*.md
+
+# mootdx TDX backfill data (54MB, regenerable via scripts/backfill_mootdx_history.py)
+data/market/mootdx/
