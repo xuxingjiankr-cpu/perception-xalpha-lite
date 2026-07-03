@@ -16,6 +16,9 @@
 !scripts/*.py
 !scripts/*.ps1
 !scripts/*.cmd
+# Vendored factor library (HKUDS/Vibe-Trading, MIT; per-zoo LICENSE.md retained)
+!scripts/vendor/
+!scripts/vendor/**
 
 # Never commit runtime outputs, account state, logs, caches, datasets, or cloned references.
 outputs/

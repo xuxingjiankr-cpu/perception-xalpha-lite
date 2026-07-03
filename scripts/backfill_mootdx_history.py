@@ -32,7 +32,24 @@ DEFAULT_CODES = [
     "588030", "159546",                                                              # t0 legacy
     "159934", "159941", "159920", "513050", "513180", "159985", "501018", "510050",  # OBI/liquid
 ]
-FREQ_MAP = {"5m": 0, "1m": 8}   # TDX frequency ids used by mootdx bars()
+FREQ_MAP = {"5m": 0, "1m": 8, "1d": 9}   # TDX frequency ids used by mootdx bars()
+MASTER = ROOT / "outputs" / "edge_research" / "t0_etf_master_latest.jsonl"
+
+
+def master_codes() -> list[str]:
+    """All non-money ETFs from the audited master (daily-frequency zoo scans)."""
+    codes = []
+    for line in MASTER.read_text(encoding="utf-8").splitlines():
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+        if r.get("is_money_like"):
+            continue
+        code = str(r.get("code") or "").zfill(6)
+        if len(code) == 6 and code.isdigit():
+            codes.append(code)
+    return sorted(set(codes))
 
 
 def fetch_all(client: Any, symbol: str, frequency: int, max_pages: int = 60) -> list[dict[str, Any]]:
@@ -65,6 +82,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--freq", default="5m", choices=sorted(FREQ_MAP))
     ap.add_argument("--codes", default=",".join(DEFAULT_CODES))
+    ap.add_argument("--from-master", action="store_true",
+                    help="ignore --codes; use every non-money ETF from the audited master")
+    ap.add_argument("--max-pages", type=int, default=60,
+                    help="pagination cap per code (daily: 2 pages = ~6.5 years)")
     args = ap.parse_args()
 
     from mootdx.quotes import Quotes
@@ -72,11 +93,11 @@ def main() -> int:
 
     out_dir = OUT_BASE / f"bars_{args.freq}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    codes = [c.strip() for c in args.codes.split(",") if c.strip()]
+    codes = master_codes() if args.from_master else [c.strip() for c in args.codes.split(",") if c.strip()]
     summary = []
     for code in codes:
         try:
-            rows = fetch_all(client, code, FREQ_MAP[args.freq])
+            rows = fetch_all(client, code, FREQ_MAP[args.freq], max_pages=args.max_pages)
         except Exception as exc:
             print(json.dumps({"code": code, "error": str(exc)[:200]}, ensure_ascii=False))
             summary.append({"code": code, "rows": 0, "error": True})
