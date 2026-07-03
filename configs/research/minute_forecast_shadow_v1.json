@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "minute_forecast_shadow_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-07-04T10:00:00+08:00",
+  "hypothesis": "A frozen, calibrated linear model using only completed five-minute price, volume and cross-sectional market features can identify long-only ETF intervals whose forward gross return exceeds a 12 bps round-trip cost.",
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true,
+    "universeSize": 50,
+    "universeSelection": "training-period coverage and average cumulative amount only",
+    "historicalResolutionMinutes": 5
+  },
+  "targets": {
+    "horizonBars": [
+      1,
+      3,
+      6
+    ],
+    "entry": "next observed five-minute close",
+    "roundTripCostBps": 12.0,
+    "successDefinition": "gross_forward_return > round_trip_cost"
+  },
+  "features": [
+    "ret_1",
+    "ret_3",
+    "ret_6",
+    "acceleration_1",
+    "vol_6",
+    "market_ret_1",
+    "market_ret_3",
+    "breadth",
+    "relative_strength",
+    "amount_rank",
+    "session_fraction"
+  ],
+  "models": {
+    "classifier": "standard_scaler_plus_logistic_regression_with_temporal_platt_calibration",
+    "logisticC": 0.1,
+    "calibrationDays": 8,
+    "calibrationC": 1.0,
+    "regressor": "standard_scaler_plus_ridge",
+    "ridgeAlpha": 20.0,
+    "randomSeed": 20260704,
+    "parametersFrozenBeforeOos": true,
+    "downsideQuantile": 0.05
+  },
+  "shadowPolicy": {
+    "minimumProbability": 0.55,
+    "minimumExpectedNetReturn": 0.0001,
+    "minimumDownsideNetQuantile": -0.01,
+    "maximumAssetsPerTimestamp": 5,
+    "maximumTotalConcurrentExposure": 1.0,
+    "trancheExposureRule": "1 / horizon_bars"
+  },
+  "forwardFeatureReadiness": {
+    "l2Pattern": "outputs/l2_depth/depth_*.jsonl",
+    "iopvPattern": "data/research/etf_iopv/iopv_*.jsonl",
+    "minimumCompleteDaysBeforeModelUse": 20,
+    "l2AndIopvExcludedFromCurrentModel": true
+  },
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "minimumSelectedTrades": 100,
+    "maximumBrierVsTrainingPrior": 1.0,
+    "maximumLogLossVsTrainingPrior": 1.0,
+    "minimumAuc": 0.53,
+    "requirePositiveAverageNetTrade": true,
+    "requirePositiveNetPortfolioReturn": true,
+    "requirePositiveDailySharpe": true,
+    "requireFreshUnseenForwardWindow": true
+  },
+  "knownLimitations": [
+    "Historical observations are five-minute bars, not true one-minute bars.",
+    "The 2026-05-21 to 2026-06-18 test window has already been inspected by other research and is not fresh OOS evidence.",
+    "Yahoo history has no real historical order book, bid/ask or IOPV; 12 bps is a fixed execution-cost proxy.",
+    "Current ETF membership can retain survivorship bias.",
+    "The historical universe is selected on the complete training window and cannot evaluate newly listed or delisted products.",
+    "Probability observations within the same timestamp and trading day are cross-sectionally dependent, so row-level AUC overstates effective sample size.",
+    "Overlapping-horizon shadow returns use fixed equal tranches and are an approximation to concurrent portfolio accounting.",
+    "L2 and IOPV histories currently have too few complete days and are deliberately excluded from model fitting."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}

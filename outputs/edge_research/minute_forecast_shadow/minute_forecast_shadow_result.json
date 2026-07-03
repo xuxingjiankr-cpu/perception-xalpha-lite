@@ -1,0 +1,620 @@
+{
+  "schemaVersion": "minute_forecast_shadow_result_v1",
+  "generatedAt": "2026-07-04T05:47:17+09:00",
+  "status": "diagnostic_only",
+  "config": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\configs\\research\\minute_forecast_shadow_v1.json",
+  "split": {
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true
+  },
+  "universe": {
+    "count": 50,
+    "selectionUsesOos": false,
+    "codes": [
+      "511360",
+      "511380",
+      "511100",
+      "551550",
+      "551800",
+      "513310",
+      "551030",
+      "511070",
+      "511110",
+      "518880",
+      "511200",
+      "513090",
+      "551060",
+      "513120",
+      "511260",
+      "551520",
+      "513130",
+      "513180",
+      "511090",
+      "511120",
+      "551500",
+      "551900",
+      "551510",
+      "551560",
+      "511180",
+      "511030",
+      "511130",
+      "511580",
+      "551300",
+      "513330",
+      "513050",
+      "511150",
+      "511520",
+      "513350",
+      "511270",
+      "511220",
+      "551000",
+      "513010",
+      "551580",
+      "511060",
+      "520500",
+      "513750",
+      "518800",
+      "518850",
+      "511190",
+      "511010",
+      "513100",
+      "513060",
+      "513980",
+      "513040"
+    ]
+  },
+  "features": [
+    "ret_1",
+    "ret_3",
+    "ret_6",
+    "acceleration_1",
+    "vol_6",
+    "market_ret_1",
+    "market_ret_3",
+    "breadth",
+    "relative_strength",
+    "amount_rank",
+    "session_fraction"
+  ],
+  "horizons": {
+    "1": {
+      "minutes": 5,
+      "trainSamples": 46117,
+      "forecast": {
+        "samples": 27819,
+        "actualSuccessRate": 0.09547431611488551,
+        "trainingPrior": 0.10143764772209814,
+        "brier": 0.08108119180777078,
+        "priorBrier": 0.086394532401138,
+        "logLoss": 0.28655894482052885,
+        "priorLogLoss": 0.31522225033899137,
+        "auc": 0.8244413442427662,
+        "dailyAuc": {
+          "days": 21,
+          "mean": 0.8209268365939189,
+          "median": 0.8216423847445777,
+          "minimum": 0.7855983626871756,
+          "maximum": 0.8444740278026677
+        },
+        "expectedReturnSpearman": 0.055602687236439914
+      },
+      "calibrationAudit": {
+        "baseFitStart": "2026-03-23",
+        "baseFitEnd": "2026-05-08",
+        "baseFitDays": 30,
+        "calibrationStart": "2026-05-11",
+        "calibrationEnd": "2026-05-20",
+        "calibrationDays": 8,
+        "baseFitSamples": 36314,
+        "calibrationSamples": 9803
+      },
+      "calibration": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 19100,
+          "meanForecast": 0.07222242578344162,
+          "actualRate": 0.03293193717277487
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 7802,
+          "meanForecast": 0.12914809606983507,
+          "actualRate": 0.22442963342732633
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 596,
+          "meanForecast": 0.2366533296456301,
+          "actualRate": 0.2986577181208054
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 163,
+          "meanForecast": 0.34388788889489064,
+          "actualRate": 0.294478527607362
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 70,
+          "meanForecast": 0.4409882798241318,
+          "actualRate": 0.3142857142857143
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 41,
+          "meanForecast": 0.5419697877132149,
+          "actualRate": 0.4146341463414634
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 18,
+          "meanForecast": 0.636341603051394,
+          "actualRate": 0.2777777777777778
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 5,
+          "meanForecast": 0.7325194484517278,
+          "actualRate": 0.2
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 10,
+          "meanForecast": 0.8461323823262855,
+          "actualRate": 0.3
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 14,
+          "meanForecast": 0.9844346698417511,
+          "actualRate": 0.14285714285714285
+        }
+      ],
+      "trainingResidualQ05": -0.0017972665291687419,
+      "policy": {
+        "days": 21,
+        "selectedTrades": 0,
+        "activeDays": 0,
+        "averageNetTrade": null,
+        "medianNetTrade": null,
+        "winTradeRate": null,
+        "tradeNetQ05": null,
+        "netPortfolioReturn": 0.0,
+        "dailyStd": 0.0,
+        "dailySharpe": null,
+        "worstDay": 0.0,
+        "maxDrawdown": 0.0,
+        "trancheExposure": 1.0
+      },
+      "momentumControl": {
+        "days": 21,
+        "netPortfolioReturn": -0.6282217783454143,
+        "dailyStd": 0.009447077441729306,
+        "dailySharpe": -77.2627506668641,
+        "worstDay": -0.059853355939806105,
+        "maxDrawdown": -0.606199562097171
+      },
+      "evidence": {
+        "gates": {
+          "minimumOosDays": true,
+          "minimumSelectedTrades": false,
+          "brierBeatsTrainingPrior": true,
+          "logLossBeatsTrainingPrior": true,
+          "minimumAuc": true,
+          "positiveAverageNetTrade": false,
+          "positiveNetPortfolioReturn": false,
+          "positiveDailySharpe": false,
+          "freshUnseenForwardWindow": false
+        },
+        "dmVsMomentum": {
+          "n_days": 21,
+          "alpha": 0.05,
+          "dm_star": 22.3038,
+          "t_critical": 1.725,
+          "significant": true,
+          "mean_diff": 0.046,
+          "reason": "ok",
+          "df": 20
+        },
+        "dsrVsCash": {
+          "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+          "significant": false,
+          "alpha": 0.1,
+          "n_days": 21,
+          "n_trials": 3,
+          "reason": "zero_variance",
+          "mean_diff": 0.0,
+          "std_diff": 0.0,
+          "p_value": 1.0
+        }
+      }
+    },
+    "3": {
+      "minutes": 15,
+      "trainSamples": 40530,
+      "forecast": {
+        "samples": 24419,
+        "actualSuccessRate": 0.12989884925672632,
+        "trainingPrior": 0.1453491241056008,
+        "brier": 0.10321949043401558,
+        "priorBrier": 0.11326384921141039,
+        "logLoss": 0.34634464974550067,
+        "priorLogLoss": 0.38718511048245335,
+        "auc": 0.7948872954158175,
+        "dailyAuc": {
+          "days": 21,
+          "mean": 0.7891086393960957,
+          "median": 0.7885593906984281,
+          "minimum": 0.7423163614108937,
+          "maximum": 0.8409391534391534
+        },
+        "expectedReturnSpearman": 0.10020367291107041
+      },
+      "calibrationAudit": {
+        "baseFitStart": "2026-03-23",
+        "baseFitEnd": "2026-05-08",
+        "baseFitDays": 30,
+        "calibrationStart": "2026-05-11",
+        "calibrationEnd": "2026-05-20",
+        "calibrationDays": 8,
+        "baseFitSamples": 31928,
+        "calibrationSamples": 8602
+      },
+      "calibration": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 8520,
+          "meanForecast": 0.08152004271466931,
+          "actualRate": 0.01772300469483568
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 11768,
+          "meanForecast": 0.136741839572506,
+          "actualRate": 0.1431849082256968
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 3011,
+          "meanForecast": 0.23578953008807474,
+          "actualRate": 0.3032215210893391
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 619,
+          "meanForecast": 0.3406865523068305,
+          "actualRate": 0.37479806138933763
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 216,
+          "meanForecast": 0.4453251416188382,
+          "actualRate": 0.39814814814814814
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 126,
+          "meanForecast": 0.5433553160513528,
+          "actualRate": 0.35714285714285715
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 66,
+          "meanForecast": 0.6471151137656723,
+          "actualRate": 0.3484848484848485
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 54,
+          "meanForecast": 0.7458785253900262,
+          "actualRate": 0.4074074074074074
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 20,
+          "meanForecast": 0.8522759475189969,
+          "actualRate": 0.4
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 19,
+          "meanForecast": 0.9643697965266805,
+          "actualRate": 0.3684210526315789
+        }
+      ],
+      "trainingResidualQ05": -0.0029788002890940787,
+      "policy": {
+        "days": 21,
+        "selectedTrades": 5,
+        "activeDays": 2,
+        "averageNetTrade": -0.003012856951828689,
+        "medianNetTrade": -0.002880750725974511,
+        "winTradeRate": 0.2,
+        "tradeNetQ05": -0.00660117480054969,
+        "netPortfolioReturn": -0.0031348120335989993,
+        "dailyStd": 0.0005575242166644129,
+        "dailySharpe": -4.252526381596193,
+        "worstDay": -0.0025080411865429893,
+        "maxDrawdown": -0.0031348120335989993,
+        "trancheExposure": 0.3333333333333333
+      },
+      "momentumControl": {
+        "days": 21,
+        "netPortfolioReturn": -0.2667144192375651,
+        "dailyStd": 0.007188823018301722,
+        "dailySharpe": -32.3258908243124,
+        "worstDay": -0.026590105517656507,
+        "maxDrawdown": -0.2496060738794572
+      },
+      "evidence": {
+        "gates": {
+          "minimumOosDays": true,
+          "minimumSelectedTrades": false,
+          "brierBeatsTrainingPrior": true,
+          "logLossBeatsTrainingPrior": true,
+          "minimumAuc": true,
+          "positiveAverageNetTrade": false,
+          "positiveNetPortfolioReturn": false,
+          "positiveDailySharpe": false,
+          "freshUnseenForwardWindow": false
+        },
+        "dmVsMomentum": {
+          "n_days": 21,
+          "alpha": 0.05,
+          "dm_star": 9.1473,
+          "t_critical": 1.725,
+          "significant": true,
+          "mean_diff": 0.0145,
+          "reason": "ok",
+          "df": 20
+        },
+        "dsrVsCash": {
+          "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+          "significant": false,
+          "alpha": 0.1,
+          "n_days": 21,
+          "n_trials": 3,
+          "reason": "ok",
+          "mean_diff": -0.0001,
+          "std_diff": 0.0006,
+          "sharpe_diff_daily": -0.2679,
+          "t_stat": -1.2276,
+          "selection_bias_t": 0.4307,
+          "deflated_t": -1.6583,
+          "p_value": 0.9514
+        }
+      }
+    },
+    "6": {
+      "minutes": 30,
+      "trainSamples": 32428,
+      "forecast": {
+        "samples": 19480,
+        "actualSuccessRate": 0.1528747433264887,
+        "trainingPrior": 0.1759898852843222,
+        "brier": 0.11823922676771918,
+        "priorBrier": 0.1300383659670797,
+        "logLoss": 0.3859578446998633,
+        "priorLogLoss": 0.42957381931025823,
+        "auc": 0.7714252679468449,
+        "dailyAuc": {
+          "days": 21,
+          "mean": 0.7679311668747495,
+          "median": 0.762775382882395,
+          "minimum": 0.701164933526392,
+          "maximum": 0.8496711878339498
+        },
+        "expectedReturnSpearman": 0.13227421762577402
+      },
+      "calibrationAudit": {
+        "baseFitStart": "2026-03-23",
+        "baseFitEnd": "2026-05-08",
+        "baseFitDays": 30,
+        "calibrationStart": "2026-05-11",
+        "calibrationEnd": "2026-05-20",
+        "calibrationDays": 8,
+        "baseFitSamples": 25549,
+        "calibrationSamples": 6879
+      },
+      "calibration": [
+        {
+          "lower": 0.0,
+          "upper": 0.1,
+          "count": 3978,
+          "meanForecast": 0.09042453951016247,
+          "actualRate": 0.007792860734037205
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.2,
+          "count": 10584,
+          "meanForecast": 0.14315464637889785,
+          "actualRate": 0.1255668934240363
+        },
+        {
+          "lower": 0.2,
+          "upper": 0.3,
+          "count": 3671,
+          "meanForecast": 0.2392919056362064,
+          "actualRate": 0.3108144919640425
+        },
+        {
+          "lower": 0.3,
+          "upper": 0.4,
+          "count": 791,
+          "meanForecast": 0.33687886239589576,
+          "actualRate": 0.3615676359039191
+        },
+        {
+          "lower": 0.4,
+          "upper": 0.5,
+          "count": 231,
+          "meanForecast": 0.4431623998295758,
+          "actualRate": 0.4199134199134199
+        },
+        {
+          "lower": 0.5,
+          "upper": 0.6,
+          "count": 109,
+          "meanForecast": 0.5379424775328854,
+          "actualRate": 0.41284403669724773
+        },
+        {
+          "lower": 0.6,
+          "upper": 0.7,
+          "count": 48,
+          "meanForecast": 0.6462055305977852,
+          "actualRate": 0.4166666666666667
+        },
+        {
+          "lower": 0.7,
+          "upper": 0.8,
+          "count": 46,
+          "meanForecast": 0.7428511133462645,
+          "actualRate": 0.45652173913043476
+        },
+        {
+          "lower": 0.8,
+          "upper": 0.9,
+          "count": 16,
+          "meanForecast": 0.838519943584013,
+          "actualRate": 0.375
+        },
+        {
+          "lower": 0.9,
+          "upper": 1.0,
+          "count": 6,
+          "meanForecast": 0.9246775239977968,
+          "actualRate": 0.3333333333333333
+        }
+      ],
+      "trainingResidualQ05": -0.004159188022285044,
+      "policy": {
+        "days": 21,
+        "selectedTrades": 1,
+        "activeDays": 1,
+        "averageNetTrade": -0.008590746141365367,
+        "medianNetTrade": -0.008590746141365367,
+        "winTradeRate": 0.0,
+        "tradeNetQ05": -0.008590746141365367,
+        "netPortfolioReturn": -0.0014317910235609466,
+        "dailyStd": 0.0003124424164202904,
+        "dailySharpe": -3.464101615137755,
+        "worstDay": -0.0014317910235608945,
+        "maxDrawdown": -0.0014317910235609466,
+        "trancheExposure": 0.16666666666666666
+      },
+      "momentumControl": {
+        "days": 21,
+        "netPortfolioReturn": -0.14039584986969378,
+        "dailyStd": 0.005154526006849124,
+        "dailySharpe": -22.06730930132835,
+        "worstDay": -0.01679208284736667,
+        "maxDrawdown": -0.12835756379729435
+      },
+      "evidence": {
+        "gates": {
+          "minimumOosDays": true,
+          "minimumSelectedTrades": false,
+          "brierBeatsTrainingPrior": true,
+          "logLossBeatsTrainingPrior": true,
+          "minimumAuc": true,
+          "positiveAverageNetTrade": false,
+          "positiveNetPortfolioReturn": false,
+          "positiveDailySharpe": false,
+          "freshUnseenForwardWindow": false
+        },
+        "dmVsMomentum": {
+          "n_days": 21,
+          "alpha": 0.05,
+          "dm_star": 6.3116,
+          "t_critical": 1.725,
+          "significant": true,
+          "mean_diff": 0.0071,
+          "reason": "ok",
+          "df": 20
+        },
+        "dsrVsCash": {
+          "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+          "significant": false,
+          "alpha": 0.1,
+          "n_days": 21,
+          "n_trials": 3,
+          "reason": "ok",
+          "mean_diff": -0.0001,
+          "std_diff": 0.0003,
+          "sharpe_diff_daily": -0.2182,
+          "t_stat": -1.0,
+          "selection_bias_t": 0.4307,
+          "deflated_t": -1.4307,
+          "p_value": 0.9237
+        }
+      }
+    }
+  },
+  "forwardFeatureReadiness": {
+    "l2Days": [
+      "2026-06-26",
+      "2026-06-29",
+      "2026-06-30",
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
+    "iopvDays": [
+      "2026-06-29",
+      "2026-06-30",
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
+    "completeJointDays": [
+      "2026-06-29",
+      "2026-06-30",
+      "2026-07-01",
+      "2026-07-02",
+      "2026-07-03"
+    ],
+    "completeDayCount": 5,
+    "minimumRequired": 20,
+    "readyForModelFitting": false,
+    "includedInCurrentModel": false
+  },
+  "historicalPassingHorizons": [],
+  "verdict": "no_validated_minute_forecast_edge",
+  "verdictReason": "No fixed horizon simultaneously beat the probability prior and produced positive cost-adjusted shadow returns.",
+  "limitations": [
+    "Historical observations are five-minute bars, not true one-minute bars.",
+    "The 2026-05-21 to 2026-06-18 test window has already been inspected by other research and is not fresh OOS evidence.",
+    "Yahoo history has no real historical order book, bid/ask or IOPV; 12 bps is a fixed execution-cost proxy.",
+    "Current ETF membership can retain survivorship bias.",
+    "The historical universe is selected on the complete training window and cannot evaluate newly listed or delisted products.",
+    "Probability observations within the same timestamp and trading day are cross-sectionally dependent, so row-level AUC overstates effective sample size.",
+    "Overlapping-horizon shadow returns use fixed equal tranches and are an approximation to concurrent portfolio accounting.",
+    "L2 and IOPV histories currently have too few complete days and are deliberately excluded from model fitting."
+  ],
+  "liveChanges": false
+}

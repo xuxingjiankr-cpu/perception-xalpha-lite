@@ -4525,6 +4525,90 @@ def t84_tail_probability_bounds_are_causal_conservative_and_safe() -> None:
     )
 
 
+def t85_minute_forecast_is_next_bar_point_in_time_and_safe() -> None:
+    """Minute forecasts must use completed bars and remain record-only."""
+    import json
+    import research_minute_forecast_shadow as minute
+
+    index = minute.pd.date_range("2026-06-01 09:30:00", periods=12, freq="5min")
+    panel = minute.pd.DataFrame(
+        {
+            "timestamp": list(index) * 2,
+            "trade_date": ["2026-06-01"] * 24,
+            "stockCode": ["A"] * 12 + ["B"] * 12,
+            "close": [
+                *[1.0 + value for value in minute.np.linspace(0, 0.022, 12)],
+                *[1.0 - value for value in minute.np.linspace(0, 0.011, 12)],
+            ],
+            "cumulative_amount": [
+                *minute.np.arange(1, 13, dtype=float),
+                *minute.np.arange(1, 13, dtype=float) * 2,
+            ],
+        }
+    )
+    features = [
+        "ret_1",
+        "ret_3",
+        "ret_6",
+        "acceleration_1",
+        "vol_6",
+        "market_ret_1",
+        "market_ret_3",
+        "breadth",
+        "relative_strength",
+        "amount_rank",
+        "session_fraction",
+    ]
+    frames = minute.build_feature_frames(panel)
+    samples = minute.build_samples(frames, features, horizon_bars=1)
+    planted = samples[samples["stockCode"] == "A"].iloc[0]
+    check(
+        "T85 minute label enters after the completed feature timestamp",
+        planted["entry_time"] > planted["timestamp"]
+        and planted["exit_time"] > planted["entry_time"],
+        str(planted.to_dict()),
+    )
+    decision = planted["timestamp"]
+    original = float(frames["ret_1"].at[decision, "A"])
+    shocked = panel.copy()
+    shocked.loc[
+        (shocked["stockCode"] == "A")
+        & (shocked["timestamp"] > decision),
+        "close",
+    ] *= 10.0
+    shocked_frames = minute.build_feature_frames(shocked)
+    check(
+        "T85 feature at decision is invariant to unseen future prices",
+        abs(float(shocked_frames["ret_1"].at[decision, "A"]) - original)
+        < 1e-12,
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "minute_forecast_shadow_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_minute_forecast_shadow.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T85 minute forecast is offline record-only and cannot trade",
+        prereg["status"] == "diagnostic_only"
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["recordOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["positionSizingEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4609,6 +4693,7 @@ if __name__ == "__main__":
     t82_local_news_watchlist_is_causal_no_api_and_shadow_only()
     t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe()
     t84_tail_probability_bounds_are_causal_conservative_and_safe()
+    t85_minute_forecast_is_next_bar_point_in_time_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
