@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "minute_model_fusion_preregistered_v1",
+  "status": "diagnostic_only",
+  "preregisteredAt": "2026-07-04T10:30:00+08:00",
+  "hypothesis": "Adding a training-only causal HMM market-state prior and Black-Litterman shrinkage to the calibrated 30-minute linear forecast can improve absolute cost-adjusted return or risk-adjusted return without relying on an almost-cash allocation.",
+  "baseConfig": "configs/research/minute_forecast_shadow_v1.json",
+  "oldModelConfig": "configs/research/hmm_nn_bl_preregistered.json",
+  "horizonBars": 6,
+  "variants": [
+    "new_linear",
+    "new_plus_hmm_features",
+    "new_plus_hmm_and_bl"
+  ],
+  "fusionBoundary": {
+    "oldNeuralPredictionIncluded": false,
+    "reason": "The old MLP and new Ridge use substantially overlapping price and cross-sectional inputs; stacking an in-sample old prediction would add leakage and redundant complexity.",
+    "hmmRole": "causal market-state features and exposure prior",
+    "blackLittermanRole": "shrink expected-return views and allocate long-only weights"
+  },
+  "evidenceGates": {
+    "minimumOosDays": 20,
+    "minimumSelectedTrades": 100,
+    "requirePositiveAverageNetTrade": true,
+    "requirePositiveNetPortfolioReturn": true,
+    "requirePositiveDailySharpe": true,
+    "requireFreshUnseenForwardWindow": true
+  },
+  "knownLimitations": [
+    "The historical test window has already been reused and cannot support promotion.",
+    "All variants use the same Yahoo five-minute bars and fixed 12 bps cost proxy.",
+    "The HMM and linear predictors share price-derived information and are not independent alpha sources.",
+    "Black-Litterman can stabilize views but cannot create expected return when forecasts lack edge.",
+    "Sparse selections can appear to reduce loss simply by holding cash.",
+    "Current product membership can retain survivorship bias."
+  ],
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "tradeGateEnabled": false,
+    "positionSizingEnabled": false,
+    "writesLiveConfig": false,
+    "writesStrategyOverlay": false,
+    "brokerCallsAllowed": false,
+    "promotionAllowed": false
+  }
+}

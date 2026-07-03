@@ -4609,6 +4609,78 @@ def t85_minute_forecast_is_next_bar_point_in_time_and_safe() -> None:
     )
 
 
+def t86_minute_model_fusion_is_causal_and_shadow_only() -> None:
+    """HMM fusion must filter causally and remain disconnected from trading."""
+    import json
+    import research_minute_forecast_shadow as minute
+    import research_minute_model_fusion as fusion
+
+    day1 = fusion.pd.date_range("2026-05-01 09:30:00", periods=16, freq="5min")
+    day2 = fusion.pd.date_range("2026-05-06 09:30:00", periods=16, freq="5min")
+    index = day1.append(day2)
+    dates = [timestamp.strftime("%Y-%m-%d") for timestamp in index]
+    panel = fusion.pd.DataFrame(
+        {
+            "timestamp": list(index) * 2,
+            "trade_date": dates * 2,
+            "stockCode": ["A"] * 32 + ["B"] * 32,
+            "close": [
+                *[1.0 + value for value in fusion.np.linspace(0, 0.03, 32)],
+                *[1.0 - value for value in fusion.np.linspace(0, 0.01, 32)],
+            ],
+            "cumulative_amount": [
+                *fusion.np.tile(fusion.np.arange(1, 17, dtype=float), 2),
+                *fusion.np.tile(fusion.np.arange(1, 17, dtype=float) * 2, 2),
+            ],
+        }
+    )
+    frames = minute.build_feature_frames(panel)
+    hmm_cfg = {"states": 3, "iterations": 5, "varianceFloor": 1e-8}
+    fused = fusion.add_causal_hmm_features(
+        frames, train_end="2026-05-01", hmm_config=hmm_cfg
+    )
+    decision = day2[10]
+    original = float(fused["hmm_bull_probability"].at[decision])
+    shocked_panel = panel.copy()
+    shocked_panel.loc[shocked_panel["timestamp"] > decision, "close"] *= 10.0
+    shocked = fusion.add_causal_hmm_features(
+        minute.build_feature_frames(shocked_panel),
+        train_end="2026-05-01",
+        hmm_config=hmm_cfg,
+    )
+    check(
+        "T86 HMM probability at decision ignores unseen future prices",
+        abs(float(shocked["hmm_bull_probability"].at[decision]) - original)
+        < 1e-12,
+    )
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "minute_model_fusion_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    source = (
+        ROOT / "scripts" / "research_minute_model_fusion.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T86 fusion research is record-only and cannot trade or promote",
+        prereg["status"] == "diagnostic_only"
+        and prereg["fusionBoundary"]["oldNeuralPredictionIncluded"] is False
+        and prereg["safety"]["offlineOnly"] is True
+        and prereg["safety"]["recordOnly"] is True
+        and prereg["safety"]["tradeGateEnabled"] is False
+        and prereg["safety"]["positionSizingEnabled"] is False
+        and prereg["safety"]["brokerCallsAllowed"] is False
+        and prereg["safety"]["promotionAllowed"] is False
+        and "SkillClient" not in source
+        and "submitOrder" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4694,6 +4766,7 @@ if __name__ == "__main__":
     t83_laplace_copula_price_chain_is_frozen_next_bar_and_safe()
     t84_tail_probability_bounds_are_causal_conservative_and_safe()
     t85_minute_forecast_is_next_bar_point_in_time_and_safe()
+    t86_minute_model_fusion_is_causal_and_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

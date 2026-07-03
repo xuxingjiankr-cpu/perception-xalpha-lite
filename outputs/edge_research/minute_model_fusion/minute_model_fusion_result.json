@@ -1,0 +1,228 @@
+{
+  "schemaVersion": "minute_model_fusion_result_v1",
+  "generatedAt": "2026-07-04T06:03:26+09:00",
+  "status": "diagnostic_only",
+  "config": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\configs\\research\\minute_model_fusion_preregistered.json",
+  "split": {
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "oosStart": "2026-05-21",
+    "oosEnd": "2026-06-18",
+    "oosWindowPreviouslyReused": true
+  },
+  "universe": {
+    "count": 50,
+    "selectionUsesOos": false
+  },
+  "horizonMinutes": 30,
+  "modelAudit": {
+    "newLinear": {
+      "forecast": {
+        "samples": 19480,
+        "actualSuccessRate": 0.1528747433264887,
+        "trainingPrior": 0.1759898852843222,
+        "brier": 0.11823922676771918,
+        "priorBrier": 0.1300383659670797,
+        "logLoss": 0.3859578446998633,
+        "priorLogLoss": 0.42957381931025823,
+        "auc": 0.7714252679468449
+      },
+      "calibration": {
+        "baseFitStart": "2026-03-23",
+        "baseFitEnd": "2026-05-08",
+        "baseFitDays": 30,
+        "calibrationStart": "2026-05-11",
+        "calibrationEnd": "2026-05-20",
+        "calibrationDays": 8,
+        "baseFitSamples": 25549,
+        "calibrationSamples": 6879
+      },
+      "trainingResidualQ05": -0.004159188022285044
+    },
+    "hmmFeatures": {
+      "forecast": {
+        "samples": 19480,
+        "actualSuccessRate": 0.1528747433264887,
+        "trainingPrior": 0.1759898852843222,
+        "brier": 0.11851367034757386,
+        "priorBrier": 0.1300383659670797,
+        "logLoss": 0.38725322126832445,
+        "priorLogLoss": 0.42957381931025823,
+        "auc": 0.7742887912562687
+      },
+      "calibration": {
+        "baseFitStart": "2026-03-23",
+        "baseFitEnd": "2026-05-08",
+        "baseFitDays": 30,
+        "calibrationStart": "2026-05-11",
+        "calibrationEnd": "2026-05-20",
+        "calibrationDays": 8,
+        "baseFitSamples": 25549,
+        "calibrationSamples": 6879
+      },
+      "trainingResidualQ05": -0.004156748407093553
+    },
+    "oldNeuralPredictionIncluded": false
+  },
+  "variants": {
+    "new_linear": {
+      "days": 21,
+      "selectedTrades": 1,
+      "activeDays": 1,
+      "averageNetTrade": -0.008590746141365367,
+      "medianNetTrade": -0.008590746141365367,
+      "winTradeRate": 0.0,
+      "tradeNetQ05": -0.008590746141365367,
+      "netPortfolioReturn": -0.0014317910235609466,
+      "dailyStd": 0.0003124424164202904,
+      "dailySharpe": -3.464101615137755,
+      "worstDay": -0.0014317910235608945,
+      "maxDrawdown": -0.0014317910235609466,
+      "trancheExposure": 0.16666666666666666
+    },
+    "new_plus_hmm_features": {
+      "days": 21,
+      "selectedTrades": 1,
+      "activeDays": 1,
+      "averageNetTrade": -0.008590746141365367,
+      "medianNetTrade": -0.008590746141365367,
+      "winTradeRate": 0.0,
+      "tradeNetQ05": -0.008590746141365367,
+      "netPortfolioReturn": -0.0014317910235609466,
+      "dailyStd": 0.0003124424164202904,
+      "dailySharpe": -3.464101615137755,
+      "worstDay": -0.0014317910235608945,
+      "maxDrawdown": -0.0014317910235609466,
+      "trancheExposure": 0.16666666666666666
+    },
+    "new_plus_hmm_and_bl": {
+      "days": 21,
+      "netPortfolioReturn": -0.00019049637778489892,
+      "dailyStd": 4.156971765781793e-05,
+      "dailySharpe": -3.464101615137755,
+      "worstDay": -0.00019049637778489306,
+      "maxDrawdown": -0.00019049637778489892,
+      "selectedTrades": 1,
+      "averageNetTrade": -0.008590746141365367,
+      "winTradeRate": 0.0,
+      "averageRegimeExposure": 0.13304761285004046
+    }
+  },
+  "evidence": {
+    "new_linear": {
+      "gates": {
+        "minimumOosDays": true,
+        "minimumSelectedTrades": false,
+        "positiveAverageNetTrade": false,
+        "positiveNetPortfolioReturn": false,
+        "positiveDailySharpe": false,
+        "freshUnseenForwardWindow": false
+      },
+      "dmVsNewLinear": {
+        "n_days": 21,
+        "alpha": 0.05,
+        "dm_star": null,
+        "t_critical": null,
+        "significant": false,
+        "mean_diff": 0.0,
+        "reason": "zero_variance_differential"
+      },
+      "dsrVsCash": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 21,
+        "n_trials": 3,
+        "reason": "ok",
+        "mean_diff": -0.0001,
+        "std_diff": 0.0003,
+        "sharpe_diff_daily": -0.2182,
+        "t_stat": -1.0,
+        "selection_bias_t": 0.4307,
+        "deflated_t": -1.4307,
+        "p_value": 0.9237
+      }
+    },
+    "new_plus_hmm_features": {
+      "gates": {
+        "minimumOosDays": true,
+        "minimumSelectedTrades": false,
+        "positiveAverageNetTrade": false,
+        "positiveNetPortfolioReturn": false,
+        "positiveDailySharpe": false,
+        "freshUnseenForwardWindow": false
+      },
+      "dmVsNewLinear": {
+        "n_days": 21,
+        "alpha": 0.05,
+        "dm_star": null,
+        "t_critical": null,
+        "significant": false,
+        "mean_diff": 0.0,
+        "reason": "zero_variance_differential"
+      },
+      "dsrVsCash": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 21,
+        "n_trials": 3,
+        "reason": "ok",
+        "mean_diff": -0.0001,
+        "std_diff": 0.0003,
+        "sharpe_diff_daily": -0.2182,
+        "t_stat": -1.0,
+        "selection_bias_t": 0.4307,
+        "deflated_t": -1.4307,
+        "p_value": 0.9237
+      }
+    },
+    "new_plus_hmm_and_bl": {
+      "gates": {
+        "minimumOosDays": true,
+        "minimumSelectedTrades": false,
+        "positiveAverageNetTrade": false,
+        "positiveNetPortfolioReturn": false,
+        "positiveDailySharpe": false,
+        "freshUnseenForwardWindow": false
+      },
+      "dmVsNewLinear": {
+        "n_days": 21,
+        "alpha": 0.05,
+        "dm_star": 1.0,
+        "t_critical": 1.725,
+        "significant": false,
+        "mean_diff": 0.0001,
+        "reason": "ok",
+        "df": 20
+      },
+      "dsrVsCash": {
+        "method": "approx_deflated_sharpe_on_daily_pnl_diff",
+        "significant": false,
+        "alpha": 0.1,
+        "n_days": 21,
+        "n_trials": 3,
+        "reason": "ok",
+        "mean_diff": -0.0,
+        "std_diff": 0.0,
+        "sharpe_diff_daily": -0.2182,
+        "t_stat": -1.0,
+        "selection_bias_t": 0.4307,
+        "deflated_t": -1.4307,
+        "p_value": 0.9237
+      }
+    }
+  },
+  "historicalPassingVariants": [],
+  "verdict": "fusion_does_not_create_validated_edge",
+  "verdictReason": "No fixed fusion variant produced enough positive cost-adjusted trades with positive absolute portfolio return.",
+  "limitations": [
+    "The historical test window has already been reused and cannot support promotion.",
+    "All variants use the same Yahoo five-minute bars and fixed 12 bps cost proxy.",
+    "The HMM and linear predictors share price-derived information and are not independent alpha sources.",
+    "Black-Litterman can stabilize views but cannot create expected return when forecasts lack edge.",
+    "Sparse selections can appear to reduce loss simply by holding cash.",
+    "Current product membership can retain survivorship bias."
+  ],
+  "liveChanges": false
+}
