@@ -26,7 +26,8 @@ import numpy as np
 
 from run_etf_paper_trading_agent import ROOT
 
-IOPV_DATA_DIR = ROOT / "data" / "etf_iopv"          # authoritative PCF/f131 feed (input)
+IOPV_DATA_DIR = ROOT / "data" / "research" / "etf_iopv"   # authoritative PCF/f131 feed (input)
+IOPV_FALLBACK_DIR = ROOT / "data" / "research" / "etf_iopv_akshare"   # akshare fallback (f131 feed dead 06-29..07-03)
 OUT_DIR = ROOT / "outputs" / "iopv_premium"          # audit artifacts (output)
 HORIZONS = [1, 3, 6]      # polls ahead
 COST_RT = 0.0008          # ~8 bps breakeven (the candidate-edge floor from the reversal suite)
@@ -39,7 +40,8 @@ def load():
     premium_pct->premium, collected_at(ISO)->(date, ts). Only is_fresh rows are written, so no
     extra staleness filter is needed here."""
     series = defaultdict(list)   # code -> [(date, ts, price, premium)]
-    for p in sorted(IOPV_DATA_DIR.glob("iopv_*.jsonl")):
+    paths = sorted(IOPV_DATA_DIR.glob("iopv_*.jsonl")) + sorted(IOPV_FALLBACK_DIR.glob("iopv_*.jsonl"))
+    for p in paths:
         for line in p.read_text(encoding="utf-8").splitlines():
             try:
                 r = json.loads(line)
