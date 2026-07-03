@@ -27,13 +27,48 @@
     "huatai_broker_query_min_interval_seconds": 300
   },
   "universe": [
-    {"stockCode": "518880", "exchange": "SH", "name": "黄金ETF", "asset_class": "gold_etf"},
-    {"stockCode": "513500", "exchange": "SH", "name": "标普500ETF", "asset_class": "cross_border_etf"},
-    {"stockCode": "513100", "exchange": "SH", "name": "纳指ETF", "asset_class": "cross_border_etf"},
-    {"stockCode": "513180", "exchange": "SH", "name": "恒生科技ETF", "asset_class": "hk_etf"},
-    {"stockCode": "513050", "exchange": "SH", "name": "中概互联网ETF", "asset_class": "hk_etf"},
-    {"stockCode": "513330", "exchange": "SH", "name": "恒生互联网ETF", "asset_class": "hk_etf"},
-    {"stockCode": "588000", "exchange": "SH", "name": "科创50ETF", "asset_class": "exit_only_t1"}
+    {
+      "stockCode": "518880",
+      "exchange": "SH",
+      "name": "黄金ETF",
+      "asset_class": "gold_etf"
+    },
+    {
+      "stockCode": "513500",
+      "exchange": "SH",
+      "name": "标普500ETF",
+      "asset_class": "cross_border_etf"
+    },
+    {
+      "stockCode": "513100",
+      "exchange": "SH",
+      "name": "纳指ETF",
+      "asset_class": "cross_border_etf"
+    },
+    {
+      "stockCode": "513180",
+      "exchange": "SH",
+      "name": "恒生科技ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "513050",
+      "exchange": "SH",
+      "name": "中概互联网ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "513330",
+      "exchange": "SH",
+      "name": "恒生互联网ETF",
+      "asset_class": "hk_etf"
+    },
+    {
+      "stockCode": "588000",
+      "exchange": "SH",
+      "name": "科创50ETF",
+      "asset_class": "exit_only_t1"
+    }
   ],
   "dynamic_universe": {
     "enabled": true,
@@ -49,7 +84,11 @@
     "daily_momentum_pool_file": "outputs/t0_intraday_agent/daily_momentum_pool.json",
     "daily_momentum_pool_max_age_days": 4,
     "daily_momentum_pool_note": "Nightly select_daily_momentum_pool.py writes top-20 by 20d DAILY momentum; agent restricts the gate-passing universe to these (fail-open if missing/stale). Competition tilt -- delete this file ref to revert. Intraday momentum_weight deliberately NOT cranked (intraday momentum reverts).",
-    "name_exclude_keywords": ["货币", "现金", "理财"],
+    "name_exclude_keywords": [
+      "货币",
+      "现金",
+      "理财"
+    ],
     "exclude_codes": []
   },
   "decision_scoring": {
@@ -72,34 +111,36 @@
   "sector_diversification": {
     "enabled": true,
     "max_per_sector": 2,
-    "unlimited_sectors": ["other"],
+    "unlimited_sectors": [
+      "other"
+    ],
     "keyword_map": {
-      "\u534a\u5bfc\u4f53": "semi",
-      "\u82af\u7247": "semi",
-      "\u96c6\u6210\u7535\u8def": "semi",
-      "\u533b\u836f": "pharma",
-      "\u533b\u7597": "pharma",
-      "\u521b\u65b0\u836f": "pharma",
-      "\u8bc1\u5238": "brokerage",
-      "\u5238\u5546": "brokerage",
-      "\u519b\u5de5": "defense",
-      "\u5149\u4f0f": "new_energy",
-      "\u65b0\u80fd\u6e90": "new_energy",
-      "\u7535\u6c60": "new_energy",
-      "\u6d88\u8d39": "consumer",
-      "\u767d\u9152": "consumer",
-      "\u98df\u54c1": "consumer",
-      "\u94f6\u884c": "bank",
-      "\u9ec4\u91d1": "gold",
-      "\u6052\u751f": "hk_china",
-      "\u6e2f\u80a1": "hk_china",
-      "\u4e2d\u6982": "hk_china",
-      "\u6807\u666e": "overseas",
-      "\u7eb3\u6307": "overseas",
-      "\u7eb3\u65af\u8fbe\u514b": "overseas",
-      "\u7f8e\u80a1": "overseas",
-      "\u6d77\u5916": "overseas",
-      "\u503a": "bond"
+      "半导体": "semi",
+      "芯片": "semi",
+      "集成电路": "semi",
+      "医药": "pharma",
+      "医疗": "pharma",
+      "创新药": "pharma",
+      "证券": "brokerage",
+      "券商": "brokerage",
+      "军工": "defense",
+      "光伏": "new_energy",
+      "新能源": "new_energy",
+      "电池": "new_energy",
+      "消费": "consumer",
+      "白酒": "consumer",
+      "食品": "consumer",
+      "银行": "bank",
+      "黄金": "gold",
+      "恒生": "hk_china",
+      "港股": "hk_china",
+      "中概": "hk_china",
+      "标普": "overseas",
+      "纳指": "overseas",
+      "纳斯达克": "overseas",
+      "美股": "overseas",
+      "海外": "overseas",
+      "债": "bond"
     }
   },
   "strategy": {
@@ -125,10 +166,10 @@
     "emergency_stop_pct": -0.02,
     "profit_trailing_drawdown_pct": -0.02,
     "trend_deployment": {
-      "enabled": true,
+      "enabled": false,
       "regime_file": "outputs/t0_intraday_agent/trend_regime.json",
       "max_age_days": 4,
-      "note": "Gayed trend filter: scales position sizing by deploy_factor (uptrend 1.0 / downtrend 0.3) from compute_trend_regime.py (沪深300 vs 50d MA). Risk-managed beta, fail-open (1.0 if missing/stale), clamped [0,1] so it can only de-risk. Revert by removing this block."
+      "note": "REVERTED OFF 2026-07-03 (was live since ~06-30) after the 2-year mootdx check: scaling the traded-basket beta by this filter cost return in EVERY segment (2024H2 -3.6pp, 2025H1 -6.0pp, 2025H2 -4.9pp, 2026 -1.6pp; -15.3pp even excluding the Sept-2024 rally it fully missed at 0.3 exposure), and LOWERED Sharpe (1.34 vs 1.64) -- the drawdown relief (-8.5% vs -12%) never paid for the foregone upside in this whipsaw/V-reversal A-share regime. Also directionally wrong for a return-ranked competition (variance is the objective). compute_trend_regime.py keeps writing the nightly regime file for the record; the agent fail-opens to 1.0 while disabled. Re-evaluate only for post-competition capital-preservation mode."
     },
     "sell_logic_v2": {
       "enabled": false,
@@ -243,10 +284,18 @@
     },
     "t0_entry_eligibility": {
       "enabled": true,
-      "allow_asset_classes": ["gold_etf", "cross_border_etf", "hk_etf"],
+      "allow_asset_classes": [
+        "gold_etf",
+        "cross_border_etf",
+        "hk_etf"
+      ],
       "allow_stock_codes": [],
       "block_stock_codes": [],
-      "block_asset_classes": ["dynamic", "domestic_equity_etf", "equity_etf"],
+      "block_asset_classes": [
+        "dynamic",
+        "domestic_equity_etf",
+        "equity_etf"
+      ],
       "block_unknown_asset_class": true,
       "reason": "asset_class_not_confirmed_same_day_sellable_for_t0_entry"
     },
@@ -346,7 +395,12 @@
       "auto_promotion_allowed": false
     },
     "target_holdings": 5,
-    "legacy_inventory_codes": ["159915", "588000", "588030", "159546"],
+    "legacy_inventory_codes": [
+      "159915",
+      "588000",
+      "588030",
+      "159546"
+    ],
     "legacy_inventory_note": "存量持仓:按各自卖出条件退出(不强平),且不占用 target_holdings 的新增豪赌仓位配额。某只清空后会自然离开 committed,可从此列表移除;比赛结束后清空整个列表。",
     "cash_reserve_pct": 0.05,
     "max_position_pct": 0.25,
@@ -425,7 +479,7 @@
     "require_diebold_mariano_significant": true,
     "dm_one_sided_alpha": 0.05,
     "require_baseline_excluded_from_mcs": true,
-    "mcs_alpha": 0.10,
+    "mcs_alpha": 0.1,
     "mcs_n_boot": 500,
     "require_spa_reject": true,
     "spa_alpha": 0.05,
