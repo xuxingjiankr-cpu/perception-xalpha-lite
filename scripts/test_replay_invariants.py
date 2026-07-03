@@ -4254,6 +4254,113 @@ def t59_every_decision_and_daily_score_review() -> None:
           and "liquidity_score" in result["adjustmentCandidates"])
 
 
+def t82_local_news_watchlist_is_causal_no_api_and_shadow_only() -> None:
+    """Local RSS ranking is cutoff-safe, auditable and cannot become a trade gate."""
+    import copy as _copy
+    from datetime import datetime as _datetime
+    from zoneinfo import ZoneInfo as _ZoneInfo
+    import build_t0_observation_pool as pool
+    import generate_local_news_etf_watchlist as local
+
+    config = local.load_config()
+    topic = config["topics"][2]
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+<item><title>芯片订单大增并获政策支持 - 财联社</title>
+<link>https://news.google.com/articles/positive</link>
+<pubDate>Thu, 02 Jul 2026 18:00:00 GMT</pubDate>
+<source url="https://www.cls.cn">财联社</source></item>
+<item><title>海外芯片股大跌风险上升 - Reuters</title>
+<link>https://news.google.com/articles/negative</link>
+<pubDate>Fri, 03 Jul 2026 00:00:00 GMT</pubDate>
+<source url="https://www.reuters.com">Reuters</source></item>
+<item><title>截止时间之后的上涨新闻</title>
+<link>https://news.google.com/articles/future</link>
+<pubDate>Fri, 03 Jul 2026 01:00:00 GMT</pubDate>
+<source url="https://example.cn">测试源</source></item>
+<item><title>窗口之前的旧闻</title>
+<link>https://news.google.com/articles/stale</link>
+<pubDate>Thu, 02 Jul 2026 06:00:00 GMT</pubDate>
+<source url="https://example.cn">测试源</source></item>
+</channel></rss>""".encode("utf-8")
+    sh = _ZoneInfo("Asia/Shanghai")
+    parsed = local.parse_rss(
+        xml,
+        topic,
+        news_start=_datetime.fromisoformat("2026-07-02T15:00:00+08:00").astimezone(sh),
+        cutoff=_datetime.fromisoformat("2026-07-03T08:30:00+08:00").astimezone(sh),
+        config=config,
+    )
+    check("T82 RSS parser excludes stale and post-cutoff articles",
+          [row.source_url.rsplit("/", 1)[-1] for row in parsed] == ["negative", "positive"], str(parsed))
+    check("T82 deterministic lexicon preserves opposing evidence",
+          {row.sentiment > 0 for row in parsed} == {True, False}, str(parsed))
+
+    master = {
+        (f"51{index:04d}", "SH"): {
+            "stockCode": f"51{index:04d}", "market": "1", "name": f"半导体ETF{index}"
+        }
+        for index in range(10)
+    }
+    template = {
+        "exchange": "SH",
+        "name": "半导体ETF",
+        "topic": {"id": "semiconductor", "label": "半导体"},
+        "localScore": 70.0,
+        "scoreBreakdown": {"newsDirection": 60.0},
+        "evidenceConfidence": 0.7,
+        "newsDirection": "positive",
+        "previousSessionMarket": {"amount": 100000000.0, "changePct": 1.0, "currentPrice": 1.0},
+        "reason": "本地规则证据排序，不是上涨概率。",
+        "newsDrivers": ["正向驱动"],
+        "risks": ["仅用于研究观察"],
+        "sourceUrls": ["https://news.google.com/articles/positive"],
+        "sourceItems": [{"title": "正向驱动"}],
+    }
+    rows = []
+    for index, ((code, exchange), canonical) in enumerate(master.items()):
+        row = _copy.deepcopy(template)
+        row.update({"stockCode": code, "exchange": exchange, "name": canonical["name"],
+                    "localScore": 70.0 - index})
+        rows.append(row)
+    payload = {
+        "schemaVersion": local.SCHEMA_VERSION,
+        "asOfDate": "2026-07-03",
+        "effectiveDate": "2026-07-03",
+        "generatedAt": "2026-07-03T08:30:00+08:00",
+        "paperTradingOnly": True,
+        "diagnosticOnly": True,
+        "tradeGateEnabled": False,
+        "liveReady": False,
+        "formalStrategyAllowed": False,
+        "generator": {"noExternalModelApi": True},
+        "etfs": rows,
+    }
+    check("T82 local payload validates exactly ten unique non-money ETFs",
+          local.validate_payload(payload, master=master, expected_count=10) == [])
+    accepted, rejected, meta = pool.validate_research_payload(
+        payload, master, limit=10, today="2026-07-03"
+    )
+    combined, overlaps = pool.merge_observation_pool(
+        [{"stockCode": rows[0]["stockCode"], "exchange": "SH", "name": rows[0]["name"]}],
+        accepted,
+        source_kind=meta["sourceKind"],
+    )
+    overlap = combined[0]
+    check("T82 builder preserves local provenance without calling it ChatGPT",
+          not rejected and overlaps == 1
+          and overlap["sources"] == ["system_rank20", "local_news10"]
+          and "localNewsResearch" in overlap
+          and "chatgptResearch" not in overlap, str(overlap))
+    source = (ROOT / "scripts" / "generate_local_news_etf_watchlist.py").read_text(encoding="utf-8")
+    check("T82 generator has no hosted-model or order path",
+          "api.openai.com" not in source and "OPENAI_API_KEY" not in source
+          and "submitOrder" not in source and "place_order" not in source)
+    check("T82 configuration is hard locked to shadow research",
+          config["recordOnly"] is True and config["tradeGateEnabled"] is False
+          and config["positionSizingEnabled"] is False)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4335,6 +4442,7 @@ if __name__ == "__main__":
     t71_same_index_underreaction_is_next_bar_oos_and_safe()
     t72_trend_pullback_recovery_is_causal_costed_and_safe()
     t73_frontier_competition_ranker_is_fresh_paper_only_and_auditable()
+    t82_local_news_watchlist_is_causal_no_api_and_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

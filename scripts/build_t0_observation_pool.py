@@ -1,14 +1,15 @@
-"""Build the next-session ETF observation pool (system 20 + ChatGPT 10).
+"""Build the next-session ETF observation pool (system 20 + research-news 10).
 
 This is a research/observation input only.  It never calls a broker, submits an
 order, or changes the paper agent's entry gates.  The system leg is rebuilt from
 the latest Eastmoney full-market snapshot using the existing dynamic-universe
-ranking.  The optional ChatGPT leg is validated against the locally collected
-non-money ETF master before it is merged.
+ranking.  The optional ChatGPT or local no-model-API news leg is validated
+against the locally collected non-money ETF master before it is merged.
 
 Examples:
   py -3.13 scripts/build_t0_observation_pool.py
   py -3.13 scripts/build_t0_observation_pool.py --chatgpt-file watchlist.json
+  py -3.13 scripts/build_t0_observation_pool.py --local-news-file watchlist.json
   Get-Clipboard | py -3.13 scripts/build_t0_observation_pool.py --chatgpt-file -
 """
 
@@ -32,8 +33,13 @@ from archive_t0_observation_pool import DEFAULT_HISTORY, archive_document
 SH = ZoneInfo("Asia/Shanghai")
 DEFAULT_CONFIG = ROOT / "configs" / "t0_intraday_paper_agent.json"
 DEFAULT_INBOX = ROOT / "data" / "research" / "chatgpt_etf_watchlist" / "inbox"
+DEFAULT_LOCAL_NEWS_INBOX = ROOT / "data" / "research" / "local_news_etf_watchlist" / "inbox"
 DEFAULT_OUT = ROOT / "outputs" / "t0_observation_pool"
 CODE_RE = re.compile(r"^\d{6}$")
+SUPPORTED_RESEARCH_SCHEMAS = {
+    "chatgpt_etf_watchlist_v1": "chatgpt",
+    "local_news_etf_watchlist_v1": "local_news",
+}
 
 
 def exchange_from_market(value: Any) -> str:
@@ -102,7 +108,7 @@ def read_payload(path_text: str | None, inbox: Path) -> tuple[dict[str, Any] | N
     return load_json(path), str(path.resolve())
 
 
-def validate_chatgpt_payload(
+def validate_research_payload(
     payload: dict[str, Any] | None,
     master: dict[tuple[str, str], dict[str, Any]],
     limit: int = 10,
@@ -111,26 +117,41 @@ def validate_chatgpt_payload(
     if payload is None:
         return [], [], {}
     if not isinstance(payload, dict):
-        raise ValueError("ChatGPT payload must be a JSON object")
+        raise ValueError("research-news payload must be a JSON object")
     rows = payload.get("etfs")
     if not isinstance(rows, list):
-        raise ValueError("ChatGPT payload.etfs must be an array")
+        raise ValueError("research-news payload.etfs must be an array")
     if len(rows) > limit:
-        raise ValueError(f"ChatGPT payload has {len(rows)} ETFs; maximum is {limit}")
+        raise ValueError(f"research-news payload has {len(rows)} ETFs; maximum is {limit}")
 
+    schema = str(payload.get("schemaVersion") or "")
+    source_kind = SUPPORTED_RESEARCH_SCHEMAS.get(schema)
     meta = {
-        "schemaVersion": payload.get("schemaVersion"),
+        "schemaVersion": schema,
+        "sourceKind": source_kind,
         "asOfDate": payload.get("asOfDate"),
         "effectiveDate": payload.get("effectiveDate"),
         "generatedAt": payload.get("generatedAt"),
+        "generator": payload.get("generator") if isinstance(payload.get("generator"), dict) else {},
     }
-    if meta["schemaVersion"] != "chatgpt_etf_watchlist_v1":
-        raise ValueError("unsupported ChatGPT payload schemaVersion")
+    if source_kind is None:
+        raise ValueError("unsupported research-news payload schemaVersion")
+    if source_kind == "local_news":
+        safe = (
+            payload.get("paperTradingOnly") is True
+            and payload.get("diagnosticOnly") is True
+            and payload.get("tradeGateEnabled") is False
+            and payload.get("liveReady") is False
+            and payload.get("formalStrategyAllowed") is False
+            and bool((meta["generator"] or {}).get("noExternalModelApi"))
+        )
+        if not safe:
+            raise ValueError("local-news payload lacks fail-closed research safety markers")
     effective = str(meta.get("effectiveDate") or "")
     try:
         datetime.strptime(effective, "%Y-%m-%d")
     except ValueError as exc:
-        raise ValueError("ChatGPT payload.effectiveDate must be YYYY-MM-DD") from exc
+        raise ValueError("research-news payload.effectiveDate must be YYYY-MM-DD") from exc
     today = today or datetime.now(tz=SH).strftime("%Y-%m-%d")
     if effective < today:
         return [], [{"reason": "stale_effective_date", "effectiveDate": effective, "today": today}], meta
@@ -166,7 +187,7 @@ def validate_chatgpt_payload(
         else:
             seen.add(key)
             canonical = master[key]
-            accepted.append({
+            item = {
                 "stockCode": code,
                 "exchange": exchange,
                 "name": canonical.get("name") or raw.get("name") or code,
@@ -174,13 +195,35 @@ def validate_chatgpt_payload(
                 "risks": raw.get("risks", []),
                 "newsDrivers": raw.get("newsDrivers", []),
                 "sourceUrls": [str(url) for url in urls if str(url).startswith(("http://", "https://"))],
-            })
+            }
+            if source_kind == "local_news":
+                item.update({
+                    "topic": raw.get("topic", {}),
+                    "localScore": raw.get("localScore"),
+                    "scoreBreakdown": raw.get("scoreBreakdown", {}),
+                    "evidenceConfidence": raw.get("evidenceConfidence"),
+                    "newsDirection": raw.get("newsDirection"),
+                    "previousSessionMarket": raw.get("previousSessionMarket", {}),
+                    "sourceItems": raw.get("sourceItems", []),
+                })
+            accepted.append(item)
     return accepted, rejected, meta
+
+
+def validate_chatgpt_payload(
+    payload: dict[str, Any] | None,
+    master: dict[tuple[str, str], dict[str, Any]],
+    limit: int = 10,
+    today: str | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
+    """Backward-compatible wrapper retained for existing callers and tests."""
+    return validate_research_payload(payload, master, limit=limit, today=today)
 
 
 def merge_observation_pool(
     system_rows: list[dict[str, Any]],
-    chatgpt_rows: list[dict[str, Any]],
+    research_rows: list[dict[str, Any]],
+    source_kind: str = "chatgpt",
 ) -> tuple[list[dict[str, Any]], int]:
     combined: list[dict[str, Any]] = []
     index: dict[tuple[str, str], int] = {}
@@ -193,16 +236,21 @@ def merge_observation_pool(
         combined.append(item)
 
     overlaps = 0
-    for row in chatgpt_rows:
+    source_label = "local_news10" if source_kind == "local_news" else "chatgpt_news10"
+    research_field = "localNewsResearch" if source_kind == "local_news" else "chatgptResearch"
+    for row in research_rows:
         key = (row["stockCode"], row["exchange"])
         if key in index:
             overlaps += 1
             item = combined[index[key]]
-            item["sources"].append("chatgpt_news10")
-            item["chatgptResearch"] = {k: v for k, v in row.items() if k not in {"stockCode", "exchange", "name"}}
+            item["sources"].append(source_label)
+            item[research_field] = {
+                key: value for key, value in row.items()
+                if key not in {"stockCode", "exchange", "name"}
+            }
         else:
             item = dict(row)
-            item["sources"] = ["chatgpt_news10"]
+            item["sources"] = [source_label]
             combined.append(item)
             index[key] = len(combined) - 1
     return combined, overlaps
@@ -211,19 +259,23 @@ def merge_observation_pool(
 def build_document(
     system_rows: list[dict[str, Any]],
     system_meta: dict[str, Any],
-    chatgpt_rows: list[dict[str, Any]],
+    research_rows: list[dict[str, Any]],
     rejected: list[dict[str, Any]],
-    chatgpt_meta: dict[str, Any],
+    research_meta: dict[str, Any],
     master_path: Path,
     input_source: str | None,
+    source_kind: str | None = None,
 ) -> dict[str, Any]:
-    combined, overlaps = merge_observation_pool(system_rows, chatgpt_rows)
+    source_kind = source_kind or str(research_meta.get("sourceKind") or "chatgpt")
+    combined, overlaps = merge_observation_pool(system_rows, research_rows, source_kind=source_kind)
+    chatgpt_rows = research_rows if source_kind == "chatgpt" else []
+    local_news_rows = research_rows if source_kind == "local_news" else []
     return {
         "schemaVersion": "t0_etf_observation_pool_v1",
         "generatedAt": datetime.now(tz=SH).isoformat(timespec="seconds"),
         "asOfDate": system_meta.get("trade_date"),
-        "effectiveSession": chatgpt_meta.get("effectiveDate") or "next_trading_session",
-        "status": "ready" if len(chatgpt_rows) == 10 else "awaiting_or_partial_chatgpt_list",
+        "effectiveSession": research_meta.get("effectiveDate") or "next_trading_session",
+        "status": "ready" if len(research_rows) == 10 else "awaiting_or_partial_research_list",
         "paperTradingOnly": True,
         "diagnosticOnly": True,
         "tradeGateEnabled": False,
@@ -232,15 +284,27 @@ def build_document(
         "counts": {
             "system": len(system_rows),
             "chatgptAccepted": len(chatgpt_rows),
-            "chatgptRejected": len(rejected),
+            "localNewsAccepted": len(local_news_rows),
+            "researchAccepted": len(research_rows),
+            "chatgptRejected": len(rejected) if source_kind == "chatgpt" else 0,
+            "localNewsRejected": len(rejected) if source_kind == "local_news" else 0,
+            "researchRejected": len(rejected),
             "overlaps": overlaps,
             "combinedUnique": len(combined),
         },
         "systemSelectionMeta": system_meta,
-        "chatgptInputMeta": {**chatgpt_meta, "sourceFile": input_source},
+        "researchInputMeta": {**research_meta, "sourceFile": input_source},
+        "chatgptInputMeta": (
+            {**research_meta, "sourceFile": input_source} if source_kind == "chatgpt" else {}
+        ),
+        "localNewsInputMeta": (
+            {**research_meta, "sourceFile": input_source} if source_kind == "local_news" else {}
+        ),
         "validation": {"nonMoneyMaster": str(master_path.resolve()), "rejected": rejected},
         "system20": system_rows,
         "chatgpt10": chatgpt_rows,
+        "localNews10": local_news_rows,
+        "research10": research_rows,
         "combined": combined,
     }
 
@@ -259,14 +323,17 @@ def publish(document: dict[str, Any], out_dir: Path) -> tuple[Path, Path]:
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="Build system-20 + ChatGPT-10 ETF observation pool")
+    ap = argparse.ArgumentParser(description="Build system-20 + research-news-10 ETF observation pool")
     ap.add_argument("--config", default=str(DEFAULT_CONFIG))
     ap.add_argument("--chatgpt-file", help="JSON file path, or '-' to read JSON from stdin")
+    ap.add_argument("--local-news-file", help="Local no-model-API JSON file path")
     ap.add_argument("--inbox", help="Used when --chatgpt-file is omitted; defaults to config")
     ap.add_argument("--output-dir", help="Defaults to the directory containing config observation_pool.output")
     ap.add_argument("--history-dir", default=str(DEFAULT_HISTORY),
                     help="Point-in-time daily archive and ETF-level history directory")
     args = ap.parse_args()
+    if args.chatgpt_file and args.local_news_file:
+        ap.error("--chatgpt-file and --local-news-file are mutually exclusive")
 
     cfg = load_json(Path(args.config))
     pool_cfg = cfg.get("observation_pool", {})
@@ -279,9 +346,21 @@ def main() -> None:
     universe_dir = ROOT / cfg.get("dynamic_universe", {}).get("universe_dir", "data/market/eastmoney/universe")
     master, master_path = load_non_money_master(universe_dir)
     system_rows, system_meta = build_system_20(cfg, system_limit)
-    payload, source = read_payload(args.chatgpt_file, inbox)
-    chatgpt_rows, rejected, chatgpt_meta = validate_chatgpt_payload(payload, master, chatgpt_limit)
-    document = build_document(system_rows, system_meta, chatgpt_rows, rejected, chatgpt_meta, master_path, source)
+    if args.local_news_file:
+        payload, source = read_payload(args.local_news_file, DEFAULT_LOCAL_NEWS_INBOX)
+    else:
+        payload, source = read_payload(args.chatgpt_file, inbox)
+    research_rows, rejected, research_meta = validate_research_payload(payload, master, chatgpt_limit)
+    document = build_document(
+        system_rows,
+        system_meta,
+        research_rows,
+        rejected,
+        research_meta,
+        master_path,
+        source,
+        source_kind=research_meta.get("sourceKind"),
+    )
     dated, latest = publish(document, out_dir)
     archive = archive_document(document, Path(args.history_dir), source_path=latest)
     print(json.dumps(document["counts"], ensure_ascii=False))

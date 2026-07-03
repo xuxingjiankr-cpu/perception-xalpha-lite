@@ -64,6 +64,9 @@ def resolve_selection_date(document: dict[str, Any]) -> tuple[str, str]:
     chatgpt_effective = _valid_date((document.get("chatgptInputMeta") or {}).get("effectiveDate"))
     if chatgpt_effective:
         return chatgpt_effective, "chatgptInputMeta.effectiveDate"
+    research_effective = _valid_date((document.get("researchInputMeta") or {}).get("effectiveDate"))
+    if research_effective:
+        return research_effective, "researchInputMeta.effectiveDate"
     generated = str(document.get("generatedAt") or "")[:10]
     generated_date = _valid_date(generated)
     if generated_date:
@@ -98,6 +101,16 @@ def _chatgpt_by_key(document: dict[str, Any]) -> dict[tuple[str, str], tuple[int
     return result
 
 
+def _local_news_by_key(document: dict[str, Any]) -> dict[tuple[str, str], tuple[int, dict[str, Any]]]:
+    result: dict[tuple[str, str], tuple[int, dict[str, Any]]] = {}
+    for rank, row in enumerate(document.get("localNews10") or [], 1):
+        if not isinstance(row, dict):
+            continue
+        key = (str(row.get("stockCode", "")).zfill(6), str(row.get("exchange", "")).upper())
+        result[key] = (rank, row)
+    return result
+
+
 def selection_records(
     document: dict[str, Any],
     selection_date: str,
@@ -105,6 +118,7 @@ def selection_records(
     source_sha256: str,
 ) -> list[dict[str, Any]]:
     chatgpt = _chatgpt_by_key(document)
+    local_news = _local_news_by_key(document)
     records: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     for combined_rank, row in enumerate(document.get("combined") or [], 1):
@@ -119,7 +133,15 @@ def selection_records(
             raise ValueError(f"duplicate ETF composite key in combined pool: {key}")
         seen.add(key)
         chatgpt_rank, chatgpt_row = chatgpt.get(key, (None, {}))
-        research = row.get("chatgptResearch") if isinstance(row.get("chatgptResearch"), dict) else chatgpt_row
+        local_news_rank, local_news_row = local_news.get(key, (None, {}))
+        if isinstance(row.get("localNewsResearch"), dict):
+            research = row["localNewsResearch"]
+        elif isinstance(row.get("chatgptResearch"), dict):
+            research = row["chatgptResearch"]
+        elif local_news_row:
+            research = local_news_row
+        else:
+            research = chatgpt_row
         sources = [str(value) for value in (row.get("sources") or []) if str(value)]
         records.append({
             "schemaVersion": "t0_observation_selection_v1",
@@ -134,6 +156,8 @@ def selection_records(
             "combinedRank": combined_rank,
             "systemRank": row.get("systemRank"),
             "chatgptRank": chatgpt_rank,
+            "localNewsRank": local_news_rank,
+            "researchRank": local_news_rank if local_news_rank is not None else chatgpt_rank,
             "rankScore": row.get("rank_score"),
             "changePct": row.get("change_pct"),
             "conviction": row.get("conviction"),
@@ -143,6 +167,11 @@ def selection_records(
                 "newsDrivers": research.get("newsDrivers", []) if isinstance(research, dict) else [],
                 "risks": research.get("risks", []) if isinstance(research, dict) else [],
                 "sourceUrls": research.get("sourceUrls", []) if isinstance(research, dict) else [],
+                "localScore": research.get("localScore") if isinstance(research, dict) else None,
+                "scoreBreakdown": research.get("scoreBreakdown", {}) if isinstance(research, dict) else {},
+                "evidenceConfidence": research.get("evidenceConfidence") if isinstance(research, dict) else None,
+                "newsDirection": research.get("newsDirection") if isinstance(research, dict) else None,
+                "sourceItems": research.get("sourceItems", []) if isinstance(research, dict) else [],
             },
             "sourceDocumentSha256": source_sha256,
             "paperTradingOnly": True,

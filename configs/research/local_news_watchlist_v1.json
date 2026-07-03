@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "local_news_watchlist_config_v1",
+  "version": "LNW-1.0.0",
+  "recordOnly": true,
+  "tradeGateEnabled": false,
+  "positionSizingEnabled": false,
+  "paperTradingOnly": true,
+  "diagnosticOnly": true,
+  "selectionCount": 10,
+  "maxPerTopic": 2,
+  "minimumPreviousDayAmount": 50000000,
+  "maximumArticlesPerTopic": 12,
+  "rssTimeoutSeconds": 20,
+  "scoreWeights": {
+    "newsDirection": 0.45,
+    "newsCoverage": 0.15,
+    "sourceQuality": 0.1,
+    "liquidity": 0.15,
+    "marketConfirmation": 0.15
+  },
+  "positiveTerms": [
+    "上调",
+    "增长",
+    "大增",
+    "突破",
+    "扩产",
+    "获批",
+    "降息",
+    "加码",
+    "中标",
+    "新高",
+    "上涨",
+    "反弹",
+    "走强",
+    "领涨",
+    "支持",
+    "推进",
+    "提振",
+    "放宽",
+    "回购",
+    "签约",
+    "订单",
+    "创新",
+    "国产替代",
+    "超预期"
+  ],
+  "negativeTerms": [
+    "下调",
+    "下降",
+    "大跌",
+    "暴跌",
+    "制裁",
+    "禁令",
+    "亏损",
+    "减持",
+    "退市",
+    "调查",
+    "召回",
+    "过剩",
+    "下滑",
+    "关税",
+    "违约",
+    "收紧",
+    "风险",
+    "泡沫",
+    "跳水",
+    "杀跌",
+    "抛售",
+    "收跌",
+    "回落",
+    "不及预期"
+  ],
+  "excludedTitleFragments": [
+    "股票股价_股价行情_讨论_资讯_财报_数据报告",
+    "实时行情",
+    "历史数据",
+    "走势图"
+  ],
+  "sourceQuality": {
+    "official": 1.0,
+    "major": 0.82,
+    "other": 0.58,
+    "officialNames": [
+      "中国政府网",
+      "新华社",
+      "国家发展改革委",
+      "中国人民银行",
+      "证监会",
+      "上交所",
+      "深交所",
+      "工信部",
+      "财政部",
+      "商务部",
+      "国家能源局",
+      "国务院国资委"
+    ],
+    "majorNames": [
+      "Reuters",
+      "路透",
+      "财联社",
+      "证券时报",
+      "上海证券报",
+      "中国证券报",
+      "第一财经",
+      "21财经",
+      "新浪财经",
+      "华尔街见闻",
+      "经济观察报",
+      "界面新闻",
+      "每日经济新闻"
+    ]
+  },
+  "topics": [
+    {
+      "id": "broad_policy",
+      "label": "宽基与政策",
+      "query": "A股 政策 央行 财政 资本市场",
+      "etfKeywords": ["沪深300", "上证", "中证500", "中证1000", "A500", "创业板", "科创50", "红利", "央企"]
+    },
+    {
+      "id": "ai_compute",
+      "label": "人工智能与算力",
+      "query": "人工智能 算力 数据中心 光通信 A股",
+      "etfKeywords": ["人工智能", "AI", "算力", "云计算", "大数据", "通信", "软件", "互联网", "数字经济"]
+    },
+    {
+      "id": "semiconductor",
+      "label": "半导体",
+      "query": "半导体 芯片 存储 先进封装 A股",
+      "etfKeywords": ["半导体", "芯片", "集成电路", "科创芯片", "半导体设备"]
+    },
+    {
+      "id": "robotics",
+      "label": "机器人与智能制造",
+      "query": "机器人 具身智能 智能制造 A股",
+      "etfKeywords": ["机器人", "智能制造", "工业母机", "机械", "机床"]
+    },
+    {
+      "id": "defense",
+      "label": "军工与航天",
+      "query": "军工 航空 航天 船舶 卫星 A股",
+      "etfKeywords": ["军工", "国防", "航天", "航空", "船舶", "卫星", "低空经济"]
+    },
+    {
+      "id": "healthcare",
+      "label": "创新药与医疗",
+      "query": "创新药 医药 医疗 生物科技 A股 港股",
+      "etfKeywords": ["创新药", "生物科技", "生物医药", "医药", "医疗", "疫苗"]
+    },
+    {
+      "id": "new_energy",
+      "label": "新能源",
+      "query": "新能源 光伏 储能 锂电池 风电 A股",
+      "etfKeywords": ["新能源", "光伏", "储能", "电池", "锂电", "风电", "新能源车"]
+    },
+    {
+      "id": "power_grid",
+      "label": "电力与电网",
+      "query": "电力 电网 绿电 数据中心用电 A股",
+      "etfKeywords": ["电力", "电网", "绿色电力", "公用事业", "碳中和"]
+    },
+    {
+      "id": "gold_metals",
+      "label": "黄金与有色",
+      "query": "黄金 铜 铝 稀土 有色金属 商品",
+      "etfKeywords": ["黄金", "有色", "稀土", "铜", "铝", "钢铁", "矿业", "资源"]
+    },
+    {
+      "id": "energy_chemical",
+      "label": "能源与化工",
+      "query": "原油 石油 煤炭 化工 国际油价",
+      "etfKeywords": ["石油", "原油", "煤炭", "化工", "能源"]
+    },
+    {
+      "id": "finance",
+      "label": "金融",
+      "query": "银行 券商 保险 金融政策 A股",
+      "etfKeywords": ["证券", "券商", "银行", "保险", "金融", "金融科技"]
+    },
+    {
+      "id": "consumption",
+      "label": "消费",
+      "query": "消费 食品饮料 家电 旅游 零售 A股",
+      "etfKeywords": ["消费", "食品饮料", "白酒", "家电", "旅游", "零售", "传媒"]
+    },
+    {
+      "id": "automotive",
+      "label": "汽车",
+      "query": "汽车 智能驾驶 新能源汽车 销量 A股",
+      "etfKeywords": ["汽车", "智能汽车", "智能驾驶", "车联网"]
+    },
+    {
+      "id": "hongkong_overseas",
+      "label": "港股与海外科技",
+      "query": "港股 恒生科技 中概股 美股科技 隔夜",
+      "etfKeywords": ["港股通互联网", "港股互联网", "恒生互联网", "中概互联网", "港股通", "港股", "恒生", "中概", "中国互联网", "纳指", "标普", "日经"]
+    },
+    {
+      "id": "agriculture",
+      "label": "农业",
+      "query": "农业 粮食 生猪 养殖 种业 A股",
+      "etfKeywords": ["农业", "畜牧", "养殖", "粮食", "种业"]
+    }
+  ]
+}
