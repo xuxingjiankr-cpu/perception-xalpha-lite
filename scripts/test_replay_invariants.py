@@ -4901,6 +4901,153 @@ def t88_singularity_phase1_is_causal_purged_and_shadow_only() -> None:
     )
 
 
+def t89_singularity_phase1_5_is_frozen_forward_shadow_only() -> None:
+    """Phase 1.5 must score a hash-pinned model and remain trade-disconnected."""
+    import json
+    import math
+    import tempfile
+    import pandas as pd
+    import run_singularity_phase1_5_forward as forward
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase1_5_forward.json"
+    )
+    config, bundle, model_hash = forward.load_config_bundle(config_path)
+    check(
+        "T89 Phase 1.5 model and Phase 1 config are hash-pinned",
+        model_hash == config["frozenModel"]["sha256"]
+        and bundle["phase1ConfigSha256"]
+        == config["phase1"]["configSha256"]
+        and bundle["historicalCutoff"]
+        == config["phase1"]["historicalCutoff"],
+    )
+    check(
+        "T89 forward start excludes every implementation-time historical day",
+        config["forward"]["prospectiveAfter"] == "2026-07-05"
+        and config["forward"]["firstEligibleDate"] == "2026-07-06"
+        and config["forward"]["allowHistoricalBackfill"] is False,
+    )
+    check(
+        "T89 60-bar horizon stays absent from frozen models and explicitly null",
+        60 in config["forward"]["skippedHorizonsBars"]
+        and "60" not in bundle["modelsByHorizon"],
+    )
+
+    toy_model = {
+        "features": ["feature"],
+        "scalerMean": [0.0],
+        "scalerScale": [2.0],
+        "logisticCoefficient": [1.0],
+        "logisticIntercept": 0.0,
+        "plattCoefficient": 1.0,
+        "plattIntercept": 0.0,
+    }
+    raw, calibrated = forward.score_frozen_model(
+        pd.DataFrame({"feature": [2.0]}), toy_model
+    )
+    expected = 1.0 / (1.0 + math.exp(-1.0))
+    check(
+        "T89 frozen JSON coefficient scorer reproduces logistic probability",
+        abs(float(raw[0]) - expected) < 1e-12
+        and abs(float(calibrated[0]) - expected) < 1e-12,
+    )
+
+    timestamp = pd.Timestamp("2026-07-06T10:00:00+08:00")
+    predictions = []
+    for horizon in [5, 10, 20, 30]:
+        for variant in ["baseline", "hmm", "ews", "hmm_ews"]:
+            predictions.append(
+                {
+                    "timestamp": timestamp,
+                    "trade_date": "2026-07-06",
+                    "stockCode": "513100",
+                    "horizon_bars": horizon,
+                    "variant": variant,
+                    "raw_probability": 0.2,
+                    "probability": 0.2,
+                }
+            )
+    feature = pd.DataFrame(
+        [
+            {
+                "timestamp": timestamp,
+                "trade_date": "2026-07-06",
+                "stockCode": "513100",
+                "ews_score": 0.4,
+                "regime_transition_risk": 0.3,
+                "regime_entropy": 0.5,
+                "singularity_score": 0.35,
+            }
+        ]
+    )
+    artifact = forward.build_probability_artifact(
+        pd.DataFrame.from_records(predictions),
+        feature,
+        config,
+        model_hash,
+    )[0]
+    check(
+        "T89 probability artifact separates labels and carries no trade action",
+        artifact["status"] == "research_only"
+        and artifact["shadowOnly"] is True
+        and artifact["p_turning_60"] is None
+        and artifact["orderInstruction"] is None
+        and artifact["positionSizeInstruction"] is None
+        and artifact["gateInstruction"] is None
+        and "turningPoint" not in artifact,
+    )
+
+    with tempfile.TemporaryDirectory() as temporary:
+        validation = forward.build_forward_validation(
+            Path(temporary), config, model_hash
+        )
+    check(
+        "T89 fewer than twenty forward days cannot reopen Phase 2",
+        validation["independentTradingDays"] == 0
+        and validation["status"] == "insufficient_forward_days"
+        and validation["phase2DiscussionAllowed"] is False,
+    )
+
+    source = (
+        ROOT / "scripts" / "run_singularity_phase1_5_forward.py"
+    ).read_text(encoding="utf-8")
+    freeze_source = (
+        ROOT / "scripts" / "freeze_singularity_phase1_5.py"
+    ).read_text(encoding="utf-8")
+    safety = config["safety"]
+    check(
+        "T89 daily monitor cannot fit, trade, size, gate, overlay or promote",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["frozenModel"]["runtimeRefitAllowed"] is False
+        and safety["offlinePostCloseOnly"] is True
+        and safety["recordOnly"] is True
+        and safety["brokerCallsAllowed"] is False
+        and safety["onlineInferenceAllowed"] is False
+        and safety["liveConfigWritesAllowed"] is False
+        and safety["overlayWritesAllowed"] is False
+        and safety["positionSizingAllowed"] is False
+        and safety["orderSubmissionAllowed"] is False
+        and safety["riskGateChangesAllowed"] is False
+        and safety["buildDecisionIntegrationAllowed"] is False
+        and safety["buySellGateIntegrationAllowed"] is False
+        and safety["promotionAllowed"] is False
+        and ".fit(" not in source
+        and "SkillClient(" not in source
+        and "submitOrder(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "from t0_intraday_agent" not in source,
+    )
+    check(
+        "T89 one-time freezer refuses to overwrite its versioned model",
+        "if output.exists()" in freeze_source
+        and "raise FileExistsError" in freeze_source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4989,6 +5136,7 @@ if __name__ == "__main__":
     t86_minute_model_fusion_is_causal_and_shadow_only()
     t87_conditional_minute_tail_preserves_dependence_safely()
     t88_singularity_phase1_is_causal_purged_and_shadow_only()
+    t89_singularity_phase1_5_is_frozen_forward_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

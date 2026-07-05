@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "singularity_phase1_5_forward_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "version": "SP15-001",
+  "preregisteredAt": "2026-07-05T10:00:00+08:00",
+  "phase1": {
+    "config": "configs/research/singularity_phase1_preregistered.json",
+    "configSha256": "7d4bf1a2bddf7820fa210b756e91d2ee6650035d7781e039afd4854481697fbd",
+    "hashMode": "canonical_json_sha256",
+    "result": "outputs/edge_research/singularity_phase1/singularity_p1_20260705_preregistered_final/phase1_result.json",
+    "universeAudit": "outputs/edge_research/singularity_phase1/singularity_p1_20260705_preregistered_final/universe_audit.json",
+    "featureTable": "outputs/edge_research/singularity_phase1/singularity_p1_20260705_preregistered_final/singularity_features.csv",
+    "labelTable": "outputs/edge_research/singularity_phase1/singularity_p1_20260705_preregistered_final/reversal_labels.csv",
+    "historicalCutoff": "2026-06-18",
+    "parametersRemainFrozen": true
+  },
+  "frozenModel": {
+    "path": "configs/research/singularity_phase1_5_frozen_model.json",
+    "sha256": "ecac94600d52c90dc211359a40183b6d70e8a9fb74bafc0f68cf4df8628d2a2b",
+    "hashMode": "canonical_json_sha256",
+    "runtimeRefitAllowed": false,
+    "manualVersionChangeRequired": true
+  },
+  "forward": {
+    "prospectiveAfter": "2026-07-05",
+    "firstEligibleDate": "2026-07-06",
+    "minimumIndependentTradingDays": 20,
+    "primaryHorizonsBars": [
+      5,
+      10
+    ],
+    "observationalHorizonsBars": [
+      20,
+      30
+    ],
+    "skippedHorizonsBars": [
+      60
+    ],
+    "barIntervalMinutes": 5,
+    "sameSessionOnly": true,
+    "allowHistoricalBackfill": false,
+    "allowParameterUpdates": false
+  },
+  "input": {
+    "snapshotRoot": "data/market/eastmoney/full_market/snapshots",
+    "filePattern": "eastmoney_full_market_*_etf.csv.gz",
+    "timestampField": "source_quote_time",
+    "priceField": "currentPrice",
+    "cumulativeAmountField": "amount",
+    "morningStart": "09:30",
+    "morningEndExclusive": "11:30",
+    "afternoonStart": "13:00",
+    "afternoonEndExclusive": "15:00",
+    "minimumFiveMinuteBars": 44,
+    "minimumMedianUniverseCoverageFraction": 0.8,
+    "minimumLastSourceTime": "14:55",
+    "sourceShiftWarning": "Phase 1 used Yahoo 5-minute bars; Phase 1.5 uses point-in-time Eastmoney full-market snapshots."
+  },
+  "evaluation": {
+    "probabilityBinEdges": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "highRiskThreshold": 0.35,
+    "minimumHighRiskSamplesPerPrimaryHorizon": 100,
+    "maximumHighRiskOptimism": 0.1,
+    "majorityFraction": 0.5,
+    "variants": [
+      "baseline",
+      "hmm",
+      "ews",
+      "hmm_ews"
+    ],
+    "primaryCandidateVariants": [
+      "ews",
+      "hmm_ews"
+    ],
+    "metrics": [
+      "brier",
+      "log_loss",
+      "auc",
+      "ece",
+      "probability_bucket_hit_rate",
+      "false_positive_rate",
+      "high_risk_bucket_count",
+      "counterfactual_chase_failure_rate",
+      "counterfactual_sell_efficiency_proxy"
+    ]
+  },
+  "output": {
+    "root": "outputs/edge_research/singularity_phase1_5",
+    "dailyDirectory": "daily",
+    "smokeDirectory": "smoke_test",
+    "probabilityFile": "turning_probabilities.jsonl",
+    "outcomeFile": "turning_outcomes.jsonl",
+    "dailyResultFile": "daily_result.json",
+    "dailyReportFile": "daily_report.md",
+    "ledgerFile": "forward_days.jsonl",
+    "validationJson": "forward_validation_report.json",
+    "validationMarkdown": "forward_validation_report.md",
+    "latestStatus": "latest_status.json"
+  },
+  "phase2DiscussionGate": {
+    "minimumIndependentTradingDays": 20,
+    "primaryHorizonsMustPass": [
+      5,
+      10
+    ],
+    "candidateMustBeatBaseline": true,
+    "majorityDailyOrWeeklyWindowsRequired": true,
+    "highRiskCalibrationRequired": true,
+    "equalForecastPopulationRequired": true,
+    "replayInvariantsAndT88Required": true,
+    "automaticPromotionAllowed": false
+  },
+  "safety": {
+    "offlinePostCloseOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "explicitlyNotImplemented": [
+    "deep_lppls",
+    "koopman_dmd",
+    "hawkes",
+    "soc_avalanche",
+    "surrogate_ml",
+    "online_inference",
+    "live_trading_integration"
+  ]
+}

@@ -40,7 +40,8 @@ $scripts = @(
     "research_stops.py",
     "research_sizing.py",
     "research_timing.py",
-    "run_decision_score_daily.py"
+    "run_decision_score_daily.py",
+    "run_singularity_phase1_5_forward.py"
 )
 foreach ($s in $scripts) {
     $path = Join-Path $Root "scripts\$s"
