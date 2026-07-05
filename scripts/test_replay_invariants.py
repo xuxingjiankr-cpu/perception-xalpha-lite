@@ -5183,6 +5183,150 @@ def t90_singularity_phase2a_is_causal_historical_and_isolated() -> None:
     )
 
 
+def t91_singularity_phase1_6_gate0_fails_closed_without_break() -> None:
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_singularity_phase1_6_hmm_physics_features as phase16
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase1_6_hmm_physics_features.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    phase16.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T91 Phase 1.6 is research-only and cannot mutate trading or forward state",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["diagnosticOnly"] is True
+        and safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "phase15WritesAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "forwardTaskIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        ),
+    )
+    check(
+        "T91 missing break date blocks every preregistration-dependent HMM path",
+        config["breakDate"]["value"] is None
+        and config["breakDate"]["status"] == "break_date_not_preregistered"
+        and config["breakDate"]["automaticSelectionAllowed"] is False
+        and config["plannedModels"]["postJumpHMMEnabled"] is False
+        and config["plannedModels"]["timeDecayHMMEnabled"] is False
+        and config["plannedModels"]["multivariateHMMEnabled"] is False
+        and config["breakDate"]["candidateScan"][
+            "profitabilityOrOosMetricsUsed"
+        ]
+        is False,
+    )
+    required = {
+        "data_audit.json",
+        "data_audit.md",
+        "post_jump_audit.json",
+        "coverage_bias_report.json",
+        "feature_missingness_report.json",
+        "label_distribution_report.json",
+        "break_date_risk_report.md",
+    }
+    check(
+        "T91 Gate 0 contract requires every audit artifact before modeling",
+        required.issubset(set(config["requiredOutputs"]))
+        and config["gate0"][
+            "modelingAllowedOnlyIfAllRequiredGatesPass"
+        ]
+        is True,
+    )
+
+    feature_rows = []
+    for index, valid in enumerate([1.0, 0.0]):
+        row = {
+            "trade_date": "2025-01-02",
+            "month": "2025-01",
+            "stockCode": "513100",
+            "etf_category": "cross_border_us",
+            "intraday_slot": "11:30" if index == 0 else "13:25",
+            "return_24_proxy": 0.01,
+            "realized_vol_proxy": 0.002,
+            "close_range_proxy": 0.01,
+            "trend_acceleration_proxy": 0.001,
+            "ews_score": 0.5,
+            "lppls_fit_success": valid,
+            "lppls_failed_reason": (
+                None if valid else "fixed_grid_no_stable_nested_fit"
+            ),
+            "lppls_tc_proximity": 0.1 if valid else np.nan,
+            "lppls_time_to_tc": 9.0 if valid else np.nan,
+            "lppls_fit_residual": 0.3 if valid else np.nan,
+            "lppls_parameter_stability": 0.8 if valid else np.nan,
+            "lppls_window_consensus": 0.7 if valid else np.nan,
+            "lppls_bubble_like_score": 0.2 if valid else np.nan,
+            "dmd_reconstruction_residual": 0.4 if valid else np.nan,
+            "dmd_residual_zscore": 0.0 if valid else np.nan,
+            "dmd_spectral_radius": 1.01 if valid else np.nan,
+            "dmd_spectral_radius_drift": 0.01 if valid else np.nan,
+            "dmd_eigen_instability": 0.01 if valid else np.nan,
+            "dmd_window_valid": valid,
+            "dmd_missing_bar_ratio": 0.0 if valid else 0.25,
+        }
+        feature_rows.append(row)
+    missingness, _, coverage = phase16.build_feature_reports(
+        pd.DataFrame.from_records(feature_rows), config
+    )
+    check(
+        "T91 invalid physics rows remain visible instead of being dropped or imputed",
+        missingness["rows"] == 2
+        and missingness["noForcedImputation"] is True
+        and missingness["invalidRowsRetained"] is True
+        and missingness["lppls"]["validRows"] == 1
+        and missingness["dmd"]["validRows"] == 1
+        and coverage["dmd"]["systematicIntradayExclusion"] is True,
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_singularity_phase1_6_hmm_physics_features.py"
+    ).read_text(encoding="utf-8")
+    forbidden = [
+        "SkillClient(",
+        "submitOrder(",
+        "build_decision(",
+        "latest_strategy_overlay.json",
+        "decision_probability_v1.json",
+        "singularity_phase1_5",
+        "forward_days.jsonl",
+        "GaussianHMM1D(",
+        ".fit(",
+    ]
+    check(
+        "T91 Gate 0 implementation cannot fit HMMs, trade, or overwrite prior artifacts",
+        all(fragment not in source for fragment in forbidden)
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source
+        and config["output"]["root"].endswith(
+            "singularity_phase1_6_hmm_physics_features"
+        )
+        and config["source"]["phase15LedgerAllowedAsInput"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5273,6 +5417,7 @@ if __name__ == "__main__":
     t88_singularity_phase1_is_causal_purged_and_shadow_only()
     t89_singularity_phase1_5_is_frozen_forward_shadow_only()
     t90_singularity_phase2a_is_causal_historical_and_isolated()
+    t91_singularity_phase1_6_gate0_fails_closed_without_break()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

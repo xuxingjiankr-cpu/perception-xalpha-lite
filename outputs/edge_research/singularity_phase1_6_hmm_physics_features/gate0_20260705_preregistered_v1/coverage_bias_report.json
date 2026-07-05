@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "singularity_phase1_6_coverage_bias_v1",
+  "status": "exploratory_gate0_only",
+  "fixedCurrentProductPool": true,
+  "survivorshipBias": true,
+  "delistedOrHistoricalConstituentUniverseAvailable": false,
+  "lppls": {
+    "coverage": 1.0,
+    "maximumValidRowShareBySymbol": 0.05636978579481398,
+    "maximumValidRowShareByMonth": 0.04667418263810597,
+    "concentratedInSingleSymbol": false,
+    "concentratedInSingleMonth": false
+  },
+  "dmd": {
+    "coverage": 0.6,
+    "systematicIntradayExclusion": true,
+    "byIntradaySlot": [
+      {
+        "intraday_slot": "11:30",
+        "rows": 8870,
+        "validRows": 0,
+        "coverage": 0.0
+      },
+      {
+        "intraday_slot": "13:25",
+        "rows": 8870,
+        "validRows": 0,
+        "coverage": 0.0
+      },
+      {
+        "intraday_slot": "13:50",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:15",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:40",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      }
+    ],
+    "formalFullSessionAuxiliaryUseAllowed": false
+  },
+  "sameSampleWarning": "Restricting every HMM variant to DMD-complete rows would make the comparison internally equal but would exclude early-session decisions and would not establish a full-session HMM improvement."
+}

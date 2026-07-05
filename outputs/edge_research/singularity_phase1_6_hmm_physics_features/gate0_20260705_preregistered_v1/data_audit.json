@@ -1,0 +1,675 @@
+{
+  "schemaVersion": "singularity_phase1_6_data_audit_v1",
+  "status": "exploratory_gate0_only",
+  "sourceCommitAtRun": "3072121",
+  "phase2ADataAudit": {
+    "schemaVersion": "singularity_phase2a_data_audit_v1",
+    "status": "research_only",
+    "source": "mootdx local historical OHLCV",
+    "dataRange": {
+      "start": "2024-06-12",
+      "end": "2026-07-03"
+    },
+    "tradingDays": 500,
+    "symbols": 18,
+    "rows": 425760,
+    "universeByCategory": {
+      "commodity": 4,
+      "cross_border_hk": 3,
+      "cross_border_us": 3,
+      "domestic_broad": 3,
+      "domestic_growth": 4,
+      "fixed_income": 1
+    },
+    "perSymbol": {
+      "159546": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "159915": {
+        "first": "2024-06-12",
+        "last": "2026-07-03",
+        "tradingDays": 500,
+        "rows": 24000,
+        "expectedRowsFromFirstListing": 24000,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 500,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "159920": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "159934": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "159941": {
+        "first": "2024-06-13",
+        "last": "2026-07-03",
+        "tradingDays": 499,
+        "rows": 23952,
+        "expectedRowsFromFirstListing": 23952,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 499,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "159985": {
+        "first": "2024-06-21",
+        "last": "2026-07-03",
+        "tradingDays": 493,
+        "rows": 23664,
+        "expectedRowsFromFirstListing": 23664,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 493,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "501018": {
+        "first": "2024-06-18",
+        "last": "2026-07-03",
+        "tradingDays": 494,
+        "rows": 23712,
+        "expectedRowsFromFirstListing": 23808,
+        "missingRows": 96,
+        "missingBarFraction": 0.004032258064516129,
+        "full48BarDays": 494,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 1
+      },
+      "510050": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "510300": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "510500": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "511010": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "513050": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "513100": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "513180": {
+        "first": "2024-06-25",
+        "last": "2026-07-03",
+        "tradingDays": 491,
+        "rows": 23568,
+        "expectedRowsFromFirstListing": 23568,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 491,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "513500": {
+        "first": "2024-06-13",
+        "last": "2026-07-03",
+        "tradingDays": 499,
+        "rows": 23952,
+        "expectedRowsFromFirstListing": 23952,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 499,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "518880": {
+        "first": "2024-06-26",
+        "last": "2026-07-03",
+        "tradingDays": 490,
+        "rows": 23520,
+        "expectedRowsFromFirstListing": 23520,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 490,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "588000": {
+        "first": "2024-06-18",
+        "last": "2026-07-03",
+        "tradingDays": 496,
+        "rows": 23808,
+        "expectedRowsFromFirstListing": 23808,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 496,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      },
+      "588030": {
+        "first": "2024-06-14",
+        "last": "2026-07-03",
+        "tradingDays": 498,
+        "rows": 23904,
+        "expectedRowsFromFirstListing": 23904,
+        "missingRows": 0,
+        "missingBarFraction": 0.0,
+        "full48BarDays": 498,
+        "minimumBarsPerPresentDay": 48,
+        "maximumBarsPerPresentDay": 48,
+        "duplicateTimestamps": 0,
+        "invalidOhlcRows": 0,
+        "zeroVolumeFraction": 0.0,
+        "intradayJumpCountGt10Pct": 0
+      }
+    },
+    "supportingCoverage": {
+      "fiveMinute": {
+        "usedByModel": true,
+        "root": "data/market/mootdx/bars_5m"
+      },
+      "oneMinute": {
+        "usedByModel": false,
+        "symbols": 18,
+        "minimumStart": "2026-01-30 09:31:00",
+        "maximumEnd": "2026-07-03 15:00:00",
+        "minimumDaysApprox": 91,
+        "maximumDaysApprox": 100,
+        "reasonExcluded": "only about 91-100 sessions; shorter than 5-minute archive"
+      },
+      "daily": {
+        "usedByModel": false,
+        "symbolFiles": 1514
+      },
+      "tick": {
+        "usedByModel": false,
+        "files": 0,
+        "reasonExcluded": "no tick archive found"
+      },
+      "l2": {
+        "usedByModel": false,
+        "dates": [
+          "2026-06-25",
+          "2026-06-26",
+          "2026-06-29",
+          "2026-06-30",
+          "2026-07-01",
+          "2026-07-02",
+          "2026-07-03"
+        ],
+        "days": 7,
+        "reasonExcluded": "insufficient historical depth coverage"
+      },
+      "iopv": {
+        "usedByModel": false,
+        "dates": [
+          "2026-06-29",
+          "2026-06-30",
+          "2026-07-01",
+          "2026-07-02",
+          "2026-07-03"
+        ],
+        "days": 5,
+        "contaminatesPriceFeatures": false,
+        "reasonExcluded": "not merged into mootdx OHLCV and only five days"
+      }
+    },
+    "missingBarAudit": {
+      "maximumPerSymbolFraction": 0.004032258064516129,
+      "invalidOhlcRows": 0,
+      "duplicateTimestamps": 0
+    },
+    "adjustmentAudit": {
+      "adjustmentFactorAvailable": false,
+      "overnightAnomalies": [
+        {
+          "stockCode": "159546",
+          "date": "2026-06-10",
+          "type": "overnight_jump_gt_20pct",
+          "value": -0.6739044611133044,
+          "crossSessionFeatureImpact": false
+        },
+        {
+          "stockCode": "501018",
+          "date": "2026-04-08",
+          "timestamp": "2026-04-08T10:35:00",
+          "type": "intraday_log_jump_gt_10pct"
+        }
+      ],
+      "sameSessionFeaturesResetDaily": true,
+      "risk": "Raw/unadjusted bars; detected overnight discontinuities are not crossed by any feature or label."
+    },
+    "timezoneAudit": {
+      "timestampsContainTimezone": false,
+      "assumedTimezone": "Asia/Shanghai",
+      "allRowsInExpectedSessionSlots": true,
+      "risk": "timezone is inferred from TDX session convention"
+    },
+    "iopvContamination": {
+      "iopvMerged": false,
+      "priceFieldIsExchangeOhlc": true,
+      "premiumStillPossibleEconomically": true
+    },
+    "labelSamplesAndIndependentEvents": {
+      "5": {
+        "effectiveSamples": 283840,
+        "positiveRows": 10579,
+        "positiveRowRate": 0.03727099774520857,
+        "independentEvents": 6180,
+        "independentUpEvents": 3368,
+        "independentDownEvents": 2814
+      },
+      "10": {
+        "effectiveSamples": 239490,
+        "positiveRows": 14528,
+        "positiveRowRate": 0.06066224059459685,
+        "independentEvents": 5607,
+        "independentUpEvents": 3042,
+        "independentDownEvents": 2570
+      },
+      "20": {
+        "effectiveSamples": 150790,
+        "positiveRows": 13200,
+        "positiveRowRate": 0.08753896146959347,
+        "independentEvents": 4002,
+        "independentUpEvents": 2063,
+        "independentDownEvents": 1946
+      },
+      "30": {
+        "effectiveSamples": 62090,
+        "positiveRows": 6041,
+        "positiveRowRate": 0.09729425028184893,
+        "independentEvents": 2320,
+        "independentUpEvents": 1193,
+        "independentDownEvents": 1134
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "feasibleWindows": {
+      "tradingTimeConvention": "48 ordered five-minute trading bars; lunch break compressed, never crosses overnight",
+      "lpplsFixedWindows": 44350,
+      "lpplsTrendEligibleWindows": 921,
+      "koopmanEqualIntervalWindows": 44350,
+      "perSymbol": {
+        "159546": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 94,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "159915": {
+          "fixedDecisionWindows": 2500,
+          "trendEligibleLpplsWindows": 71,
+          "equalTradingTimeDmdWindows": 2500
+        },
+        "159920": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 48,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "159934": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 29,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "159941": {
+          "fixedDecisionWindows": 2495,
+          "trendEligibleLpplsWindows": 34,
+          "equalTradingTimeDmdWindows": 2495
+        },
+        "159985": {
+          "fixedDecisionWindows": 2465,
+          "trendEligibleLpplsWindows": 40,
+          "equalTradingTimeDmdWindows": 2465
+        },
+        "501018": {
+          "fixedDecisionWindows": 2470,
+          "trendEligibleLpplsWindows": 52,
+          "equalTradingTimeDmdWindows": 2470
+        },
+        "510050": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 51,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "510300": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 52,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "510500": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 75,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "511010": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 0,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "513050": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 69,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "513100": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 42,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "513180": {
+          "fixedDecisionWindows": 2455,
+          "trendEligibleLpplsWindows": 47,
+          "equalTradingTimeDmdWindows": 2455
+        },
+        "513500": {
+          "fixedDecisionWindows": 2495,
+          "trendEligibleLpplsWindows": 30,
+          "equalTradingTimeDmdWindows": 2495
+        },
+        "518880": {
+          "fixedDecisionWindows": 2450,
+          "trendEligibleLpplsWindows": 27,
+          "equalTradingTimeDmdWindows": 2450
+        },
+        "588000": {
+          "fixedDecisionWindows": 2480,
+          "trendEligibleLpplsWindows": 78,
+          "equalTradingTimeDmdWindows": 2480
+        },
+        "588030": {
+          "fixedDecisionWindows": 2490,
+          "trendEligibleLpplsWindows": 82,
+          "equalTradingTimeDmdWindows": 2490
+        }
+      }
+    },
+    "auditGates": {
+      "minimumSymbols": true,
+      "minimumTradingDays": true,
+      "maximumMissingBarFraction": true,
+      "maximumInvalidOhlcRows": true,
+      "minimumIndependentEvents5": true,
+      "minimumIndependentEvents10": true,
+      "minimumLpplsWindows": true,
+      "minimumKoopmanWindows": true
+    },
+    "auditPass": true,
+    "modelRunAllowed": true
+  },
+  "breakDate": {
+    "value": null,
+    "definition": "No user-specified or independently documented business-event break date was supplied.",
+    "status": "break_date_not_preregistered",
+    "automaticSelectionAllowed": false,
+    "candidateDatesAreExploratoryOnly": true,
+    "candidateScan": {
+      "candidateFrequency": "first_available_trading_day_of_each_month",
+      "minimumTradingDaysEachSide": 120,
+      "comparisonWindowTradingDaysEachSide": 60,
+      "maximumCandidatesReported": 5,
+      "score": "mean absolute standardized shift across daily return, realized volatility, log amount, log volume, range, 5-bar label rate and 10-bar label rate",
+      "profitabilityOrOosMetricsUsed": false
+    }
+  },
+  "sourceAndExecutionAudit": {
+    "primarySource": "local mootdx 5-minute OHLCV",
+    "yahooUsed": false,
+    "yahooAdjustmentContamination": false,
+    "adjustmentFactorAvailable": false,
+    "iopvMerged": false,
+    "bidAskSpreadAvailable": false,
+    "explicitSuspensionFlagAvailable": false,
+    "sourceTimestampAvailable": false,
+    "timestampTimezonePresent": false,
+    "assumedTimezone": "Asia/Shanghai",
+    "sourceTimeTimestampConsistencyTestable": false
+  },
+  "dailyDistributionSummary": {
+    "daily_return": {
+      "count": 500,
+      "mean": 0.00013414041469665737,
+      "median": 0.0004361968041477482,
+      "standardDeviation": 0.00649066733052917,
+      "p05": -0.011086807705982176,
+      "p95": 0.009264315636892496
+    },
+    "realized_volatility": {
+      "count": 500,
+      "mean": 0.001208850235724429,
+      "median": 0.0010953703902849927,
+      "standardDeviation": 0.00048306147334624617,
+      "p05": 0.0007557873227692639,
+      "p95": 0.001957716898049694
+    },
+    "volume": {
+      "count": 500,
+      "mean": 19765272325.248,
+      "median": 18300199512.0,
+      "standardDeviation": 9682843114.282362,
+      "p05": 10831553374.6,
+      "p95": 33778037092.79997
+    },
+    "amount": {
+      "count": 500,
+      "mean": 35879248203.51473,
+      "median": 33548329627.401855,
+      "standardDeviation": 17900035848.2884,
+      "p05": 16385654311.734343,
+      "p95": 64799888825.7019
+    },
+    "range_pct": {
+      "count": 500,
+      "mean": 0.01440127928734313,
+      "median": 0.012697555012971984,
+      "standardDeviation": 0.007092359311674997,
+      "p05": 0.00736827260815458,
+      "p95": 0.027571161515341912
+    },
+    "label_rate_5": {
+      "count": 500,
+      "mean": 0.0372702205882353,
+      "median": 0.034722222222222224,
+      "standardDeviation": 0.0179440411760638,
+      "p05": 0.012065972222222228,
+      "p95": 0.07291666666666667
+    },
+    "label_rate_10": {
+      "count": 500,
+      "mean": 0.06059686343673272,
+      "median": 0.05761316872427984,
+      "standardDeviation": 0.029848512766031208,
+      "p05": 0.018518518518518517,
+      "p95": 0.11522633744855967
+    }
+  },
+  "gate0": {
+    "dataQualityPass": true,
+    "breakDatePass": false,
+    "lpplsAuxiliaryCoverage": 1.0,
+    "lpplsCoveragePass": true,
+    "dmdAuxiliaryCoverage": 0.6,
+    "dmdCoveragePass": false,
+    "passed": false,
+    "modelingAllowed": false
+  },
+  "labelDefinition": {
+    "featuresReadFuture": false,
+    "labelsUseFuture": true,
+    "labelsStoredSeparately": true,
+    "sameSessionOnly": true,
+    "activeHorizonsBars": [
+      5,
+      10,
+      20,
+      30
+    ],
+    "skippedHorizons": {
+      "60": "A 60-bar horizon exceeds one 48-bar A-share session and remains null."
+    },
+    "localExtremaLookbackBars": 12,
+    "localExtremaTolerancePct": 0.001,
+    "threshold": {
+      "minimumMovePct": 0.003,
+      "volatilityMultiplier": 1.5,
+      "sqrtHorizonScaling": true,
+      "volatilityInput": "past-only vol_6"
+    },
+    "primaryTarget": "turning_point = reversal_up OR reversal_down"
+  },
+  "symbolDailyRows": 8870,
+  "marketDailyRows": 500
+}

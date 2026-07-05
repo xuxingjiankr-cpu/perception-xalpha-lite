@@ -1,0 +1,1297 @@
+{
+  "schemaVersion": "singularity_phase1_6_label_distribution_v1",
+  "status": "exploratory_gate0_only",
+  "definition": {
+    "source": "Phase 1 causal reversal labels",
+    "featuresReadFuture": false,
+    "labelsUseFuture": true,
+    "labelsStoredSeparately": true,
+    "sameSessionOnly": true,
+    "primaryHorizonsBars": [
+      5,
+      10
+    ],
+    "horizon60": "skipped_cross_session"
+  },
+  "overall": {
+    "5": {
+      "effectiveSamples": 283840,
+      "positiveRows": 10579,
+      "positiveRowRate": 0.03727099774520857,
+      "independentEvents": 6180,
+      "independentUpEvents": 3368,
+      "independentDownEvents": 2814
+    },
+    "10": {
+      "effectiveSamples": 239490,
+      "positiveRows": 14528,
+      "positiveRowRate": 0.06066224059459685,
+      "independentEvents": 5607,
+      "independentUpEvents": 3042,
+      "independentDownEvents": 2570
+    },
+    "60": {
+      "effectiveSamples": 0,
+      "positiveRows": 0,
+      "positiveRowRate": null,
+      "independentEvents": 0,
+      "status": "skipped_cross_session"
+    }
+  },
+  "byMonth": {
+    "2024-06": {
+      "5": {
+        "effectiveSamples": 3392,
+        "positiveRows": 130,
+        "positiveRowRate": 0.038325471698113206,
+        "independentEvents": 72,
+        "independentUpEvents": 50,
+        "independentDownEvents": 22
+      },
+      "10": {
+        "effectiveSamples": 2862,
+        "positiveRows": 201,
+        "positiveRowRate": 0.07023060796645703,
+        "independentEvents": 69,
+        "independentUpEvents": 36,
+        "independentDownEvents": 33
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-07": {
+      "5": {
+        "effectiveSamples": 13248,
+        "positiveRows": 458,
+        "positiveRowRate": 0.034571256038647344,
+        "independentEvents": 271,
+        "independentUpEvents": 157,
+        "independentDownEvents": 114
+      },
+      "10": {
+        "effectiveSamples": 11178,
+        "positiveRows": 668,
+        "positiveRowRate": 0.05976024333512256,
+        "independentEvents": 258,
+        "independentUpEvents": 151,
+        "independentDownEvents": 107
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-08": {
+      "5": {
+        "effectiveSamples": 12672,
+        "positiveRows": 500,
+        "positiveRowRate": 0.039457070707070704,
+        "independentEvents": 281,
+        "independentUpEvents": 149,
+        "independentDownEvents": 132
+      },
+      "10": {
+        "effectiveSamples": 10692,
+        "positiveRows": 710,
+        "positiveRowRate": 0.06640478862701085,
+        "independentEvents": 261,
+        "independentUpEvents": 140,
+        "independentDownEvents": 121
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-09": {
+      "5": {
+        "effectiveSamples": 10944,
+        "positiveRows": 431,
+        "positiveRowRate": 0.03938230994152047,
+        "independentEvents": 230,
+        "independentUpEvents": 120,
+        "independentDownEvents": 110
+      },
+      "10": {
+        "effectiveSamples": 9234,
+        "positiveRows": 727,
+        "positiveRowRate": 0.07873077756118692,
+        "independentEvents": 235,
+        "independentUpEvents": 127,
+        "independentDownEvents": 108
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-10": {
+      "5": {
+        "effectiveSamples": 10368,
+        "positiveRows": 326,
+        "positiveRowRate": 0.0314429012345679,
+        "independentEvents": 212,
+        "independentUpEvents": 100,
+        "independentDownEvents": 112
+      },
+      "10": {
+        "effectiveSamples": 8748,
+        "positiveRows": 399,
+        "positiveRowRate": 0.04561042524005487,
+        "independentEvents": 180,
+        "independentUpEvents": 78,
+        "independentDownEvents": 102
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-11": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 465,
+        "positiveRowRate": 0.03844246031746032,
+        "independentEvents": 287,
+        "independentUpEvents": 170,
+        "independentDownEvents": 117
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 577,
+        "positiveRowRate": 0.056535371350186166,
+        "independentEvents": 237,
+        "independentUpEvents": 127,
+        "independentDownEvents": 110
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2024-12": {
+      "5": {
+        "effectiveSamples": 12672,
+        "positiveRows": 470,
+        "positiveRowRate": 0.037089646464646464,
+        "independentEvents": 265,
+        "independentUpEvents": 179,
+        "independentDownEvents": 86
+      },
+      "10": {
+        "effectiveSamples": 10692,
+        "positiveRows": 675,
+        "positiveRowRate": 0.06313131313131314,
+        "independentEvents": 245,
+        "independentUpEvents": 168,
+        "independentDownEvents": 77
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-01": {
+      "5": {
+        "effectiveSamples": 10368,
+        "positiveRows": 456,
+        "positiveRowRate": 0.04398148148148148,
+        "independentEvents": 268,
+        "independentUpEvents": 131,
+        "independentDownEvents": 137
+      },
+      "10": {
+        "effectiveSamples": 8748,
+        "positiveRows": 569,
+        "positiveRowRate": 0.06504343850022862,
+        "independentEvents": 219,
+        "independentUpEvents": 112,
+        "independentDownEvents": 107
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-02": {
+      "5": {
+        "effectiveSamples": 10368,
+        "positiveRows": 386,
+        "positiveRowRate": 0.03722993827160494,
+        "independentEvents": 220,
+        "independentUpEvents": 100,
+        "independentDownEvents": 120
+      },
+      "10": {
+        "effectiveSamples": 8748,
+        "positiveRows": 512,
+        "positiveRowRate": 0.05852766346593507,
+        "independentEvents": 200,
+        "independentUpEvents": 98,
+        "independentDownEvents": 102
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-03": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 398,
+        "positiveRowRate": 0.03290343915343916,
+        "independentEvents": 226,
+        "independentUpEvents": 128,
+        "independentDownEvents": 98
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 499,
+        "positiveRowRate": 0.04889280815206741,
+        "independentEvents": 213,
+        "independentUpEvents": 127,
+        "independentDownEvents": 86
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-04": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 450,
+        "positiveRowRate": 0.03720238095238095,
+        "independentEvents": 253,
+        "independentUpEvents": 147,
+        "independentDownEvents": 106
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 611,
+        "positiveRowRate": 0.05986674505193024,
+        "independentEvents": 244,
+        "independentUpEvents": 135,
+        "independentDownEvents": 109
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-05": {
+      "5": {
+        "effectiveSamples": 10944,
+        "positiveRows": 351,
+        "positiveRowRate": 0.032072368421052634,
+        "independentEvents": 200,
+        "independentUpEvents": 114,
+        "independentDownEvents": 86
+      },
+      "10": {
+        "effectiveSamples": 9234,
+        "positiveRows": 538,
+        "positiveRowRate": 0.05826294130387698,
+        "independentEvents": 206,
+        "independentUpEvents": 113,
+        "independentDownEvents": 93
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-06": {
+      "5": {
+        "effectiveSamples": 11520,
+        "positiveRows": 271,
+        "positiveRowRate": 0.023524305555555555,
+        "independentEvents": 164,
+        "independentUpEvents": 94,
+        "independentDownEvents": 70
+      },
+      "10": {
+        "effectiveSamples": 9720,
+        "positiveRows": 502,
+        "positiveRowRate": 0.05164609053497942,
+        "independentEvents": 194,
+        "independentUpEvents": 106,
+        "independentDownEvents": 88
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-07": {
+      "5": {
+        "effectiveSamples": 13248,
+        "positiveRows": 399,
+        "positiveRowRate": 0.030117753623188404,
+        "independentEvents": 225,
+        "independentUpEvents": 131,
+        "independentDownEvents": 94
+      },
+      "10": {
+        "effectiveSamples": 11178,
+        "positiveRows": 640,
+        "positiveRowRate": 0.05725532295580605,
+        "independentEvents": 240,
+        "independentUpEvents": 145,
+        "independentDownEvents": 95
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-08": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 358,
+        "positiveRowRate": 0.029596560846560847,
+        "independentEvents": 226,
+        "independentUpEvents": 107,
+        "independentDownEvents": 119
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 539,
+        "positiveRowRate": 0.05281207133058985,
+        "independentEvents": 213,
+        "independentUpEvents": 107,
+        "independentDownEvents": 106
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-09": {
+      "5": {
+        "effectiveSamples": 12672,
+        "positiveRows": 461,
+        "positiveRowRate": 0.03637941919191919,
+        "independentEvents": 309,
+        "independentUpEvents": 171,
+        "independentDownEvents": 138
+      },
+      "10": {
+        "effectiveSamples": 10692,
+        "positiveRows": 514,
+        "positiveRowRate": 0.04807332585110363,
+        "independentEvents": 227,
+        "independentUpEvents": 141,
+        "independentDownEvents": 86
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-10": {
+      "5": {
+        "effectiveSamples": 9792,
+        "positiveRows": 336,
+        "positiveRowRate": 0.03431372549019608,
+        "independentEvents": 212,
+        "independentUpEvents": 103,
+        "independentDownEvents": 109
+      },
+      "10": {
+        "effectiveSamples": 8262,
+        "positiveRows": 530,
+        "positiveRowRate": 0.06414911643669814,
+        "independentEvents": 191,
+        "independentUpEvents": 88,
+        "independentDownEvents": 103
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-11": {
+      "5": {
+        "effectiveSamples": 11520,
+        "positiveRows": 536,
+        "positiveRowRate": 0.04652777777777778,
+        "independentEvents": 305,
+        "independentUpEvents": 172,
+        "independentDownEvents": 133
+      },
+      "10": {
+        "effectiveSamples": 9720,
+        "positiveRows": 631,
+        "positiveRowRate": 0.06491769547325103,
+        "independentEvents": 268,
+        "independentUpEvents": 159,
+        "independentDownEvents": 109
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2025-12": {
+      "5": {
+        "effectiveSamples": 13248,
+        "positiveRows": 356,
+        "positiveRowRate": 0.026871980676328504,
+        "independentEvents": 204,
+        "independentUpEvents": 111,
+        "independentDownEvents": 93
+      },
+      "10": {
+        "effectiveSamples": 11178,
+        "positiveRows": 575,
+        "positiveRowRate": 0.051440329218107,
+        "independentEvents": 215,
+        "independentUpEvents": 113,
+        "independentDownEvents": 102
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-01": {
+      "5": {
+        "effectiveSamples": 11488,
+        "positiveRows": 517,
+        "positiveRowRate": 0.04500348189415042,
+        "independentEvents": 285,
+        "independentUpEvents": 133,
+        "independentDownEvents": 152
+      },
+      "10": {
+        "effectiveSamples": 9693,
+        "positiveRows": 641,
+        "positiveRowRate": 0.06613019704941711,
+        "independentEvents": 238,
+        "independentUpEvents": 109,
+        "independentDownEvents": 129
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-02": {
+      "5": {
+        "effectiveSamples": 8064,
+        "positiveRows": 243,
+        "positiveRowRate": 0.030133928571428572,
+        "independentEvents": 146,
+        "independentUpEvents": 87,
+        "independentDownEvents": 59
+      },
+      "10": {
+        "effectiveSamples": 6804,
+        "positiveRows": 331,
+        "positiveRowRate": 0.04864785420340976,
+        "independentEvents": 139,
+        "independentUpEvents": 74,
+        "independentDownEvents": 65
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-03": {
+      "5": {
+        "effectiveSamples": 12640,
+        "positiveRows": 520,
+        "positiveRowRate": 0.04113924050632911,
+        "independentEvents": 312,
+        "independentUpEvents": 184,
+        "independentDownEvents": 130
+      },
+      "10": {
+        "effectiveSamples": 10665,
+        "positiveRows": 744,
+        "positiveRowRate": 0.06976090014064698,
+        "independentEvents": 285,
+        "independentUpEvents": 151,
+        "independentDownEvents": 138
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-04": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 542,
+        "positiveRowRate": 0.04480820105820106,
+        "independentEvents": 308,
+        "independentUpEvents": 158,
+        "independentDownEvents": 150
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 674,
+        "positiveRowRate": 0.06603958455810308,
+        "independentEvents": 276,
+        "independentUpEvents": 140,
+        "independentDownEvents": 137
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-05": {
+      "5": {
+        "effectiveSamples": 10368,
+        "positiveRows": 485,
+        "positiveRowRate": 0.04677854938271605,
+        "independentEvents": 265,
+        "independentUpEvents": 141,
+        "independentDownEvents": 124
+      },
+      "10": {
+        "effectiveSamples": 8748,
+        "positiveRows": 640,
+        "positiveRowRate": 0.07315957933241884,
+        "independentEvents": 233,
+        "independentUpEvents": 129,
+        "independentDownEvents": 104
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-06": {
+      "5": {
+        "effectiveSamples": 12096,
+        "positiveRows": 670,
+        "positiveRowRate": 0.05539021164021164,
+        "independentEvents": 391,
+        "independentUpEvents": 209,
+        "independentDownEvents": 182
+      },
+      "10": {
+        "effectiveSamples": 10206,
+        "positiveRows": 812,
+        "positiveRowRate": 0.07956104252400549,
+        "independentEvents": 289,
+        "independentUpEvents": 159,
+        "independentDownEvents": 130
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "2026-07": {
+      "5": {
+        "effectiveSamples": 1728,
+        "positiveRows": 64,
+        "positiveRowRate": 0.037037037037037035,
+        "independentEvents": 43,
+        "independentUpEvents": 22,
+        "independentDownEvents": 21
+      },
+      "10": {
+        "effectiveSamples": 1458,
+        "positiveRows": 69,
+        "positiveRowRate": 0.047325102880658436,
+        "independentEvents": 32,
+        "independentUpEvents": 9,
+        "independentDownEvents": 23
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    }
+  },
+  "bySymbol": {
+    "159546": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 883,
+        "positiveRowRate": 0.056313775510204084,
+        "independentEvents": 508,
+        "independentUpEvents": 291,
+        "independentDownEvents": 217
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 814,
+        "positiveRowRate": 0.061526832955404384,
+        "independentEvents": 351,
+        "independentUpEvents": 209,
+        "independentDownEvents": 142
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "159915": {
+      "5": {
+        "effectiveSamples": 16000,
+        "positiveRows": 922,
+        "positiveRowRate": 0.057625,
+        "independentEvents": 538,
+        "independentUpEvents": 302,
+        "independentDownEvents": 236
+      },
+      "10": {
+        "effectiveSamples": 13500,
+        "positiveRows": 1023,
+        "positiveRowRate": 0.07577777777777778,
+        "independentEvents": 417,
+        "independentUpEvents": 237,
+        "independentDownEvents": 180
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "159920": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 648,
+        "positiveRowRate": 0.0413265306122449,
+        "independentEvents": 381,
+        "independentUpEvents": 192,
+        "independentDownEvents": 189
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 898,
+        "positiveRowRate": 0.06787603930461074,
+        "independentEvents": 365,
+        "independentUpEvents": 190,
+        "independentDownEvents": 175
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "159934": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 314,
+        "positiveRowRate": 0.020025510204081633,
+        "independentEvents": 163,
+        "independentUpEvents": 72,
+        "independentDownEvents": 91
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 798,
+        "positiveRowRate": 0.06031746031746032,
+        "independentEvents": 253,
+        "independentUpEvents": 120,
+        "independentDownEvents": 133
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "159941": {
+      "5": {
+        "effectiveSamples": 15968,
+        "positiveRows": 439,
+        "positiveRowRate": 0.02749248496993988,
+        "independentEvents": 263,
+        "independentUpEvents": 149,
+        "independentDownEvents": 114
+      },
+      "10": {
+        "effectiveSamples": 13473,
+        "positiveRows": 837,
+        "positiveRowRate": 0.06212424849699399,
+        "independentEvents": 300,
+        "independentUpEvents": 169,
+        "independentDownEvents": 131
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "159985": {
+      "5": {
+        "effectiveSamples": 15776,
+        "positiveRows": 485,
+        "positiveRowRate": 0.03074290060851927,
+        "independentEvents": 278,
+        "independentUpEvents": 150,
+        "independentDownEvents": 128
+      },
+      "10": {
+        "effectiveSamples": 13311,
+        "positiveRows": 926,
+        "positiveRowRate": 0.0695665239275787,
+        "independentEvents": 328,
+        "independentUpEvents": 172,
+        "independentDownEvents": 156
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "501018": {
+      "5": {
+        "effectiveSamples": 15808,
+        "positiveRows": 414,
+        "positiveRowRate": 0.02618927125506073,
+        "independentEvents": 243,
+        "independentUpEvents": 153,
+        "independentDownEvents": 92
+      },
+      "10": {
+        "effectiveSamples": 13338,
+        "positiveRows": 745,
+        "positiveRowRate": 0.055855450592292695,
+        "independentEvents": 256,
+        "independentUpEvents": 155,
+        "independentDownEvents": 106
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "510050": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 703,
+        "positiveRowRate": 0.04483418367346939,
+        "independentEvents": 394,
+        "independentUpEvents": 213,
+        "independentDownEvents": 181
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 1050,
+        "positiveRowRate": 0.07936507936507936,
+        "independentEvents": 383,
+        "independentUpEvents": 207,
+        "independentDownEvents": 176
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "510300": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 757,
+        "positiveRowRate": 0.0482780612244898,
+        "independentEvents": 434,
+        "independentUpEvents": 245,
+        "independentDownEvents": 189
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 1111,
+        "positiveRowRate": 0.08397581254724112,
+        "independentEvents": 411,
+        "independentUpEvents": 213,
+        "independentDownEvents": 198
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "510500": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 929,
+        "positiveRowRate": 0.05924744897959184,
+        "independentEvents": 532,
+        "independentUpEvents": 284,
+        "independentDownEvents": 248
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 1071,
+        "positiveRowRate": 0.08095238095238096,
+        "independentEvents": 421,
+        "independentUpEvents": 222,
+        "independentDownEvents": 199
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "511010": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 1,
+        "positiveRowRate": 6.377551020408164e-05,
+        "independentEvents": 1,
+        "independentUpEvents": 1,
+        "independentDownEvents": 0
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 4,
+        "positiveRowRate": 0.0003023431594860166,
+        "independentEvents": 2,
+        "independentUpEvents": 2,
+        "independentDownEvents": 0
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "513050": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 705,
+        "positiveRowRate": 0.04496173469387755,
+        "independentEvents": 419,
+        "independentUpEvents": 214,
+        "independentDownEvents": 205
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 812,
+        "positiveRowRate": 0.061375661375661375,
+        "independentEvents": 348,
+        "independentUpEvents": 179,
+        "independentDownEvents": 169
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "513100": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 337,
+        "positiveRowRate": 0.02149234693877551,
+        "independentEvents": 193,
+        "independentUpEvents": 117,
+        "independentDownEvents": 76
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 722,
+        "positiveRowRate": 0.054572940287226,
+        "independentEvents": 256,
+        "independentUpEvents": 153,
+        "independentDownEvents": 103
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "513180": {
+      "5": {
+        "effectiveSamples": 15712,
+        "positiveRows": 623,
+        "positiveRowRate": 0.03965122199592668,
+        "independentEvents": 407,
+        "independentUpEvents": 204,
+        "independentDownEvents": 203
+      },
+      "10": {
+        "effectiveSamples": 13257,
+        "positiveRows": 571,
+        "positiveRowRate": 0.04307158482311232,
+        "independentEvents": 297,
+        "independentUpEvents": 149,
+        "independentDownEvents": 148
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "513500": {
+      "5": {
+        "effectiveSamples": 15968,
+        "positiveRows": 323,
+        "positiveRowRate": 0.020227955911823647,
+        "independentEvents": 175,
+        "independentUpEvents": 97,
+        "independentDownEvents": 78
+      },
+      "10": {
+        "effectiveSamples": 13473,
+        "positiveRows": 646,
+        "positiveRowRate": 0.047947747346544944,
+        "independentEvents": 220,
+        "independentUpEvents": 126,
+        "independentDownEvents": 94
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "518880": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 320,
+        "positiveRowRate": 0.02040816326530612,
+        "independentEvents": 166,
+        "independentUpEvents": 66,
+        "independentDownEvents": 100
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 808,
+        "positiveRowRate": 0.06107331821617536,
+        "independentEvents": 264,
+        "independentUpEvents": 126,
+        "independentDownEvents": 138
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "588000": {
+      "5": {
+        "effectiveSamples": 15872,
+        "positiveRows": 843,
+        "positiveRowRate": 0.05311239919354839,
+        "independentEvents": 512,
+        "independentUpEvents": 293,
+        "independentDownEvents": 219
+      },
+      "10": {
+        "effectiveSamples": 13392,
+        "positiveRows": 842,
+        "positiveRowRate": 0.06287335722819594,
+        "independentEvents": 362,
+        "independentUpEvents": 209,
+        "independentDownEvents": 153
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "588030": {
+      "5": {
+        "effectiveSamples": 15936,
+        "positiveRows": 933,
+        "positiveRowRate": 0.05854668674698795,
+        "independentEvents": 573,
+        "independentUpEvents": 325,
+        "independentDownEvents": 248
+      },
+      "10": {
+        "effectiveSamples": 13446,
+        "positiveRows": 850,
+        "positiveRowRate": 0.0632158262680351,
+        "independentEvents": 373,
+        "independentUpEvents": 204,
+        "independentDownEvents": 169
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    }
+  },
+  "byEtfCategory": {
+    "commodity": {
+      "5": {
+        "effectiveSamples": 62944,
+        "positiveRows": 1533,
+        "positiveRowRate": 0.024354982206405695,
+        "independentEvents": 850,
+        "independentUpEvents": 441,
+        "independentDownEvents": 411
+      },
+      "10": {
+        "effectiveSamples": 53109,
+        "positiveRows": 3277,
+        "positiveRowRate": 0.06170328946129658,
+        "independentEvents": 1101,
+        "independentUpEvents": 573,
+        "independentDownEvents": 533
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "cross_border_hk": {
+      "5": {
+        "effectiveSamples": 47072,
+        "positiveRows": 1976,
+        "positiveRowRate": 0.0419782460910945,
+        "independentEvents": 1207,
+        "independentUpEvents": 610,
+        "independentDownEvents": 597
+      },
+      "10": {
+        "effectiveSamples": 39717,
+        "positiveRows": 2281,
+        "positiveRowRate": 0.05743132663594934,
+        "independentEvents": 1010,
+        "independentUpEvents": 518,
+        "independentDownEvents": 492
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "cross_border_us": {
+      "5": {
+        "effectiveSamples": 47616,
+        "positiveRows": 1099,
+        "positiveRowRate": 0.023080477150537633,
+        "independentEvents": 631,
+        "independentUpEvents": 363,
+        "independentDownEvents": 268
+      },
+      "10": {
+        "effectiveSamples": 40176,
+        "positiveRows": 2205,
+        "positiveRowRate": 0.054883512544802865,
+        "independentEvents": 776,
+        "independentUpEvents": 448,
+        "independentDownEvents": 328
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "domestic_broad": {
+      "5": {
+        "effectiveSamples": 47040,
+        "positiveRows": 2389,
+        "positiveRowRate": 0.05078656462585034,
+        "independentEvents": 1360,
+        "independentUpEvents": 742,
+        "independentDownEvents": 618
+      },
+      "10": {
+        "effectiveSamples": 39690,
+        "positiveRows": 3232,
+        "positiveRowRate": 0.08143109095490048,
+        "independentEvents": 1215,
+        "independentUpEvents": 642,
+        "independentDownEvents": 573
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "domestic_growth": {
+      "5": {
+        "effectiveSamples": 63488,
+        "positiveRows": 3581,
+        "positiveRowRate": 0.05640435987903226,
+        "independentEvents": 2131,
+        "independentUpEvents": 1211,
+        "independentDownEvents": 920
+      },
+      "10": {
+        "effectiveSamples": 53568,
+        "positiveRows": 3529,
+        "positiveRowRate": 0.06587888291517324,
+        "independentEvents": 1503,
+        "independentUpEvents": 859,
+        "independentDownEvents": 644
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    },
+    "fixed_income": {
+      "5": {
+        "effectiveSamples": 15680,
+        "positiveRows": 1,
+        "positiveRowRate": 6.377551020408164e-05,
+        "independentEvents": 1,
+        "independentUpEvents": 1,
+        "independentDownEvents": 0
+      },
+      "10": {
+        "effectiveSamples": 13230,
+        "positiveRows": 4,
+        "positiveRowRate": 0.0003023431594860166,
+        "independentEvents": 2,
+        "independentUpEvents": 2,
+        "independentDownEvents": 0
+      },
+      "60": {
+        "effectiveSamples": 0,
+        "positiveRows": 0,
+        "positiveRowRate": null,
+        "independentEvents": 0,
+        "status": "skipped_cross_session"
+      }
+    }
+  }
+}

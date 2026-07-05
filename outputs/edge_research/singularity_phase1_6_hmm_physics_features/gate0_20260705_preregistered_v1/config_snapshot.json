@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "singularity_phase1_6_hmm_physics_features_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-05T09:00:00+08:00",
+  "objective": "Audit whether fixed-rule LPPLS and linear DMD diagnostics can later be studied as HMM auxiliary observations, transition covariates, or state-interpretation variables rather than independent trading signals.",
+  "source": {
+    "phase2AConfig": "configs/research/singularity_phase2a_historical.json",
+    "phase2AResult": "outputs/edge_research/singularity_phase2a_historical/phase2a_full_20260705_preregistered_v2/phase2a_result.json",
+    "reusePhase2AImplementation": true,
+    "phase15LedgerAllowedAsInput": false
+  },
+  "breakDate": {
+    "value": null,
+    "definition": "No user-specified or independently documented business-event break date was supplied.",
+    "status": "break_date_not_preregistered",
+    "automaticSelectionAllowed": false,
+    "candidateDatesAreExploratoryOnly": true,
+    "candidateScan": {
+      "candidateFrequency": "first_available_trading_day_of_each_month",
+      "minimumTradingDaysEachSide": 120,
+      "comparisonWindowTradingDaysEachSide": 60,
+      "maximumCandidatesReported": 5,
+      "score": "mean absolute standardized shift across daily return, realized volatility, log amount, log volume, range, 5-bar label rate and 10-bar label rate",
+      "profitabilityOrOosMetricsUsed": false
+    }
+  },
+  "gate0": {
+    "minimumSymbols": 15,
+    "minimumTradingDays": 400,
+    "maximumMissingBarFraction": 0.01,
+    "maximumInvalidOhlcRows": 0,
+    "minimumIndependentTurningEventsPerPrimaryHorizon": 500,
+    "minimumAuxiliaryFeatureCoverage": 0.9,
+    "breakDateMustBePreregisteredForPostJumpModel": true,
+    "modelingAllowedOnlyIfAllRequiredGatesPass": true
+  },
+  "auxiliaryFeatures": {
+    "decisionStrideBars": 5,
+    "pastWindowBars": 24,
+    "trainingStatisticsEnd": "2025-06-30",
+    "winsorizationQuantiles": [
+      0.01,
+      0.99
+    ],
+    "noOutcomeDrivenParameterSelection": true,
+    "noForcedImputation": true,
+    "retainInvalidRowsWithValidityFlags": true,
+    "lppls": {
+      "source": "fixed classic LPPLS implementation from Phase 2A",
+      "features": [
+        "lppls_fit_success",
+        "lppls_tc_proximity",
+        "lppls_time_to_tc",
+        "lppls_fit_residual",
+        "lppls_parameter_stability",
+        "lppls_window_consensus",
+        "lppls_bubble_like_score"
+      ],
+      "parameterStabilityFormula": "exp(-mean(tc_std/12, m_std/0.4, omega_std/4))",
+      "windowConsensusFormula": "1 - mean(clipped(tc_std/12, m_std/0.4, omega_std/4), 0, 1)",
+      "bubbleLikeFormula": "trend_eligible * exp(-fit_residual) * window_consensus",
+      "independentTurningPredictionAllowed": false
+    },
+    "dmd": {
+      "source": "fixed-window linear delay-DMD implementation from Phase 2A",
+      "features": [
+        "dmd_reconstruction_residual",
+        "dmd_residual_zscore",
+        "dmd_spectral_radius",
+        "dmd_spectral_radius_drift",
+        "dmd_eigen_instability",
+        "dmd_window_valid",
+        "dmd_missing_bar_ratio"
+      ],
+      "residualZscoreFitEnd": "2025-06-30",
+      "spectralRadiusDrift": "current valid radius minus the prior valid same-symbol same-session radius",
+      "independentTurningPredictionAllowed": false
+    }
+  },
+  "plannedModels": {
+    "enabledAfterGate0Only": true,
+    "variants": [
+      "constant_prior",
+      "ews_baseline",
+      "current_hmm",
+      "current_hmm_ews",
+      "post_jump_hmm",
+      "time_decay_hmm",
+      "hmm_lppls",
+      "hmm_dmd",
+      "hmm_ews_lppls_dmd"
+    ],
+    "postJumpHMMEnabled": false,
+    "timeDecayHMMEnabled": false,
+    "multivariateHMMEnabled": false,
+    "reasonDisabled": "Break date and time-decay half-life are not preregistered; Gate 0 must complete first."
+  },
+  "requiredOutputs": [
+    "data_audit.json",
+    "data_audit.md",
+    "post_jump_audit.json",
+    "coverage_bias_report.json",
+    "feature_missingness_report.json",
+    "label_distribution_report.json",
+    "break_date_risk_report.md"
+  ],
+  "output": {
+    "root": "outputs/edge_research/singularity_phase1_6_hmm_physics_features"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "forwardTaskIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "explicitlyNotImplemented": [
+    "deep_lppls",
+    "kernel_koopman",
+    "deep_koopman",
+    "hawkes",
+    "soc",
+    "surrogate_ml",
+    "reinforcement_learning",
+    "online_inference",
+    "dashboard",
+    "live_trading_integration",
+    "automatic_break_selection",
+    "automatic_hmm_tuning"
+  ]
+}

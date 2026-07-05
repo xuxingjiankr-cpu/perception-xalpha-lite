@@ -1,0 +1,813 @@
+{
+  "schemaVersion": "singularity_phase1_6_feature_missingness_v1",
+  "status": "exploratory_gate0_only",
+  "rows": 44350,
+  "noForcedImputation": true,
+  "invalidRowsRetained": true,
+  "lppls": {
+    "validRows": 44350,
+    "coverage": 1.0,
+    "missingness": 0.0,
+    "failedReasons": {},
+    "byMonth": [
+      {
+        "month": "2024-06",
+        "rows": 530,
+        "validRows": 530,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-07",
+        "rows": 2070,
+        "validRows": 2070,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-08",
+        "rows": 1980,
+        "validRows": 1980,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-09",
+        "rows": 1710,
+        "validRows": 1710,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-10",
+        "rows": 1620,
+        "validRows": 1620,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-11",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2024-12",
+        "rows": 1980,
+        "validRows": 1980,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-01",
+        "rows": 1620,
+        "validRows": 1620,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-02",
+        "rows": 1620,
+        "validRows": 1620,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-03",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-04",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-05",
+        "rows": 1710,
+        "validRows": 1710,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-06",
+        "rows": 1800,
+        "validRows": 1800,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-07",
+        "rows": 2070,
+        "validRows": 2070,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-08",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-09",
+        "rows": 1980,
+        "validRows": 1980,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-10",
+        "rows": 1530,
+        "validRows": 1530,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-11",
+        "rows": 1800,
+        "validRows": 1800,
+        "coverage": 1.0
+      },
+      {
+        "month": "2025-12",
+        "rows": 2070,
+        "validRows": 2070,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-01",
+        "rows": 1795,
+        "validRows": 1795,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-02",
+        "rows": 1260,
+        "validRows": 1260,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-03",
+        "rows": 1975,
+        "validRows": 1975,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-04",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-05",
+        "rows": 1620,
+        "validRows": 1620,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-06",
+        "rows": 1890,
+        "validRows": 1890,
+        "coverage": 1.0
+      },
+      {
+        "month": "2026-07",
+        "rows": 270,
+        "validRows": 270,
+        "coverage": 1.0
+      }
+    ],
+    "bySymbol": [
+      {
+        "stockCode": "159546",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "159915",
+        "rows": 2500,
+        "validRows": 2500,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "159920",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "159934",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "159941",
+        "rows": 2495,
+        "validRows": 2495,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "159985",
+        "rows": 2465,
+        "validRows": 2465,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "501018",
+        "rows": 2470,
+        "validRows": 2470,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "510050",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "510300",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "510500",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "511010",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "513050",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "513100",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "513180",
+        "rows": 2455,
+        "validRows": 2455,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "513500",
+        "rows": 2495,
+        "validRows": 2495,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "518880",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "588000",
+        "rows": 2480,
+        "validRows": 2480,
+        "coverage": 1.0
+      },
+      {
+        "stockCode": "588030",
+        "rows": 2490,
+        "validRows": 2490,
+        "coverage": 1.0
+      }
+    ],
+    "byEtfCategory": [
+      {
+        "etf_category": "commodity",
+        "rows": 9835,
+        "validRows": 9835,
+        "coverage": 1.0
+      },
+      {
+        "etf_category": "cross_border_hk",
+        "rows": 7355,
+        "validRows": 7355,
+        "coverage": 1.0
+      },
+      {
+        "etf_category": "cross_border_us",
+        "rows": 7440,
+        "validRows": 7440,
+        "coverage": 1.0
+      },
+      {
+        "etf_category": "domestic_broad",
+        "rows": 7350,
+        "validRows": 7350,
+        "coverage": 1.0
+      },
+      {
+        "etf_category": "domestic_growth",
+        "rows": 9920,
+        "validRows": 9920,
+        "coverage": 1.0
+      },
+      {
+        "etf_category": "fixed_income",
+        "rows": 2450,
+        "validRows": 2450,
+        "coverage": 1.0
+      }
+    ],
+    "byIntradaySlot": [
+      {
+        "intraday_slot": "11:30",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "13:25",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "13:50",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:15",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:40",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      }
+    ]
+  },
+  "dmd": {
+    "validRows": 26610,
+    "coverage": 0.6,
+    "missingness": 0.4,
+    "missingBarRatioDistribution": {
+      "count": 44350,
+      "mean": 0.03125,
+      "median": 0.0,
+      "standardDeviation": 0.05270462766947299,
+      "p05": 0.0,
+      "p95": 0.13541666666666666
+    },
+    "byMonth": [
+      {
+        "month": "2024-06",
+        "rows": 530,
+        "validRows": 318,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-07",
+        "rows": 2070,
+        "validRows": 1242,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-08",
+        "rows": 1980,
+        "validRows": 1188,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-09",
+        "rows": 1710,
+        "validRows": 1026,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-10",
+        "rows": 1620,
+        "validRows": 972,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-11",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2024-12",
+        "rows": 1980,
+        "validRows": 1188,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-01",
+        "rows": 1620,
+        "validRows": 972,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-02",
+        "rows": 1620,
+        "validRows": 972,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-03",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-04",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-05",
+        "rows": 1710,
+        "validRows": 1026,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-06",
+        "rows": 1800,
+        "validRows": 1080,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-07",
+        "rows": 2070,
+        "validRows": 1242,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-08",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-09",
+        "rows": 1980,
+        "validRows": 1188,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-10",
+        "rows": 1530,
+        "validRows": 918,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-11",
+        "rows": 1800,
+        "validRows": 1080,
+        "coverage": 0.6
+      },
+      {
+        "month": "2025-12",
+        "rows": 2070,
+        "validRows": 1242,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-01",
+        "rows": 1795,
+        "validRows": 1077,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-02",
+        "rows": 1260,
+        "validRows": 756,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-03",
+        "rows": 1975,
+        "validRows": 1185,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-04",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-05",
+        "rows": 1620,
+        "validRows": 972,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-06",
+        "rows": 1890,
+        "validRows": 1134,
+        "coverage": 0.6
+      },
+      {
+        "month": "2026-07",
+        "rows": 270,
+        "validRows": 162,
+        "coverage": 0.6
+      }
+    ],
+    "bySymbol": [
+      {
+        "stockCode": "159546",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "159915",
+        "rows": 2500,
+        "validRows": 1500,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "159920",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "159934",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "159941",
+        "rows": 2495,
+        "validRows": 1497,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "159985",
+        "rows": 2465,
+        "validRows": 1479,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "501018",
+        "rows": 2470,
+        "validRows": 1482,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "510050",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "510300",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "510500",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "511010",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "513050",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "513100",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "513180",
+        "rows": 2455,
+        "validRows": 1473,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "513500",
+        "rows": 2495,
+        "validRows": 1497,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "518880",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "588000",
+        "rows": 2480,
+        "validRows": 1488,
+        "coverage": 0.6
+      },
+      {
+        "stockCode": "588030",
+        "rows": 2490,
+        "validRows": 1494,
+        "coverage": 0.6
+      }
+    ],
+    "byEtfCategory": [
+      {
+        "etf_category": "commodity",
+        "rows": 9835,
+        "validRows": 5901,
+        "coverage": 0.6
+      },
+      {
+        "etf_category": "cross_border_hk",
+        "rows": 7355,
+        "validRows": 4413,
+        "coverage": 0.6
+      },
+      {
+        "etf_category": "cross_border_us",
+        "rows": 7440,
+        "validRows": 4464,
+        "coverage": 0.6
+      },
+      {
+        "etf_category": "domestic_broad",
+        "rows": 7350,
+        "validRows": 4410,
+        "coverage": 0.6
+      },
+      {
+        "etf_category": "domestic_growth",
+        "rows": 9920,
+        "validRows": 5952,
+        "coverage": 0.6
+      },
+      {
+        "etf_category": "fixed_income",
+        "rows": 2450,
+        "validRows": 1470,
+        "coverage": 0.6
+      }
+    ],
+    "byIntradaySlot": [
+      {
+        "intraday_slot": "11:30",
+        "rows": 8870,
+        "validRows": 0,
+        "coverage": 0.0
+      },
+      {
+        "intraday_slot": "13:25",
+        "rows": 8870,
+        "validRows": 0,
+        "coverage": 0.0
+      },
+      {
+        "intraday_slot": "13:50",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:15",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      },
+      {
+        "intraday_slot": "14:40",
+        "rows": 8870,
+        "validRows": 8870,
+        "coverage": 1.0
+      }
+    ],
+    "missingBarRatioMeaning": "Fraction of non-finite cells in the standardized 24-bar DMD state matrix. This includes causal rolling-feature warm-up missingness even when the underlying exchange bars exist."
+  },
+  "trainingOnlyPreprocessingParameters": {
+    "lppls_tc_proximity": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.09733185496237229,
+      "standardDeviation": 0.04511089596271347,
+      "winsorLower": 0.05263157894736842,
+      "winsorUpper": 0.14285714285714285,
+      "appliedToModel": false
+    },
+    "lppls_time_to_tc": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 12.054863290004482,
+      "standardDeviation": 5.9997491630408915,
+      "winsorLower": 6.0,
+      "winsorUpper": 18.0,
+      "appliedToModel": false
+    },
+    "lppls_fit_residual": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.49142810972607337,
+      "standardDeviation": 0.16956960909954488,
+      "winsorLower": 0.17090078251960333,
+      "winsorUpper": 0.8692058598335798,
+      "appliedToModel": false
+    },
+    "lppls_parameter_stability": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.7999794388380255,
+      "standardDeviation": 0.11987359021218827,
+      "winsorLower": 0.624125055778261,
+      "winsorUpper": 1.0,
+      "appliedToModel": false
+    },
+    "lppls_window_consensus": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.765621870037903,
+      "standardDeviation": 0.14982255212933762,
+      "winsorLower": 0.5285954792089684,
+      "winsorUpper": 1.0,
+      "appliedToModel": false
+    },
+    "lppls_bubble_like_score": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.012731314195870515,
+      "standardDeviation": 0.08965491661194794,
+      "winsorLower": 0.0,
+      "winsorUpper": 0.6194633629557811,
+      "appliedToModel": false
+    },
+    "dmd_reconstruction_residual": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 13386,
+      "mean": 0.7395542398933653,
+      "standardDeviation": 0.4764930167098144,
+      "winsorLower": 0.11292485457610223,
+      "winsorUpper": 2.415667769256291,
+      "appliedToModel": false
+    },
+    "dmd_residual_zscore": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 13386,
+      "mean": -1.1040855299424834e-16,
+      "standardDeviation": 0.9999999999999999,
+      "winsorLower": -1.3150861887633543,
+      "winsorUpper": 3.517603554688995,
+      "appliedToModel": false
+    },
+    "dmd_spectral_radius": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 13386,
+      "mean": 0.9798807173450406,
+      "standardDeviation": 0.08230672777675582,
+      "winsorLower": 0.8258172701772939,
+      "winsorUpper": 1.2551134544338736,
+      "appliedToModel": false
+    },
+    "dmd_spectral_radius_drift": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 8924,
+      "mean": 0.0008551591705121405,
+      "standardDeviation": 0.10506275691023191,
+      "winsorLower": -0.2902655558712429,
+      "winsorUpper": 0.2992968085066813,
+      "appliedToModel": false
+    },
+    "dmd_eigen_instability": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 13386,
+      "mean": 0.018489594071950395,
+      "standardDeviation": 0.05673637207794797,
+      "winsorLower": 0.0,
+      "winsorUpper": 0.25511345443387357,
+      "appliedToModel": false
+    },
+    "dmd_missing_bar_ratio": {
+      "fitEnd": "2025-06-30",
+      "finiteRows": 22310,
+      "mean": 0.03125,
+      "standardDeviation": 0.05270462766947299,
+      "winsorLower": 0.0,
+      "winsorUpper": 0.13541666666666666,
+      "appliedToModel": false
+    }
+  }
+}

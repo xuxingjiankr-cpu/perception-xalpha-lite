@@ -1,0 +1,2689 @@
+{
+  "schemaVersion": "singularity_phase1_6_post_jump_audit_v1",
+  "status": "break_date_not_preregistered",
+  "selectedBreakDate": null,
+  "breakDefinition": "No user-specified or independently documented business-event break date was supplied.",
+  "candidateMethod": {
+    "candidateFrequency": "first_available_trading_day_of_each_month",
+    "minimumTradingDaysEachSide": 120,
+    "comparisonWindowTradingDaysEachSide": 60,
+    "maximumCandidatesReported": 5,
+    "score": "mean absolute standardized shift across daily return, realized volatility, log amount, log volume, range, 5-bar label rate and 10-bar label rate",
+    "profitabilityOrOosMetricsUsed": false
+  },
+  "candidateComparisons": [
+    {
+      "date": "2025-05-06",
+      "exploratoryDistributionShiftScore": 0.7138153155571086,
+      "components": {
+        "daily_return": {
+          "preMean": 0.0012186750611684624,
+          "postMean": 0.00043470876934217174,
+          "rawShift": -0.0007839662918262907,
+          "absoluteStandardizedShift": 0.14117282115770388
+        },
+        "realized_volatility": {
+          "preMean": 0.00123119312478503,
+          "postMean": 0.0008515127920005999,
+          "rawShift": -0.0003796803327844301,
+          "absoluteStandardizedShift": 0.9615264736114563
+        },
+        "log_amount": {
+          "preMean": 24.309922217710017,
+          "postMean": 23.939085465164144,
+          "rawShift": -0.37083675254587334,
+          "absoluteStandardizedShift": 1.2083744380631056
+        },
+        "log_volume": {
+          "preMean": 23.864204623002838,
+          "postMean": 23.40841364937291,
+          "rawShift": -0.45579097362992727,
+          "absoluteStandardizedShift": 1.3061945887711577
+        },
+        "range_pct": {
+          "preMean": 0.01493123540872631,
+          "postMean": 0.00936400938116633,
+          "rawShift": -0.00556722602755998,
+          "absoluteStandardizedShift": 0.8394366068562437
+        },
+        "label_rate_5": {
+          "preMean": 0.03570601851851852,
+          "postMean": 0.02783564814814815,
+          "rawShift": -0.007870370370370368,
+          "absoluteStandardizedShift": 0.508508049009172
+        },
+        "label_rate_10": {
+          "preMean": 0.055624142661179696,
+          "postMean": 0.054869684499314134,
+          "rawShift": -0.0007544581618655621,
+          "absoluteStandardizedShift": 0.031494231430921914
+        }
+      },
+      "profitabilityOrModelMetricsUsed": false,
+      "status": "break_date_not_preregistered",
+      "exploratoryRank": 1,
+      "prePostAudit": {
+        "candidateDate": "2025-05-06",
+        "status": "break_date_not_preregistered",
+        "pre": {
+          "start": "2024-06-12",
+          "end": "2025-04-30",
+          "tradingDays": 216,
+          "barRows": 180480,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 120320,
+              "positiveRows": 4470,
+              "positiveRowRate": 0.03715093085106383,
+              "independentEvents": 2585,
+              "independentUpEvents": 1431,
+              "independentDownEvents": 1154
+            },
+            "10": {
+              "effectiveSamples": 101520,
+              "positiveRows": 6148,
+              "positiveRowRate": 0.06055949566587864,
+              "independentEvents": 2361,
+              "independentUpEvents": 1299,
+              "independentDownEvents": 1062
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 216,
+              "mean": 0.00026325151957166845,
+              "median": 9.969205396004321e-05,
+              "standardDeviation": 0.00734683917167073,
+              "p05": -0.011503904708196441,
+              "p95": 0.013521758821860796
+            },
+            "realized_volatility": {
+              "count": 216,
+              "mean": 0.0012968753104087417,
+              "median": 0.001154995923882015,
+              "standardDeviation": 0.0006041602638502037,
+              "p05": 0.0008281640919435558,
+              "p95": 0.0021670537913710064
+            },
+            "volume": {
+              "count": 216,
+              "mean": 21984122827.925926,
+              "median": 19273778626.0,
+              "standardDeviation": 13299336008.921524,
+              "p05": 10261011064.0,
+              "p95": 42291110104.0
+            },
+            "amount": {
+              "count": 216,
+              "mean": 33148261923.10206,
+              "median": 29652371216.31134,
+              "standardDeviation": 21169246799.22585,
+              "p05": 13958955554.702477,
+              "p95": 62086250821.538086
+            },
+            "range_pct": {
+              "count": 216,
+              "mean": 0.015443226982753798,
+              "median": 0.01292666787698421,
+              "standardDeviation": 0.00870238036716282,
+              "p05": 0.00830780939636569,
+              "p95": 0.029282796671373595
+            },
+            "label_rate_5": {
+              "count": 216,
+              "mean": 0.037149562757201646,
+              "median": 0.03521825396825397,
+              "standardDeviation": 0.016610654525650966,
+              "p05": 0.012152777777777778,
+              "p95": 0.06684027777777778
+            },
+            "label_rate_10": {
+              "count": 216,
+              "mean": 0.06040632416661223,
+              "median": 0.05761316872427984,
+              "standardDeviation": 0.029527582196030914,
+              "p05": 0.018518518518518517,
+              "p95": 0.11368312757201646
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 180480,
+            "observedBars": 180480,
+            "missingBars": 0,
+            "missingFraction": 0.0,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 10368,
+                "observedBars": 10368,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 10320,
+                "observedBars": 10320,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 10032,
+                "observedBars": 10032,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 10176,
+                "observedBars": 10176,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510050": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 9936,
+                "observedBars": 9936,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 10320,
+                "observedBars": 10320,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 9888,
+                "observedBars": 9888,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 10176,
+                "observedBars": 10176,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 10272,
+                "observedBars": 10272,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "post": {
+          "start": "2025-05-06",
+          "end": "2026-07-03",
+          "tradingDays": 284,
+          "barRows": 245280,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 163520,
+              "positiveRows": 6109,
+              "positiveRowRate": 0.037359344422700586,
+              "independentEvents": 3595,
+              "independentUpEvents": 1937,
+              "independentDownEvents": 1660
+            },
+            "10": {
+              "effectiveSamples": 137970,
+              "positiveRows": 8380,
+              "positiveRowRate": 0.060737841559759365,
+              "independentEvents": 3246,
+              "independentUpEvents": 1743,
+              "independentDownEvents": 1508
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 284,
+              "mean": 3.594323634101516e-05,
+              "median": 0.0006030690521749149,
+              "standardDeviation": 0.005752897655913343,
+              "p05": -0.010234353085560588,
+              "p95": 0.008625942439270944
+            },
+            "realized_volatility": {
+              "count": 284,
+              "mean": 0.0011419015873729795,
+              "median": 0.0010502804298393746,
+              "standardDeviation": 0.000350480227669533,
+              "p05": 0.0007175570937125363,
+              "p95": 0.0017997703171499402
+            },
+            "volume": {
+              "count": 284,
+              "mean": 18077695886.59155,
+              "median": 17668643912.0,
+              "standardDeviation": 4893967400.762443,
+              "p05": 11526570008.6,
+              "p95": 27426428890.39999
+            },
+            "amount": {
+              "count": 284,
+              "mean": 37956336360.44832,
+              "median": 35880859661.03369,
+              "standardDeviation": 14604142510.551943,
+              "p05": 21323164754.0503,
+              "p95": 65747699224.93317
+            },
+            "range_pct": {
+              "count": 284,
+              "mean": 0.013608812026044874,
+              "median": 0.012593623258155495,
+              "standardDeviation": 0.005432018400585092,
+              "p05": 0.006822333297977129,
+              "p95": 0.022924957847224915
+            },
+            "label_rate_5": {
+              "count": 284,
+              "mean": 0.037361988516063704,
+              "median": 0.034722222222222224,
+              "standardDeviation": 0.01889475860235659,
+              "p05": 0.010416666666666666,
+              "p95": 0.07291666666666667
+            },
+            "label_rate_10": {
+              "count": 284,
+              "mean": 0.06074178062809195,
+              "median": 0.05555555555555555,
+              "standardDeviation": 0.03008950141706717,
+              "p05": 0.0205761316872428,
+              "p95": 0.11460905349794225
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 245376,
+            "observedBars": 245280,
+            "missingBars": 96,
+            "missingFraction": 0.0003912363067292645,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 13632,
+                "observedBars": 13536,
+                "missingBars": 96,
+                "missingFraction": 0.007042253521126761
+              },
+              "510050": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 13632,
+                "observedBars": 13632,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "universeConsistent": true,
+        "categoryStructureConsistent": true,
+        "formalPostJumpInferenceAllowed": false
+      }
+    },
+    {
+      "date": "2025-09-01",
+      "exploratoryDistributionShiftScore": 0.6771542904657796,
+      "components": {
+        "daily_return": {
+          "preMean": 0.0008327505045686911,
+          "postMean": 3.401868913839127e-06,
+          "rawShift": -0.000829348635654852,
+          "absoluteStandardizedShift": 0.1490873921022454
+        },
+        "realized_volatility": {
+          "preMean": 0.0008973796408327002,
+          "postMean": 0.0011738739414719132,
+          "rawShift": 0.00027649430063921303,
+          "absoluteStandardizedShift": 1.041427460759442
+        },
+        "log_amount": {
+          "preMean": 24.027037594591228,
+          "postMean": 24.391396357565306,
+          "rawShift": 0.3643587629740779,
+          "absoluteStandardizedShift": 1.215536248974176
+        },
+        "log_volume": {
+          "preMean": 23.499965311297732,
+          "postMean": 23.668199700458477,
+          "rawShift": 0.1682343891607445,
+          "absoluteStandardizedShift": 0.6348576028769004
+        },
+        "range_pct": {
+          "preMean": 0.009754520723216973,
+          "postMean": 0.014395155561158777,
+          "rawShift": 0.004640634837941804,
+          "absoluteStandardizedShift": 0.9984784021331645
+        },
+        "label_rate_5": {
+          "preMean": 0.02861689814814815,
+          "postMean": 0.03912037037037037,
+          "rawShift": 0.010503472222222216,
+          "absoluteStandardizedShift": 0.5924450387464434
+        },
+        "label_rate_10": {
+          "preMean": 0.05500685871056241,
+          "postMean": 0.05823045267489712,
+          "rawShift": 0.003223593964334706,
+          "absoluteStandardizedShift": 0.10824788766808653
+        }
+      },
+      "profitabilityOrModelMetricsUsed": false,
+      "status": "break_date_not_preregistered",
+      "exploratoryRank": 2,
+      "prePostAudit": {
+        "candidateDate": "2025-09-01",
+        "status": "break_date_not_preregistered",
+        "pre": {
+          "start": "2024-06-12",
+          "end": "2025-08-29",
+          "tradingDays": 299,
+          "barRows": 252192,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 168128,
+              "positiveRows": 5849,
+              "positiveRowRate": 0.034788970308336505,
+              "independentEvents": 3400,
+              "independentUpEvents": 1877,
+              "independentDownEvents": 1523
+            },
+            "10": {
+              "effectiveSamples": 141858,
+              "positiveRows": 8367,
+              "positiveRowRate": 0.0589815167279956,
+              "independentEvents": 3214,
+              "independentUpEvents": 1770,
+              "independentDownEvents": 1444
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 299,
+              "mean": 0.00035278657949869144,
+              "median": 0.0002256317689530718,
+              "standardDeviation": 0.006508120795875971,
+              "p05": -0.010067890030053261,
+              "p95": 0.009216302491488968
+            },
+            "realized_volatility": {
+              "count": 299,
+              "mean": 0.0011830520220025603,
+              "median": 0.001061433571761189,
+              "standardDeviation": 0.0005531589351922874,
+              "p05": 0.000714823601904267,
+              "p95": 0.0019849668552428977
+            },
+            "volume": {
+              "count": 299,
+              "mean": 20416989962.0602,
+              "median": 17924948176.0,
+              "standardDeviation": 11833138443.869612,
+              "p05": 10452184510.0,
+              "p95": 38067502023.999985
+            },
+            "amount": {
+              "count": 299,
+              "mean": 31628700239.745754,
+              "median": 27855215425.70584,
+              "standardDeviation": 18614948089.853523,
+              "p05": 15044336584.573748,
+              "p95": 58271555170.037476
+            },
+            "range_pct": {
+              "count": 299,
+              "mean": 0.013854325135875149,
+              "median": 0.011927531109057976,
+              "standardDeviation": 0.007964916823089143,
+              "p05": 0.006887178221621215,
+              "p95": 0.028231015328024467
+            },
+            "label_rate_5": {
+              "count": 299,
+              "mean": 0.03484415644741732,
+              "median": 0.03298611111111111,
+              "standardDeviation": 0.016723095628957726,
+              "p05": 0.010416666666666666,
+              "p95": 0.0642361111111111
+            },
+            "label_rate_10": {
+              "count": 299,
+              "mean": 0.05890839344945625,
+              "median": 0.05555555555555555,
+              "standardDeviation": 0.02899236103573942,
+              "p05": 0.020370370370370372,
+              "p95": 0.1111111111111111
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 252192,
+            "observedBars": 252192,
+            "missingBars": 0,
+            "missingFraction": 0.0,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 14352,
+                "observedBars": 14352,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 14304,
+                "observedBars": 14304,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 14016,
+                "observedBars": 14016,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 14160,
+                "observedBars": 14160,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510050": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 13920,
+                "observedBars": 13920,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 14304,
+                "observedBars": 14304,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 13872,
+                "observedBars": 13872,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 14160,
+                "observedBars": 14160,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 14256,
+                "observedBars": 14256,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "post": {
+          "start": "2025-09-01",
+          "end": "2026-07-03",
+          "tradingDays": 201,
+          "barRows": 173568,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 115712,
+              "positiveRows": 4730,
+              "positiveRowRate": 0.04087735066371682,
+              "independentEvents": 2780,
+              "independentUpEvents": 1491,
+              "independentDownEvents": 1291
+            },
+            "10": {
+              "effectiveSamples": 97632,
+              "positiveRows": 6161,
+              "positiveRowRate": 0.06310431006227467,
+              "independentEvents": 2393,
+              "independentUpEvents": 1272,
+              "independentDownEvents": 1126
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 201,
+              "mean": -0.0001911093528446769,
+              "median": 0.000570264763960604,
+              "standardDeviation": 0.006450920193082422,
+              "p05": -0.012007334961265659,
+              "p95": 0.009360136047718903
+            },
+            "realized_volatility": {
+              "count": 201,
+              "mean": 0.0012472266830022335,
+              "median": 0.0011824516354754316,
+              "standardDeviation": 0.000350477386968339,
+              "p05": 0.0008295935215209781,
+              "p95": 0.00188343618851691
+            },
+            "volume": {
+              "count": 201,
+              "mean": 18795801810.786068,
+              "median": 18784886568.0,
+              "standardDeviation": 4833490342.6943655,
+              "p05": 11721115460.0,
+              "p95": 27477030620.0
+            },
+            "amount": {
+              "count": 201,
+              "mean": 42202202637.18103,
+              "median": 38420469966.25,
+              "standardDeviation": 14653418889.349936,
+              "p05": 25715104151.677734,
+              "p95": 71068598513.28906
+            },
+            "range_pct": {
+              "count": 201,
+              "mean": 0.015214907602213409,
+              "median": 0.014259006036707822,
+              "standardDeviation": 0.00544522316152781,
+              "p05": 0.008648919398487775,
+              "p95": 0.02453998421988235
+            },
+            "label_rate_5": {
+              "count": 201,
+              "mean": 0.04087914187233766,
+              "median": 0.03993055555555555,
+              "standardDeviation": 0.019057082791609052,
+              "p05": 0.013888888888888888,
+              "p95": 0.07465277777777778
+            },
+            "label_rate_10": {
+              "count": 201,
+              "mean": 0.0631085675471589,
+              "median": 0.059670781893004114,
+              "standardDeviation": 0.030908293670235183,
+              "p05": 0.018518518518518517,
+              "p95": 0.11934156378600823
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 173664,
+            "observedBars": 173568,
+            "missingBars": 96,
+            "missingFraction": 0.000552791597567717,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 9648,
+                "observedBars": 9552,
+                "missingBars": 96,
+                "missingFraction": 0.009950248756218905
+              },
+              "510050": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 9648,
+                "observedBars": 9648,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "universeConsistent": true,
+        "categoryStructureConsistent": true,
+        "formalPostJumpInferenceAllowed": false
+      }
+    },
+    {
+      "date": "2025-08-01",
+      "exploratoryDistributionShiftScore": 0.672683158408355,
+      "components": {
+        "daily_return": {
+          "preMean": 0.0003355350701173515,
+          "postMean": 0.0005414924107725584,
+          "rawShift": 0.0002059573406552069,
+          "absoluteStandardizedShift": 0.040271594104001295
+        },
+        "realized_volatility": {
+          "preMean": 0.0008604309261668572,
+          "postMean": 0.0011078868167993417,
+          "rawShift": 0.0002474558906324845,
+          "absoluteStandardizedShift": 0.9575941864676706
+        },
+        "log_amount": {
+          "preMean": 23.937840842334193,
+          "postMean": 24.37594658005099,
+          "rawShift": 0.4381057377167963,
+          "absoluteStandardizedShift": 1.3672983354533697
+        },
+        "log_volume": {
+          "preMean": 23.41036731313964,
+          "postMean": 23.72711537475814,
+          "rawShift": 0.31674806161849745,
+          "absoluteStandardizedShift": 1.1553776446482975
+        },
+        "range_pct": {
+          "preMean": 0.009402347158699207,
+          "postMean": 0.013049238708598058,
+          "rawShift": 0.0036468915498988515,
+          "absoluteStandardizedShift": 0.8094768154679031
+        },
+        "label_rate_5": {
+          "preMean": 0.02829861111111111,
+          "postMean": 0.03342013888888889,
+          "rawShift": 0.005121527777777777,
+          "absoluteStandardizedShift": 0.3059703277226653
+        },
+        "label_rate_10": {
+          "preMean": 0.056378600823045265,
+          "postMean": 0.054286694101508916,
+          "rawShift": -0.002091906721536349,
+          "absoluteStandardizedShift": 0.07279320499457752
+        }
+      },
+      "profitabilityOrModelMetricsUsed": false,
+      "status": "break_date_not_preregistered",
+      "exploratoryRank": 3,
+      "prePostAudit": {
+        "candidateDate": "2025-08-01",
+        "status": "break_date_not_preregistered",
+        "pre": {
+          "start": "2024-06-12",
+          "end": "2025-07-31",
+          "tradingDays": 278,
+          "barRows": 234048,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 156032,
+              "positiveRows": 5491,
+              "positiveRowRate": 0.03519149917965546,
+              "independentEvents": 3174,
+              "independentUpEvents": 1770,
+              "independentDownEvents": 1404
+            },
+            "10": {
+              "effectiveSamples": 131652,
+              "positiveRows": 7828,
+              "positiveRowRate": 0.05945978792574363,
+              "independentEvents": 3001,
+              "independentUpEvents": 1663,
+              "independentDownEvents": 1338
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 278,
+              "mean": 0.0002808639045006006,
+              "median": 0.00017932367853162878,
+              "standardDeviation": 0.00665068479432469,
+              "p05": -0.010187708349484426,
+              "p95": 0.009219444637410389
+            },
+            "realized_volatility": {
+              "count": 278,
+              "mean": 0.0011997795444610173,
+              "median": 0.0010672589395454104,
+              "standardDeviation": 0.0005671439503549926,
+              "p05": 0.0007249885131782018,
+              "p95": 0.0020065656877520863
+            },
+            "volume": {
+              "count": 278,
+              "mean": 20470015643.61151,
+              "median": 17848243288.0,
+              "standardDeviation": 12160994931.095446,
+              "p05": 10421873474.2,
+              "p95": 38522456262.999985
+            },
+            "amount": {
+              "count": 278,
+              "mean": 31486800101.21657,
+              "median": 27717623518.530716,
+              "standardDeviation": 19078577109.941917,
+              "p05": 14877421812.945456,
+              "p95": 59049024255.342445
+            },
+            "range_pct": {
+              "count": 278,
+              "mean": 0.014117898017808446,
+              "median": 0.011987070109436004,
+              "standardDeviation": 0.008155042235088209,
+              "p05": 0.006886450455279081,
+              "p95": 0.028623982533160803
+            },
+            "label_rate_5": {
+              "count": 278,
+              "mean": 0.03524055755395684,
+              "median": 0.03298611111111111,
+              "standardDeviation": 0.016936710364419863,
+              "p05": 0.010416666666666666,
+              "p95": 0.06449652777777773
+            },
+            "label_rate_10": {
+              "count": 278,
+              "mean": 0.059368906990809454,
+              "median": 0.05555555555555555,
+              "standardDeviation": 0.029009250728870783,
+              "p05": 0.0205761316872428,
+              "p95": 0.1111111111111111
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 234048,
+            "observedBars": 234048,
+            "missingBars": 0,
+            "missingFraction": 0.0,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 13344,
+                "observedBars": 13344,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 13296,
+                "observedBars": 13296,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 13008,
+                "observedBars": 13008,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 13152,
+                "observedBars": 13152,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510050": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 12912,
+                "observedBars": 12912,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 13296,
+                "observedBars": 13296,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 12864,
+                "observedBars": 12864,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 13152,
+                "observedBars": 13152,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 13248,
+                "observedBars": 13248,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "post": {
+          "start": "2025-08-01",
+          "end": "2026-07-03",
+          "tradingDays": 222,
+          "barRows": 191712,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 127808,
+              "positiveRows": 5088,
+              "positiveRowRate": 0.039809714571857786,
+              "independentEvents": 3006,
+              "independentUpEvents": 1598,
+              "independentDownEvents": 1410
+            },
+            "10": {
+              "effectiveSamples": 107838,
+              "positiveRows": 6700,
+              "positiveRowRate": 0.062130232385615464,
+              "independentEvents": 2606,
+              "independentUpEvents": 1379,
+              "independentDownEvents": 1232
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 222,
+              "mean": -4.95944058686409e-05,
+              "median": 0.0007669727430282824,
+              "standardDeviation": 0.0062797095681755444,
+              "p05": -0.01177857109299757,
+              "p95": 0.00926398098992448
+            },
+            "realized_volatility": {
+              "count": 222,
+              "mean": 0.0012202090292885207,
+              "median": 0.001155549688915004,
+              "standardDeviation": 0.0003500537221512049,
+              "p05": 0.0007953253448457919,
+              "p95": 0.0018339725454235563
+            },
+            "volume": {
+              "count": 222,
+              "mean": 18882755917.567566,
+              "median": 18729700978.0,
+              "standardDeviation": 4956744360.071938,
+              "p05": 11721638922.4,
+              "p95": 27935516799.0
+            },
+            "amount": {
+              "count": 222,
+              "mean": 41379701232.51874,
+              "median": 38085867779.33496,
+              "standardDeviation": 14540346072.620798,
+              "p05": 24396873739.517967,
+              "p95": 70644858981.63942
+            },
+            "range_pct": {
+              "count": 222,
+              "mean": 0.014756144120364039,
+              "median": 0.013588437381583995,
+              "standardDeviation": 0.005457530060217748,
+              "p05": 0.008230203082103732,
+              "p95": 0.02405481910231039
+            },
+            "label_rate_5": {
+              "count": 222,
+              "mean": 0.039811870694223636,
+              "median": 0.03819444444444445,
+              "standardDeviation": 0.018824708259690567,
+              "p05": 0.013888888888888888,
+              "p95": 0.07456597222222221
+            },
+            "label_rate_10": {
+              "count": 222,
+              "mean": 0.06213457466180778,
+              "median": 0.059247155652384406,
+              "standardDeviation": 0.03079835269844012,
+              "p05": 0.018518518518518517,
+              "p95": 0.11728395061728394
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 191808,
+            "observedBars": 191712,
+            "missingBars": 96,
+            "missingFraction": 0.0005005005005005005,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 10656,
+                "observedBars": 10560,
+                "missingBars": 96,
+                "missingFraction": 0.009009009009009009
+              },
+              "510050": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 10656,
+                "observedBars": 10656,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "universeConsistent": true,
+        "categoryStructureConsistent": true,
+        "formalPostJumpInferenceAllowed": false
+      }
+    },
+    {
+      "date": "2025-06-03",
+      "exploratoryDistributionShiftScore": 0.5051189299924556,
+      "components": {
+        "daily_return": {
+          "preMean": 0.000383196373225265,
+          "postMean": 0.0009629049503921238,
+          "rawShift": 0.0005797085771668588,
+          "absoluteStandardizedShift": 0.10958027893806062
+        },
+        "realized_volatility": {
+          "preMean": 0.0011434227614515772,
+          "postMean": 0.0008649367298092529,
+          "rawShift": -0.0002784860316423243,
+          "absoluteStandardizedShift": 0.7076052363621248
+        },
+        "log_amount": {
+          "preMean": 24.198232098254767,
+          "postMean": 23.977496355054882,
+          "rawShift": -0.2207357431998851,
+          "absoluteStandardizedShift": 0.7253211350897006
+        },
+        "log_volume": {
+          "preMean": 23.71989712448868,
+          "postMean": 23.450829996702133,
+          "rawShift": -0.2690671277865455,
+          "absoluteStandardizedShift": 0.7987674871219944
+        },
+        "range_pct": {
+          "preMean": 0.013760400149860363,
+          "postMean": 0.009336881587886281,
+          "rawShift": -0.004423518561974081,
+          "absoluteStandardizedShift": 0.6768637532358919
+        },
+        "label_rate_5": {
+          "preMean": 0.03388310185185185,
+          "postMean": 0.027199074074074073,
+          "rawShift": -0.006684027777777778,
+          "absoluteStandardizedShift": 0.4351140959545928
+        },
+        "label_rate_10": {
+          "preMean": 0.055521262002743495,
+          "postMean": 0.05342935528120714,
+          "rawShift": -0.002091906721536356,
+          "absoluteStandardizedShift": 0.08258052324482391
+        }
+      },
+      "profitabilityOrModelMetricsUsed": false,
+      "status": "break_date_not_preregistered",
+      "exploratoryRank": 4,
+      "prePostAudit": {
+        "candidateDate": "2025-06-03",
+        "status": "break_date_not_preregistered",
+        "pre": {
+          "start": "2024-06-12",
+          "end": "2025-05-30",
+          "tradingDays": 235,
+          "barRows": 196896,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 131264,
+              "positiveRows": 4821,
+              "positiveRowRate": 0.03672751097025841,
+              "independentEvents": 2785,
+              "independentUpEvents": 1545,
+              "independentDownEvents": 1240
+            },
+            "10": {
+              "effectiveSamples": 110754,
+              "positiveRows": 6686,
+              "positiveRowRate": 0.06036802282536071,
+              "independentEvents": 2567,
+              "independentUpEvents": 1412,
+              "independentDownEvents": 1155
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 235,
+              "mean": 0.00022511010283764667,
+              "median": 0.0,
+              "standardDeviation": 0.007133720331889841,
+              "p05": -0.010944157951073452,
+              "p95": 0.01119196444480652
+            },
+            "realized_volatility": {
+              "count": 235,
+              "mean": 0.0012638086403074197,
+              "median": 0.0011280235782637955,
+              "standardDeviation": 0.000590932338782499,
+              "p05": 0.0007847963245350708,
+              "p95": 0.0020612361842411177
+            },
+            "volume": {
+              "count": 235,
+              "mean": 21504353071.012768,
+              "median": 18708893128.0,
+              "standardDeviation": 12886075756.531115,
+              "p05": 10243409392.800001,
+              "p95": 40529929769.99996
+            },
+            "amount": {
+              "count": 235,
+              "mean": 32665546145.864178,
+              "median": 29081488751.28125,
+              "standardDeviation": 20423839939.951378,
+              "p05": 14611006392.39774,
+              "p95": 60406152793.07752
+            },
+            "range_pct": {
+              "count": 235,
+              "mean": 0.01502007989676058,
+              "median": 0.012651738416713187,
+              "standardDeviation": 0.008492104116367812,
+              "p05": 0.008139218704908335,
+              "p95": 0.029165375361942587
+            },
+            "label_rate_5": {
+              "count": 235,
+              "mean": 0.03673906619385342,
+              "median": 0.034722222222222224,
+              "standardDeviation": 0.016829584983945548,
+              "p05": 0.012152777777777778,
+              "p95": 0.06701388888888883
+            },
+            "label_rate_10": {
+              "count": 235,
+              "mean": 0.06023302938196556,
+              "median": 0.05761316872427984,
+              "standardDeviation": 0.029277679972207656,
+              "p05": 0.019958847736625516,
+              "p95": 0.11172839506172835
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 196896,
+            "observedBars": 196896,
+            "missingBars": 0,
+            "missingFraction": 0.0,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 11280,
+                "observedBars": 11280,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 11232,
+                "observedBars": 11232,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 10944,
+                "observedBars": 10944,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 11088,
+                "observedBars": 11088,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510050": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 10848,
+                "observedBars": 10848,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 11232,
+                "observedBars": 11232,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 10800,
+                "observedBars": 10800,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 11088,
+                "observedBars": 11088,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 11184,
+                "observedBars": 11184,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "post": {
+          "start": "2025-06-03",
+          "end": "2026-07-03",
+          "tradingDays": 265,
+          "barRows": 228864,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 152576,
+              "positiveRows": 5758,
+              "positiveRowRate": 0.037738569630872486,
+              "independentEvents": 3395,
+              "independentUpEvents": 1823,
+              "independentDownEvents": 1574
+            },
+            "10": {
+              "effectiveSamples": 128736,
+              "positiveRows": 7842,
+              "positiveRowRate": 0.06091536167039523,
+              "independentEvents": 3040,
+              "independentUpEvents": 1630,
+              "independentDownEvents": 1415
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 265,
+              "mean": 5.346918181691217e-05,
+              "median": 0.0007603462216995149,
+              "standardDeviation": 0.005860507390793818,
+              "p05": -0.010908276835279028,
+              "p95": 0.00884848599155132
+            },
+            "realized_volatility": {
+              "count": 265,
+              "mean": 0.0011601135373206445,
+              "median": 0.0010726638314558488,
+              "standardDeviation": 0.0003543407703274776,
+              "p05": 0.0007180879093886553,
+              "p95": 0.001807948964869132
+            },
+            "volume": {
+              "count": 265,
+              "mean": 18223068645.041508,
+              "median": 17863637804.0,
+              "standardDeviation": 4958599981.216735,
+              "p05": 11532942424.8,
+              "p95": 27740366888.799995
+            },
+            "amount": {
+              "count": 265,
+              "mean": 38729134933.884094,
+              "median": 36384779956.484375,
+              "standardDeviation": 14743081185.792265,
+              "p05": 21621371073.284863,
+              "p95": 66795172421.40467
+            },
+            "range_pct": {
+              "count": 265,
+              "mean": 0.013852531577105014,
+              "median": 0.01279910053117006,
+              "standardDeviation": 0.005506009409362293,
+              "p05": 0.006905906567589071,
+              "p95": 0.023372422849017874
+            },
+            "label_rate_5": {
+              "count": 265,
+              "mean": 0.037741244296460724,
+              "median": 0.036458333333333336,
+              "standardDeviation": 0.018864862514279997,
+              "p05": 0.010416666666666666,
+              "p95": 0.07291666666666667
+            },
+            "label_rate_10": {
+              "count": 265,
+              "mean": 0.06091950873058285,
+              "median": 0.05761316872427984,
+              "standardDeviation": 0.030342091352703014,
+              "p05": 0.018930041152263377,
+              "p95": 0.11687242798353906
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 228960,
+            "observedBars": 228864,
+            "missingBars": 96,
+            "missingFraction": 0.0004192872117400419,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 12720,
+                "observedBars": 12624,
+                "missingBars": 96,
+                "missingFraction": 0.007547169811320755
+              },
+              "510050": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 12720,
+                "observedBars": 12720,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "universeConsistent": true,
+        "categoryStructureConsistent": true,
+        "formalPostJumpInferenceAllowed": false
+      }
+    },
+    {
+      "date": "2025-01-02",
+      "exploratoryDistributionShiftScore": 0.3933312682711502,
+      "components": {
+        "daily_return": {
+          "preMean": -0.0004765306619094365,
+          "postMean": 0.0006046210134198343,
+          "rawShift": 0.0010811516753292708,
+          "absoluteStandardizedShift": 0.15137307166072994
+        },
+        "realized_volatility": {
+          "preMean": 0.001461169135827939,
+          "postMean": 0.0011755308182094467,
+          "rawShift": -0.0002856383176184922,
+          "absoluteStandardizedShift": 0.6447066261820593
+        },
+        "log_amount": {
+          "preMean": 24.416950384422584,
+          "postMean": 24.206156103834296,
+          "rawShift": -0.21079428058828853,
+          "absoluteStandardizedShift": 0.653609295145643
+        },
+        "log_volume": {
+          "preMean": 23.988455031465843,
+          "postMean": 23.790376617820836,
+          "rawShift": -0.1980784136450069,
+          "absoluteStandardizedShift": 0.5871950371969754
+        },
+        "range_pct": {
+          "preMean": 0.017262970142459307,
+          "postMean": 0.013667648790891631,
+          "rawShift": -0.0035953213515676763,
+          "absoluteStandardizedShift": 0.5255632301867722
+        },
+        "label_rate_5": {
+          "preMean": 0.03605324074074075,
+          "postMean": 0.038107638888888885,
+          "rawShift": 0.0020543981481481385,
+          "absoluteStandardizedShift": 0.12399259603552829
+        },
+        "label_rate_10": {
+          "preMean": 0.05562414266117969,
+          "postMean": 0.057441700960219486,
+          "rawShift": 0.0018175582990397968,
+          "absoluteStandardizedShift": 0.06687902149034337
+        }
+      },
+      "profitabilityOrModelMetricsUsed": false,
+      "status": "break_date_not_preregistered",
+      "exploratoryRank": 5,
+      "prePostAudit": {
+        "candidateDate": "2025-01-02",
+        "status": "break_date_not_preregistered",
+        "pre": {
+          "start": "2024-06-12",
+          "end": "2024-12-31",
+          "tradingDays": 138,
+          "barRows": 113088,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 75392,
+              "positiveRows": 2780,
+              "positiveRowRate": 0.036873938879456704,
+              "independentEvents": 1618,
+              "independentUpEvents": 925,
+              "independentDownEvents": 693
+            },
+            "10": {
+              "effectiveSamples": 63612,
+              "positiveRows": 3957,
+              "positiveRowRate": 0.06220524429352952,
+              "independentEvents": 1485,
+              "independentUpEvents": 827,
+              "independentDownEvents": 658
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 138,
+              "mean": -7.558353948285114e-05,
+              "median": -0.0004959022654748291,
+              "standardDeviation": 0.007545602502501163,
+              "p05": -0.012043403580806864,
+              "p95": 0.013368956804893637
+            },
+            "realized_volatility": {
+              "count": 138,
+              "mean": 0.0013296006716417201,
+              "median": 0.0011367385159721192,
+              "standardDeviation": 0.0006835521387638864,
+              "p05": 0.0008209309059160103,
+              "p95": 0.0026072895342268325
+            },
+            "volume": {
+              "count": 138,
+              "mean": 21417087470.666668,
+              "median": 17152842440.0,
+              "standardDeviation": 15554557530.033216,
+              "p05": 5808637537.000001,
+              "p95": 43837796347.00003
+            },
+            "amount": {
+              "count": 138,
+              "mean": 31741131215.769447,
+              "median": 25248165182.446705,
+              "standardDeviation": 24802940934.09954,
+              "p05": 5579443289.294532,
+              "p95": 68972564165.36607
+            },
+            "range_pct": {
+              "count": 138,
+              "mean": 0.01578998972487948,
+              "median": 0.01282967257257056,
+              "standardDeviation": 0.009354846831839417,
+              "p05": 0.008311857541701112,
+              "p95": 0.029963595589133717
+            },
+            "label_rate_5": {
+              "count": 138,
+              "mean": 0.036886070853462155,
+              "median": 0.03298611111111111,
+              "standardDeviation": 0.01733646579907204,
+              "p05": 0.012152777777777778,
+              "p95": 0.07291666666666667
+            },
+            "label_rate_10": {
+              "count": 138,
+              "mean": 0.061880692516763376,
+              "median": 0.05761316872427984,
+              "standardDeviation": 0.0326039874515054,
+              "p05": 0.018518518518518517,
+              "p95": 0.12294238683127579
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 113088,
+            "observedBars": 113088,
+            "missingBars": 0,
+            "missingFraction": 0.0,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 6624,
+                "observedBars": 6624,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 6576,
+                "observedBars": 6576,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 6288,
+                "observedBars": 6288,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 6432,
+                "observedBars": 6432,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510050": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 6192,
+                "observedBars": 6192,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 6576,
+                "observedBars": 6576,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 6144,
+                "observedBars": 6144,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 6432,
+                "observedBars": 6432,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 6528,
+                "observedBars": 6528,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "post": {
+          "start": "2025-01-02",
+          "end": "2026-07-03",
+          "tradingDays": 362,
+          "barRows": 312672,
+          "symbols": [
+            "159546",
+            "159915",
+            "159920",
+            "159934",
+            "159941",
+            "159985",
+            "501018",
+            "510050",
+            "510300",
+            "510500",
+            "511010",
+            "513050",
+            "513100",
+            "513180",
+            "513500",
+            "518880",
+            "588000",
+            "588030"
+          ],
+          "symbolCount": 18,
+          "etfCategoryCounts": {
+            "commodity": 4,
+            "cross_border_hk": 3,
+            "cross_border_us": 3,
+            "domestic_broad": 3,
+            "domestic_growth": 4,
+            "fixed_income": 1
+          },
+          "turningLabels": {
+            "5": {
+              "effectiveSamples": 208448,
+              "positiveRows": 7799,
+              "positiveRowRate": 0.03741460700030703,
+              "independentEvents": 4562,
+              "independentUpEvents": 2443,
+              "independentDownEvents": 2121
+            },
+            "10": {
+              "effectiveSamples": 175878,
+              "positiveRows": 10571,
+              "positiveRowRate": 0.06010416311306701,
+              "independentEvents": 4122,
+              "independentUpEvents": 2215,
+              "independentDownEvents": 1912
+            },
+            "60": {
+              "effectiveSamples": 0,
+              "positiveRows": 0,
+              "positiveRowRate": null,
+              "independentEvents": 0,
+              "status": "skipped_cross_session"
+            }
+          },
+          "dailyDistributions": {
+            "daily_return": {
+              "count": 362,
+              "mean": 0.00021409043037834847,
+              "median": 0.0006053796475350148,
+              "standardDeviation": 0.0060382787506027095,
+              "p05": -0.010176175973733399,
+              "p95": 0.009203127685071465
+            },
+            "realized_volatility": {
+              "count": 362,
+              "mean": 0.001162818301590213,
+              "median": 0.0010722274727059918,
+              "standardDeviation": 0.000369468031851924,
+              "p05": 0.0007318913445739659,
+              "p95": 0.0018084699974804568
+            },
+            "volume": {
+              "count": 362,
+              "mean": 19135574838.87293,
+              "median": 18472146872.0,
+              "standardDeviation": 5985790169.614332,
+              "p05": 11695742787.8,
+              "p95": 28662277272.799995
+            },
+            "amount": {
+              "count": 362,
+              "mean": 37456762414.31266,
+              "median": 35145518124.20105,
+              "standardDeviation": 14107521328.530485,
+              "p05": 21708016311.05948,
+              "p95": 64508874787.61795
+            },
+            "range_pct": {
+              "count": 362,
+              "mean": 0.013871881385740874,
+              "median": 0.012658853477000964,
+              "standardDeviation": 0.0059245658933819185,
+              "p05": 0.007124496715781653,
+              "p95": 0.022956441446880912
+            },
+            "label_rate_5": {
+              "count": 362,
+              "mean": 0.037416664409778644,
+              "median": 0.036458333333333336,
+              "standardDeviation": 0.018168172209794838,
+              "p05": 0.010503472222222223,
+              "p95": 0.07118055555555555
+            },
+            "label_rate_10": {
+              "count": 362,
+              "mean": 0.06010744793108567,
+              "median": 0.05761316872427984,
+              "standardDeviation": 0.02871347954550878,
+              "p05": 0.0205761316872428,
+              "p95": 0.10905349794238683
+            }
+          },
+          "spread": {
+            "available": false,
+            "reason": "mootdx OHLCV archive has no bid/ask spread field"
+          },
+          "missingBars": {
+            "expectedBars": 312768,
+            "observedBars": 312672,
+            "missingBars": 96,
+            "missingFraction": 0.0003069367710251688,
+            "perSymbol": {
+              "159546": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159915": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159920": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159934": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159941": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "159985": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "501018": {
+                "expectedBars": 17376,
+                "observedBars": 17280,
+                "missingBars": 96,
+                "missingFraction": 0.0055248618784530384
+              },
+              "510050": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510300": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "510500": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "511010": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513050": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513100": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513180": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "513500": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "518880": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588000": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              },
+              "588030": {
+                "expectedBars": 17376,
+                "observedBars": 17376,
+                "missingBars": 0,
+                "missingFraction": 0.0
+              }
+            }
+          }
+        },
+        "universeConsistent": true,
+        "categoryStructureConsistent": true,
+        "formalPostJumpInferenceAllowed": false
+      }
+    }
+  ],
+  "formalPostJumpInferenceAllowed": false,
+  "structuralChangeConclusion": "not_established",
+  "reason": "Every candidate is detected with hindsight. No candidate is promoted into an HMM training cutoff."
+}
