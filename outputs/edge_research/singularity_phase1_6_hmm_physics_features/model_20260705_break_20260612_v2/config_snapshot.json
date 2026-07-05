@@ -1,0 +1,185 @@
+{
+  "schemaVersion": "singularity_phase1_6_hmm_physics_model_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-05T10:00:00+08:00",
+  "researchQuestion": "Do fixed classic-LPPLS and fixed linear-DMD auxiliary diagnostics add stable, calibrated turning-risk information beyond the existing causal HMM plus EWS baseline?",
+  "userPreregisteredBreak": {
+    "date": "2026-06-12",
+    "interpretation": "The user's unqualified June 12 instruction is interpreted as the most recent 2026-06-12.",
+    "source": "user_instruction",
+    "selectedFromModelResults": false,
+    "minimumPostJumpTrainingDays": 60,
+    "minimumPostJumpTestDays": 20
+  },
+  "source": {
+    "gate0Config": "configs/research/singularity_phase1_6_hmm_physics_features.json",
+    "gate0Result": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/gate0_20260705_preregistered_v1/phase1_6_gate0_result.json",
+    "phase2AConfig": "configs/research/singularity_phase2a_historical.json",
+    "reuseExistingGaussianHMM1D": true,
+    "reusePhase2ALpplsAndDmd": true,
+    "phase15LedgerAllowedAsInput": false
+  },
+  "data": {
+    "fixedHMMFitEnd": "2025-06-30",
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "primaryHorizonsBars": [
+      5,
+      10
+    ],
+    "barIntervalMinutes": 5,
+    "sameSessionOnly": true
+  },
+  "hmm": {
+    "implementation": "research_hmm_nn_bl.GaussianHMM1D",
+    "states": 3,
+    "iterations": 40,
+    "varianceFloor": 1e-08,
+    "sessionResetFiltering": true,
+    "automaticStateOrParameterSearchAllowed": false,
+    "postJumpEnabled": false,
+    "postJumpReason": "Only 15 trading days exist from 2026-06-12 through 2026-07-03.",
+    "timeDecayEnabled": false,
+    "timeDecayHalfLifeDays": null,
+    "timeDecayReason": "No half-life was supplied or independently preregistered.",
+    "multivariateEmissionEnabled": false
+  },
+  "features": {
+    "base": [
+      "ret_1",
+      "ret_3",
+      "ret_6",
+      "acceleration_1",
+      "vol_6",
+      "market_ret_1",
+      "market_ret_3",
+      "breadth",
+      "relative_strength",
+      "amount_rank",
+      "session_fraction"
+    ],
+    "ews": [
+      "ews_log_variance",
+      "ews_autocorrelation_1",
+      "ews_variance_slope",
+      "ews_market_dispersion",
+      "ews_score"
+    ],
+    "hmm": [
+      "hmm_bear_probability",
+      "hmm_middle_probability",
+      "hmm_bull_probability",
+      "hmm_expected_return",
+      "regime_transition_risk",
+      "regime_entropy"
+    ],
+    "lppls": [
+      "lppls_tc_proximity",
+      "lppls_time_to_tc",
+      "lppls_fit_residual",
+      "lppls_parameter_stability",
+      "lppls_window_consensus",
+      "lppls_bubble_like_score"
+    ],
+    "dmd": [
+      "dmd_reconstruction_residual",
+      "dmd_residual_zscore",
+      "dmd_spectral_radius",
+      "dmd_spectral_radius_drift",
+      "dmd_eigen_instability",
+      "dmd_missing_bar_ratio"
+    ],
+    "winsorizationQuantiles": [
+      0.01,
+      0.99
+    ],
+    "winsorizationFitPerFoldOnly": true,
+    "noForcedDmdImputation": true
+  },
+  "populations": {
+    "fullSession": {
+      "variants": [
+        "constant_prior",
+        "ews_baseline",
+        "current_hmm",
+        "current_hmm_ews",
+        "hmm_lppls",
+        "hmm_ews_lppls"
+      ],
+      "requiresDmd": false
+    },
+    "dmdCompleteLateSession": {
+      "variants": [
+        "constant_prior",
+        "ews_baseline",
+        "current_hmm",
+        "current_hmm_ews",
+        "hmm_dmd",
+        "hmm_ews_dmd",
+        "hmm_ews_lppls_dmd"
+      ],
+      "requiresDmd": true,
+      "cannotBeExtrapolatedToFullSession": true
+    }
+  },
+  "models": {
+    "logisticC": 0.1,
+    "calibrationC": 1.0,
+    "calibrationDays": 20,
+    "walkForwardTestBlockDays": 40,
+    "minimumBaseFitDays": 160,
+    "purgeDecisionRowsPerSymbol": 30,
+    "embargoTradingDays": 1,
+    "randomSeed": 20260705,
+    "probabilityBinEdges": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "highRiskThreshold": 0.35,
+    "clusterBootstrapReplicates": 2000,
+    "clusterBootstrapConfidence": 0.95
+  },
+  "successGate": {
+    "comparisonBaseline": "current_hmm_ews",
+    "minimumImprovedMetricCountOfFour": 3,
+    "minimumImprovingFoldFraction": 0.5,
+    "minimumImprovingMonthFraction": 0.5,
+    "minimumImprovingEtfCategories": 2,
+    "minimumHighRiskSamples": 100,
+    "maximumHighRiskOptimism": 0.1,
+    "requireBrierClusterBootstrapUpperBelowZero": true,
+    "sameForecastPopulationRequired": true,
+    "automaticPromotionAllowed": false
+  },
+  "output": {
+    "root": "outputs/edge_research/singularity_phase1_6_hmm_physics_features"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "forwardTaskIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  }
+}

@@ -96,3 +96,24 @@ A later commit may preregister and run the minimum HMM comparison only after:
 
 Passing Gate 0 would authorize a historical experiment only, never production
 or forward-task integration.
+
+## User-preregistered 2026-06-12 follow-up
+
+The user subsequently fixed the break date at 2026-06-12. Only 15 trading days
+exist from that date through the available 2026-07-03 endpoint, so a
+post-jump train/calibration/OOS split remains impossible.
+
+The historical model study therefore tests the existing frozen 3-state HMM
+with auxiliary covariates:
+
+- LPPLS is compared with `HMM + EWS` on the full-session same-sample
+  population.
+- DMD is compared on its explicitly separate complete-feature late-session
+  population.
+- DMD results are not extrapolated to the full session.
+- No hidden-state emission, transition matrix or state duration is modified.
+
+The LPPLS 5-bar result is retained as a frozen forward-retest hypothesis when
+aggregate metrics improve but the trading-day-clustered confidence interval
+or high-risk sample gate fails. At least 20 genuinely new trading days after
+2026-07-03 are required before re-evaluation, with no historical retuning.

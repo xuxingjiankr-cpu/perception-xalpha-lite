@@ -5327,6 +5327,151 @@ def t91_singularity_phase1_6_gate0_fails_closed_without_break() -> None:
     )
 
 
+def t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only() -> None:
+    import json
+
+    import research_singularity_phase1_6_hmm_physics_model as model
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase1_6_hmm_physics_model_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    model.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T92 user break is frozen but insufficient post-break data stays fail-closed",
+        config["userPreregisteredBreak"]["date"] == "2026-06-12"
+        and config["userPreregisteredBreak"]["source"]
+        == "user_instruction"
+        and config["userPreregisteredBreak"][
+            "selectedFromModelResults"
+        ]
+        is False
+        and config["hmm"]["postJumpEnabled"] is False
+        and config["userPreregisteredBreak"][
+            "minimumPostJumpTrainingDays"
+        ]
+        == 60
+        and config["userPreregisteredBreak"][
+            "minimumPostJumpTestDays"
+        ]
+        == 20,
+    )
+    check(
+        "T92 existing HMM is reused with frozen states and no automatic search",
+        config["hmm"]["implementation"]
+        == "research_hmm_nn_bl.GaussianHMM1D"
+        and config["hmm"]["states"] == 3
+        and config["hmm"]["iterations"] == 40
+        and config["hmm"]["automaticStateOrParameterSearchAllowed"]
+        is False
+        and config["data"]["fixedHMMFitEnd"]
+        < config["data"]["walkForwardStart"],
+    )
+    check(
+        "T92 LPPLS is full-session while DMD stays an explicit late-session population",
+        "hmm_ews_lppls"
+        in config["populations"]["fullSession"]["variants"]
+        and config["populations"]["fullSession"]["requiresDmd"] is False
+        and "hmm_ews_dmd"
+        in config["populations"]["dmdCompleteLateSession"]["variants"]
+        and config["populations"]["dmdCompleteLateSession"][
+            "requiresDmd"
+        ]
+        is True
+        and config["populations"]["dmdCompleteLateSession"][
+            "cannotBeExtrapolatedToFullSession"
+        ]
+        is True
+        and config["features"]["noForcedDmdImputation"] is True,
+    )
+    check(
+        "T92 auxiliary success gate is clustered, same-sample and cannot promote",
+        config["successGate"]["comparisonBaseline"]
+        == "current_hmm_ews"
+        and config["successGate"][
+            "requireBrierClusterBootstrapUpperBelowZero"
+        ]
+        is True
+        and config["successGate"]["sameForecastPopulationRequired"]
+        is True
+        and config["successGate"]["automaticPromotionAllowed"] is False
+        and config["models"]["clusterBootstrapReplicates"] == 2000,
+    )
+    check(
+        "T92 model experiment cannot trade, write forward state, or mutate Phase 1.5",
+        safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "phase15WritesAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "forwardTaskIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and config["source"]["phase15LedgerAllowedAsInput"] is False,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_singularity_phase1_6_hmm_physics_model.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T92 model source has no broker or production artifact path",
+        "from research_hmm_nn_bl import GaussianHMM1D" in source
+        and "SkillClient(" not in source
+        and "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "decision_probability_v1.json" not in source
+        and "singularity_phase1_5" not in source
+        and "forward_days.jsonl" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "singularity_phase1_6_hmm_physics_features"
+        / "model_20260705_break_20260612_v2"
+        / "phase1_6_model_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    check(
+        "T92 promising LPPLS result freezes for new-data retest without deployment",
+        result["conclusions"]["lpplsHelpsHMM"] is False
+        and result["conclusions"]["lpplsForwardRetestStatus"]
+        == "retain_frozen_hypothesis_promising_5bar_not_proven"
+        and result["forwardRetestPlan"]["minimumNewIndependentTradingDays"]
+        == 20
+        and result["forwardRetestPlan"]["parametersRemainFrozen"] is True
+        and result["forwardRetestPlan"][
+            "historicalRefitOrRetuningAllowed"
+        ]
+        is False
+        and result["forwardRetestPlan"][
+            "automaticForwardTaskIntegration"
+        ]
+        is False
+        and result["conclusions"]["productionOrForwardUseAllowed"]
+        is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5418,6 +5563,7 @@ if __name__ == "__main__":
     t89_singularity_phase1_5_is_frozen_forward_shadow_only()
     t90_singularity_phase2a_is_causal_historical_and_isolated()
     t91_singularity_phase1_6_gate0_fails_closed_without_break()
+    t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
