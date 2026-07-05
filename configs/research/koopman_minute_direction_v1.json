@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "koopman_minute_direction_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-05T13:00:00+08:00",
+  "researchQuestion": "Does a fixed linear delay-DMD Koopman forecast add stable next-minute ETF direction information beyond causal price and market-state baselines when recomputed after every completed one-minute bar?",
+  "userDirective": {
+    "receivedDate": "2026-07-05",
+    "koopmanRole": "per_minute_direction_judgment",
+    "lateSessionConfirmationOnly": false
+  },
+  "data": {
+    "root": "data/market/mootdx/bars_1m",
+    "historicalStart": "2026-02-06",
+    "historicalEnd": "2026-07-03",
+    "fixedPreprocessingEnd": "2026-04-27",
+    "walkForwardStart": "2026-04-28",
+    "walkForwardEnd": "2026-07-03",
+    "barIntervalMinutes": 1,
+    "expectedBarsPerFullSession": 240,
+    "timezoneAssumption": "Asia/Shanghai",
+    "sameSessionOnly": true
+  },
+  "universe": [
+    {"stockCode": "159546", "category": "domestic_growth"},
+    {"stockCode": "159915", "category": "domestic_growth"},
+    {"stockCode": "159920", "category": "cross_border_hk"},
+    {"stockCode": "159934", "category": "commodity"},
+    {"stockCode": "159941", "category": "cross_border_us"},
+    {"stockCode": "159985", "category": "commodity"},
+    {"stockCode": "501018", "category": "commodity"},
+    {"stockCode": "510050", "category": "domestic_broad"},
+    {"stockCode": "510300", "category": "domestic_broad"},
+    {"stockCode": "510500", "category": "domestic_broad"},
+    {"stockCode": "511010", "category": "fixed_income"},
+    {"stockCode": "513050", "category": "cross_border_hk"},
+    {"stockCode": "513100", "category": "cross_border_us"},
+    {"stockCode": "513180", "category": "cross_border_hk"},
+    {"stockCode": "513500", "category": "cross_border_us"},
+    {"stockCode": "518880", "category": "commodity"},
+    {"stockCode": "588000", "category": "domestic_growth"},
+    {"stockCode": "588030", "category": "domestic_growth"}
+  ],
+  "koopman": {
+    "implementation": "fixed_window_linear_delay_dmd_direction",
+    "windowBars": 24,
+    "delayDimension": 3,
+    "ridge": 0.000001,
+    "decisionStrideBars": 1,
+    "variables": [
+      "ret_1",
+      "market_ret_1",
+      "relative_strength",
+      "vol_6"
+    ],
+    "standardizationFitEnd": "2026-04-27",
+    "parameterSearchAllowed": false,
+    "kernelEnabled": false,
+    "deepEnabled": false,
+    "crossSessionWindowsAllowed": false
+  },
+  "labels": {
+    "primary": "next_minute_direction",
+    "horizonBars": 1,
+    "upDefinition": "close_t_plus_1_gt_close_t",
+    "downDefinition": "close_t_plus_1_lt_close_t",
+    "exactZeroReturn": "neutral_excluded_from_binary_fit_and_metrics",
+    "futureLabelsStoredSeparately": true
+  },
+  "models": {
+    "variants": {
+      "causal_baseline": [
+        "ret_1",
+        "ret_3",
+        "market_ret_1",
+        "relative_strength",
+        "vol_6",
+        "session_fraction"
+      ],
+      "koopman_only": [
+        "koopman_forecast_return",
+        "koopman_forecast_market_return",
+        "koopman_forecast_relative_strength",
+        "koopman_training_error",
+        "koopman_spectral_radius",
+        "koopman_instability"
+      ],
+      "baseline_plus_koopman": [
+        "ret_1",
+        "ret_3",
+        "market_ret_1",
+        "relative_strength",
+        "vol_6",
+        "session_fraction",
+        "koopman_forecast_return",
+        "koopman_forecast_market_return",
+        "koopman_forecast_relative_strength",
+        "koopman_training_error",
+        "koopman_spectral_radius",
+        "koopman_instability"
+      ]
+    },
+    "logisticC": 0.1,
+    "calibrationC": 1.0,
+    "calibrationDays": 10,
+    "walkForwardTestBlockDays": 9,
+    "minimumBaseFitDays": 30,
+    "embargoTradingDays": 1,
+    "purgeBarsPerSymbol": 1,
+    "randomSeed": 20260705,
+    "probabilityBinEdges": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "clusterBootstrapReplicates": 2000,
+    "clusterBootstrapConfidence": 0.95
+  },
+  "successGate": {
+    "comparisonBaseline": "causal_baseline",
+    "candidate": "baseline_plus_koopman",
+    "minimumOosTradingDays": 40,
+    "minimumImprovedMetricCountOfFour": 3,
+    "minimumImprovingFoldFractionExclusive": 0.5,
+    "minimumImprovingMonthFractionExclusive": 0.5,
+    "minimumImprovingEtfCategories": 2,
+    "requireBrierTradeDateClusterBootstrapUpperBelowZero": true,
+    "sameForecastPopulationRequired": true,
+    "causalTestsRequired": true,
+    "automaticPaperIntegrationAllowed": false
+  },
+  "paperIntegration": {
+    "currentStatus": "not_allowed_until_success_gate",
+    "eligibleRoleIfValidated": "direction_context_shadow_first",
+    "mayGenerateIndependentOrders": false,
+    "mayChangeSellPath": false,
+    "mayChangePositionSizing": false,
+    "mayBypassTripleLock": false
+  },
+  "output": {
+    "root": "outputs/edge_research/koopman_minute_direction"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  }
+}

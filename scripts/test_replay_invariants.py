@@ -5565,6 +5565,132 @@ def t93_koopman_paper_exception_cannot_waive_predictive_evidence() -> None:
     )
 
 
+def t94_koopman_minute_direction_is_causal_and_shadow_only() -> None:
+    import json
+
+    import numpy as np
+
+    import research_koopman_minute_direction as minute_direction
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "koopman_minute_direction_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    minute_direction.validate_config(config)
+    check(
+        "T94 Koopman is explicitly a per-minute direction model, not a late-session confirmation",
+        config["userDirective"]["koopmanRole"]
+        == "per_minute_direction_judgment"
+        and config["userDirective"]["lateSessionConfirmationOnly"] is False
+        and config["data"]["barIntervalMinutes"] == 1
+        and config["koopman"]["decisionStrideBars"] == 1
+        and config["koopman"]["crossSessionWindowsAllowed"] is False
+        and config["labels"]["primary"] == "next_minute_direction"
+        and config["labels"]["futureLabelsStoredSeparately"] is True,
+    )
+    check(
+        "T94 fixed linear DMD cannot silently become tuned, kernel, or deep Koopman",
+        config["koopman"]["windowBars"] == 24
+        and config["koopman"]["delayDimension"] == 3
+        and config["koopman"]["ridge"] == 0.000001
+        and config["koopman"]["parameterSearchAllowed"] is False
+        and config["koopman"]["kernelEnabled"] is False
+        and config["koopman"]["deepEnabled"] is False,
+    )
+    rng = np.random.default_rng(20260705)
+    completed_history = rng.normal(size=(24, 4))
+    unchanged = minute_direction.dmd_direction(
+        completed_history.copy(), config
+    )
+    unseen_future = rng.normal(size=(1, 4)) * 1000.0
+    with_unseen_suffix = np.vstack([completed_history, unseen_future])
+    repeated = minute_direction.dmd_direction(
+        with_unseen_suffix[:24], config
+    )
+    check(
+        "T94 completed-minute Koopman forecast ignores an unseen future shock",
+        unchanged is not None
+        and repeated is not None
+        and all(
+            abs(unchanged[key] - repeated[key]) < 1e-12
+            for key in unchanged
+        ),
+    )
+    safety = config["safety"]
+    integration = config["paperIntegration"]
+    check(
+        "T94 minute direction remains record-only and cannot alter trading",
+        safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and integration["mayGenerateIndependentOrders"] is False
+        and integration["mayChangeSellPath"] is False
+        and integration["mayChangePositionSizing"] is False
+        and integration["mayBypassTripleLock"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_koopman_minute_direction.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T94 minute-direction research has no broker, order, or decision-gate path",
+        "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "decision_probability_v1.json" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "koopman_minute_direction"
+        / "koopman_minute_direction_20260705_v1"
+        / "koopman_minute_direction_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    gate = result["successGate"]
+    check(
+        "T94 historical probability gate passes without claiming paper eligibility",
+        result["featureAudit"]["firstDecisionMinute"] == "10:00"
+        and result["featureAudit"]["lastDecisionMinute"] == "14:59"
+        and gate["improvedMetricCountOfFour"] == 4
+        and gate["improvingFolds"] == 4
+        and gate["totalFolds"] == 5
+        and gate["improvingMonths"] == 3
+        and gate["totalMonths"] == 4
+        and gate["clusterBootstrap"]["upper"] < 0.0
+        and gate["passes"] is True
+        and result["paperIntegrationAllowed"] is False,
+    )
+    check(
+        "T94 historical pass leaves paper configuration and agent byte-identical",
+        result["paperConfigModified"] is False
+        and result["agentSourceModified"] is False
+        and result["paperConfigHashBefore"]
+        == result["paperConfigHashAfter"]
+        and result["agentSourceHashBefore"]
+        == result["agentSourceHashAfter"],
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5658,6 +5784,7 @@ if __name__ == "__main__":
     t91_singularity_phase1_6_gate0_fails_closed_without_break()
     t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only()
     t93_koopman_paper_exception_cannot_waive_predictive_evidence()
+    t94_koopman_minute_direction_is_causal_and_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

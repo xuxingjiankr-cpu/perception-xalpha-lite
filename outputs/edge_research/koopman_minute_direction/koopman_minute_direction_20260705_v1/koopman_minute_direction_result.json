@@ -1,0 +1,3814 @@
+{
+  "schemaVersion": "koopman_minute_direction_result_v1",
+  "runId": "koopman_minute_direction_20260705_v1",
+  "sourceCommitAtRun": "4d289cb",
+  "generatedAt": "2026-07-05T17:58:03+09:00",
+  "status": "diagnostic_only",
+  "researchOnly": true,
+  "shadowOnly": true,
+  "dataRange": {
+    "start": "2026-02-06",
+    "end": "2026-07-03"
+  },
+  "universeSize": 18,
+  "tradingDays": 95,
+  "rawRows": 408480,
+  "sourceAudit": {
+    "159546": {
+      "rows": 22560,
+      "tradingDays": 94,
+      "first": "2026-02-09",
+      "last": "2026-07-03",
+      "fullSessionDays": 94,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "159915": {
+      "rows": 22560,
+      "tradingDays": 94,
+      "first": "2026-02-09",
+      "last": "2026-07-03",
+      "fullSessionDays": 94,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "159920": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "159934": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "159941": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "159985": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "501018": {
+      "rows": 22320,
+      "tradingDays": 93,
+      "first": "2026-02-09",
+      "last": "2026-07-03",
+      "fullSessionDays": 93,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "510050": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "510300": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "510500": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "511010": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "513050": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "513100": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "513180": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "513500": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "518880": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "588000": {
+      "rows": 22800,
+      "tradingDays": 95,
+      "first": "2026-02-06",
+      "last": "2026-07-03",
+      "fullSessionDays": 95,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    },
+    "588030": {
+      "rows": 21840,
+      "tradingDays": 91,
+      "first": "2026-02-12",
+      "last": "2026-07-03",
+      "fullSessionDays": 91,
+      "minimumBarsPerDay": 240,
+      "maximumBarsPerDay": 240,
+      "duplicateTimestamps": 0,
+      "invalidOhlcRows": 0
+    }
+  },
+  "standardization": {
+    "ret_1": {
+      "mean": -2.0658830397888405e-06,
+      "standardDeviation": 0.001166863865460559,
+      "fitEnd": "2026-04-27"
+    },
+    "market_ret_1": {
+      "mean": -3.833142387019029e-06,
+      "standardDeviation": 0.00030517301871086315,
+      "fitEnd": "2026-04-27"
+    },
+    "relative_strength": {
+      "mean": 1.7672593472301872e-06,
+      "standardDeviation": 0.0011206225458687848,
+      "fitEnd": "2026-04-27"
+    },
+    "vol_6": {
+      "mean": 0.000670387921462267,
+      "standardDeviation": 0.0008381537473916851,
+      "fitEnd": "2026-04-27"
+    }
+  },
+  "featureAudit": {
+    "potentialDecisionRowsAfterWarmup": 367632,
+    "successfulKoopmanRows": 357420,
+    "coverage": 0.9722222222222222,
+    "firstDecisionMinute": "10:00",
+    "lastDecisionMinute": "14:59",
+    "neutralLabelRows": 108656,
+    "directionalLabelRows": 248764
+  },
+  "labelDefinition": {
+    "primary": "next_minute_direction",
+    "horizonBars": 1,
+    "upDefinition": "close_t_plus_1_gt_close_t",
+    "downDefinition": "close_t_plus_1_lt_close_t",
+    "exactZeroReturn": "neutral_excluded_from_binary_fit_and_metrics",
+    "futureLabelsStoredSeparately": true
+  },
+  "comparison": {
+    "baseline": "causal_baseline",
+    "candidate": "baseline_plus_koopman"
+  },
+  "walkForwardFolds": [
+    {
+      "fold": 1,
+      "testDates": [
+        "2026-04-28",
+        "2026-04-29",
+        "2026-04-30",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13"
+      ],
+      "fitStart": "2026-02-06",
+      "fitEnd": "2026-04-09",
+      "calibrationStart": "2026-04-13",
+      "calibrationEnd": "2026-04-24",
+      "testEmbargoDates": [
+        "2026-04-27"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-04-10"
+      ],
+      "purgeBarsPerSymbol": 1,
+      "testBoundaryPurgedRows": 873,
+      "calibrationBoundaryPurgedRows": 674,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "causal_baseline": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction"
+          ],
+          "fitSamples": 94422,
+          "calibrationSamples": 24908,
+          "testSamples": 23195,
+          "fitPositiveRate": 0.49218402490944907,
+          "calibrationPositiveRate": 0.5003211819495744,
+          "testPositiveRate": 0.5092045699504203
+        },
+        "koopman_only": {
+          "features": [
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 94422,
+          "calibrationSamples": 24908,
+          "testSamples": 23195,
+          "fitPositiveRate": 0.49218402490944907,
+          "calibrationPositiveRate": 0.5003211819495744,
+          "testPositiveRate": 0.5092045699504203
+        },
+        "baseline_plus_koopman": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction",
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 94422,
+          "calibrationSamples": 24908,
+          "testSamples": 23195,
+          "fitPositiveRate": 0.49218402490944907,
+          "calibrationPositiveRate": 0.5003211819495744,
+          "testPositiveRate": 0.5092045699504203
+        }
+      }
+    },
+    {
+      "fold": 2,
+      "testDates": [
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-25",
+        "2026-05-26"
+      ],
+      "fitStart": "2026-02-06",
+      "fitEnd": "2026-04-22",
+      "calibrationStart": "2026-04-24",
+      "calibrationEnd": "2026-05-12",
+      "testEmbargoDates": [
+        "2026-05-13"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-04-23"
+      ],
+      "purgeBarsPerSymbol": 1,
+      "testBoundaryPurgedRows": 1035,
+      "calibrationBoundaryPurgedRows": 836,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "causal_baseline": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction"
+          ],
+          "fitSamples": 116497,
+          "calibrationSamples": 25547,
+          "testSamples": 24728,
+          "fitPositiveRate": 0.4934633509875791,
+          "calibrationPositiveRate": 0.5034642032332564,
+          "testPositiveRate": 0.49640084115173083
+        },
+        "koopman_only": {
+          "features": [
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 116497,
+          "calibrationSamples": 25547,
+          "testSamples": 24728,
+          "fitPositiveRate": 0.4934633509875791,
+          "calibrationPositiveRate": 0.5034642032332564,
+          "testPositiveRate": 0.49640084115173083
+        },
+        "baseline_plus_koopman": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction",
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 116497,
+          "calibrationSamples": 25547,
+          "testSamples": 24728,
+          "fitPositiveRate": 0.4934633509875791,
+          "calibrationPositiveRate": 0.5034642032332564,
+          "testPositiveRate": 0.49640084115173083
+        }
+      }
+    },
+    {
+      "fold": 3,
+      "testDates": [
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-05",
+        "2026-06-08"
+      ],
+      "fitStart": "2026-02-06",
+      "fitEnd": "2026-05-08",
+      "calibrationStart": "2026-05-12",
+      "calibrationEnd": "2026-05-25",
+      "testEmbargoDates": [
+        "2026-05-26"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-05-11"
+      ],
+      "purgeBarsPerSymbol": 1,
+      "testBoundaryPurgedRows": 1197,
+      "calibrationBoundaryPurgedRows": 998,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "causal_baseline": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction"
+          ],
+          "fitSamples": 139399,
+          "calibrationSamples": 27095,
+          "testSamples": 25270,
+          "fitPositiveRate": 0.4944798743176063,
+          "calibrationPositiveRate": 0.4989850525927293,
+          "testPositiveRate": 0.4882469331222794
+        },
+        "koopman_only": {
+          "features": [
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 139399,
+          "calibrationSamples": 27095,
+          "testSamples": 25270,
+          "fitPositiveRate": 0.4944798743176063,
+          "calibrationPositiveRate": 0.4989850525927293,
+          "testPositiveRate": 0.4882469331222794
+        },
+        "baseline_plus_koopman": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction",
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 139399,
+          "calibrationSamples": 27095,
+          "testSamples": 25270,
+          "fitPositiveRate": 0.4944798743176063,
+          "calibrationPositiveRate": 0.4989850525927293,
+          "testPositiveRate": 0.4882469331222794
+        }
+      }
+    },
+    {
+      "fold": 4,
+      "testDates": [
+        "2026-06-09",
+        "2026-06-10",
+        "2026-06-11",
+        "2026-06-12",
+        "2026-06-15",
+        "2026-06-16",
+        "2026-06-17",
+        "2026-06-18",
+        "2026-06-22"
+      ],
+      "fitStart": "2026-02-06",
+      "fitEnd": "2026-05-21",
+      "calibrationStart": "2026-05-25",
+      "calibrationEnd": "2026-06-05",
+      "testEmbargoDates": [
+        "2026-06-08"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-05-22"
+      ],
+      "purgeBarsPerSymbol": 1,
+      "testBoundaryPurgedRows": 1359,
+      "calibrationBoundaryPurgedRows": 1160,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "causal_baseline": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction"
+          ],
+          "fitSamples": 163567,
+          "calibrationSamples": 27578,
+          "testSamples": 24380,
+          "fitPositiveRate": 0.4949653658745346,
+          "calibrationPositiveRate": 0.4938356661106679,
+          "testPositiveRate": 0.5060295324036095
+        },
+        "koopman_only": {
+          "features": [
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 163567,
+          "calibrationSamples": 27578,
+          "testSamples": 24380,
+          "fitPositiveRate": 0.4949653658745346,
+          "calibrationPositiveRate": 0.4938356661106679,
+          "testPositiveRate": 0.5060295324036095
+        },
+        "baseline_plus_koopman": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction",
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 163567,
+          "calibrationSamples": 27578,
+          "testSamples": 24380,
+          "fitPositiveRate": 0.4949653658745346,
+          "calibrationPositiveRate": 0.4938356661106679,
+          "testPositiveRate": 0.5060295324036095
+        }
+      }
+    },
+    {
+      "fold": 5,
+      "testDates": [
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-26",
+        "2026-06-29",
+        "2026-06-30",
+        "2026-07-01",
+        "2026-07-02",
+        "2026-07-03"
+      ],
+      "fitStart": "2026-02-06",
+      "fitEnd": "2026-06-03",
+      "calibrationStart": "2026-06-05",
+      "calibrationEnd": "2026-06-18",
+      "testEmbargoDates": [
+        "2026-06-22"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-06-04"
+      ],
+      "purgeBarsPerSymbol": 1,
+      "testBoundaryPurgedRows": 1521,
+      "calibrationBoundaryPurgedRows": 1322,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "causal_baseline": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction"
+          ],
+          "fitSamples": 188227,
+          "calibrationSamples": 27127,
+          "testSamples": 25165,
+          "fitPositiveRate": 0.4956462144113225,
+          "calibrationPositiveRate": 0.4964057949644266,
+          "testPositiveRate": 0.4951321279554937
+        },
+        "koopman_only": {
+          "features": [
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 188227,
+          "calibrationSamples": 27127,
+          "testSamples": 25165,
+          "fitPositiveRate": 0.4956462144113225,
+          "calibrationPositiveRate": 0.4964057949644266,
+          "testPositiveRate": 0.4951321279554937
+        },
+        "baseline_plus_koopman": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "market_ret_1",
+            "relative_strength",
+            "vol_6",
+            "session_fraction",
+            "koopman_forecast_return",
+            "koopman_forecast_market_return",
+            "koopman_forecast_relative_strength",
+            "koopman_training_error",
+            "koopman_spectral_radius",
+            "koopman_instability"
+          ],
+          "fitSamples": 188227,
+          "calibrationSamples": 27127,
+          "testSamples": 25165,
+          "fitPositiveRate": 0.4956462144113225,
+          "calibrationPositiveRate": 0.4964057949644266,
+          "testPositiveRate": 0.4951321279554937
+        }
+      }
+    }
+  ],
+  "metrics": {
+    "overall": {
+      "causal_baseline": {
+        "count": 122738,
+        "brier": 0.2480691631298219,
+        "log_loss": 0.6896478884662136,
+        "auc": 0.5629549473625934,
+        "ece": 0.020972388282371496,
+        "meanProbability": 0.4981740059668961,
+        "actualUpRate": 0.4987941794717202,
+        "directionalAccuracyAtHalf": 0.5484935390832505,
+        "bins": [
+          {
+            "low": 0.0,
+            "high": 0.1,
+            "count": 31,
+            "meanProbability": 0.05524524709658694,
+            "hitRate": 0.3548387096774194
+          },
+          {
+            "low": 0.1,
+            "high": 0.2,
+            "count": 100,
+            "meanProbability": 0.15861922192939104,
+            "hitRate": 0.52
+          },
+          {
+            "low": 0.2,
+            "high": 0.3,
+            "count": 565,
+            "meanProbability": 0.2633970688596902,
+            "hitRate": 0.45309734513274336
+          },
+          {
+            "low": 0.3,
+            "high": 0.4,
+            "count": 4466,
+            "meanProbability": 0.3672852625939223,
+            "hitRate": 0.4238692342140618
+          },
+          {
+            "low": 0.4,
+            "high": 0.5,
+            "count": 60162,
+            "meanProbability": 0.4713387928155298,
+            "hitRate": 0.45543698680230044
+          },
+          {
+            "low": 0.5,
+            "high": 0.6,
+            "count": 52611,
+            "meanProbability": 0.5296838346387348,
+            "hitRate": 0.5471669422744293
+          },
+          {
+            "low": 0.6,
+            "high": 0.7,
+            "count": 4164,
+            "meanProbability": 0.6323172344824535,
+            "hitRate": 0.5953410182516811
+          },
+          {
+            "low": 0.7,
+            "high": 0.8,
+            "count": 539,
+            "meanProbability": 0.7349030088037741,
+            "hitRate": 0.5380333951762524
+          },
+          {
+            "low": 0.8,
+            "high": 0.9,
+            "count": 82,
+            "meanProbability": 0.8307971127795309,
+            "hitRate": 0.4878048780487805
+          },
+          {
+            "low": 0.9,
+            "high": 1.0,
+            "count": 18,
+            "meanProbability": 0.9501981076281538,
+            "hitRate": 0.7222222222222222
+          }
+        ]
+      },
+      "koopman_only": {
+        "count": 122738,
+        "brier": 0.24996898170637888,
+        "log_loss": 0.6930855491287421,
+        "auc": 0.5053352195644891,
+        "ece": 0.0016957082429513303,
+        "meanProbability": 0.4985908048566125,
+        "actualUpRate": 0.4987941794717202,
+        "directionalAccuracyAtHalf": 0.50534471801724,
+        "bins": [
+          {
+            "low": 0.1,
+            "high": 0.2,
+            "count": 1,
+            "meanProbability": 0.11708416502797105,
+            "hitRate": 0.0
+          },
+          {
+            "low": 0.3,
+            "high": 0.4,
+            "count": 1,
+            "meanProbability": 0.37586379832088357,
+            "hitRate": 1.0
+          },
+          {
+            "low": 0.4,
+            "high": 0.5,
+            "count": 76002,
+            "meanProbability": 0.4958872311085795,
+            "hitRate": 0.4947106655088024
+          },
+          {
+            "low": 0.5,
+            "high": 0.6,
+            "count": 46730,
+            "meanProbability": 0.5029826407730746,
+            "hitRate": 0.5054568799486411
+          },
+          {
+            "low": 0.6,
+            "high": 0.7,
+            "count": 2,
+            "meanProbability": 0.6192004845336213,
+            "hitRate": 0.0
+          },
+          {
+            "low": 0.7,
+            "high": 0.8,
+            "count": 1,
+            "meanProbability": 0.7005169596726204,
+            "hitRate": 1.0
+          },
+          {
+            "low": 0.8,
+            "high": 0.9,
+            "count": 1,
+            "meanProbability": 0.8061985587771022,
+            "hitRate": 0.0
+          }
+        ]
+      },
+      "baseline_plus_koopman": {
+        "count": 122738,
+        "brier": 0.2480395200020799,
+        "log_loss": 0.6895792897594506,
+        "auc": 0.5631476244781278,
+        "ece": 0.020541377970264042,
+        "meanProbability": 0.49811849207137227,
+        "actualUpRate": 0.4987941794717202,
+        "directionalAccuracyAtHalf": 0.5482898531832032,
+        "bins": [
+          {
+            "low": 0.0,
+            "high": 0.1,
+            "count": 30,
+            "meanProbability": 0.055416647361316344,
+            "hitRate": 0.3333333333333333
+          },
+          {
+            "low": 0.1,
+            "high": 0.2,
+            "count": 100,
+            "meanProbability": 0.15986636079931807,
+            "hitRate": 0.51
+          },
+          {
+            "low": 0.2,
+            "high": 0.3,
+            "count": 539,
+            "meanProbability": 0.26316986662355263,
+            "hitRate": 0.45269016697588127
+          },
+          {
+            "low": 0.3,
+            "high": 0.4,
+            "count": 4515,
+            "meanProbability": 0.36734950406626676,
+            "hitRate": 0.4225913621262459
+          },
+          {
+            "low": 0.4,
+            "high": 0.5,
+            "count": 60067,
+            "meanProbability": 0.4711258735707343,
+            "hitRate": 0.4557410891171525
+          },
+          {
+            "low": 0.5,
+            "high": 0.6,
+            "count": 52682,
+            "meanProbability": 0.5296846970654275,
+            "hitRate": 0.5469040659048632
+          },
+          {
+            "low": 0.6,
+            "high": 0.7,
+            "count": 4162,
+            "meanProbability": 0.6323058675612261,
+            "hitRate": 0.5953868332532436
+          },
+          {
+            "low": 0.7,
+            "high": 0.8,
+            "count": 544,
+            "meanProbability": 0.7350743429981087,
+            "hitRate": 0.5349264705882353
+          },
+          {
+            "low": 0.8,
+            "high": 0.9,
+            "count": 80,
+            "meanProbability": 0.8308901873762856,
+            "hitRate": 0.475
+          },
+          {
+            "low": 0.9,
+            "high": 1.0,
+            "count": 19,
+            "meanProbability": 0.9479493916307122,
+            "hitRate": 0.7368421052631579
+          }
+        ]
+      }
+    },
+    "byFold": {
+      "1": {
+        "causal_baseline": {
+          "count": 23195,
+          "brier": 0.24593587224157884,
+          "log_loss": 0.6852335679796188,
+          "auc": 0.5838367343459915,
+          "ece": 0.0314443064399199,
+          "meanProbability": 0.49955552379108864,
+          "actualUpRate": 0.5092045699504203,
+          "directionalAccuracyAtHalf": 0.5657684845871955,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 2,
+              "meanProbability": 0.02373365611895381,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 16,
+              "meanProbability": 0.1564229175136339,
+              "hitRate": 0.5625
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 122,
+              "meanProbability": 0.26458723772254517,
+              "hitRate": 0.5
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 1081,
+              "meanProbability": 0.3682045179569089,
+              "hitRate": 0.4116558741905643
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 10685,
+              "meanProbability": 0.4694646334885793,
+              "hitRate": 0.44754328497894247
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 10117,
+              "meanProbability": 0.5316822103141863,
+              "hitRate": 0.5667688049817139
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1025,
+              "meanProbability": 0.632760417451482,
+              "hitRate": 0.671219512195122
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 125,
+              "meanProbability": 0.7370118005692159,
+              "hitRate": 0.624
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 20,
+              "meanProbability": 0.8247391132187859,
+              "hitRate": 0.65
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 2,
+              "meanProbability": 0.9360988154430951,
+              "hitRate": 0.5
+            }
+          ]
+        },
+        "koopman_only": {
+          "count": 23195,
+          "brier": 0.24997849181255846,
+          "log_loss": 0.6931041609805335,
+          "auc": 0.5050239325121424,
+          "ece": 0.008840954166818907,
+          "meanProbability": 0.5003636157836014,
+          "actualUpRate": 0.5092045699504203,
+          "directionalAccuracyAtHalf": 0.5067040310411727,
+          "bins": [
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 8758,
+              "meanProbability": 0.49874401874963536,
+              "hitRate": 0.5033112582781457
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 14437,
+              "meanProbability": 0.501346121208792,
+              "hitRate": 0.512779663364965
+            }
+          ]
+        },
+        "baseline_plus_koopman": {
+          "count": 23195,
+          "brier": 0.24593689497616752,
+          "log_loss": 0.6852336387765185,
+          "auc": 0.5836357733268289,
+          "ece": 0.03040020573898653,
+          "meanProbability": 0.49966346650924,
+          "actualUpRate": 0.5092045699504203,
+          "directionalAccuracyAtHalf": 0.5652080189696055,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 2,
+              "meanProbability": 0.02441129974200981,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 17,
+              "meanProbability": 0.16114098475986033,
+              "hitRate": 0.5294117647058824
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 113,
+              "meanProbability": 0.26412072647998985,
+              "hitRate": 0.49557522123893805
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 1094,
+              "meanProbability": 0.3678437633986576,
+              "hitRate": 0.40950639853747717
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 10457,
+              "meanProbability": 0.46885921189886753,
+              "hitRate": 0.44745146791622836
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 10348,
+              "meanProbability": 0.5312834011718414,
+              "hitRate": 0.5648434480092771
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1015,
+              "meanProbability": 0.6325654339561682,
+              "hitRate": 0.6699507389162561
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 127,
+              "meanProbability": 0.7370995909811382,
+              "hitRate": 0.6377952755905512
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 20,
+              "meanProbability": 0.8259604968331882,
+              "hitRate": 0.6
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 2,
+              "meanProbability": 0.9364897407979274,
+              "hitRate": 0.5
+            }
+          ]
+        }
+      },
+      "2": {
+        "causal_baseline": {
+          "count": 24728,
+          "brier": 0.24897277840699358,
+          "log_loss": 0.6921887696786219,
+          "auc": 0.5621769020560076,
+          "ece": 0.017097459086012224,
+          "meanProbability": 0.5014756096174753,
+          "actualUpRate": 0.49640084115173083,
+          "directionalAccuracyAtHalf": 0.5454949854416047,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 20,
+              "meanProbability": 0.05387149506941034,
+              "hitRate": 0.5
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 59,
+              "meanProbability": 0.15876682750389567,
+              "hitRate": 0.4745762711864407
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 298,
+              "meanProbability": 0.26190801817398773,
+              "hitRate": 0.412751677852349
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 1548,
+              "meanProbability": 0.36295748774615155,
+              "hitRate": 0.41214470284237725
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 9421,
+              "meanProbability": 0.46340894373833763,
+              "hitRate": 0.4529243180129498
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 11393,
+              "meanProbability": 0.5338927012993817,
+              "hitRate": 0.5313789168787852
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1649,
+              "meanProbability": 0.6336973860576858,
+              "hitRate": 0.5894481503941783
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 284,
+              "meanProbability": 0.7368780803124367,
+              "hitRate": 0.5422535211267606
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 47,
+              "meanProbability": 0.832141895334136,
+              "hitRate": 0.46808510638297873
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 9,
+              "meanProbability": 0.9301314542916381,
+              "hitRate": 0.7777777777777778
+            }
+          ]
+        },
+        "koopman_only": {
+          "count": 24728,
+          "brier": 0.2500369586017233,
+          "log_loss": 0.6932210991395751,
+          "auc": 0.49359502278465195,
+          "ece": 0.007063682679491368,
+          "meanProbability": 0.5034645238312222,
+          "actualUpRate": 0.49640084115173083,
+          "directionalAccuracyAtHalf": 0.49640084115173083,
+          "bins": [
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 24728,
+              "meanProbability": 0.5034645238312222,
+              "hitRate": 0.49640084115173083
+            }
+          ]
+        },
+        "baseline_plus_koopman": {
+          "count": 24728,
+          "brier": 0.24892621104455975,
+          "log_loss": 0.692045173180196,
+          "auc": 0.5617106503753502,
+          "ece": 0.016252536922267982,
+          "meanProbability": 0.5011608222224502,
+          "actualUpRate": 0.49640084115173083,
+          "directionalAccuracyAtHalf": 0.5463037851827888,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 19,
+              "meanProbability": 0.0542717525718859,
+              "hitRate": 0.47368421052631576
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 59,
+              "meanProbability": 0.16044194002751214,
+              "hitRate": 0.4745762711864407
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 282,
+              "meanProbability": 0.262190160300798,
+              "hitRate": 0.4219858156028369
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 1572,
+              "meanProbability": 0.3635312827519967,
+              "hitRate": 0.4083969465648855
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 9584,
+              "meanProbability": 0.4637588259147517,
+              "hitRate": 0.45315108514190316
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 11260,
+              "meanProbability": 0.5341343157324832,
+              "hitRate": 0.533303730017762
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1623,
+              "meanProbability": 0.6339979264269165,
+              "hitRate": 0.5884165126309304
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 274,
+              "meanProbability": 0.7377428022056144,
+              "hitRate": 0.5291970802919708
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 46,
+              "meanProbability": 0.8324048749618068,
+              "hitRate": 0.4782608695652174
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 9,
+              "meanProbability": 0.9301114563430991,
+              "hitRate": 0.7777777777777778
+            }
+          ]
+        }
+      },
+      "3": {
+        "causal_baseline": {
+          "count": 25270,
+          "brier": 0.2488990411014123,
+          "log_loss": 0.6911938220684574,
+          "auc": 0.5495219404446677,
+          "ece": 0.01657511036737431,
+          "meanProbability": 0.5000114636631771,
+          "actualUpRate": 0.4882469331222794,
+          "directionalAccuracyAtHalf": 0.5397309062129007,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 6,
+              "meanProbability": 0.05031268287265942,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 10,
+              "meanProbability": 0.15935013341788967,
+              "hitRate": 0.8
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 55,
+              "meanProbability": 0.2735246669150717,
+              "hitRate": 0.6
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 656,
+              "meanProbability": 0.37131244798469204,
+              "hitRate": 0.4268292682926829
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 11496,
+              "meanProbability": 0.4704165064364262,
+              "hitRate": 0.44711203897007656
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 12377,
+              "meanProbability": 0.528189363004194,
+              "hitRate": 0.5263795750181789
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 616,
+              "meanProbability": 0.6312471448651938,
+              "hitRate": 0.5405844155844156
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 46,
+              "meanProbability": 0.7269770163413942,
+              "hitRate": 0.5434782608695652
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 4,
+              "meanProbability": 0.8210349422294495,
+              "hitRate": 0.5
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 4,
+              "meanProbability": 0.9720647812834294,
+              "hitRate": 0.5
+            }
+          ]
+        },
+        "koopman_only": {
+          "count": 25270,
+          "brier": 0.24997767424184683,
+          "log_loss": 0.6931025289863851,
+          "auc": 0.5087834593680214,
+          "ece": 0.010762318719250874,
+          "meanProbability": 0.4990092518415303,
+          "actualUpRate": 0.4882469331222794,
+          "directionalAccuracyAtHalf": 0.5117530668777206,
+          "bins": [
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 25270,
+              "meanProbability": 0.4990092518415303,
+              "hitRate": 0.4882469331222794
+            }
+          ]
+        },
+        "baseline_plus_koopman": {
+          "count": 25270,
+          "brier": 0.2488800444870092,
+          "log_loss": 0.691157971914413,
+          "auc": 0.5495679872577619,
+          "ece": 0.01673647831682919,
+          "meanProbability": 0.499963204460669,
+          "actualUpRate": 0.4882469331222794,
+          "directionalAccuracyAtHalf": 0.5376731301939058,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 6,
+              "meanProbability": 0.04960851240433445,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 9,
+              "meanProbability": 0.1562920901547191,
+              "hitRate": 0.7777777777777778
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 52,
+              "meanProbability": 0.27104047045410734,
+              "hitRate": 0.5961538461538461
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 655,
+              "meanProbability": 0.37109763595787715,
+              "hitRate": 0.433587786259542
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 11593,
+              "meanProbability": 0.47033604518729977,
+              "hitRate": 0.4494953851462089
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 12264,
+              "meanProbability": 0.5283430269661724,
+              "hitRate": 0.5242987606001305
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 633,
+              "meanProbability": 0.6310615020826714,
+              "hitRate": 0.5434439178515008
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 50,
+              "meanProbability": 0.7271908088751943,
+              "hitRate": 0.54
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 4,
+              "meanProbability": 0.8213640821521879,
+              "hitRate": 0.5
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 4,
+              "meanProbability": 0.9728146647647475,
+              "hitRate": 0.5
+            }
+          ]
+        }
+      },
+      "4": {
+        "causal_baseline": {
+          "count": 24380,
+          "brier": 0.24772320748923127,
+          "log_loss": 0.688565831215731,
+          "auc": 0.5700926749262766,
+          "ece": 0.02589278719456715,
+          "meanProbability": 0.49418219461794305,
+          "actualUpRate": 0.5060295324036095,
+          "directionalAccuracyAtHalf": 0.5469237079573421,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 2,
+              "meanProbability": 0.09760942739453055,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 4,
+              "meanProbability": 0.16063139819914798,
+              "hitRate": 0.25
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 16,
+              "meanProbability": 0.25317670257052266,
+              "hitRate": 0.25
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 213,
+              "meanProbability": 0.3770312258624535,
+              "hitRate": 0.431924882629108
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 15340,
+              "meanProbability": 0.47897288843026176,
+              "hitRate": 0.46883963494132985
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 8620,
+              "meanProbability": 0.5216963506308739,
+              "hitRate": 0.5736658932714617
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 169,
+              "meanProbability": 0.6290999185741907,
+              "hitRate": 0.5502958579881657
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 13,
+              "meanProbability": 0.7303896293488071,
+              "hitRate": 0.6153846153846154
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 2,
+              "meanProbability": 0.8554611288965083,
+              "hitRate": 0.5
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 1,
+              "meanProbability": 0.9751573513184641,
+              "hitRate": 1.0
+            }
+          ]
+        },
+        "koopman_only": {
+          "count": 24380,
+          "brier": 0.25002649290270607,
+          "log_loss": 0.6932001767153879,
+          "auc": 0.5132284047333535,
+          "ece": 0.012330929698152776,
+          "meanProbability": 0.493750531204706,
+          "actualUpRate": 0.5060295324036095,
+          "directionalAccuracyAtHalf": 0.49479081214109927,
+          "bins": [
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 23426,
+              "meanProbability": 0.4933451215584492,
+              "hitRate": 0.5058482028515325
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 953,
+              "meanProbability": 0.5035699105316422,
+              "hitRate": 0.5110178384050367
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1,
+              "meanProbability": 0.6330084058489308,
+              "hitRate": 0.0
+            }
+          ]
+        },
+        "baseline_plus_koopman": {
+          "count": 24380,
+          "brier": 0.24769531481039034,
+          "log_loss": 0.6885103041913053,
+          "auc": 0.5703412438411113,
+          "ece": 0.025952423933443606,
+          "meanProbability": 0.4941639194238688,
+          "actualUpRate": 0.5060295324036095,
+          "directionalAccuracyAtHalf": 0.5470877768662838,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 2,
+              "meanProbability": 0.09699710601883307,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 4,
+              "meanProbability": 0.15747033041728747,
+              "hitRate": 0.25
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 15,
+              "meanProbability": 0.24942029669159804,
+              "hitRate": 0.26666666666666666
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 217,
+              "meanProbability": 0.3763408690563855,
+              "hitRate": 0.423963133640553
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 15327,
+              "meanProbability": 0.4788127851341547,
+              "hitRate": 0.4687805832844001
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 8627,
+              "meanProbability": 0.5218595328846918,
+              "hitRate": 0.5740118233453112
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 171,
+              "meanProbability": 0.6298057385325836,
+              "hitRate": 0.543859649122807
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 14,
+              "meanProbability": 0.7317321219506423,
+              "hitRate": 0.5714285714285714
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 1,
+              "meanProbability": 0.8196425660303,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 2,
+              "meanProbability": 0.9393927373838596,
+              "hitRate": 1.0
+            }
+          ]
+        }
+      },
+      "5": {
+        "causal_baseline": {
+          "count": 25165,
+          "brier": 0.24864935251008838,
+          "log_loss": 0.6907158028991246,
+          "auc": 0.558316113333624,
+          "ece": 0.022015489796352497,
+          "meanProbability": 0.4956785338309451,
+          "actualUpRate": 0.4951321279554937,
+          "directionalAccuracyAtHalf": 0.5458374726803099,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 1,
+              "meanProbability": 0.0906104943430626,
+              "hitRate": 1.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 11,
+              "meanProbability": 0.15962597845596635,
+              "hitRate": 0.5454545454545454
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 74,
+              "meanProbability": 0.26211388603066,
+              "hitRate": 0.47297297297297297
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 968,
+              "meanProbability": 0.36830587894146205,
+              "hitRate": 0.4524793388429752
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 13220,
+              "meanProbability": 0.4704483297329943,
+              "hitRate": 0.4552950075642965
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 10104,
+              "meanProbability": 0.5315820930507675,
+              "hitRate": 0.5481987331749802
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 705,
+              "meanProbability": 0.6301509495206318,
+              "hitRate": 0.5574468085106383
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 71,
+              "meanProbability": 0.7292516046776278,
+              "hitRate": 0.352112676056338
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 9,
+              "meanProbability": 0.8360944306811802,
+              "hitRate": 0.2222222222222222
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 2,
+              "meanProbability": 0.9983843706718247,
+              "hitRate": 1.0
+            }
+          ]
+        },
+        "koopman_only": {
+          "count": 25165,
+          "brier": 0.24982897364285248,
+          "log_loss": 0.6928070955569067,
+          "auc": 0.5182388981221608,
+          "ece": 0.010766339120641805,
+          "meanProbability": 0.49643678316255113,
+          "actualUpRate": 0.4951321279554937,
+          "directionalAccuracyAtHalf": 0.516669978144248,
+          "bins": [
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 1,
+              "meanProbability": 0.11708416502797105,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 1,
+              "meanProbability": 0.37586379832088357,
+              "hitRate": 1.0
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 18548,
+              "meanProbability": 0.4934955041428322,
+              "hitRate": 0.4853892602976062
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 6612,
+              "meanProbability": 0.5046690836962086,
+              "hitRate": 0.5225347852389595
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 1,
+              "meanProbability": 0.6053925632183118,
+              "hitRate": 0.0
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 1,
+              "meanProbability": 0.7005169596726204,
+              "hitRate": 1.0
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 1,
+              "meanProbability": 0.8061985587771022,
+              "hitRate": 0.0
+            }
+          ]
+        },
+        "baseline_plus_koopman": {
+          "count": 25165,
+          "brier": 0.24859568770392074,
+          "log_loss": 0.6906120566744675,
+          "auc": 0.5589378241778651,
+          "ece": 0.022001005674436257,
+          "meanProbability": 0.4956837683283329,
+          "actualUpRate": 0.4951321279554937,
+          "directionalAccuracyAtHalf": 0.5464732763759189,
+          "bins": [
+            {
+              "low": 0.0,
+              "high": 0.1,
+              "count": 1,
+              "meanProbability": 0.09086823602596572,
+              "hitRate": 1.0
+            },
+            {
+              "low": 0.1,
+              "high": 0.2,
+              "count": 11,
+              "meanProbability": 0.1586049767572128,
+              "hitRate": 0.5454545454545454
+            },
+            {
+              "low": 0.2,
+              "high": 0.3,
+              "count": 77,
+              "meanProbability": 0.26272573894861573,
+              "hitRate": 0.44155844155844154
+            },
+            {
+              "low": 0.3,
+              "high": 0.4,
+              "count": 977,
+              "meanProbability": 0.36842972065228163,
+              "hitRate": 0.4524053224155578
+            },
+            {
+              "low": 0.4,
+              "high": 0.5,
+              "count": 13106,
+              "meanProbability": 0.4700307608555091,
+              "hitRate": 0.45452464520067143
+            },
+            {
+              "low": 0.5,
+              "high": 0.6,
+              "count": 10183,
+              "meanProbability": 0.5313851622721696,
+              "hitRate": 0.5479721103800451
+            },
+            {
+              "low": 0.6,
+              "high": 0.7,
+              "count": 720,
+              "meanProbability": 0.6298135536472554,
+              "hitRate": 0.5638888888888889
+            },
+            {
+              "low": 0.7,
+              "high": 0.8,
+              "count": 79,
+              "meanProbability": 0.7281452731767029,
+              "hitRate": 0.379746835443038
+            },
+            {
+              "low": 0.8,
+              "high": 0.9,
+              "count": 9,
+              "meanProbability": 0.8395868789507692,
+              "hitRate": 0.2222222222222222
+            },
+            {
+              "low": 0.9,
+              "high": 1.0,
+              "count": 2,
+              "meanProbability": 0.9985058592365363,
+              "hitRate": 1.0
+            }
+          ]
+        }
+      }
+    },
+    "byGroup": {
+      "month": {
+        "2026-04": {
+          "causal_baseline": {
+            "count": 7608,
+            "brier": 0.24702956660343434,
+            "log_loss": 0.6877686204624619,
+            "auc": 0.5786583154288722,
+            "ece": 0.034849005875220135,
+            "meanProbability": 0.49951798565775984,
+            "actualUpRate": 0.5042060988433228,
+            "directionalAccuracyAtHalf": 0.5654574132492114,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 2,
+                "meanProbability": 0.02373365611895381,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 8,
+                "meanProbability": 0.1473433191558543,
+                "hitRate": 0.875
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 54,
+                "meanProbability": 0.2611761031469195,
+                "hitRate": 0.5370370370370371
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 361,
+                "meanProbability": 0.3660296492795261,
+                "hitRate": 0.4099722991689751
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 3487,
+                "meanProbability": 0.4700562371215148,
+                "hitRate": 0.4413535990823057
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3282,
+                "meanProbability": 0.530742146853525,
+                "hitRate": 0.5612431444241316
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 339,
+                "meanProbability": 0.6350622820248447,
+                "hitRate": 0.6755162241887905
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 61,
+                "meanProbability": 0.736820263814636,
+                "hitRate": 0.5409836065573771
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 12,
+                "meanProbability": 0.8150196594097446,
+                "hitRate": 0.6666666666666666
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 2,
+                "meanProbability": 0.9360988154430951,
+                "hitRate": 0.5
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 7608,
+            "brier": 0.24999415059559102,
+            "log_loss": 0.6931354747290538,
+            "auc": 0.5016430545250277,
+            "ece": 0.003859108999603111,
+            "meanProbability": 0.5003469898437197,
+            "actualUpRate": 0.5042060988433228,
+            "directionalAccuracyAtHalf": 0.5006572029442692,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 2867,
+                "meanProbability": 0.4987485522665895,
+                "hitRate": 0.504708754795954
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 4741,
+                "meanProbability": 0.5013136045945387,
+                "hitRate": 0.5039021303522464
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 7608,
+            "brier": 0.24704817330228976,
+            "log_loss": 0.6878023442850023,
+            "auc": 0.5780965779349955,
+            "ece": 0.03307672452055716,
+            "meanProbability": 0.499599063264854,
+            "actualUpRate": 0.5042060988433228,
+            "directionalAccuracyAtHalf": 0.5630914826498423,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 2,
+                "meanProbability": 0.02441129974200981,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 8,
+                "meanProbability": 0.14909464001857645,
+                "hitRate": 0.875
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 53,
+                "meanProbability": 0.26203082411591827,
+                "hitRate": 0.5283018867924528
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 361,
+                "meanProbability": 0.36570449072045974,
+                "hitRate": 0.42105263157894735
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 3422,
+                "meanProbability": 0.46938567348367904,
+                "hitRate": 0.4418468731735827
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3348,
+                "meanProbability": 0.5304000839680836,
+                "hitRate": 0.557347670250896
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 337,
+                "meanProbability": 0.6343376365275457,
+                "hitRate": 0.6735905044510386
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 63,
+                "meanProbability": 0.7357061183964265,
+                "hitRate": 0.5714285714285714
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 12,
+                "meanProbability": 0.8158028778749499,
+                "hitRate": 0.5833333333333334
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 2,
+                "meanProbability": 0.9364897407979274,
+                "hitRate": 0.5
+              }
+            ]
+          }
+        },
+        "2026-05": {
+          "causal_baseline": {
+            "count": 48745,
+            "brier": 0.24785135369824413,
+            "log_loss": 0.6894472892720739,
+            "auc": 0.5666447067535634,
+            "ece": 0.017938003630335254,
+            "meanProbability": 0.5005371217112158,
+            "actualUpRate": 0.4999281977638732,
+            "directionalAccuracyAtHalf": 0.5504564570725202,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 21,
+                "meanProbability": 0.055135585212346634,
+                "hitRate": 0.47619047619047616
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 70,
+                "meanProbability": 0.15958915381982713,
+                "hitRate": 0.4714285714285714
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 390,
+                "meanProbability": 0.2633340485643594,
+                "hitRate": 0.4256410256410256
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 2524,
+                "meanProbability": 0.36563464436184373,
+                "hitRate": 0.4144215530903328
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 20406,
+                "meanProbability": 0.4666000884890571,
+                "hitRate": 0.4517788885621876
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 22351,
+                "meanProbability": 0.5324037312003945,
+                "hitRate": 0.5415865061965908
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 2555,
+                "meanProbability": 0.6329718669193738,
+                "hitRate": 0.6062622309197652
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 363,
+                "meanProbability": 0.7363720372889283,
+                "hitRate": 0.5674931129476584
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 56,
+                "meanProbability": 0.8335041799240402,
+                "hitRate": 0.5
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 9,
+                "meanProbability": 0.9301314542916381,
+                "hitRate": 0.7777777777777778
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 48745,
+            "brier": 0.25000569050911464,
+            "log_loss": 0.6931585618378553,
+            "auc": 0.498523337842686,
+            "ece": 0.0017768620971366192,
+            "meanProbability": 0.5017050598610099,
+            "actualUpRate": 0.4999281977638732,
+            "directionalAccuracyAtHalf": 0.5032311006257052,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 14321,
+                "meanProbability": 0.4988992559959389,
+                "hitRate": 0.49437888415613435
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 34424,
+                "meanProbability": 0.5028723244773148,
+                "hitRate": 0.5022368115268417
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 48745,
+            "brier": 0.24782249367282702,
+            "log_loss": 0.689363046405667,
+            "auc": 0.566527084202582,
+            "ece": 0.01732230493197394,
+            "meanProbability": 0.5004176207928331,
+            "actualUpRate": 0.4999281977638732,
+            "directionalAccuracyAtHalf": 0.5502513078264437,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 20,
+                "meanProbability": 0.05563098899628496,
+                "hitRate": 0.45
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 71,
+                "meanProbability": 0.16196221853146583,
+                "hitRate": 0.4647887323943662
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 363,
+                "meanProbability": 0.2630806196478094,
+                "hitRate": 0.4297520661157025
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 2557,
+                "meanProbability": 0.36575150522266614,
+                "hitRate": 0.41024638247946815
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 20448,
+                "meanProbability": 0.4665020197743299,
+                "hitRate": 0.452660406885759
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 22338,
+                "meanProbability": 0.5324292141076471,
+                "hitRate": 0.541677858357955
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 2530,
+                "meanProbability": 0.6331469874036615,
+                "hitRate": 0.6063241106719368
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 354,
+                "meanProbability": 0.7372260217778851,
+                "hitRate": 0.556497175141243
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 55,
+                "meanProbability": 0.8340390260843994,
+                "hitRate": 0.509090909090909
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 9,
+                "meanProbability": 0.9301114563430991,
+                "hitRate": 0.7777777777777778
+              }
+            ]
+          }
+        },
+        "2026-06": {
+          "causal_baseline": {
+            "count": 58102,
+            "brier": 0.24821108813086,
+            "log_loss": 0.689700106846596,
+            "auc": 0.559945247981428,
+            "ece": 0.021954676081321203,
+            "meanProbability": 0.49622359390676907,
+            "actualUpRate": 0.5003786444528587,
+            "directionalAccuracyAtHalf": 0.5450759010016867,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 7,
+                "meanProbability": 0.059525366279135,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 18,
+                "meanProbability": 0.15920327105614035,
+                "hitRate": 0.4444444444444444
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 90,
+                "meanProbability": 0.26906044193276685,
+                "hitRate": 0.5222222222222223
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 1278,
+                "meanProbability": 0.37046657891289003,
+                "hitRate": 0.4428794992175274
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 31942,
+                "meanProbability": 0.4744617567834454,
+                "hitRate": 0.4617118527330787
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 23628,
+                "meanProbability": 0.5266611200797127,
+                "hitRate": 0.5536651430506179
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1036,
+                "meanProbability": 0.6304521194177956,
+                "hitRate": 0.5540540540540541
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 84,
+                "meanProbability": 0.7310582301204945,
+                "hitRate": 0.4642857142857143
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 12,
+                "meanProbability": 0.8337780348740841,
+                "hitRate": 0.3333333333333333
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 7,
+                "meanProbability": 0.9800264596851187,
+                "hitRate": 0.7142857142857143
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 58102,
+            "brier": 0.24997818823751775,
+            "log_loss": 0.6931043926528125,
+            "auc": 0.5055935409800888,
+            "ece": 0.004386157748190377,
+            "meanProbability": 0.4960668966627721,
+            "actualUpRate": 0.5003786444528587,
+            "directionalAccuracyAtHalf": 0.5049568001101511,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 1,
+                "meanProbability": 0.11708416502797105,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 1,
+                "meanProbability": 0.37586379832088357,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 52576,
+                "meanProbability": 0.49515660052618854,
+                "hitRate": 0.4974703286670724
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 5520,
+                "meanProbability": 0.5046897348160565,
+                "hitRate": 0.5282608695652173
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 2,
+                "meanProbability": 0.6192004845336213,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 1,
+                "meanProbability": 0.7005169596726204,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 1,
+                "meanProbability": 0.8061985587771022,
+                "hitRate": 0.0
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 58102,
+            "brier": 0.24817957679885763,
+            "log_loss": 0.6896392069105399,
+            "auc": 0.5602586277190158,
+            "ece": 0.021344034783216014,
+            "meanProbability": 0.4961968352552672,
+            "actualUpRate": 0.5003786444528587,
+            "directionalAccuracyAtHalf": 0.544731678771815,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 7,
+                "meanProbability": 0.058598400771972245,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 17,
+                "meanProbability": 0.15640430042508677,
+                "hitRate": 0.4117647058823529
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 92,
+                "meanProbability": 0.26782655368005,
+                "hitRate": 0.5108695652173914
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 1289,
+                "meanProbability": 0.3705043396442388,
+                "hitRate": 0.4422032583397983
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 31914,
+                "meanProbability": 0.4742576019755305,
+                "hitRate": 0.46208560506360846
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 23618,
+                "meanProbability": 0.5267410321223789,
+                "hitRate": 0.5530950969599459
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1051,
+                "meanProbability": 0.6303120256008643,
+                "hitRate": 0.5566127497621313
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 95,
+                "meanProbability": 0.7299787997305793,
+                "hitRate": 0.47368421052631576
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 11,
+                "meanProbability": 0.8308669547524935,
+                "hitRate": 0.2727272727272727
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 8,
+                "meanProbability": 0.9708819815374727,
+                "hitRate": 0.75
+              }
+            ]
+          }
+        },
+        "2026-07": {
+          "causal_baseline": {
+            "count": 8283,
+            "brier": 0.24931028889400086,
+            "log_loss": 0.6921882345188403,
+            "auc": 0.5537940128396469,
+            "ece": 0.028314228662131173,
+            "meanProbability": 0.49671412030621176,
+            "actualUpRate": 0.47603525292768323,
+            "directionalAccuracyAtHalf": 0.5453338162501509,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 1,
+                "meanProbability": 0.0906104943430626,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 4,
+                "meanProbability": 0.16156899832346108,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 31,
+                "meanProbability": 0.2516166329594242,
+                "hitRate": 0.45161290322580644
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 303,
+                "meanProbability": 0.36911270341445873,
+                "hitRate": 0.4389438943894389
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 4327,
+                "meanProbability": 0.4716661690872816,
+                "hitRate": 0.4377166628148833
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3350,
+                "meanProbability": 0.5318196289258924,
+                "hitRate": 0.5247761194029851
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 234,
+                "meanProbability": 0.6294501499259718,
+                "hitRate": 0.5427350427350427
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 31,
+                "meanProbability": 0.7243466060173837,
+                "hitRate": 0.3870967741935484
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 2,
+                "meanProbability": 0.831778420384675,
+                "hitRate": 0.0
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 8283,
+            "brier": 0.249665254388896,
+            "log_loss": 0.6924778363545739,
+            "auc": 0.5210044399980833,
+            "ece": 0.020319489911212726,
+            "meanProbability": 0.496354742838896,
+            "actualUpRate": 0.47603525292768323,
+            "directionalAccuracyAtHalf": 0.5248098515030786,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 6238,
+                "meanProbability": 0.4938152556882368,
+                "hitRate": 0.4676178262263546
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 2045,
+                "meanProbability": 0.504101110000662,
+                "hitRate": 0.5017114914425428
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 8283,
+            "brier": 0.2492448241316289,
+            "log_loss": 0.6920637129318753,
+            "auc": 0.5552450180042565,
+            "ece": 0.02856694659109933,
+            "meanProbability": 0.4967079993950128,
+            "actualUpRate": 0.47603525292768323,
+            "directionalAccuracyAtHalf": 0.5481105879512254,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 1,
+                "meanProbability": 0.09086823602596572,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 4,
+                "meanProbability": 0.15892208420566115,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 31,
+                "meanProbability": 0.25234246971715446,
+                "hitRate": 0.41935483870967744
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 308,
+                "meanProbability": 0.36934089952379057,
+                "hitRate": 0.4448051948051948
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 4283,
+                "meanProbability": 0.4712560502730719,
+                "hitRate": 0.4342750408592108
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3378,
+                "meanProbability": 0.5314080071855372,
+                "hitRate": 0.5278271166370634
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 244,
+                "meanProbability": 0.629366476402739,
+                "hitRate": 0.5409836065573771
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 32,
+                "meanProbability": 0.7251549827568726,
+                "hitRate": 0.40625
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 2,
+                "meanProbability": 0.8349487593420248,
+                "hitRate": 0.0
+              }
+            ]
+          }
+        }
+      },
+      "etf_category": {
+        "commodity": {
+          "causal_baseline": {
+            "count": 28405,
+            "brier": 0.24969388224462125,
+            "log_loss": 0.6931573638946344,
+            "auc": 0.543045116492455,
+            "ece": 0.01635459930657058,
+            "meanProbability": 0.49868217120467123,
+            "actualUpRate": 0.48952649181482133,
+            "directionalAccuracyAtHalf": 0.534272135187467,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 23,
+                "meanProbability": 0.055980639421855424,
+                "hitRate": 0.2608695652173913
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 57,
+                "meanProbability": 0.15765040151699922,
+                "hitRate": 0.47368421052631576
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 179,
+                "meanProbability": 0.25698667938385733,
+                "hitRate": 0.40782122905027934
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 896,
+                "meanProbability": 0.36549452754452333,
+                "hitRate": 0.42410714285714285
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 13806,
+                "meanProbability": 0.4727676258517555,
+                "hitRate": 0.46059684195277417
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 12322,
+                "meanProbability": 0.5284892193729869,
+                "hitRate": 0.5219120272683005
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 880,
+                "meanProbability": 0.6330185537445787,
+                "hitRate": 0.5454545454545454
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 187,
+                "meanProbability": 0.7393913090045809,
+                "hitRate": 0.6203208556149733
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 45,
+                "meanProbability": 0.8352830253282107,
+                "hitRate": 0.6
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 10,
+                "meanProbability": 0.9325491343775415,
+                "hitRate": 0.6
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 28405,
+            "brier": 0.24998807727817346,
+            "log_loss": 0.6931235120153943,
+            "auc": 0.49756218180014633,
+            "ece": 0.009373517669425378,
+            "meanProbability": 0.4988560639674941,
+            "actualUpRate": 0.48952649181482133,
+            "directionalAccuracyAtHalf": 0.49875022003168457,
+            "bins": [
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 1,
+                "meanProbability": 0.37586379832088357,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 17075,
+                "meanProbability": 0.49624922561861773,
+                "hitRate": 0.492298682284041
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 11328,
+                "meanProbability": 0.5027868743994732,
+                "hitRate": 0.4853460451977401
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1,
+                "meanProbability": 0.6053925632183118,
+                "hitRate": 0.0
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 28405,
+            "brier": 0.2496909070713739,
+            "log_loss": 0.6931312956487727,
+            "auc": 0.5428142494017285,
+            "ece": 0.01634990789276918,
+            "meanProbability": 0.49913168153472426,
+            "actualUpRate": 0.48952649181482133,
+            "directionalAccuracyAtHalf": 0.5338496743531068,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 23,
+                "meanProbability": 0.05789390241069651,
+                "hitRate": 0.2608695652173913
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 56,
+                "meanProbability": 0.1597672522936228,
+                "hitRate": 0.4642857142857143
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 172,
+                "meanProbability": 0.2564857142281987,
+                "hitRate": 0.3953488372093023
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 906,
+                "meanProbability": 0.36513694417078096,
+                "hitRate": 0.4205298013245033
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 13546,
+                "meanProbability": 0.47261151455283923,
+                "hitRate": 0.46072641370146167
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 12588,
+                "meanProbability": 0.5285431672967114,
+                "hitRate": 0.5216078805211313
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 872,
+                "meanProbability": 0.6331363254658818,
+                "hitRate": 0.5355504587155964
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 187,
+                "meanProbability": 0.7395661726146397,
+                "hitRate": 0.6256684491978609
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 45,
+                "meanProbability": 0.8357392848629297,
+                "hitRate": 0.6
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 10,
+                "meanProbability": 0.9328289876194183,
+                "hitRate": 0.6
+              }
+            ]
+          }
+        },
+        "cross_border_hk": {
+          "causal_baseline": {
+            "count": 15412,
+            "brier": 0.23243965222225724,
+            "log_loss": 0.6575944933463607,
+            "auc": 0.7188997192519181,
+            "ece": 0.12256273622370466,
+            "meanProbability": 0.49911879339414583,
+            "actualUpRate": 0.4880612509732676,
+            "directionalAccuracyAtHalf": 0.6642875681287309,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 1,
+                "meanProbability": 0.12139043638178641,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 36,
+                "meanProbability": 0.27454599897308524,
+                "hitRate": 0.25
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 677,
+                "meanProbability": 0.37035693772673284,
+                "hitRate": 0.18463810930576072
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 7458,
+                "meanProbability": 0.46876676916480653,
+                "hitRate": 0.3476803432555645
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 6515,
+                "meanProbability": 0.5333380868166888,
+                "hitRate": 0.63960092095165
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 685,
+                "meanProbability": 0.630280341677623,
+                "hitRate": 0.8642335766423358
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 40,
+                "meanProbability": 0.7294979114784583,
+                "hitRate": 0.875
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 15412,
+            "brier": 0.24980892109553923,
+            "log_loss": 0.6927648046362024,
+            "auc": 0.5179857715214079,
+            "ece": 0.012948699750167603,
+            "meanProbability": 0.4982167880404382,
+            "actualUpRate": 0.4880612509732676,
+            "directionalAccuracyAtHalf": 0.5168050869452375,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 10099,
+                "meanProbability": 0.49569672729125736,
+                "hitRate": 0.4780671353599366
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 5313,
+                "meanProbability": 0.5030069430387399,
+                "hitRate": 0.5070581592320723
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 15412,
+            "brier": 0.23234589333647607,
+            "log_loss": 0.6574079635217038,
+            "auc": 0.7198273151606996,
+            "ece": 0.12435238336576263,
+            "meanProbability": 0.4983294314339206,
+            "actualUpRate": 0.4880612509732676,
+            "directionalAccuracyAtHalf": 0.6662989878017129,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 1,
+                "meanProbability": 0.12474519148148691,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 34,
+                "meanProbability": 0.2741302036268625,
+                "hitRate": 0.23529411764705882
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 686,
+                "meanProbability": 0.3701632624663967,
+                "hitRate": 0.1836734693877551
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 7696,
+                "meanProbability": 0.46883233366308436,
+                "hitRate": 0.3508316008316008
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 6271,
+                "meanProbability": 0.5339922222697141,
+                "hitRate": 0.6472651889650773
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 684,
+                "meanProbability": 0.6298983843725661,
+                "hitRate": 0.8669590643274854
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 40,
+                "meanProbability": 0.7306666614382931,
+                "hitRate": 0.875
+              }
+            ]
+          }
+        },
+        "cross_border_us": {
+          "causal_baseline": {
+            "count": 16991,
+            "brier": 0.24276318861314325,
+            "log_loss": 0.6787194887378929,
+            "auc": 0.6238555731896671,
+            "ece": 0.05985408817477031,
+            "meanProbability": 0.49928794580433333,
+            "actualUpRate": 0.500971102348302,
+            "directionalAccuracyAtHalf": 0.5936672355953152,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 3,
+                "meanProbability": 0.03246080713648401,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 7,
+                "meanProbability": 0.15635511793114346,
+                "hitRate": 0.42857142857142855
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 29,
+                "meanProbability": 0.26339007973158,
+                "hitRate": 0.4827586206896552
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 391,
+                "meanProbability": 0.37295942422067735,
+                "hitRate": 0.3248081841432225
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 8603,
+                "meanProbability": 0.47134892841970116,
+                "hitRate": 0.41671509938393586
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 7467,
+                "meanProbability": 0.5302276262036779,
+                "hitRate": 0.5944823891790545
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 451,
+                "meanProbability": 0.6280883691604332,
+                "hitRate": 0.70509977827051
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 29,
+                "meanProbability": 0.72972937015787,
+                "hitRate": 0.6206896551724138
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 4,
+                "meanProbability": 0.8097912358327022,
+                "hitRate": 0.5
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 7,
+                "meanProbability": 0.9786406435974765,
+                "hitRate": 0.8571428571428571
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 16991,
+            "brier": 0.24999696640925403,
+            "log_loss": 0.6931437673645598,
+            "auc": 0.5058983489284007,
+            "ece": 0.0040219830013641,
+            "meanProbability": 0.49841417161192275,
+            "actualUpRate": 0.500971102348302,
+            "directionalAccuracyAtHalf": 0.5076216820669767,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 1,
+                "meanProbability": 0.11708416502797105,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 10664,
+                "meanProbability": 0.4957698856327386,
+                "hitRate": 0.49474868717179293
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 6323,
+                "meanProbability": 0.5028322507324575,
+                "hitRate": 0.5116242290052191
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1,
+                "meanProbability": 0.6330084058489308,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 1,
+                "meanProbability": 0.7005169596726204,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 1,
+                "meanProbability": 0.8061985587771022,
+                "hitRate": 0.0
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 16991,
+            "brier": 0.2427588640006866,
+            "log_loss": 0.6787133286508461,
+            "auc": 0.6234609117217504,
+            "ece": 0.05883819258893098,
+            "meanProbability": 0.49910502168854826,
+            "actualUpRate": 0.500971102348302,
+            "directionalAccuracyAtHalf": 0.5927255605909011,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 3,
+                "meanProbability": 0.02969921410827824,
+                "hitRate": 0.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 7,
+                "meanProbability": 0.15538045654200897,
+                "hitRate": 0.42857142857142855
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 30,
+                "meanProbability": 0.26428515501530414,
+                "hitRate": 0.4666666666666667
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 397,
+                "meanProbability": 0.37324787148666233,
+                "hitRate": 0.32997481108312343
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 8610,
+                "meanProbability": 0.47113704901388476,
+                "hitRate": 0.4176538908246225
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 7461,
+                "meanProbability": 0.530325538866482,
+                "hitRate": 0.5933520975740517
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 443,
+                "meanProbability": 0.6286947703989239,
+                "hitRate": 0.7133182844243793
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 29,
+                "meanProbability": 0.7299488565804422,
+                "hitRate": 0.5862068965517241
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 4,
+                "meanProbability": 0.8077977719638066,
+                "hitRate": 0.5
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 7,
+                "meanProbability": 0.978339190508502,
+                "hitRate": 0.8571428571428571
+              }
+            ]
+          }
+        },
+        "domestic_broad": {
+          "causal_baseline": {
+            "count": 23766,
+            "brier": 0.24933851274328803,
+            "log_loss": 0.691856130070214,
+            "auc": 0.5359710399061764,
+            "ece": 0.005967072960819897,
+            "meanProbability": 0.49800304000506335,
+            "actualUpRate": 0.502819153412438,
+            "directionalAccuracyAtHalf": 0.5250778422957165,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 2,
+                "meanProbability": 0.18688777433849915,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 5,
+                "meanProbability": 0.2605147340408327,
+                "hitRate": 0.8
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 115,
+                "meanProbability": 0.37820443879154314,
+                "hitRate": 0.5217391304347826
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 12795,
+                "meanProbability": 0.47770148809309826,
+                "hitRate": 0.4789370847987495
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 10749,
+                "meanProbability": 0.5224301930074274,
+                "hitRate": 0.5309331100567495
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 96,
+                "meanProbability": 0.621633878891559,
+                "hitRate": 0.4791666666666667
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 4,
+                "meanProbability": 0.7252129797014871,
+                "hitRate": 0.75
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 23766,
+            "brier": 0.2499979301909436,
+            "log_loss": 0.6931431634928349,
+            "auc": 0.5033775421172058,
+            "ece": 0.004703903011342978,
+            "meanProbability": 0.498115250401095,
+            "actualUpRate": 0.502819153412438,
+            "directionalAccuracyAtHalf": 0.5034923840780947,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 14652,
+                "meanProbability": 0.49517737218638364,
+                "hitRate": 0.49945399945399943
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 9114,
+                "meanProbability": 0.5028382909543043,
+                "hitRate": 0.5082290980908493
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 23766,
+            "brier": 0.2492988583373233,
+            "log_loss": 0.691776569252277,
+            "auc": 0.536623725577403,
+            "ece": 0.00637477320269037,
+            "meanProbability": 0.49757981193316786,
+            "actualUpRate": 0.502819153412438,
+            "directionalAccuracyAtHalf": 0.5260035344609947,
+            "bins": [
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 1,
+                "meanProbability": 0.17552964600492418,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 6,
+                "meanProbability": 0.25019377912975344,
+                "hitRate": 0.8333333333333334
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 111,
+                "meanProbability": 0.3777666866834273,
+                "hitRate": 0.5135135135135135
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 12915,
+                "meanProbability": 0.47739223038544704,
+                "hitRate": 0.478358497870693
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 10635,
+                "meanProbability": 0.5223257073014532,
+                "hitRate": 0.5322990126939351
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 94,
+                "meanProbability": 0.6222588847808838,
+                "hitRate": 0.4787234042553192
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 4,
+                "meanProbability": 0.731532028154078,
+                "hitRate": 0.75
+              }
+            ]
+          }
+        },
+        "domestic_growth": {
+          "causal_baseline": {
+            "count": 31442,
+            "brier": 0.2553228371056353,
+            "log_loss": 0.7047883006583979,
+            "auc": 0.5072593151241549,
+            "ece": 0.046463814984243235,
+            "meanProbability": 0.49654837213258873,
+            "actualUpRate": 0.5037529419248139,
+            "directionalAccuracyAtHalf": 0.5079511481457922,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 5,
+                "meanProbability": 0.06553310637641364,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 33,
+                "meanProbability": 0.16018780290585946,
+                "hitRate": 0.5757575757575758
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 313,
+                "meanProbability": 0.26625284054387105,
+                "hitRate": 0.4952076677316294
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 2323,
+                "meanProbability": 0.36540306042493526,
+                "hitRate": 0.5002152389151958
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 13960,
+                "meanProbability": 0.46343620496817045,
+                "hitRate": 0.49498567335243554
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 12542,
+                "meanProbability": 0.5368628613112044,
+                "hitRate": 0.5155477595279859
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1959,
+                "meanProbability": 0.6347078146296113,
+                "hitRate": 0.5079122001020929
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 274,
+                "meanProbability": 0.7334963255068174,
+                "hitRate": 0.4197080291970803
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 32,
+                "meanProbability": 0.8278120328222829,
+                "hitRate": 0.34375
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 1,
+                "meanProbability": 0.9275900883490149,
+                "hitRate": 1.0
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 31442,
+            "brier": 0.2500016343987886,
+            "log_loss": 0.69315046973156,
+            "auc": 0.5046775455143575,
+            "ece": 0.005092396279641968,
+            "meanProbability": 0.498660545645172,
+            "actualUpRate": 0.5037529419248139,
+            "directionalAccuracyAtHalf": 0.5058838496278862,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 19855,
+                "meanProbability": 0.4958847559415944,
+                "hitRate": 0.4983127675648451
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 11587,
+                "meanProbability": 0.5034170231254975,
+                "hitRate": 0.5130749978424096
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 31442,
+            "brier": 0.2553059133869933,
+            "log_loss": 0.7047345493941092,
+            "auc": 0.5073249065614368,
+            "ece": 0.04788327667211511,
+            "meanProbability": 0.4963422635742501,
+            "actualUpRate": 0.5037529419248139,
+            "directionalAccuracyAtHalf": 0.5065517460721328,
+            "bins": [
+              {
+                "low": 0.0,
+                "high": 0.1,
+                "count": 4,
+                "meanProbability": 0.060460505767159015,
+                "hitRate": 1.0
+              },
+              {
+                "low": 0.1,
+                "high": 0.2,
+                "count": 35,
+                "meanProbability": 0.16147805480595587,
+                "hitRate": 0.5714285714285714
+              },
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 294,
+                "meanProbability": 0.2664139924602909,
+                "hitRate": 0.5034013605442177
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 2352,
+                "meanProbability": 0.3656670103151631,
+                "hitRate": 0.4991496598639456
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 14063,
+                "meanProbability": 0.46338770268586854,
+                "hitRate": 0.49662234231671765
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 12414,
+                "meanProbability": 0.5368395848144596,
+                "hitRate": 0.5135331077815369
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 1969,
+                "meanProbability": 0.6345865135616316,
+                "hitRate": 0.5114271203656678
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 279,
+                "meanProbability": 0.7334168140290971,
+                "hitRate": 0.4157706093189964
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 30,
+                "meanProbability": 0.8272992003145199,
+                "hitRate": 0.3
+              },
+              {
+                "low": 0.9,
+                "high": 1.0,
+                "count": 2,
+                "meanProbability": 0.9171871156149161,
+                "hitRate": 1.0
+              }
+            ]
+          }
+        },
+        "fixed_income": {
+          "causal_baseline": {
+            "count": 6722,
+            "brier": 0.2520335053796337,
+            "log_loss": 0.6973061457883565,
+            "auc": 0.4978795355609685,
+            "ece": 0.023736272119955003,
+            "meanProbability": 0.4992531352262743,
+            "actualUpRate": 0.5196370127938114,
+            "directionalAccuracyAtHalf": 0.5013388872359417,
+            "bins": [
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 3,
+                "meanProbability": 0.2190157534439399,
+                "hitRate": 0.3333333333333333
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 64,
+                "meanProbability": 0.3738950707051393,
+                "hitRate": 0.609375
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 3540,
+                "meanProbability": 0.4793269078321748,
+                "hitRate": 0.5155367231638418
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3016,
+                "meanProbability": 0.5213224772509879,
+                "hitRate": 0.5228779840848806
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 93,
+                "meanProbability": 0.621863304475068,
+                "hitRate": 0.5161290322580645
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 5,
+                "meanProbability": 0.7251267319974245,
+                "hitRate": 0.6
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 1,
+                "meanProbability": 0.8084771145082043,
+                "hitRate": 0.0
+              }
+            ]
+          },
+          "koopman_only": {
+            "count": 6722,
+            "brier": 0.24992945488281057,
+            "log_loss": 0.6930060037119101,
+            "auc": 0.5107890425810254,
+            "ece": 0.019507964125424382,
+            "meanProbability": 0.500129048668387,
+            "actualUpRate": 0.5196370127938114,
+            "directionalAccuracyAtHalf": 0.5052067836953288,
+            "bins": [
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 3657,
+                "meanProbability": 0.49792283715591396,
+                "hitRate": 0.5132622368061253
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3065,
+                "meanProbability": 0.5027613865154063,
+                "hitRate": 0.5272430668841762
+              }
+            ]
+          },
+          "baseline_plus_koopman": {
+            "count": 6722,
+            "brier": 0.2519500786011311,
+            "log_loss": 0.6971397003555246,
+            "auc": 0.4964727490640264,
+            "ece": 0.023479496303784285,
+            "meanProbability": 0.5010726247228949,
+            "actualUpRate": 0.5196370127938114,
+            "directionalAccuracyAtHalf": 0.5004462957453139,
+            "bins": [
+              {
+                "low": 0.2,
+                "high": 0.3,
+                "count": 3,
+                "meanProbability": 0.21905241032272735,
+                "hitRate": 0.3333333333333333
+              },
+              {
+                "low": 0.3,
+                "high": 0.4,
+                "count": 63,
+                "meanProbability": 0.3758194591299988,
+                "hitRate": 0.6190476190476191
+              },
+              {
+                "low": 0.4,
+                "high": 0.5,
+                "count": 3237,
+                "meanProbability": 0.4789486319000534,
+                "hitRate": 0.5177633611368551
+              },
+              {
+                "low": 0.5,
+                "high": 0.6,
+                "count": 3313,
+                "meanProbability": 0.5212385289755491,
+                "hitRate": 0.5203742831270751
+              },
+              {
+                "low": 0.6,
+                "high": 0.7,
+                "count": 100,
+                "meanProbability": 0.6220668641375985,
+                "hitRate": 0.5
+              },
+              {
+                "low": 0.7,
+                "high": 0.8,
+                "count": 5,
+                "meanProbability": 0.7273931573869206,
+                "hitRate": 0.6
+              },
+              {
+                "low": 0.8,
+                "high": 0.9,
+                "count": 1,
+                "meanProbability": 0.8127800739801958,
+                "hitRate": 0.0
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "rawKoopmanDirection": {
+    "rows": 122738,
+    "rawForecastSignAccuracy": 0.5197330899965781,
+    "rawForecastReturnCorrelation": 0.03016245762348641,
+    "forecastPositiveFraction": 0.500741416676172,
+    "actualPositiveFraction": 0.4987941794717202
+  },
+  "successGate": {
+    "improvedMetricCountOfFour": 4,
+    "improvingFolds": 4,
+    "totalFolds": 5,
+    "improvingMonths": 3,
+    "totalMonths": 4,
+    "improvingEtfCategories": [
+      "commodity",
+      "cross_border_hk",
+      "cross_border_us",
+      "domestic_broad",
+      "domestic_growth",
+      "fixed_income"
+    ],
+    "clusterBootstrap": {
+      "cluster": "trade_date",
+      "independentTradingDays": 45,
+      "meanBrierDeltaCandidateMinusBaseline": -2.9388746472441342e-05,
+      "confidence": 0.95,
+      "lower": -4.653026536940455e-05,
+      "upper": -1.228550781758278e-05,
+      "passes": true
+    },
+    "gates": {
+      "minimumOosTradingDays": true,
+      "minimumImprovedMetrics": true,
+      "majorityFolds": true,
+      "majorityMonths": true,
+      "multipleEtfCategories": true,
+      "clusterBootstrapBrier": true,
+      "sameForecastPopulation": true,
+      "causalPastOnlyFeatures": true
+    },
+    "passes": true
+  },
+  "paperIntegrationAllowed": false,
+  "paperIntegrationReason": "Historical gates pass, but the preregistration explicitly requires a separate shadow-first integration review.",
+  "paperConfigHashBefore": "2183b1db161f53f12e4b5738200ae0a2494a01a0b8856002e7120ee56717e456",
+  "paperConfigHashAfter": "2183b1db161f53f12e4b5738200ae0a2494a01a0b8856002e7120ee56717e456",
+  "agentSourceHashBefore": "7968eca0203ae096d4da010b45450e29842dd42d46fb8bdd1f910aa73e4106a9",
+  "agentSourceHashAfter": "7968eca0203ae096d4da010b45450e29842dd42d46fb8bdd1f910aa73e4106a9",
+  "paperConfigModified": false,
+  "agentSourceModified": false,
+  "conclusion": "The fixed per-minute Koopman direction covariates pass the historical evidence gate. They remain research-only pending a separate immutable shadow artifact and fresh forward validation."
+}
