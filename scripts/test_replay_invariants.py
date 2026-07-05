@@ -4748,6 +4748,159 @@ def t87_conditional_minute_tail_preserves_dependence_safely() -> None:
     )
 
 
+def t88_singularity_phase1_is_causal_purged_and_shadow_only() -> None:
+    """Phase 1 features ignore the future while offline labels may use it."""
+    import copy
+    import json
+    import math
+    import research_minute_forecast_shadow as minute
+    import research_singularity_phase1 as singularity
+
+    prereg = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "singularity_phase1_preregistered.json"
+        ).read_text(encoding="utf-8")
+    )
+    config = copy.deepcopy(prereg)
+    config["data"]["trainEnd"] = "2026-05-01"
+    config["features"]["ewsStandardizationFitEnd"] = "2026-05-01"
+    config["features"]["hmm"]["fitEnd"] = "2026-05-01"
+    dates = [
+        singularity.pd.date_range(
+            "2026-05-01 09:30:00", periods=48, freq="5min"
+        ),
+        singularity.pd.date_range(
+            "2026-05-06 09:30:00", periods=48, freq="5min"
+        ),
+    ]
+    rows = []
+    for day_index, timestamps in enumerate(dates):
+        for code_index, code in enumerate(["A", "B"]):
+            for bar_index, timestamp in enumerate(timestamps):
+                rows.append(
+                    {
+                        "timestamp": timestamp,
+                        "trade_date": timestamp.strftime("%Y-%m-%d"),
+                        "stockCode": code,
+                        "close": (
+                            1.0
+                            + day_index * 0.001
+                            + code_index * 0.0002
+                            + bar_index * 0.0002
+                            + math.sin(bar_index / (3.0 + code_index))
+                            * (0.001 + code_index * 0.0004)
+                        ),
+                        "cumulative_amount": float(
+                            (bar_index + 1) * (code_index + 1) * 1_000_000
+                        ),
+                    }
+                )
+    panel = singularity.pd.DataFrame.from_records(rows)
+    decision = dates[1][24]
+
+    def phase1_tables(source):
+        base = minute.build_feature_frames(source)
+        ews, _ = singularity.build_ews_frames(base, config)
+        hmm, _ = singularity.build_hmm_frames(base, config)
+        return (
+            singularity.build_feature_table(base, ews, hmm, config),
+            singularity.build_label_table(base, config)[0],
+        )
+
+    original_features, original_labels = phase1_tables(panel)
+    shocked_panel = panel.copy()
+    shocked_panel.loc[
+        shocked_panel["timestamp"] > decision, "close"
+    ] *= 0.98
+    shocked_features, shocked_labels = phase1_tables(shocked_panel)
+    feature_columns = (
+        list(config["features"]["base"])
+        + singularity.HMM_FEATURES
+        + singularity.EWS_FEATURES
+        + ["singularity_score"]
+    )
+
+    def keyed_row(table):
+        return table[
+            (table["timestamp"] == decision)
+            & (table["stockCode"] == "A")
+        ].iloc[0]
+
+    before = keyed_row(original_features)
+    after = keyed_row(shocked_features)
+    feature_delta = max(
+        abs(float(before[name]) - float(after[name]))
+        for name in feature_columns
+    )
+    original_label = int(keyed_row(original_labels)["turning_point_5"])
+    shocked_label = int(keyed_row(shocked_labels)["turning_point_5"])
+    check(
+        "T88 Phase 1 features at decision ignore unseen future prices",
+        feature_delta < 1e-12,
+        str(feature_delta),
+    )
+    check(
+        "T88 future shock changes only the separate offline reversal label",
+        original_label == 0 and shocked_label == 1,
+        str({"original": original_label, "shocked": shocked_label}),
+    )
+    check(
+        "T88 60-bar cross-session labels stay null",
+        original_labels["turning_point_60"].isna().all()
+        and shocked_labels["turning_point_60"].isna().all(),
+    )
+
+    purge_source = singularity.pd.DataFrame(
+        {
+            "stockCode": ["A"] * 35 + ["B"] * 35,
+            "timestamp": list(range(35)) * 2,
+            "trade_date": ["2026-05-01"] * 70,
+        }
+    )
+    purged, removed = singularity.purge_symbol_tail(purge_source, 30)
+    check(
+        "T88 purge removes at least the maximum label horizon per ETF",
+        removed == 60
+        and len(purged) == 10
+        and prereg["models"]["purgeBars"]
+        >= max(prereg["labels"]["activeHorizonsBars"]),
+        str({"removed": removed, "remaining": len(purged)}),
+    )
+
+    source = (
+        ROOT / "scripts" / "research_singularity_phase1.py"
+    ).read_text(encoding="utf-8")
+    safety = prereg["safety"]
+    check(
+        "T88 Singularity Phase 1 is isolated research-only shadow output",
+        prereg["status"] == "research_only"
+        and prereg["diagnosticOnly"] is True
+        and safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and safety["brokerCallsAllowed"] is False
+        and safety["onlineInferenceAllowed"] is False
+        and safety["liveConfigWritesAllowed"] is False
+        and safety["overlayWritesAllowed"] is False
+        and safety["positionSizingAllowed"] is False
+        and safety["orderSubmissionAllowed"] is False
+        and safety["riskGateChangesAllowed"] is False
+        and safety["buildDecisionIntegrationAllowed"] is False
+        and safety["promotionAllowed"] is False
+        and "SkillClient(" not in source
+        and "submitOrder(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "from t0_intraday_agent" not in source,
+    )
+    check(
+        "T88 Phase 1 reuses the existing HMM implementation",
+        singularity.GaussianHMM1D.__module__ == "research_hmm_nn_bl",
+        singularity.GaussianHMM1D.__module__,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -4835,6 +4988,7 @@ if __name__ == "__main__":
     t85_minute_forecast_is_next_bar_point_in_time_and_safe()
     t86_minute_model_fusion_is_causal_and_shadow_only()
     t87_conditional_minute_tail_preserves_dependence_safely()
+    t88_singularity_phase1_is_causal_purged_and_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1,0 +1,168 @@
+{
+  "schemaVersion": "singularity_phase1_preregistered_v1",
+  "status": "research_only",
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-05T00:00:00+08:00",
+  "hypothesis": "Past-only generic early-warning statistics and the existing frozen HMM may improve calibrated same-session turning-point probability forecasts over the existing causal feature baseline.",
+  "data": {
+    "quotes": "data/research/t0_opening/yahoo_60d_confirmed_t0_raw_5m.jsonl",
+    "trainStart": "2026-03-23",
+    "trainEnd": "2026-05-20",
+    "walkForwardStart": "2026-05-21",
+    "walkForwardEnd": "2026-06-18",
+    "barIntervalMinutes": 5,
+    "candidateUniverseSize": 200,
+    "universeSize": 50,
+    "minimumTrainingCoverageFraction": 0.8,
+    "excludedAssetClasses": [
+      "bond",
+      "bond_etf",
+      "money",
+      "money_market",
+      "cash",
+      "cash_management"
+    ],
+    "oosWindowPreviouslyReused": true
+  },
+  "features": {
+    "base": [
+      "ret_1",
+      "ret_3",
+      "ret_6",
+      "acceleration_1",
+      "vol_6",
+      "market_ret_1",
+      "market_ret_3",
+      "breadth",
+      "relative_strength",
+      "amount_rank",
+      "session_fraction"
+    ],
+    "ewsWindowBars": 12,
+    "ewsVarianceFloor": 1e-10,
+    "ewsComponents": [
+      "ews_log_variance",
+      "ews_autocorrelation_1",
+      "ews_variance_slope",
+      "ews_market_dispersion"
+    ],
+    "ewsEqualWeight": true,
+    "ewsStandardizationFitEnd": "2026-05-20",
+    "hmm": {
+      "implementation": "scripts.research_hmm_nn_bl.GaussianHMM1D",
+      "states": 3,
+      "iterations": 40,
+      "varianceFloor": 1e-08,
+      "fitEnd": "2026-05-20",
+      "resetFilteringAtSessionOpen": true
+    },
+    "singularityScoreWeights": {
+      "ewsScore": 0.5,
+      "regimeTransitionRisk": 0.5
+    }
+  },
+  "labels": {
+    "horizonsBars": [
+      5,
+      10,
+      20,
+      30,
+      60
+    ],
+    "activeHorizonsBars": [
+      5,
+      10,
+      20,
+      30
+    ],
+    "skippedHorizons": {
+      "60": "A 60-bar horizon is 300 minutes at 5-minute frequency and crosses the 240-minute A-share session; Phase 1 leaves it null."
+    },
+    "sameSessionOnly": true,
+    "localExtremaLookbackBars": 12,
+    "localExtremaTolerancePct": 0.001,
+    "minimumMovePct": 0.003,
+    "volatilityMultiplier": 1.5,
+    "scaleVolatilityBySqrtHorizon": true,
+    "breakoutBufferPct": 0.001,
+    "trendMinimumPct": 0.003,
+    "chaseMinimumPct": 0.005,
+    "roundTripCostPct": 0.0012,
+    "primaryTarget": "turning_point"
+  },
+  "models": {
+    "variants": {
+      "baseline": [
+        "base"
+      ],
+      "hmm": [
+        "base",
+        "hmm"
+      ],
+      "ews": [
+        "base",
+        "ews"
+      ],
+      "hmm_ews": [
+        "base",
+        "hmm",
+        "ews",
+        "singularity_score"
+      ]
+    },
+    "logisticC": 0.1,
+    "calibrationC": 1.0,
+    "calibrationDays": 6,
+    "walkForwardTestBlockDays": 4,
+    "minimumBaseFitDays": 20,
+    "purgeBars": 30,
+    "randomSeed": 20260705,
+    "decisionThreshold": 0.5,
+    "probabilityBinEdges": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "parametersFrozenBeforeWalkForward": true
+  },
+  "artifact": {
+    "schemaVersion": "singularity_turning_probability_research_v1",
+    "probabilityVariant": "hmm_ews",
+    "watchThreshold": 0.35,
+    "reduceChaseThreshold": 0.5,
+    "paperExitAlertThreshold": 0.65,
+    "researchOnly": true,
+    "shadowOnly": true
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "skipped": [
+    "deep_lppls",
+    "koopman_dmd",
+    "hawkes",
+    "soc_avalanche",
+    "surrogate_ml",
+    "online_inference",
+    "live_trading_integration"
+  ]
+}

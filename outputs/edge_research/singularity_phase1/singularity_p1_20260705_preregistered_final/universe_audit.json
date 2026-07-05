@@ -1,0 +1,577 @@
+{
+  "method": "training_only_coverage_and_average_cumulative_amount",
+  "selectionUsesWalkForward": false,
+  "trainEnd": "2026-05-20",
+  "candidateCount": 157,
+  "selectedCount": 50,
+  "excludedAssetClasses": [
+    "bond",
+    "bond_etf",
+    "cash",
+    "cash_management",
+    "money",
+    "money_market"
+  ],
+  "rejectedBeforeSelectionCompleted": [
+    {
+      "stockCode": "511360",
+      "name": "短融ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511380",
+      "name": "可转债ETF博时",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511100",
+      "name": "国债ETF华夏",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551550",
+      "name": "科创债ETF华夏",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551800",
+      "name": "科创债ETF国泰",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551030",
+      "name": "科创债ETF鹏华",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511070",
+      "name": "公司债ETF南方",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511110",
+      "name": "公司债ETF易方达",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511200",
+      "name": "信用债ETF华夏",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551060",
+      "name": "科创债ETF中银",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511260",
+      "name": "十年国债ETF国泰",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551520",
+      "name": "科创债ETF汇添富",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511090",
+      "name": "30年国债ETF鹏扬",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511120",
+      "name": "科创债ETF广发",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551500",
+      "name": "科创债ETF易方达",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551900",
+      "name": "科创债ETF招商",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551510",
+      "name": "科创债ETF华泰柏瑞",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551560",
+      "name": "科创债ETF兴业",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511180",
+      "name": "可转债ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511030",
+      "name": "公司债ETF平安",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511130",
+      "name": "30年国债ETF博时",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511580",
+      "name": "国债政金债ETF招商",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551300",
+      "name": "科创债ETF摩根",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511150",
+      "name": "科创债ETF永赢",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511520",
+      "name": "政金债ETF富国",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511270",
+      "name": "10年地方债ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511220",
+      "name": "城投债ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551000",
+      "name": "科创债ETF博时",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "551580",
+      "name": "科创债ETF泰康",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511060",
+      "name": "5年地方债ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511190",
+      "name": "信用债ETF海富通",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511010",
+      "name": "国债ETF国泰",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511020",
+      "name": "国债ETF平安",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    },
+    {
+      "stockCode": "511160",
+      "name": "国债ETF东财",
+      "assetClass": "bond",
+      "reason": "excluded_asset_class"
+    }
+  ],
+  "selected": [
+    {
+      "stockCode": "513310",
+      "name": "中韩半导体ETF华泰柏瑞",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 7401589012.91
+    },
+    {
+      "stockCode": "518880",
+      "name": "黄金ETF华安",
+      "assetClass": "gold",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 5676177474.04
+    },
+    {
+      "stockCode": "513090",
+      "name": "香港证券ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 5279033452.72
+    },
+    {
+      "stockCode": "513120",
+      "name": "港股创新药ETF广发",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 4692180768.15
+    },
+    {
+      "stockCode": "513130",
+      "name": "恒生科技ETF华泰柏瑞",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 4136924903.33
+    },
+    {
+      "stockCode": "513180",
+      "name": "恒生科技ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 3906817546.73
+    },
+    {
+      "stockCode": "513330",
+      "name": "恒生互联网ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 2152081546.47
+    },
+    {
+      "stockCode": "513050",
+      "name": "中概互联网ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 2100064387.88
+    },
+    {
+      "stockCode": "513350",
+      "name": "标普油气ETF富国",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 1788851287.02
+    },
+    {
+      "stockCode": "513010",
+      "name": "恒生科技ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 1222590211.42
+    },
+    {
+      "stockCode": "520500",
+      "name": "恒生创新药ETF华泰柏瑞",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 1041949957.07
+    },
+    {
+      "stockCode": "513750",
+      "name": "港股通非银ETF广发",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 989848552.97
+    },
+    {
+      "stockCode": "518800",
+      "name": "黄金ETF国泰",
+      "assetClass": "gold",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 762513033.05
+    },
+    {
+      "stockCode": "518850",
+      "name": "黄金ETF华夏",
+      "assetClass": "gold",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 737353450.33
+    },
+    {
+      "stockCode": "513100",
+      "name": "纳指ETF国泰",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 626657920.8
+    },
+    {
+      "stockCode": "513060",
+      "name": "恒生医疗ETF博时",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 600544721.95
+    },
+    {
+      "stockCode": "513980",
+      "name": "港股科技ETF景顺",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 528034670.28
+    },
+    {
+      "stockCode": "513040",
+      "name": "港股通互联网ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 507339147.4
+    },
+    {
+      "stockCode": "513770",
+      "name": "港股互联网ETF华宝",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 451890985.16
+    },
+    {
+      "stockCode": "513300",
+      "name": "纳斯达克ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 439910352.32
+    },
+    {
+      "stockCode": "518600",
+      "name": "金ETF广发",
+      "assetClass": "gold",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 422815309.96
+    },
+    {
+      "stockCode": "520980",
+      "name": "港股通科技ETF汇添富",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 415857596.41
+    },
+    {
+      "stockCode": "518660",
+      "name": "黄金ETF工银",
+      "assetClass": "gold",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 406526272.82
+    },
+    {
+      "stockCode": "520880",
+      "name": "港股通创新药ETF华宝",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 400156298.52
+    },
+    {
+      "stockCode": "513160",
+      "name": "港股科技ETF银华",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 387408935.42
+    },
+    {
+      "stockCode": "513190",
+      "name": "港股通金融ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 376436612.86
+    },
+    {
+      "stockCode": "513630",
+      "name": "港股低波红利ETF摩根",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 348251247.1
+    },
+    {
+      "stockCode": "513260",
+      "name": "恒生科技ETF汇添富",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 319993557.33
+    },
+    {
+      "stockCode": "513520",
+      "name": "日经ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 317899483.95
+    },
+    {
+      "stockCode": "513780",
+      "name": "港股创新药ETF景顺",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 305264549.11
+    },
+    {
+      "stockCode": "513380",
+      "name": "恒生科技ETF广发",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 303207715.46
+    },
+    {
+      "stockCode": "513500",
+      "name": "标普500ETF博时",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 300678677.77
+    },
+    {
+      "stockCode": "520600",
+      "name": "港股通汽车ETF广发",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 300525293.37
+    },
+    {
+      "stockCode": "518680",
+      "name": "金ETF富国",
+      "assetClass": "gold",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 290258730.12
+    },
+    {
+      "stockCode": "513910",
+      "name": "港股通央企红利ETF华夏",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 235998366.85
+    },
+    {
+      "stockCode": "513650",
+      "name": "标普500ETF南方",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 231518657.85
+    },
+    {
+      "stockCode": "520700",
+      "name": "港股通创新药ETF万家",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 203890491.9
+    },
+    {
+      "stockCode": "513020",
+      "name": "港股科技ETF国泰",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 201271057.94
+    },
+    {
+      "stockCode": "520870",
+      "name": "巴西ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 193637178.38
+    },
+    {
+      "stockCode": "513690",
+      "name": "港股红利ETF博时",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 192140595.94
+    },
+    {
+      "stockCode": "513110",
+      "name": "纳指ETF华泰柏瑞",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 187737734.51
+    },
+    {
+      "stockCode": "513880",
+      "name": "日经225ETF华安",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 187232846.16
+    },
+    {
+      "stockCode": "520920",
+      "name": "恒生科技ETF天弘",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 186258585.83
+    },
+    {
+      "stockCode": "513920",
+      "name": "港股通央企红利ETF华安",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 184518400.82
+    },
+    {
+      "stockCode": "520990",
+      "name": "港股央企红利ETF景顺",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 176726690.93
+    },
+    {
+      "stockCode": "513400",
+      "name": "道琼斯ETF鹏华",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 172258584.92
+    },
+    {
+      "stockCode": "513860",
+      "name": "港股通科技ETF海富通",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 168422506.84
+    },
+    {
+      "stockCode": "513000",
+      "name": "日经225ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 38,
+      "averageDailyCumulativeAmount": 167452322.67
+    },
+    {
+      "stockCode": "510900",
+      "name": "恒生中国企业ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 159262157.39
+    },
+    {
+      "stockCode": "513200",
+      "name": "港股通医药ETF易方达",
+      "assetClass": "cross_border",
+      "trainingDays": 39,
+      "averageDailyCumulativeAmount": 152470611.5
+    }
+  ],
+  "rawTrainingAudit": {
+    "trainingDates": 39,
+    "minimumCoverageDays": 32
+  }
+}

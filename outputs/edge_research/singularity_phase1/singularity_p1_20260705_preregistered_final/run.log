@@ -1,0 +1,14 @@
+start_time=2026-07-05T08:29:20+08:00
+status=research_only
+shadow_only=true
+config=C:\Users\XU XINGJIAN\Documents\Codex\configs\research\singularity_phase1_preregistered.json
+quotes=C:\Users\XU XINGJIAN\Documents\Codex\data\research\t0_opening\yahoo_60d_confirmed_t0_raw_5m.jsonl
+run_id=singularity_p1_20260705_preregistered_final
+selected_universe=50
+feature_rows=77649
+label_rows=141381
+walk_forward_prediction_rows=151024
+turning_artifact_rows=19269
+phase2_worth_investigating=false
+end_time=2026-07-05T08:31:27+08:00
+exit_code=0
