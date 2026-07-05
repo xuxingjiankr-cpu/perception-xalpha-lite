@@ -5048,6 +5048,141 @@ def t89_singularity_phase1_5_is_frozen_forward_shadow_only() -> None:
     )
 
 
+def t90_singularity_phase2a_is_causal_historical_and_isolated() -> None:
+    import json
+
+    import numpy as np
+    import research_singularity_phase2a as phase2a
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase2a_historical.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    safety = config["safety"]
+    check(
+        "T90 Phase 2A is historical research-only and cannot mutate trading",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["diagnosticOnly"] is True
+        and safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "phase15WritesAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        ),
+    )
+    check(
+        "T90 Phase 2A horizons, purge and embargo are causal",
+        config["labels"]["modelHorizonsBars"] == [5, 10]
+        and 60 not in config["labels"]["modelHorizonsBars"]
+        and "60" in config["labels"]["skippedHorizons"]
+        and config["models"]["purgeBarsPerSymbol"]
+        >= max(config["labels"]["observationalHorizonsBars"])
+        and config["models"]["embargoTradingDays"] >= 1
+        and config["data"]["fixedPreprocessingEnd"]
+        < config["data"]["walkForwardStart"],
+    )
+    check(
+        "T90 Phase 2A uses only fixed classic LPPLS and linear delay-DMD",
+        config["features"]["lppls"]["implementation"]
+        == "classic_linearized_grid_search"
+        and config["features"]["lppls"]["gridFrozenBeforeWalkForward"] is True
+        and config["features"]["koopman"]["implementation"]
+        == "fixed_window_linear_delay_dmd_residual"
+        and config["features"]["koopman"]["kernelEnabled"] is False
+        and config["features"]["koopman"]["deepEnabled"] is False,
+    )
+
+    past_prices = np.exp(
+        np.linspace(np.log(1.0), np.log(1.025), 24)
+        + 0.001 * np.sin(np.arange(24, dtype=float))
+    )
+    future_a = np.array([1.026, 1.027, 1.028], dtype=float)
+    future_b = np.array([0.75, 1.35, 0.60], dtype=float)
+    lppls_a = phase2a.lppls_features(
+        np.concatenate([past_prices, future_a])[:24], config
+    )
+    lppls_b = phase2a.lppls_features(
+        np.concatenate([past_prices, future_b])[:24], config
+    )
+    check(
+        "T90 LPPLS feature at decision ignores unseen future prices",
+        lppls_a is not None
+        and lppls_b is not None
+        and all(
+            abs(lppls_a[key] - lppls_b[key]) < 1e-12
+            for key in lppls_a
+        ),
+    )
+
+    time = np.arange(24, dtype=float)
+    past_variables = np.column_stack(
+        [
+            np.sin(time / 3.0),
+            np.cos(time / 4.0),
+            time / 24.0,
+            np.sin(time / 5.0) + time / 100.0,
+        ]
+    )
+    future_variables_a = np.zeros((3, 4), dtype=float)
+    future_variables_b = np.full((3, 4), 1000.0, dtype=float)
+    dmd_a = phase2a.dmd_features(
+        np.vstack([past_variables, future_variables_a])[:24], config
+    )
+    dmd_b = phase2a.dmd_features(
+        np.vstack([past_variables, future_variables_b])[:24], config
+    )
+    check(
+        "T90 DMD residual at decision ignores unseen future states",
+        dmd_a is not None
+        and dmd_b is not None
+        and all(
+            abs(dmd_a[key] - dmd_b[key]) < 1e-12
+            for key in dmd_a
+        ),
+    )
+
+    source = (
+        ROOT / "scripts" / "research_singularity_phase2a.py"
+    ).read_text(encoding="utf-8")
+    forbidden_source_fragments = [
+        "SkillClient(",
+        "submitOrder(",
+        "build_decision(",
+        "latest_strategy_overlay.json",
+        "decision_probability_v1.json",
+        "singularity_phase1_5",
+        "forward_days.jsonl",
+    ]
+    check(
+        "T90 Phase 2A source cannot read forward ledgers or reach live paths",
+        config["data"]["phase15LedgerAllowedAsInput"] is False
+        and config["output"]["root"].endswith(
+            "singularity_phase2a_historical"
+        )
+        and all(fragment not in source for fragment in forbidden_source_fragments)
+        and "history = close[index - window + 1 : index + 1]" in source
+        and "merged = merged.dropna(subset=all_features)" in source
+        and "sampled_labels.to_csv(" in source
+        and config["phase2BGate"]["automaticPromotionAllowed"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5137,6 +5272,7 @@ if __name__ == "__main__":
     t87_conditional_minute_tail_preserves_dependence_safely()
     t88_singularity_phase1_is_causal_purged_and_shadow_only()
     t89_singularity_phase1_5_is_frozen_forward_shadow_only()
+    t90_singularity_phase2a_is_causal_historical_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

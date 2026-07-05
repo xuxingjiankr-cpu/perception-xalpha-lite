@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "singularity_phase2a_historical_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-05T09:00:00+08:00",
+  "hypothesis": "Fixed-rule classic LPPLS shape diagnostics or fixed-window linear delay-DMD residual diagnostics may add calibrated 5/10-bar turning probability information beyond the Phase 1 baseline plus generic EWS on longer historical data.",
+  "data": {
+    "primary5mRoot": "data/market/mootdx/bars_5m",
+    "supporting1mRoot": "data/market/mootdx/bars_1m",
+    "supporting1dRoot": "data/market/mootdx/bars_1d",
+    "l2Root": "outputs/l2_depth",
+    "iopvRoot": "data/research/etf_iopv",
+    "historicalStart": "2024-06-12",
+    "historicalEnd": "2026-07-03",
+    "fixedPreprocessingEnd": "2025-06-30",
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "barIntervalMinutes": 5,
+    "barsPerFullSession": 48,
+    "timezoneAssumption": "Asia/Shanghai",
+    "timestampsContainTimezone": false,
+    "adjustmentFactorAvailable": false,
+    "iopvMergedIntoPriceData": false,
+    "phase15LedgerAllowedAsInput": false
+  },
+  "universe": [
+    {"stockCode": "159546", "name": "集成电路ETF国泰", "category": "domestic_growth"},
+    {"stockCode": "159915", "name": "创业板ETF易方达", "category": "domestic_growth"},
+    {"stockCode": "159920", "name": "恒生ETF华夏", "category": "cross_border_hk"},
+    {"stockCode": "159934", "name": "黄金ETF易方达", "category": "commodity"},
+    {"stockCode": "159941", "name": "纳指ETF广发", "category": "cross_border_us"},
+    {"stockCode": "159985", "name": "豆粕ETF", "category": "commodity"},
+    {"stockCode": "501018", "name": "南方原油LOF", "category": "commodity"},
+    {"stockCode": "510050", "name": "上证50ETF华夏", "category": "domestic_broad"},
+    {"stockCode": "510300", "name": "沪深300ETF华泰柏瑞", "category": "domestic_broad"},
+    {"stockCode": "510500", "name": "中证500ETF南方", "category": "domestic_broad"},
+    {"stockCode": "511010", "name": "国债ETF", "category": "fixed_income"},
+    {"stockCode": "513050", "name": "中概互联网ETF易方达", "category": "cross_border_hk"},
+    {"stockCode": "513100", "name": "纳指ETF国泰", "category": "cross_border_us"},
+    {"stockCode": "513180", "name": "恒生科技ETF华夏", "category": "cross_border_hk"},
+    {"stockCode": "513500", "name": "标普500ETF博时", "category": "cross_border_us"},
+    {"stockCode": "518880", "name": "黄金ETF华安", "category": "commodity"},
+    {"stockCode": "588000", "name": "科创50ETF华夏", "category": "domestic_growth"},
+    {"stockCode": "588030", "name": "科创100ETF博时", "category": "domestic_growth"}
+  ],
+  "auditGates": {
+    "minimumSymbols": 15,
+    "minimumTradingDays": 400,
+    "maximumMissingBarFraction": 0.01,
+    "maximumInvalidOhlcRows": 0,
+    "minimumIndependentEventsPerPrimaryHorizon": 500,
+    "minimumLpplsWindows": 10000,
+    "minimumKoopmanWindows": 10000
+  },
+  "sampling": {
+    "decisionStrideBars": 5,
+    "minimumPastWindowBars": 24,
+    "requireSameSessionContiguousBars": true
+  },
+  "features": {
+    "base": [
+      "ret_1",
+      "ret_3",
+      "ret_6",
+      "acceleration_1",
+      "vol_6",
+      "market_ret_1",
+      "market_ret_3",
+      "breadth",
+      "relative_strength",
+      "amount_rank",
+      "session_fraction"
+    ],
+    "ewsWindowBars": 12,
+    "ewsVarianceFloor": 1e-10,
+    "ewsComponents": [
+      "ews_log_variance",
+      "ews_autocorrelation_1",
+      "ews_variance_slope",
+      "ews_market_dispersion",
+      "ews_score"
+    ],
+    "ewsStandardizationFitEnd": "2025-06-30",
+    "lppls": {
+      "implementation": "classic_linearized_grid_search",
+      "nestedWindowBars": [16, 20, 24],
+      "mGrid": [0.3, 0.7],
+      "omegaGrid": [6.0, 10.0],
+      "tcOffsetBarsGrid": [6, 18],
+      "minimumTrendReturnPct": 0.01,
+      "minimumTrendEfficiency": 0.55,
+      "maximumConditionNumber": 100000000.0,
+      "minimumStableNestedFits": 2,
+      "gridFrozenBeforeWalkForward": true
+    },
+    "koopman": {
+      "implementation": "fixed_window_linear_delay_dmd_residual",
+      "windowBars": 24,
+      "delayDimension": 3,
+      "ridge": 1e-6,
+      "variables": [
+        "ret_1",
+        "market_ret_1",
+        "relative_strength",
+        "vol_6"
+      ],
+      "standardizationFitEnd": "2025-06-30",
+      "kernelEnabled": false,
+      "deepEnabled": false
+    },
+    "volatilityRegime": {
+      "source": "cross_sectional_median_vol_6_at_decision",
+      "trainingQuantiles": [0.3333333333, 0.6666666667],
+      "fitEnd": "2025-06-30"
+    }
+  },
+  "labels": {
+    "auditHorizonsBars": [5, 10, 20, 30, 60],
+    "modelHorizonsBars": [5, 10],
+    "observationalHorizonsBars": [20, 30],
+    "skippedHorizons": {
+      "60": "A 60-bar horizon exceeds one 48-bar A-share session and remains null."
+    },
+    "sameSessionOnly": true,
+    "localExtremaLookbackBars": 12,
+    "localExtremaTolerancePct": 0.001,
+    "minimumMovePct": 0.003,
+    "volatilityMultiplier": 1.5,
+    "scaleVolatilityBySqrtHorizon": true,
+    "breakoutBufferPct": 0.001,
+    "trendMinimumPct": 0.003,
+    "chaseMinimumPct": 0.005,
+    "roundTripCostPct": 0.0012,
+    "primaryTarget": "turning_point"
+  },
+  "models": {
+    "variants": {
+      "baseline": ["base"],
+      "ews": ["base", "ews"],
+      "ews_lppls": ["base", "ews", "lppls"],
+      "ews_koopman": ["base", "ews", "koopman"],
+      "ews_lppls_koopman": ["base", "ews", "lppls", "koopman"]
+    },
+    "logisticC": 0.1,
+    "calibrationC": 1.0,
+    "calibrationDays": 20,
+    "walkForwardTestBlockDays": 40,
+    "minimumBaseFitDays": 160,
+    "purgeBarsPerSymbol": 30,
+    "embargoTradingDays": 1,
+    "randomSeed": 20260705,
+    "probabilityBinEdges": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "highRiskThreshold": 0.35,
+    "preprocessingFrozenBeforeWalkForward": true
+  },
+  "phase2BGate": {
+    "comparisonBaseline": "ews",
+    "candidateVariants": [
+      "ews_lppls",
+      "ews_koopman",
+      "ews_lppls_koopman"
+    ],
+    "requiredPrimaryHorizons": [5, 10],
+    "minimumImprovedMetricCountOfFour": 3,
+    "minimumImprovingFoldFraction": 0.5,
+    "minimumImprovingMonthFraction": 0.5,
+    "minimumImprovingEtfCategories": 2,
+    "minimumHighRiskSamples": 100,
+    "maximumHighRiskOptimism": 0.1,
+    "sameForecastPopulationRequired": true,
+    "causalTestsRequired": true,
+    "automaticPromotionAllowed": false
+  },
+  "output": {
+    "root": "outputs/edge_research/singularity_phase2a_historical"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "explicitlyNotImplemented": [
+    "deep_lppls",
+    "kernel_koopman",
+    "deep_koopman",
+    "hawkes",
+    "soc_avalanche",
+    "surrogate_ml",
+    "online_inference",
+    "dashboard",
+    "live_trading_integration"
+  ]
+}
