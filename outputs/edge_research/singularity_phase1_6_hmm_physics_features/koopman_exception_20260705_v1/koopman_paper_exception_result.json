@@ -1,0 +1,3025 @@
+{
+  "schemaVersion": "singularity_phase1_6_koopman_exception_result_v1",
+  "runId": "koopman_exception_20260705_v1",
+  "generatedAt": "2026-07-05T16:04:13+09:00",
+  "status": "diagnostic_only",
+  "researchOnly": true,
+  "userAuthorizedPaperException": true,
+  "comparison": {
+    "population": "koopmanExceptionLateSession",
+    "baseline": "hmm_ews_lppls",
+    "candidate": "hmm_ews_lppls_dmd",
+    "primaryHorizonBars": 5,
+    "sameSampleRequired": true
+  },
+  "exemptionsApplied": {
+    "coverage": true,
+    "tenBar": true,
+    "highRiskSamples": true
+  },
+  "metrics": {
+    "baseline": {
+      "count": 4396,
+      "brier": 0.02883577561547779,
+      "log_loss": 0.1337987557735659,
+      "auc": 0.6079826174762883,
+      "ece": 0.0036363322020615606,
+      "mce": 0.8083406841210631,
+      "mean_predicted": 0.0290743175727071,
+      "actual_rate": 0.029572338489535943,
+      "bins": [
+        {
+          "low": 0.0,
+          "high": 0.1,
+          "count": 4303,
+          "mean_predicted": 0.02568183690359662,
+          "actual_rate": 0.027655124331861493,
+          "calibration_error": 0.001973287428264872,
+          "absolute_calibration_error": 0.001973287428264872,
+          "brier": 0.02692195716999523,
+          "log_loss": 0.1281479200093774
+        },
+        {
+          "low": 0.1,
+          "high": 0.2,
+          "count": 70,
+          "mean_predicted": 0.13406960740291984,
+          "actual_rate": 0.11428571428571428,
+          "calibration_error": -0.01978389311720556,
+          "absolute_calibration_error": 0.01978389311720556,
+          "brier": 0.10192883622202258,
+          "log_loss": 0.35762010948180106
+        },
+        {
+          "low": 0.2,
+          "high": 0.3,
+          "count": 13,
+          "mean_predicted": 0.23408299911225644,
+          "actual_rate": 0.07692307692307693,
+          "calibration_error": -0.1571599221891795,
+          "absolute_calibration_error": 0.1571599221891795,
+          "brier": 0.09084576087091391,
+          "log_loss": 0.34419734500931176
+        },
+        {
+          "low": 0.3,
+          "high": 0.4,
+          "count": 4,
+          "mean_predicted": 0.3310381080731389,
+          "actual_rate": 0.0,
+          "calibration_error": -0.3310381080731389,
+          "absolute_calibration_error": 0.3310381080731389,
+          "brier": 0.1103312552403618,
+          "log_loss": 0.4028862084518773
+        },
+        {
+          "low": 0.4,
+          "high": 0.5,
+          "count": 1,
+          "mean_predicted": 0.4037476485026419,
+          "actual_rate": 1.0,
+          "calibration_error": 0.5962523514973581,
+          "absolute_calibration_error": 0.5962523514973581,
+          "brier": 0.3555168666661291,
+          "log_loss": 0.9069652286042946
+        },
+        {
+          "low": 0.5,
+          "high": 0.6,
+          "count": 2,
+          "mean_predicted": 0.5436928685959264,
+          "actual_rate": 0.0,
+          "calibration_error": -0.5436928685959264,
+          "absolute_calibration_error": 0.5436928685959264,
+          "brier": 0.2957576889446413,
+          "log_loss": 0.7849633212587415
+        },
+        {
+          "low": 0.6,
+          "high": 0.7,
+          "count": 2,
+          "mean_predicted": 0.6250889223361604,
+          "actual_rate": 0.5,
+          "calibration_error": -0.12508892233616042,
+          "absolute_calibration_error": 0.12508892233616042,
+          "brier": 0.279551274582632,
+          "log_loss": 0.7551924234720586
+        },
+        {
+          "low": 0.8,
+          "high": 0.9,
+          "count": 1,
+          "mean_predicted": 0.8083406841210631,
+          "actual_rate": 0.0,
+          "calibration_error": -0.8083406841210631,
+          "absolute_calibration_error": 0.8083406841210631,
+          "brier": 0.6534146616053083,
+          "log_loss": 1.652035879524332
+        }
+      ],
+      "highRiskThreshold": 0.35,
+      "highRiskCount": 7,
+      "highRiskMeanProbability": 0.5610386658332943,
+      "highRiskHitRate": 0.2857142857142857
+    },
+    "candidate": {
+      "count": 4396,
+      "brier": 0.028821431093400452,
+      "log_loss": 0.1336709020565951,
+      "auc": 0.6126708500126221,
+      "ece": 0.0036207904520859026,
+      "mce": 0.7962894753814425,
+      "mean_predicted": 0.0290228516855078,
+      "actual_rate": 0.029572338489535943,
+      "bins": [
+        {
+          "low": 0.0,
+          "high": 0.1,
+          "count": 4297,
+          "mean_predicted": 0.0254617086949982,
+          "actual_rate": 0.02746101931580172,
+          "calibration_error": 0.0019993106208035204,
+          "absolute_calibration_error": 0.0019993106208035204,
+          "brier": 0.026757563441610125,
+          "log_loss": 0.127586677054913
+        },
+        {
+          "low": 0.1,
+          "high": 0.2,
+          "count": 75,
+          "mean_predicted": 0.13162778798330665,
+          "actual_rate": 0.12,
+          "calibration_error": -0.011627787983306659,
+          "absolute_calibration_error": 0.011627787983306659,
+          "brier": 0.1055666295178859,
+          "log_loss": 0.36602241174557115
+        },
+        {
+          "low": 0.2,
+          "high": 0.3,
+          "count": 14,
+          "mean_predicted": 0.2426458039902392,
+          "actual_rate": 0.07142857142857142,
+          "calibration_error": -0.17121723256166776,
+          "absolute_calibration_error": 0.17121723256166776,
+          "brier": 0.08971684235749276,
+          "log_loss": 0.34282054856951977
+        },
+        {
+          "low": 0.3,
+          "high": 0.4,
+          "count": 4,
+          "mean_predicted": 0.33477364744341265,
+          "actual_rate": 0.0,
+          "calibration_error": -0.33477364744341265,
+          "absolute_calibration_error": 0.33477364744341265,
+          "brier": 0.11293610062846984,
+          "log_loss": 0.40862660772184506
+        },
+        {
+          "low": 0.4,
+          "high": 0.5,
+          "count": 1,
+          "mean_predicted": 0.4247683286540522,
+          "actual_rate": 1.0,
+          "calibration_error": 0.5752316713459478,
+          "absolute_calibration_error": 0.5752316713459478,
+          "brier": 0.3308914757194525,
+          "log_loss": 0.856211367732961
+        },
+        {
+          "low": 0.5,
+          "high": 0.6,
+          "count": 2,
+          "mean_predicted": 0.5306300800731849,
+          "actual_rate": 0.0,
+          "calibration_error": -0.5306300800731849,
+          "absolute_calibration_error": 0.5306300800731849,
+          "brier": 0.28186761117087544,
+          "log_loss": 0.7570438838966811
+        },
+        {
+          "low": 0.6,
+          "high": 0.7,
+          "count": 2,
+          "mean_predicted": 0.6424779192590697,
+          "actual_rate": 0.5,
+          "calibration_error": -0.14247791925906972,
+          "absolute_calibration_error": 0.14247791925906972,
+          "brier": 0.2838899709825031,
+          "log_loss": 0.7651523593453862
+        },
+        {
+          "low": 0.7,
+          "high": 0.8,
+          "count": 1,
+          "mean_predicted": 0.7962894753814425,
+          "actual_rate": 0.0,
+          "calibration_error": -0.7962894753814425,
+          "absolute_calibration_error": 0.7962894753814425,
+          "brier": 0.6340769286032528,
+          "log_loss": 1.5910552898353962
+        }
+      ],
+      "highRiskThreshold": 0.35,
+      "highRiskCount": 7,
+      "highRiskMeanProbability": 0.5642921995506269,
+      "highRiskHitRate": 0.2857142857142857
+    }
+  },
+  "diagnostic": {
+    "improvedMetricCountOfFour": 4,
+    "improvingFolds": 4,
+    "totalFolds": 7,
+    "improvingMonths": 6,
+    "totalMonths": 13,
+    "improvingEtfCategories": [
+      "commodity",
+      "cross_border_hk",
+      "domestic_growth",
+      "fixed_income"
+    ],
+    "clusterBootstrap": {
+      "cluster": "trade_date",
+      "independentTradingDays": 245,
+      "meanBrierDeltaCandidateMinusBaseline": -1.5263348776155627e-05,
+      "confidence": 0.95,
+      "lower": -7.777137200453087e-05,
+      "upper": 4.306878364373037e-05,
+      "improvementRequiresUpperBelowZero": true,
+      "passes": false
+    },
+    "gates": {
+      "minimumImprovedMetrics": true,
+      "majorityFolds": true,
+      "majorityMonths": false,
+      "multipleEtfCategories": true,
+      "clusterBootstrapBrier": false,
+      "sameForecastPopulation": true,
+      "causalPastOnlyFeatures": true
+    }
+  },
+  "folds": [
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 1,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-02-27",
+      "calibrationStart": "2025-04-15",
+      "calibrationEnd": "2025-05-15",
+      "testStart": "2025-07-01",
+      "testEnd": "2025-08-25",
+      "testDates": [
+        "2025-07-01",
+        "2025-07-02",
+        "2025-07-03",
+        "2025-07-04",
+        "2025-07-07",
+        "2025-07-08",
+        "2025-07-09",
+        "2025-07-10",
+        "2025-07-11",
+        "2025-07-14",
+        "2025-07-15",
+        "2025-07-16",
+        "2025-07-17",
+        "2025-07-18",
+        "2025-07-21",
+        "2025-07-22",
+        "2025-07-23",
+        "2025-07-24",
+        "2025-07-25",
+        "2025-07-28",
+        "2025-07-29",
+        "2025-07-30",
+        "2025-07-31",
+        "2025-08-01",
+        "2025-08-04",
+        "2025-08-05",
+        "2025-08-06",
+        "2025-08-07",
+        "2025-08-08",
+        "2025-08-11",
+        "2025-08-12",
+        "2025-08-13",
+        "2025-08-14",
+        "2025-08-15",
+        "2025-08-18",
+        "2025-08-19",
+        "2025-08-20",
+        "2025-08-21",
+        "2025-08-22",
+        "2025-08-25"
+      ],
+      "testEmbargoDates": [
+        "2025-06-30"
+      ],
+      "calibrationEmbargoDates": [
+        "2025-04-14"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 2976,
+          "calibrationSamples": 358,
+          "testSamples": 719,
+          "fitPositiveRate": 0.04334677419354839,
+          "calibrationPositiveRate": 0.03910614525139665,
+          "testPositiveRate": 0.012517385257301807,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003955221276001575,
+              "upper": 0.003867175052247475
+            },
+            "ret_3": {
+              "lower": -0.007281553398058125,
+              "upper": 0.0076524586141655995
+            },
+            "ret_6": {
+              "lower": -0.01102931274853055,
+              "upper": 0.0134910896705001
+            },
+            "acceleration_1": {
+              "lower": -0.006334685979352825,
+              "upper": 0.00634343301552805
+            },
+            "vol_6": {
+              "lower": 3.0173141366456627e-05,
+              "upper": 0.004936622438488925
+            },
+            "market_ret_1": {
+              "lower": -0.00247627024449,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0047361843600667,
+              "upper": 0.0025000139121531
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9829875257407212
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720676737465264
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0026367784281632,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.979066503036452e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0724481517032863,
+              "upper": 0.933884469145815
+            },
+            "ews_log_variance": {
+              "lower": -20.13715290652998,
+              "upper": -10.63067346372474
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7418036362875068,
+              "upper": 0.425637885202809
+            },
+            "ews_variance_slope": {
+              "lower": -0.2604584318098322,
+              "upper": 0.30002868792150006
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0005234965130459,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.29402199297216747,
+              "upper": 0.717719598552109
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.16904032629619944,
+              "upper": 0.863285868938017
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6319074292149558
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 2976,
+          "calibrationSamples": 358,
+          "testSamples": 719,
+          "fitPositiveRate": 0.04334677419354839,
+          "calibrationPositiveRate": 0.03910614525139665,
+          "testPositiveRate": 0.012517385257301807,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003955221276001575,
+              "upper": 0.003867175052247475
+            },
+            "ret_3": {
+              "lower": -0.007281553398058125,
+              "upper": 0.0076524586141655995
+            },
+            "ret_6": {
+              "lower": -0.01102931274853055,
+              "upper": 0.0134910896705001
+            },
+            "acceleration_1": {
+              "lower": -0.006334685979352825,
+              "upper": 0.00634343301552805
+            },
+            "vol_6": {
+              "lower": 3.0173141366456627e-05,
+              "upper": 0.004936622438488925
+            },
+            "market_ret_1": {
+              "lower": -0.00247627024449,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0047361843600667,
+              "upper": 0.0025000139121531
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9829875257407212
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720676737465264
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0026367784281632,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.979066503036452e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0724481517032863,
+              "upper": 0.933884469145815
+            },
+            "ews_log_variance": {
+              "lower": -20.13715290652998,
+              "upper": -10.63067346372474
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7418036362875068,
+              "upper": 0.425637885202809
+            },
+            "ews_variance_slope": {
+              "lower": -0.2604584318098322,
+              "upper": 0.30002868792150006
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0005234965130459,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.29402199297216747,
+              "upper": 0.717719598552109
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.16904032629619944,
+              "upper": 0.863285868938017
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6319074292149558
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11870916356608938,
+              "upper": 2.3727597956693556
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.30294685243073,
+              "upper": 3.4275540217845784
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8265730930290563,
+              "upper": 1.2882600527134838
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.2628700159971556,
+              "upper": 0.3117130195020895
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.2882600527134837
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 2,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-04-25",
+      "calibrationStart": "2025-06-16",
+      "calibrationEnd": "2025-07-11",
+      "testStart": "2025-08-26",
+      "testEnd": "2025-10-28",
+      "testDates": [
+        "2025-08-26",
+        "2025-08-27",
+        "2025-08-28",
+        "2025-08-29",
+        "2025-09-01",
+        "2025-09-02",
+        "2025-09-03",
+        "2025-09-04",
+        "2025-09-05",
+        "2025-09-08",
+        "2025-09-09",
+        "2025-09-10",
+        "2025-09-11",
+        "2025-09-12",
+        "2025-09-15",
+        "2025-09-16",
+        "2025-09-17",
+        "2025-09-18",
+        "2025-09-19",
+        "2025-09-22",
+        "2025-09-23",
+        "2025-09-24",
+        "2025-09-25",
+        "2025-09-26",
+        "2025-09-29",
+        "2025-09-30",
+        "2025-10-09",
+        "2025-10-10",
+        "2025-10-13",
+        "2025-10-14",
+        "2025-10-15",
+        "2025-10-16",
+        "2025-10-17",
+        "2025-10-20",
+        "2025-10-21",
+        "2025-10-22",
+        "2025-10-23",
+        "2025-10-24",
+        "2025-10-27",
+        "2025-10-28"
+      ],
+      "testEmbargoDates": [
+        "2025-08-25"
+      ],
+      "calibrationEmbargoDates": [
+        "2025-06-13"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 3694,
+          "calibrationSamples": 359,
+          "testSamples": 718,
+          "fitPositiveRate": 0.04385489983757444,
+          "calibrationPositiveRate": 0.025069637883008356,
+          "testPositiveRate": 0.036211699164345405,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003993417377882084,
+              "upper": 0.003951501349527634
+            },
+            "ret_3": {
+              "lower": -0.00728186287513037,
+              "upper": 0.007644413973593131
+            },
+            "ret_6": {
+              "lower": -0.011018119960076617,
+              "upper": 0.012528061921162893
+            },
+            "acceleration_1": {
+              "lower": -0.0059924579865916735,
+              "upper": 0.006224467424642609
+            },
+            "vol_6": {
+              "lower": 2.9371818538124742e-05,
+              "upper": 0.004760997673854049
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720600132041353
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0026166172098627,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.08757703385531,
+              "upper": -10.75158503512219
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7322666916096241,
+              "upper": 0.4219343387365656
+            },
+            "ews_variance_slope": {
+              "lower": -0.261832475494207,
+              "upper": 0.30058901020078527
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0004932184234056,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.2821330396527213,
+              "upper": 0.726900362846398
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1733184925464458,
+              "upper": 0.8627294598437546
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.664348158313081
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 3694,
+          "calibrationSamples": 359,
+          "testSamples": 718,
+          "fitPositiveRate": 0.04385489983757444,
+          "calibrationPositiveRate": 0.025069637883008356,
+          "testPositiveRate": 0.036211699164345405,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003993417377882084,
+              "upper": 0.003951501349527634
+            },
+            "ret_3": {
+              "lower": -0.00728186287513037,
+              "upper": 0.007644413973593131
+            },
+            "ret_6": {
+              "lower": -0.011018119960076617,
+              "upper": 0.012528061921162893
+            },
+            "acceleration_1": {
+              "lower": -0.0059924579865916735,
+              "upper": 0.006224467424642609
+            },
+            "vol_6": {
+              "lower": 2.9371818538124742e-05,
+              "upper": 0.004760997673854049
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720600132041353
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0026166172098627,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.08757703385531,
+              "upper": -10.75158503512219
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7322666916096241,
+              "upper": 0.4219343387365656
+            },
+            "ews_variance_slope": {
+              "lower": -0.261832475494207,
+              "upper": 0.30058901020078527
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0004932184234056,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.2821330396527213,
+              "upper": 0.726900362846398
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1733184925464458,
+              "upper": 0.8627294598437546
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.664348158313081
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.1191425294326026,
+              "upper": 2.37536179104638
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.3020373619422738,
+              "upper": 3.433014742688718
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.828677592794672,
+              "upper": 1.2654701551791026
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.2762838582754367,
+              "upper": 0.28211478081722297
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.26547015517910255
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 3,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-06-26",
+      "calibrationStart": "2025-08-11",
+      "calibrationEnd": "2025-09-05",
+      "testStart": "2025-10-29",
+      "testEnd": "2025-12-23",
+      "testDates": [
+        "2025-10-29",
+        "2025-10-30",
+        "2025-10-31",
+        "2025-11-03",
+        "2025-11-04",
+        "2025-11-05",
+        "2025-11-06",
+        "2025-11-07",
+        "2025-11-10",
+        "2025-11-11",
+        "2025-11-12",
+        "2025-11-13",
+        "2025-11-14",
+        "2025-11-17",
+        "2025-11-18",
+        "2025-11-19",
+        "2025-11-20",
+        "2025-11-21",
+        "2025-11-24",
+        "2025-11-25",
+        "2025-11-26",
+        "2025-11-27",
+        "2025-11-28",
+        "2025-12-01",
+        "2025-12-02",
+        "2025-12-03",
+        "2025-12-04",
+        "2025-12-05",
+        "2025-12-08",
+        "2025-12-09",
+        "2025-12-10",
+        "2025-12-11",
+        "2025-12-12",
+        "2025-12-15",
+        "2025-12-16",
+        "2025-12-17",
+        "2025-12-18",
+        "2025-12-19",
+        "2025-12-22",
+        "2025-12-23"
+      ],
+      "testEmbargoDates": [
+        "2025-10-28"
+      ],
+      "calibrationEmbargoDates": [
+        "2025-08-08"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 4413,
+          "calibrationSamples": 358,
+          "testSamples": 720,
+          "fitPositiveRate": 0.040561975980058916,
+          "calibrationPositiveRate": 0.008379888268156424,
+          "testPositiveRate": 0.02361111111111111,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0037933678055937837,
+              "upper": 0.0036968576709797
+            },
+            "ret_3": {
+              "lower": -0.007025761124121788,
+              "upper": 0.0074316229557151925
+            },
+            "ret_6": {
+              "lower": -0.010684801705768524,
+              "upper": 0.011311622047513861
+            },
+            "acceleration_1": {
+              "lower": -0.005614073069126588,
+              "upper": 0.005677888377629482
+            },
+            "vol_6": {
+              "lower": 2.165157772921941e-05,
+              "upper": 0.004516836280208464
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720677153587035
+            },
+            "hmm_bull_probability": {
+              "lower": 0.002571390173179,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.45585856449714,
+              "upper": -10.820753986895793
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7310984596494217,
+              "upper": 0.4249258077378743
+            },
+            "ews_variance_slope": {
+              "lower": -0.2705217702918503,
+              "upper": 0.29885735728781954
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003748444475924,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.2804093194080675,
+              "upper": 0.7173452072122188
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1736146418173314,
+              "upper": 0.863958925313072
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6632017791842895
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 4413,
+          "calibrationSamples": 358,
+          "testSamples": 720,
+          "fitPositiveRate": 0.040561975980058916,
+          "calibrationPositiveRate": 0.008379888268156424,
+          "testPositiveRate": 0.02361111111111111,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0037933678055937837,
+              "upper": 0.0036968576709797
+            },
+            "ret_3": {
+              "lower": -0.007025761124121788,
+              "upper": 0.0074316229557151925
+            },
+            "ret_6": {
+              "lower": -0.010684801705768524,
+              "upper": 0.011311622047513861
+            },
+            "acceleration_1": {
+              "lower": -0.005614073069126588,
+              "upper": 0.005677888377629482
+            },
+            "vol_6": {
+              "lower": 2.165157772921941e-05,
+              "upper": 0.004516836280208464
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720677153587035
+            },
+            "hmm_bull_probability": {
+              "lower": 0.002571390173179,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.45585856449714,
+              "upper": -10.820753986895793
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7310984596494217,
+              "upper": 0.4249258077378743
+            },
+            "ews_variance_slope": {
+              "lower": -0.2705217702918503,
+              "upper": 0.29885735728781954
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003748444475924,
+              "upper": 0.002833908812716
+            },
+            "ews_score": {
+              "lower": 0.2804093194080675,
+              "upper": 0.7173452072122188
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1736146418173314,
+              "upper": 0.863958925313072
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6632017791842895
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11366056374842357,
+              "upper": 2.3894529126208894
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.3135421804641318,
+              "upper": 3.4625873095057704
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8285200983752103,
+              "upper": 1.2547167880590524
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.2755173673904794,
+              "upper": 0.288394822489918
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.25471678805905246
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 4,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-08-21",
+      "calibrationStart": "2025-10-14",
+      "calibrationEnd": "2025-11-10",
+      "testStart": "2025-12-24",
+      "testEnd": "2026-02-27",
+      "testDates": [
+        "2025-12-24",
+        "2025-12-25",
+        "2025-12-26",
+        "2025-12-29",
+        "2025-12-30",
+        "2025-12-31",
+        "2026-01-05",
+        "2026-01-06",
+        "2026-01-07",
+        "2026-01-08",
+        "2026-01-09",
+        "2026-01-12",
+        "2026-01-13",
+        "2026-01-14",
+        "2026-01-15",
+        "2026-01-16",
+        "2026-01-19",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22",
+        "2026-01-23",
+        "2026-01-26",
+        "2026-01-27",
+        "2026-01-28",
+        "2026-01-29",
+        "2026-01-30",
+        "2026-02-02",
+        "2026-02-03",
+        "2026-02-04",
+        "2026-02-05",
+        "2026-02-06",
+        "2026-02-09",
+        "2026-02-10",
+        "2026-02-11",
+        "2026-02-12",
+        "2026-02-13",
+        "2026-02-24",
+        "2026-02-25",
+        "2026-02-26",
+        "2026-02-27"
+      ],
+      "testEmbargoDates": [
+        "2025-12-23"
+      ],
+      "calibrationEmbargoDates": [
+        "2025-10-13"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 5133,
+          "calibrationSamples": 358,
+          "testSamples": 715,
+          "fitPositiveRate": 0.03662575491915059,
+          "calibrationPositiveRate": 0.025139664804469275,
+          "testPositiveRate": 0.03076923076923077,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003714258629795612,
+              "upper": 0.003520405434867532
+            },
+            "ret_3": {
+              "lower": -0.006820743703348532,
+              "upper": 0.007112652366961394
+            },
+            "ret_6": {
+              "lower": -0.010262401122832705,
+              "upper": 0.011065724208683587
+            },
+            "acceleration_1": {
+              "lower": -0.005515428502170976,
+              "upper": 0.005315921663049107
+            },
+            "vol_6": {
+              "lower": 1.9911996914475866e-05,
+              "upper": 0.004356509484345617
+            },
+            "market_ret_1": {
+              "lower": -0.002324027923966,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.002571390173179,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.518548937347585,
+              "upper": -10.876953701178238
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7347131326610806,
+              "upper": 0.4257639339514259
+            },
+            "ews_variance_slope": {
+              "lower": -0.27027895750002656,
+              "upper": 0.30075797310547403
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003132715921855,
+              "upper": 0.0026900434435216
+            },
+            "ews_score": {
+              "lower": 0.27687048333999237,
+              "upper": 0.7120062983771336
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1749488648372691,
+              "upper": 0.8673031530169371
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6360628651020623
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 5133,
+          "calibrationSamples": 358,
+          "testSamples": 715,
+          "fitPositiveRate": 0.03662575491915059,
+          "calibrationPositiveRate": 0.025139664804469275,
+          "testPositiveRate": 0.03076923076923077,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003714258629795612,
+              "upper": 0.003520405434867532
+            },
+            "ret_3": {
+              "lower": -0.006820743703348532,
+              "upper": 0.007112652366961394
+            },
+            "ret_6": {
+              "lower": -0.010262401122832705,
+              "upper": 0.011065724208683587
+            },
+            "acceleration_1": {
+              "lower": -0.005515428502170976,
+              "upper": 0.005315921663049107
+            },
+            "vol_6": {
+              "lower": 1.9911996914475866e-05,
+              "upper": 0.004356509484345617
+            },
+            "market_ret_1": {
+              "lower": -0.002324027923966,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044939284873356,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 8.135965228055424e-132,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.002571390173179,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157426202532307
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.8489188984754481
+            },
+            "ews_log_variance": {
+              "lower": -20.518548937347585,
+              "upper": -10.876953701178238
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7347131326610806,
+              "upper": 0.4257639339514259
+            },
+            "ews_variance_slope": {
+              "lower": -0.27027895750002656,
+              "upper": 0.30075797310547403
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003132715921855,
+              "upper": 0.0026900434435216
+            },
+            "ews_score": {
+              "lower": 0.27687048333999237,
+              "upper": 0.7120062983771336
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.1749488648372691,
+              "upper": 0.8673031530169371
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6360628651020623
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11229879624118724,
+              "upper": 2.3688790978436582
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.3164000765076864,
+              "upper": 3.419409730704525
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8292371769935722,
+              "upper": 1.2685156991616098
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.27658028982069766,
+              "upper": 0.3072294726710286
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.26851569916160956
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 5,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-10-24",
+      "calibrationStart": "2025-12-09",
+      "calibrationEnd": "2026-01-07",
+      "testStart": "2026-03-02",
+      "testEnd": "2026-04-27",
+      "testDates": [
+        "2026-03-02",
+        "2026-03-03",
+        "2026-03-04",
+        "2026-03-05",
+        "2026-03-06",
+        "2026-03-09",
+        "2026-03-10",
+        "2026-03-11",
+        "2026-03-12",
+        "2026-03-13",
+        "2026-03-16",
+        "2026-03-17",
+        "2026-03-18",
+        "2026-03-19",
+        "2026-03-20",
+        "2026-03-23",
+        "2026-03-24",
+        "2026-03-25",
+        "2026-03-26",
+        "2026-03-27",
+        "2026-03-30",
+        "2026-03-31",
+        "2026-04-01",
+        "2026-04-02",
+        "2026-04-03",
+        "2026-04-07",
+        "2026-04-08",
+        "2026-04-09",
+        "2026-04-10",
+        "2026-04-13",
+        "2026-04-14",
+        "2026-04-15",
+        "2026-04-16",
+        "2026-04-17",
+        "2026-04-20",
+        "2026-04-21",
+        "2026-04-22",
+        "2026-04-23",
+        "2026-04-24",
+        "2026-04-27"
+      ],
+      "testEmbargoDates": [
+        "2026-02-27"
+      ],
+      "calibrationEmbargoDates": [
+        "2025-12-08"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 5851,
+          "calibrationSamples": 355,
+          "testSamples": 714,
+          "fitPositiveRate": 0.036574944453939495,
+          "calibrationPositiveRate": 0.022535211267605635,
+          "testPositiveRate": 0.04481792717086835,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0039215954314694,
+              "upper": 0.0035732153432584497
+            },
+            "ret_3": {
+              "lower": -0.0070257611241217495,
+              "upper": 0.0073723804170252
+            },
+            "ret_6": {
+              "lower": -0.010304451909340099,
+              "upper": 0.0111076575571933
+            },
+            "acceleration_1": {
+              "lower": -0.00527151558295815,
+              "upper": 0.0053252871152195
+            },
+            "vol_6": {
+              "lower": 2.042861859633568e-05,
+              "upper": 0.004398187809045001
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044274975698127,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1240115168971773,
+              "upper": 0.9812284438561428
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677153587035
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0025427292466524,
+              "upper": 0.8258243949106956
+            },
+            "hmm_expected_return": {
+              "lower": -1.965831603299652e-05,
+              "upper": 3.2787186860936666e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2020260289610614,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0840911678691175,
+              "upper": 0.8125582459508227
+            },
+            "ews_log_variance": {
+              "lower": -20.55728225626104,
+              "upper": -10.872494154283899
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7287588180143845,
+              "upper": 0.43756297352071294
+            },
+            "ews_variance_slope": {
+              "lower": -0.27068693824531387,
+              "upper": 0.2984088398758096
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0028320909190524
+            },
+            "ews_score": {
+              "lower": 0.2763634582983061,
+              "upper": 0.7135521246498242
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.17628112438309654,
+              "upper": 0.8741387514469685
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6004411389008304
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 5851,
+          "calibrationSamples": 355,
+          "testSamples": 714,
+          "fitPositiveRate": 0.036574944453939495,
+          "calibrationPositiveRate": 0.022535211267605635,
+          "testPositiveRate": 0.04481792717086835,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0039215954314694,
+              "upper": 0.0035732153432584497
+            },
+            "ret_3": {
+              "lower": -0.0070257611241217495,
+              "upper": 0.0073723804170252
+            },
+            "ret_6": {
+              "lower": -0.010304451909340099,
+              "upper": 0.0111076575571933
+            },
+            "acceleration_1": {
+              "lower": -0.00527151558295815,
+              "upper": 0.0053252871152195
+            },
+            "vol_6": {
+              "lower": 2.042861859633568e-05,
+              "upper": 0.004398187809045001
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044274975698127,
+              "upper": 0.0026245382592762
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1240115168971773,
+              "upper": 0.9812284438561428
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677153587035
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0025427292466524,
+              "upper": 0.8258243949106956
+            },
+            "hmm_expected_return": {
+              "lower": -1.965831603299652e-05,
+              "upper": 3.2787186860936666e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2020260289610614,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0840911678691175,
+              "upper": 0.8125582459508227
+            },
+            "ews_log_variance": {
+              "lower": -20.55728225626104,
+              "upper": -10.872494154283899
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7287588180143845,
+              "upper": 0.43756297352071294
+            },
+            "ews_variance_slope": {
+              "lower": -0.27068693824531387,
+              "upper": 0.2984088398758096
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0028320909190524
+            },
+            "ews_score": {
+              "lower": 0.2763634582983061,
+              "upper": 0.7135521246498242
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.17628112438309654,
+              "upper": 0.8741387514469685
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6004411389008304
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11212263577658585,
+              "upper": 2.3431881275059823
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.3167697785986379,
+              "upper": 3.3654929482192903
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8300036217715226,
+              "upper": 1.2657315883130933
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.2781358348297983,
+              "upper": 0.2992890383976981
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.2657315883130933
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 6,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2025-12-19",
+      "calibrationStart": "2026-02-05",
+      "calibrationEnd": "2026-03-12",
+      "testStart": "2026-04-28",
+      "testEnd": "2026-06-26",
+      "testDates": [
+        "2026-04-28",
+        "2026-04-29",
+        "2026-04-30",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-05",
+        "2026-06-08",
+        "2026-06-09",
+        "2026-06-10",
+        "2026-06-11",
+        "2026-06-12",
+        "2026-06-15",
+        "2026-06-16",
+        "2026-06-17",
+        "2026-06-18",
+        "2026-06-22",
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-26"
+      ],
+      "testEmbargoDates": [
+        "2026-04-27"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-02-04"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 6566,
+          "calibrationSamples": 354,
+          "testSamples": 720,
+          "fitPositiveRate": 0.034876637222053,
+          "calibrationPositiveRate": 0.04519774011299435,
+          "testPositiveRate": 0.03194444444444444,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0037922243237995547,
+              "upper": 0.0035518241139204866
+            },
+            "ret_3": {
+              "lower": -0.00684589879707586,
+              "upper": 0.00745141088396194
+            },
+            "ret_6": {
+              "lower": -0.01000173568450326,
+              "upper": 0.011063632522451905
+            },
+            "acceleration_1": {
+              "lower": -0.0051984026909278796,
+              "upper": 0.005263788301422889
+            },
+            "vol_6": {
+              "lower": 2.013963221111136e-05,
+              "upper": 0.00430904514001601
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044274975698127,
+              "upper": 0.0032088402901764
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1240115168971773,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0021180252689011,
+              "upper": 0.8258243949106956
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.2787186860936666e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2020260289610614,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0825961332224792,
+              "upper": 0.8125582459508227
+            },
+            "ews_log_variance": {
+              "lower": -20.614624547493467,
+              "upper": -10.951988170380993
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.723183433225633,
+              "upper": 0.4457844035126598
+            },
+            "ews_variance_slope": {
+              "lower": -0.27278094763640676,
+              "upper": 0.29367245658148283
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0027397600599574318
+            },
+            "ews_score": {
+              "lower": 0.2761375896587429,
+              "upper": 0.7116493046914124
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.171319189400705,
+              "upper": 0.8738742252084207
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6169328367249945
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 6566,
+          "calibrationSamples": 354,
+          "testSamples": 720,
+          "fitPositiveRate": 0.034876637222053,
+          "calibrationPositiveRate": 0.04519774011299435,
+          "testPositiveRate": 0.03194444444444444,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.0037922243237995547,
+              "upper": 0.0035518241139204866
+            },
+            "ret_3": {
+              "lower": -0.00684589879707586,
+              "upper": 0.00745141088396194
+            },
+            "ret_6": {
+              "lower": -0.01000173568450326,
+              "upper": 0.011063632522451905
+            },
+            "acceleration_1": {
+              "lower": -0.0051984026909278796,
+              "upper": 0.005263788301422889
+            },
+            "vol_6": {
+              "lower": 2.013963221111136e-05,
+              "upper": 0.00430904514001601
+            },
+            "market_ret_1": {
+              "lower": -0.0019404668506173,
+              "upper": 0.0016207838604602
+            },
+            "market_ret_3": {
+              "lower": -0.0044274975698127,
+              "upper": 0.0032088402901764
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1240115168971773,
+              "upper": 0.9814392724946852
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0021180252689011,
+              "upper": 0.8258243949106956
+            },
+            "hmm_expected_return": {
+              "lower": -1.978991430368962e-05,
+              "upper": 3.2787186860936666e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2020260289610614,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0825961332224792,
+              "upper": 0.8125582459508227
+            },
+            "ews_log_variance": {
+              "lower": -20.614624547493467,
+              "upper": -10.951988170380993
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.723183433225633,
+              "upper": 0.4457844035126598
+            },
+            "ews_variance_slope": {
+              "lower": -0.27278094763640676,
+              "upper": 0.29367245658148283
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0027397600599574318
+            },
+            "ews_score": {
+              "lower": 0.2761375896587429,
+              "upper": 0.7116493046914124
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.171319189400705,
+              "upper": 0.8738742252084207
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6169328367249945
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11234028498412062,
+              "upper": 2.3100779837144163
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.316313005466814,
+              "upper": 3.2960057938844978
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8299031021514591,
+              "upper": 1.260263696205972
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.2777158228489452,
+              "upper": 0.28611919606684394
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.26026369620597195
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "population": "koopmanExceptionLateSession",
+      "horizonBars": 5,
+      "fold": 7,
+      "fitStart": "2024-06-13",
+      "fitEnd": "2026-02-25",
+      "calibrationStart": "2026-04-13",
+      "calibrationEnd": "2026-05-13",
+      "testStart": "2026-06-29",
+      "testEnd": "2026-07-03",
+      "testDates": [
+        "2026-06-29",
+        "2026-06-30",
+        "2026-07-01",
+        "2026-07-02",
+        "2026-07-03"
+      ],
+      "testEmbargoDates": [
+        "2026-06-26"
+      ],
+      "calibrationEmbargoDates": [
+        "2026-04-10"
+      ],
+      "testBoundaryPurgedRows": 540,
+      "calibrationBoundaryPurgedRows": 540,
+      "sameTradingDateAcrossBoundaries": false,
+      "variants": {
+        "hmm_ews_lppls": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score"
+          ],
+          "fitSamples": 7280,
+          "calibrationSamples": 360,
+          "testSamples": 90,
+          "fitPositiveRate": 0.03461538461538462,
+          "calibrationPositiveRate": 0.04722222222222222,
+          "testPositiveRate": 0.011111111111111112,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003779592216606355,
+              "upper": 0.0037126377353590275
+            },
+            "ret_3": {
+              "lower": -0.0068633945691841955,
+              "upper": 0.007522583437009732
+            },
+            "ret_6": {
+              "lower": -0.009834550299338916,
+              "upper": 0.010870392549285339
+            },
+            "acceleration_1": {
+              "lower": -0.005232858011279472,
+              "upper": 0.005324816196721052
+            },
+            "vol_6": {
+              "lower": 1.935991220525653e-05,
+              "upper": 0.0043090284937065265
+            },
+            "market_ret_1": {
+              "lower": -0.001904243257479,
+              "upper": 0.001667981473037
+            },
+            "market_ret_3": {
+              "lower": -0.0042572128943033,
+              "upper": 0.0033207144957365
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.982977284355658
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0021744687888187,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.979066503036452e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.7660526180006585
+            },
+            "ews_log_variance": {
+              "lower": -20.67666580408734,
+              "upper": -10.967150823286321
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7229152869135997,
+              "upper": 0.4598033886264139
+            },
+            "ews_variance_slope": {
+              "lower": -0.2733395535750584,
+              "upper": 0.29443697243928074
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0028320909190524
+            },
+            "ews_score": {
+              "lower": 0.2756583895422094,
+              "upper": 0.7212927541341138
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.17114293042954715,
+              "upper": 0.874546217005382
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6196838714940899
+            }
+          }
+        },
+        "hmm_ews_lppls_dmd": {
+          "features": [
+            "ret_1",
+            "ret_3",
+            "ret_6",
+            "acceleration_1",
+            "vol_6",
+            "market_ret_1",
+            "market_ret_3",
+            "breadth",
+            "relative_strength",
+            "amount_rank",
+            "session_fraction",
+            "hmm_bear_probability",
+            "hmm_middle_probability",
+            "hmm_bull_probability",
+            "hmm_expected_return",
+            "regime_transition_risk",
+            "regime_entropy",
+            "ews_log_variance",
+            "ews_autocorrelation_1",
+            "ews_variance_slope",
+            "ews_market_dispersion",
+            "ews_score",
+            "lppls_tc_proximity",
+            "lppls_time_to_tc",
+            "lppls_fit_residual",
+            "lppls_parameter_stability",
+            "lppls_window_consensus",
+            "lppls_bubble_like_score",
+            "dmd_reconstruction_residual",
+            "dmd_residual_zscore",
+            "dmd_spectral_radius",
+            "dmd_spectral_radius_drift",
+            "dmd_eigen_instability",
+            "dmd_missing_bar_ratio"
+          ],
+          "fitSamples": 7280,
+          "calibrationSamples": 360,
+          "testSamples": 90,
+          "fitPositiveRate": 0.03461538461538462,
+          "calibrationPositiveRate": 0.04722222222222222,
+          "testPositiveRate": 0.011111111111111112,
+          "winsorBounds": {
+            "ret_1": {
+              "lower": -0.003779592216606355,
+              "upper": 0.0037126377353590275
+            },
+            "ret_3": {
+              "lower": -0.0068633945691841955,
+              "upper": 0.007522583437009732
+            },
+            "ret_6": {
+              "lower": -0.009834550299338916,
+              "upper": 0.010870392549285339
+            },
+            "acceleration_1": {
+              "lower": -0.005232858011279472,
+              "upper": 0.005324816196721052
+            },
+            "vol_6": {
+              "lower": 1.935991220525653e-05,
+              "upper": 0.0043090284937065265
+            },
+            "market_ret_1": {
+              "lower": -0.001904243257479,
+              "upper": 0.001667981473037
+            },
+            "market_ret_3": {
+              "lower": -0.0042572128943033,
+              "upper": 0.0033207144957365
+            },
+            "breadth": {
+              "lower": 0.0,
+              "upper": 0.8333333333333334
+            },
+            "relative_strength": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "amount_rank": {
+              "lower": 0.0555555555555555,
+              "upper": 1.0
+            },
+            "session_fraction": {
+              "lower": 0.8636363636363636,
+              "upper": 0.8636363636363636
+            },
+            "hmm_bear_probability": {
+              "lower": 0.1231267827977602,
+              "upper": 0.982977284355658
+            },
+            "hmm_middle_probability": {
+              "lower": 1.2559989338540229e-115,
+              "upper": 0.8720677270038518
+            },
+            "hmm_bull_probability": {
+              "lower": 0.0021744687888187,
+              "upper": 0.8342739319783846
+            },
+            "hmm_expected_return": {
+              "lower": -1.979066503036452e-05,
+              "upper": 3.3336029783786833e-05
+            },
+            "regime_transition_risk": {
+              "lower": 0.2000273863185153,
+              "upper": 0.5157425353444235
+            },
+            "regime_entropy": {
+              "lower": 0.0817044466564635,
+              "upper": 0.7660526180006585
+            },
+            "ews_log_variance": {
+              "lower": -20.67666580408734,
+              "upper": -10.967150823286321
+            },
+            "ews_autocorrelation_1": {
+              "lower": -0.7229152869135997,
+              "upper": 0.4598033886264139
+            },
+            "ews_variance_slope": {
+              "lower": -0.2733395535750584,
+              "upper": 0.29443697243928074
+            },
+            "ews_market_dispersion": {
+              "lower": 0.0003672383236949,
+              "upper": 0.0028320909190524
+            },
+            "ews_score": {
+              "lower": 0.2756583895422094,
+              "upper": 0.7212927541341138
+            },
+            "lppls_tc_proximity": {
+              "lower": 0.0526315789473684,
+              "upper": 0.1428571428571428
+            },
+            "lppls_time_to_tc": {
+              "lower": 6.0,
+              "upper": 18.0
+            },
+            "lppls_fit_residual": {
+              "lower": 0.17114293042954715,
+              "upper": 0.874546217005382
+            },
+            "lppls_parameter_stability": {
+              "lower": 0.624125055778261,
+              "upper": 1.0
+            },
+            "lppls_window_consensus": {
+              "lower": 0.5285954792089684,
+              "upper": 1.0
+            },
+            "lppls_bubble_like_score": {
+              "lower": 0.0,
+              "upper": 0.6196838714940899
+            },
+            "dmd_reconstruction_residual": {
+              "lower": 0.11407760774382271,
+              "upper": 2.261075596853126
+            },
+            "dmd_residual_zscore": {
+              "lower": -1.312666944142142,
+              "upper": 3.1931661191298657
+            },
+            "dmd_spectral_radius": {
+              "lower": 0.8296631295688158,
+              "upper": 1.2549382220616276
+            },
+            "dmd_spectral_radius_drift": {
+              "lower": -0.27635189174484087,
+              "upper": 0.2785769693202675
+            },
+            "dmd_eigen_instability": {
+              "lower": 0.0,
+              "upper": 0.2549382220616276
+            },
+            "dmd_missing_bar_ratio": {
+              "lower": 0.0,
+              "upper": 0.0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "nonWaivableGatesPassed": false,
+  "paperIntegrationAllowed": false,
+  "paperConfigHashBefore": "2183b1db161f53f12e4b5738200ae0a2494a01a0b8856002e7120ee56717e456",
+  "paperConfigHashAfter": "2183b1db161f53f12e4b5738200ae0a2494a01a0b8856002e7120ee56717e456",
+  "agentSourceHashBefore": "7968eca0203ae096d4da010b45450e29842dd42d46fb8bdd1f910aa73e4106a9",
+  "agentSourceHashAfter": "7968eca0203ae096d4da010b45450e29842dd42d46fb8bdd1f910aa73e4106a9",
+  "paperConfigModified": false,
+  "agentSourceModified": false,
+  "conclusion": "Even after waiving coverage, 10-bar and high-risk sample gates, Koopman does not pass the non-waivable predictive gates and is not integrated into paper trading.",
+  "phase15Touched": false
+}

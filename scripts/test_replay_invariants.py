@@ -5472,6 +5472,99 @@ def t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only() -> None:
     )
 
 
+def t93_koopman_paper_exception_cannot_waive_predictive_evidence() -> None:
+    import json
+
+    import research_singularity_phase1_6_koopman_paper_exception as exception
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase1_6_koopman_paper_exception_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    exception.validate_config(config)
+    exemptions = config["paperOnlyExemptions"]
+    gates = config["nonWaivableGates"]
+    integration = config["paperIntegration"]
+    check(
+        "T93 Koopman exception waives only coverage and sample-availability gates",
+        exemptions["fullSessionCoverageMinimumWaived"] is True
+        and exemptions["tenBarEvaluationWaived"] is True
+        and exemptions["highRiskMinimumSampleGateWaived"] is True
+        and gates["minimumImprovedMetricCountOfFour"] == 3
+        and gates["minimumImprovingFoldFraction"] == 0.5
+        and gates["minimumImprovingMonthFraction"] == 0.5
+        and gates["minimumImprovingEtfCategories"] == 2
+        and gates["brierTradeDateClusterBootstrapUpperBelowZero"] is True
+        and gates["causalPastOnlyFeatures"] is True
+        and gates["sameForecastPopulation"] is True,
+    )
+    check(
+        "T93 any eligible paper use remains a non-promoting risk veto",
+        integration["allowedOnlyIfAllNonWaivableGatesPass"] is True
+        and integration["policyTypeIfEligible"] == "risk_veto_only"
+        and integration["mayGenerateIndependentBuyOrSell"] is False
+        and integration["mayChangeSellPath"] is False
+        and integration["mayBypassTripleLock"] is False
+        and integration["alphaValidated"] is False
+        and integration["automaticPromotionAllowed"] is False
+        and config["source"]["phase15LedgerAllowedAsInput"] is False,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_singularity_phase1_6_koopman_paper_exception.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T93 exception audit cannot trade or edit the paper agent",
+        "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "decision_probability_v1.json" not in source
+        and "write_text" not in source
+        and "write_bytes" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "singularity_phase1_6_hmm_physics_features"
+        / "koopman_exception_20260705_v1"
+        / "koopman_paper_exception_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    diagnostics = result["diagnostic"]
+    result_gates = diagnostics["gates"]
+    bootstrap = diagnostics["clusterBootstrap"]
+    check(
+        "T93 Koopman point estimates do not override failed stability evidence",
+        diagnostics["improvedMetricCountOfFour"] == 4
+        and diagnostics["improvingFolds"] == 4
+        and diagnostics["totalFolds"] == 7
+        and diagnostics["improvingMonths"] == 6
+        and diagnostics["totalMonths"] == 13
+        and result_gates["majorityMonths"] is False
+        and result_gates["clusterBootstrapBrier"] is False
+        and bootstrap["upper"] >= 0.0
+        and result["nonWaivableGatesPassed"] is False
+        and result["paperIntegrationAllowed"] is False,
+    )
+    check(
+        "T93 failed exception leaves production artifacts byte-identical",
+        result["paperConfigModified"] is False
+        and result["agentSourceModified"] is False
+        and result["paperConfigHashBefore"]
+        == result["paperConfigHashAfter"]
+        and result["agentSourceHashBefore"]
+        == result["agentSourceHashAfter"]
+        and result["phase15Touched"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5564,6 +5657,7 @@ if __name__ == "__main__":
     t90_singularity_phase2a_is_causal_historical_and_isolated()
     t91_singularity_phase1_6_gate0_fails_closed_without_break()
     t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only()
+    t93_koopman_paper_exception_cannot_waive_predictive_evidence()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "singularity_phase1_6_koopman_paper_exception_v1",
+  "status": "research_only",
+  "diagnosticOnly": true,
+  "userAuthorizedPaperException": true,
+  "preregisteredAt": "2026-07-05T11:00:00+08:00",
+  "hypothesis": "Within the fixed DMD-complete late-session population, Koopman/DMD may add 5-bar turning-risk information beyond HMM+EWS+LPPLS.",
+  "source": {
+    "modelConfig": "configs/research/singularity_phase1_6_hmm_physics_model_v1.json",
+    "featureTable": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/model_20260705_break_20260612_v2/model_feature_table.csv",
+    "phase15LedgerAllowedAsInput": false
+  },
+  "comparison": {
+    "population": "koopmanExceptionLateSession",
+    "baseline": "hmm_ews_lppls",
+    "candidate": "hmm_ews_lppls_dmd",
+    "primaryHorizonBars": 5,
+    "sameSampleRequired": true
+  },
+  "paperOnlyExemptions": {
+    "fullSessionCoverageMinimumWaived": true,
+    "tenBarEvaluationWaived": true,
+    "highRiskMinimumSampleGateWaived": true,
+    "reason": "User explicitly authorized a Koopman paper-data exception; DMD is structurally late-session and 10-bar is not evaluable."
+  },
+  "nonWaivableGates": {
+    "minimumImprovedMetricCountOfFour": 3,
+    "minimumImprovingFoldFraction": 0.5,
+    "minimumImprovingMonthFraction": 0.5,
+    "minimumImprovingEtfCategories": 2,
+    "brierTradeDateClusterBootstrapUpperBelowZero": true,
+    "causalPastOnlyFeatures": true,
+    "sameForecastPopulation": true
+  },
+  "paperIntegration": {
+    "allowedOnlyIfAllNonWaivableGatesPass": true,
+    "policyTypeIfEligible": "risk_veto_only",
+    "mayGenerateIndependentBuyOrSell": false,
+    "mayChangeSellPath": false,
+    "mayBypassTripleLock": false,
+    "alphaValidated": false,
+    "automaticPromotionAllowed": false
+  },
+  "output": {
+    "root": "outputs/edge_research/singularity_phase1_6_hmm_physics_features"
+  }
+}
