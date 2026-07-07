@@ -5946,6 +5946,116 @@ def t96_risk_stack_phase1_7_is_causal_audit_only() -> None:
     )
 
 
+def t97_risk_stack_weight_adaptation_is_train_only_and_shadow() -> None:
+    import json
+
+    import research_risk_stack_weight_adaptation as weight_adapt
+
+    config_path = (
+        ROOT / "configs" / "research" / "risk_stack_weight_adaptation_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    weight_adapt.validate_config(config)
+    check(
+        "T97 weight adaptation is explicitly research-only with fixed candidate grid",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["diagnosticOnly"] is True
+        and config["weightSelection"]["method"]
+        == "pre_registered_candidate_grid_train_only"
+        and config["weightSelection"]["parameterSearchOutsideCandidateGridAllowed"]
+        is False
+        and config["weightSelection"]["negativeWeightsAllowed"] is False
+        and config["normalization"]["fitOnEachFoldTrainingOnly"] is True
+        and config["calibration"]["fitOnEachFoldTrainingOnly"] is True,
+    )
+    all_candidates = (
+        config["weightSelection"]["fullSessionCandidates"]
+        + config["weightSelection"]["dmdCompleteCandidates"]
+    )
+    check(
+        "T97 candidate weights are non-negative and normalized",
+        all(
+            all(float(weight) >= 0.0 for weight in item["weights"].values())
+            and abs(sum(float(weight) for weight in item["weights"].values()) - 1.0)
+            < 1e-6
+            for item in all_candidates
+        ),
+    )
+    check(
+        "T97 full-session candidates cannot use DMD where DMD is incomplete",
+        all(
+            "dmd" not in item["weights"]
+            for item in config["weightSelection"]["fullSessionCandidates"]
+        ),
+    )
+    safety = config["safety"]
+    integration = config["paperIntegration"]
+    check(
+        "T97 weight adaptation cannot trade, size, gate, overlay or promote",
+        safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and integration["allowed"] is False
+        and integration["mayGenerateIndependentOrders"] is False
+        and integration["mayChangeSellPath"] is False
+        and integration["mayChangePositionSizing"] is False
+        and integration["mayBypassTripleLock"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_risk_stack_weight_adaptation.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T97 weight-adaptation source has no broker/order/production decision path",
+        "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "run_t0_intraday_agent" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "risk_stack_weight_adaptation"
+        / "risk_stack_weight_adapt_20260708_v1"
+        / "risk_stack_weight_adaptation_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    fold_selections = result["foldSelections"]
+    check(
+        "T97 fold selections are train-only and purged by declared max horizon",
+        result["methodAudit"]["foldNormalizationFitOnTrainingOnly"] is True
+        and result["methodAudit"]["foldCalibrationFitOnTrainingOnly"] is True
+        and result["methodAudit"]["candidateGridOnly"] is True
+        and result["methodAudit"]["purgeBars"]
+        >= result["methodAudit"]["maxLabelHorizonBars"]
+        and all(int(item["trainRows"]) > 0 and int(item["testRows"]) > 0 for item in fold_selections),
+    )
+    check(
+        "T97 result cannot justify costed replay or paper integration",
+        result["paperIntegrationAllowed"] is False
+        and result["conclusions"]["paperIntegrationAllowed"] is False
+        and result["conclusions"]["costedReplayJustifiedNow"] is False
+        and result["conclusions"]["multiModelBlendValidated"] is False
+        and result["conclusions"]["dominantFullSessionCandidate"] == "hmm_only",
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6042,6 +6152,7 @@ if __name__ == "__main__":
     t94_koopman_minute_direction_is_causal_and_shadow_only()
     t95_online_viterbi_ablation_is_causal_and_research_only()
     t96_risk_stack_phase1_7_is_causal_audit_only()
+    t97_risk_stack_weight_adaptation_is_train_only_and_shadow()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

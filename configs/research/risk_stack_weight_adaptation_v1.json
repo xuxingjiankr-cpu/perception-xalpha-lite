@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "risk_stack_weight_adaptation_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-08T10:20:00+08:00",
+  "researchQuestion": "Can train-only walk-forward weighting improve the causal BOCPD/DMD/HMM/Hawkes risk-stack diagnostics versus equal weights without using future data?",
+  "source": {
+    "phase17RunId": "risk_stack_p17_20260708_v2",
+    "phase17Config": "configs/research/risk_stack_phase1_7_audit_v1.json",
+    "phase17FeatureTable": "outputs/edge_research/risk_stack_phase1_7/risk_stack_p17_20260708_v2/risk_stack_features_compact.csv",
+    "phase17Result": "outputs/edge_research/risk_stack_phase1_7/risk_stack_p17_20260708_v2/risk_stack_phase1_7_result.json",
+    "phase15LedgerAllowedAsInput": false,
+    "paperTradingArtifactsAllowedAsInput": false
+  },
+  "data": {
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "initialTrainingEnd": "2025-06-30",
+    "testFrequency": "calendar_month",
+    "primaryHorizonsBars": [5, 10],
+    "maxLabelHorizonBars": 10,
+    "barIntervalMinutes": 5,
+    "purgeBars": 10,
+    "sameSessionOnly": true
+  },
+  "normalization": {
+    "method": "fold_train_quantile_clip",
+    "lowerQuantile": 0.05,
+    "upperQuantile": 0.95,
+    "fitOnEachFoldTrainingOnly": true
+  },
+  "weightSelection": {
+    "method": "pre_registered_candidate_grid_train_only",
+    "objective": "mean_train_auc_across_primary_horizons",
+    "tieBreak": "lower_component_count_then_equal_order",
+    "minTrainRows": 1000,
+    "minTrainPositiveRowsPerHorizon": 20,
+    "topBucketFraction": 0.1,
+    "parameterSearchOutsideCandidateGridAllowed": false,
+    "negativeWeightsAllowed": false,
+    "weightsMustSumToOne": true,
+    "fullSessionCandidates": [
+      {
+        "name": "equal_full",
+        "weights": {
+          "bocpd": 0.3333333333,
+          "hmm": 0.3333333333,
+          "hawkes": 0.3333333334
+        }
+      },
+      {
+        "name": "hmm_only",
+        "weights": {
+          "hmm": 1.0
+        }
+      },
+      {
+        "name": "bocpd_only",
+        "weights": {
+          "bocpd": 1.0
+        }
+      },
+      {
+        "name": "hawkes_only",
+        "weights": {
+          "hawkes": 1.0
+        }
+      },
+      {
+        "name": "hmm_heavy",
+        "weights": {
+          "bocpd": 0.1,
+          "hmm": 0.75,
+          "hawkes": 0.15
+        }
+      },
+      {
+        "name": "hmm_bocpd",
+        "weights": {
+          "bocpd": 0.25,
+          "hmm": 0.75
+        }
+      },
+      {
+        "name": "hmm_hawkes",
+        "weights": {
+          "hmm": 0.75,
+          "hawkes": 0.25
+        }
+      }
+    ],
+    "dmdCompleteCandidates": [
+      {
+        "name": "equal_dmd",
+        "weights": {
+          "bocpd": 0.25,
+          "dmd": 0.25,
+          "hmm": 0.25,
+          "hawkes": 0.25
+        }
+      },
+      {
+        "name": "hmm_only",
+        "weights": {
+          "hmm": 1.0
+        }
+      },
+      {
+        "name": "dmd_only",
+        "weights": {
+          "dmd": 1.0
+        }
+      },
+      {
+        "name": "hmm_dmd",
+        "weights": {
+          "dmd": 0.25,
+          "hmm": 0.65,
+          "hawkes": 0.1
+        }
+      },
+      {
+        "name": "hmm_heavy_dmdlow",
+        "weights": {
+          "bocpd": 0.05,
+          "dmd": 0.15,
+          "hmm": 0.7,
+          "hawkes": 0.1
+        }
+      }
+    ]
+  },
+  "calibration": {
+    "method": "fold_train_quantile_bucket_hit_rate",
+    "bins": 10,
+    "minBinRows": 30,
+    "probabilityClip": [0.001, 0.999],
+    "fitOnEachFoldTrainingOnly": true
+  },
+  "evaluation": {
+    "labels": ["turning_point_5", "turning_point_10"],
+    "metrics": [
+      "auc",
+      "brier",
+      "logloss",
+      "ece",
+      "top_bucket_hit_rate",
+      "baseline_hit_rate",
+      "lift",
+      "selected_weight_stability",
+      "mechanical_reduction_audit"
+    ],
+    "adaptiveWeightsRequiredToBeatEqualWeightsOnBothHorizons": true,
+    "costedReplayRequiredBeforeAnyIntegration": true,
+    "forwardValidationDaysRequiredBeforeAnyIntegration": 20
+  },
+  "output": {
+    "root": "outputs/edge_research/risk_stack_weight_adaptation"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "forwardTaskIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "paperIntegration": {
+    "allowed": false,
+    "mayGenerateIndependentOrders": false,
+    "mayChangeSellPath": false,
+    "mayChangePositionSizing": false,
+    "mayBypassTripleLock": false,
+    "automaticPromotionAllowed": false
+  }
+}

@@ -1,0 +1,2357 @@
+{
+  "schemaVersion": "risk_stack_weight_adaptation_result_v1",
+  "runId": "risk_stack_weight_adapt_20260708_v1",
+  "sourceCommitAtRun": "decac9b",
+  "generatedAt": "2026-07-08T07:01:41+09:00",
+  "status": "diagnostic_only",
+  "researchOnly": true,
+  "shadowOnly": true,
+  "paperIntegrationAllowed": false,
+  "sourcePhase17RunId": "risk_stack_p17_20260708_v2",
+  "dataAudit": {
+    "rows": 44350,
+    "symbols": 18,
+    "tradingDays": 500,
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "initialTrainingEnd": "2025-06-30",
+    "folds": 26,
+    "dmdCompleteRows": 26610,
+    "phase17PaperIntegrationAllowed": false
+  },
+  "methodAudit": {
+    "candidateGridOnly": true,
+    "negativeWeightsAllowed": false,
+    "foldNormalizationFitOnTrainingOnly": true,
+    "foldCalibrationFitOnTrainingOnly": true,
+    "purgeBars": 10,
+    "maxLabelHorizonBars": 10,
+    "phase15LedgerRead": false,
+    "paperTradingArtifactsRead": false,
+    "labelsFutureUsingButOfflineOnly": true,
+    "featuresPastOnlyInheritedFromPhase17": true
+  },
+  "selectionSummary": {
+    "dmd_complete": {
+      "folds": 13,
+      "selectedCandidateCounts": {
+        "dmd_only": 13
+      },
+      "dominantCandidate": "dmd_only"
+    },
+    "full_session": {
+      "folds": 13,
+      "selectedCandidateCounts": {
+        "hmm_only": 13
+      },
+      "dominantCandidate": "hmm_only"
+    }
+  },
+  "foldSelections": [
+    {
+      "month": "2025-07",
+      "population": "full_session",
+      "testRows": 2070,
+      "trainRows": 22310,
+      "trainCutoff": "2025-07-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4926347750917931,
+        "hmm_only": 0.5154207642899887,
+        "bocpd_only": 0.4979771573432403,
+        "hawkes_only": 0.4823118631583386,
+        "hmm_heavy": 0.5029486781286212,
+        "hmm_bocpd": 0.5100511774964932,
+        "hmm_hawkes": 0.5078721557845722
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0934849752717254,
+          "high": 0.21427491088397646
+        },
+        "dmd": {
+          "low": -1.1290169424609626,
+          "high": 1.783555957607771
+        },
+        "hmm": {
+          "low": 0.2741272062808153,
+          "high": 0.5157413218577802
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-07",
+      "population": "dmd_complete",
+      "testRows": 1242,
+      "trainRows": 13386,
+      "trainCutoff": "2025-07-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4895920521075472,
+        "hmm_only": 0.4669705183441738,
+        "dmd_only": 0.5032890912665338,
+        "hmm_dmd": 0.4713912728310608,
+        "hmm_heavy_dmdlow": 0.46952440634936243
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0934849752717254,
+          "high": 0.21427491088397646
+        },
+        "dmd": {
+          "low": -1.1290169424609626,
+          "high": 1.783555957607771
+        },
+        "hmm": {
+          "low": 0.2741272062808153,
+          "high": 0.5157413218577802
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-08",
+      "population": "full_session",
+      "testRows": 1890,
+      "trainRows": 24380,
+      "trainCutoff": "2025-08-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.49017559102960306,
+        "hmm_only": 0.5109328832645945,
+        "bocpd_only": 0.5003306654989911,
+        "hawkes_only": 0.48131416772066493,
+        "hmm_heavy": 0.4990404322822337,
+        "hmm_bocpd": 0.506910362320082,
+        "hmm_hawkes": 0.5034478183463444
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.2052787355650032
+        },
+        "dmd": {
+          "low": -1.1344725616852251,
+          "high": 1.7462955114137464
+        },
+        "hmm": {
+          "low": 0.2777992312307102,
+          "high": 0.5157414915088409
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-08",
+      "population": "dmd_complete",
+      "testRows": 1134,
+      "trainRows": 14628,
+      "trainCutoff": "2025-08-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.48882672915933484,
+        "hmm_only": 0.46271014997066284,
+        "dmd_only": 0.5052136288239,
+        "hmm_dmd": 0.4682798125905593,
+        "hmm_heavy_dmdlow": 0.46602358732189375
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.2052787355650032
+        },
+        "dmd": {
+          "low": -1.1344725616852251,
+          "high": 1.7462955114137464
+        },
+        "hmm": {
+          "low": 0.2777992312307102,
+          "high": 0.5157414915088409
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-09",
+      "population": "full_session",
+      "testRows": 1980,
+      "trainRows": 26270,
+      "trainCutoff": "2025-09-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.49102284623052483,
+        "hmm_only": 0.5100535091562282,
+        "bocpd_only": 0.5000911654198786,
+        "hawkes_only": 0.4829610003223195,
+        "hmm_heavy": 0.4988994011736188,
+        "hmm_bocpd": 0.5060575049910702,
+        "hmm_hawkes": 0.5026266137828262
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0939363307479792,
+          "high": 0.2010536096520338
+        },
+        "dmd": {
+          "low": -1.1376342806164128,
+          "high": 1.7274397804404782
+        },
+        "hmm": {
+          "low": 0.28098061237057875,
+          "high": 0.5157413550195202
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-09",
+      "population": "dmd_complete",
+      "testRows": 1188,
+      "trainRows": 15762,
+      "trainCutoff": "2025-09-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4918103224497355,
+        "hmm_only": 0.46741662788743077,
+        "dmd_only": 0.5095904569471454,
+        "hmm_dmd": 0.47229687509380813,
+        "hmm_heavy_dmdlow": 0.4697927752974612
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0939363307479792,
+          "high": 0.2010536096520338
+        },
+        "dmd": {
+          "low": -1.1376342806164128,
+          "high": 1.7274397804404782
+        },
+        "hmm": {
+          "low": 0.28098061237057875,
+          "high": 0.5157413550195202
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-10",
+      "population": "full_session",
+      "testRows": 1530,
+      "trainRows": 28250,
+      "trainCutoff": "2025-10-09T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4928347955562177,
+        "hmm_only": 0.508712362271889,
+        "bocpd_only": 0.4984323513814732,
+        "hawkes_only": 0.48759514959686756,
+        "hmm_heavy": 0.5007693526624563,
+        "hmm_bocpd": 0.5037862082557566,
+        "hmm_hawkes": 0.5044189430010788
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093847469194812,
+          "high": 0.205166243590394
+        },
+        "dmd": {
+          "low": -1.1362821282321842,
+          "high": 1.7170732858539008
+        },
+        "hmm": {
+          "low": 0.2812951201476916,
+          "high": 0.515740738830917
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-10",
+      "population": "dmd_complete",
+      "testRows": 918,
+      "trainRows": 16950,
+      "trainCutoff": "2025-10-09T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4874352220517459,
+        "hmm_only": 0.4634864741891319,
+        "dmd_only": 0.5108293251099509,
+        "hmm_dmd": 0.4706632307289417,
+        "hmm_heavy_dmdlow": 0.4685761303270318
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093847469194812,
+          "high": 0.205166243590394
+        },
+        "dmd": {
+          "low": -1.1362821282321842,
+          "high": 1.7170732858539008
+        },
+        "hmm": {
+          "low": 0.2812951201476916,
+          "high": 0.515740738830917
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-11",
+      "population": "full_session",
+      "testRows": 1800,
+      "trainRows": 29780,
+      "trainCutoff": "2025-11-03T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.48942897145091746,
+        "hmm_only": 0.5129332610888981,
+        "bocpd_only": 0.4958691303577194,
+        "hawkes_only": 0.48352099653627245,
+        "hmm_heavy": 0.5039244855950313,
+        "hmm_bocpd": 0.5073552837122299,
+        "hmm_hawkes": 0.5067728631374082
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093661010076396,
+          "high": 0.2117113748720947
+        },
+        "dmd": {
+          "low": -1.1344725616852251,
+          "high": 1.72090409602928
+        },
+        "hmm": {
+          "low": 0.280370832400903,
+          "high": 0.5157399974439492
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-11",
+      "population": "dmd_complete",
+      "testRows": 1080,
+      "trainRows": 17868,
+      "trainCutoff": "2025-11-03T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4839222768863491,
+        "hmm_only": 0.4690508548424674,
+        "dmd_only": 0.5068334163274079,
+        "hmm_dmd": 0.47377562289775565,
+        "hmm_heavy_dmdlow": 0.4722622756138657
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093661010076396,
+          "high": 0.2117113748720947
+        },
+        "dmd": {
+          "low": -1.1344725616852251,
+          "high": 1.72090409602928
+        },
+        "hmm": {
+          "low": 0.280370832400903,
+          "high": 0.5157399974439492
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-12",
+      "population": "full_session",
+      "testRows": 2070,
+      "trainRows": 31580,
+      "trainCutoff": "2025-12-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4877716978263788,
+        "hmm_only": 0.5160026170149055,
+        "bocpd_only": 0.48897186461055314,
+        "hawkes_only": 0.48292346023188476,
+        "hmm_heavy": 0.5048146971416942,
+        "hmm_bocpd": 0.507545752308447,
+        "hmm_hawkes": 0.5093263467228433
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0936417660133142,
+          "high": 0.2080597995671315
+        },
+        "dmd": {
+          "low": -1.1339256166161318,
+          "high": 1.7131062166696926
+        },
+        "hmm": {
+          "low": 0.2811384817327833,
+          "high": 0.5157395896750793
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2025-12",
+      "population": "dmd_complete",
+      "testRows": 1242,
+      "trainRows": 18948,
+      "trainCutoff": "2025-12-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.47859053079228947,
+        "hmm_only": 0.4722655034195106,
+        "dmd_only": 0.5012504688841334,
+        "hmm_dmd": 0.4742291246657786,
+        "hmm_heavy_dmdlow": 0.4722792614969385
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0936417660133142,
+          "high": 0.2080597995671315
+        },
+        "dmd": {
+          "low": -1.1339256166161318,
+          "high": 1.7131062166696926
+        },
+        "hmm": {
+          "low": 0.2811384817327833,
+          "high": 0.5157395896750793
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.332439215760371
+        }
+      }
+    },
+    {
+      "month": "2026-01",
+      "population": "full_session",
+      "testRows": 1795,
+      "trainRows": 33650,
+      "trainCutoff": "2026-01-05T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4849381311098772,
+        "hmm_only": 0.5155801646949677,
+        "bocpd_only": 0.48539141089038607,
+        "hawkes_only": 0.48368960420899637,
+        "hmm_heavy": 0.5024488642735256,
+        "hmm_bocpd": 0.5041511182218089,
+        "hmm_hawkes": 0.5090473124111067
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.205166243590394
+        },
+        "dmd": {
+          "low": -1.1343387089566397,
+          "high": 1.7063323907951946
+        },
+        "hmm": {
+          "low": 0.2855661926403765,
+          "high": 0.5157397255927352
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-01",
+      "population": "dmd_complete",
+      "testRows": 1077,
+      "trainRows": 20190,
+      "trainCutoff": "2026-01-05T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.48206252940649247,
+        "hmm_only": 0.4705027481860662,
+        "dmd_only": 0.5007227162027527,
+        "hmm_dmd": 0.47345591638686957,
+        "hmm_heavy_dmdlow": 0.47169297263614807
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.205166243590394
+        },
+        "dmd": {
+          "low": -1.1343387089566397,
+          "high": 1.7063323907951946
+        },
+        "hmm": {
+          "low": 0.2855661926403765,
+          "high": 0.5157397255927352
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-02",
+      "population": "full_session",
+      "testRows": 1260,
+      "trainRows": 35445,
+      "trainCutoff": "2026-02-02T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4829414369925194,
+        "hmm_only": 0.5114023252465869,
+        "bocpd_only": 0.49180209242885653,
+        "hawkes_only": 0.4833138550261037,
+        "hmm_heavy": 0.4987806999043704,
+        "hmm_bocpd": 0.5014523029726541,
+        "hmm_hawkes": 0.503573902851176
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938934550150391,
+          "high": 0.2027930263086022
+        },
+        "dmd": {
+          "low": -1.1325212225910677,
+          "high": 1.708134543848776
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157393003024214
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-02",
+      "population": "dmd_complete",
+      "testRows": 756,
+      "trainRows": 21267,
+      "trainCutoff": "2026-02-02T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.47792474466974516,
+        "hmm_only": 0.4696972441000292,
+        "dmd_only": 0.49943327079104016,
+        "hmm_dmd": 0.467912581075164,
+        "hmm_heavy_dmdlow": 0.46743738891061076
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938934550150391,
+          "high": 0.2027930263086022
+        },
+        "dmd": {
+          "low": -1.1325212225910677,
+          "high": 1.708134543848776
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157393003024214
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-03",
+      "population": "full_session",
+      "testRows": 1975,
+      "trainRows": 36705,
+      "trainCutoff": "2026-03-02T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4854758393014496,
+        "hmm_only": 0.5099769702904411,
+        "bocpd_only": 0.49447200010617665,
+        "hawkes_only": 0.48467217823906994,
+        "hmm_heavy": 0.4975813833310119,
+        "hmm_bocpd": 0.5005384044935821,
+        "hmm_hawkes": 0.5022878575672147
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.1998258305153334
+        },
+        "dmd": {
+          "low": -1.1329715166687617,
+          "high": 1.7063106643080852
+        },
+        "hmm": {
+          "low": 0.28756527021300815,
+          "high": 0.5157390578768266
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-03",
+      "population": "dmd_complete",
+      "testRows": 1185,
+      "trainRows": 22023,
+      "trainCutoff": "2026-03-02T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.47880107438064695,
+        "hmm_only": 0.46833904798084175,
+        "dmd_only": 0.49453777779952257,
+        "hmm_dmd": 0.4657188472559861,
+        "hmm_heavy_dmdlow": 0.4655316818737235
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0938796809660539,
+          "high": 0.1998258305153334
+        },
+        "dmd": {
+          "low": -1.1329715166687617,
+          "high": 1.7063106643080852
+        },
+        "hmm": {
+          "low": 0.28756527021300815,
+          "high": 0.5157390578768266
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-04",
+      "population": "full_session",
+      "testRows": 1890,
+      "trainRows": 38680,
+      "trainCutoff": "2026-04-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4844542095319059,
+        "hmm_only": 0.5097022462593102,
+        "bocpd_only": 0.49459330711811617,
+        "hawkes_only": 0.48129546272859036,
+        "hmm_heavy": 0.49703717629504723,
+        "hmm_bocpd": 0.5010723427406326,
+        "hmm_hawkes": 0.5015979143754641
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0934214678383798,
+          "high": 0.205063864482383
+        },
+        "dmd": {
+          "low": -1.1306512450064568,
+          "high": 1.710860823895528
+        },
+        "hmm": {
+          "low": 0.2819288392713637,
+          "high": 0.515738853152353
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-04",
+      "population": "dmd_complete",
+      "testRows": 1134,
+      "trainRows": 23208,
+      "trainCutoff": "2026-04-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.47613218645142985,
+        "hmm_only": 0.4676840153309514,
+        "dmd_only": 0.4934301236453364,
+        "hmm_dmd": 0.4650639917787944,
+        "hmm_heavy_dmdlow": 0.4645712539375757
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0934214678383798,
+          "high": 0.205063864482383
+        },
+        "dmd": {
+          "low": -1.1306512450064568,
+          "high": 1.710860823895528
+        },
+        "hmm": {
+          "low": 0.2819288392713637,
+          "high": 0.515738853152353
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-05",
+      "population": "full_session",
+      "testRows": 1620,
+      "trainRows": 40570,
+      "trainCutoff": "2026-05-06T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4870257635826305,
+        "hmm_only": 0.5165316259503375,
+        "bocpd_only": 0.4928017908062476,
+        "hawkes_only": 0.47951401024896007,
+        "hmm_heavy": 0.5025731780505773,
+        "hmm_bocpd": 0.5069114223625055,
+        "hmm_hawkes": 0.5070144673034358
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093661010076396,
+          "high": 0.197379405786376
+        },
+        "dmd": {
+          "low": -1.131112156905426,
+          "high": 1.7088882007030572
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157377229405682
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-05",
+      "population": "dmd_complete",
+      "testRows": 972,
+      "trainRows": 24342,
+      "trainCutoff": "2026-05-06T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4776069248970734,
+        "hmm_only": 0.4692091271450667,
+        "dmd_only": 0.49290069342591436,
+        "hmm_dmd": 0.4656957780719796,
+        "hmm_heavy_dmdlow": 0.46529234362325866
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093661010076396,
+          "high": 0.197379405786376
+        },
+        "dmd": {
+          "low": -1.131112156905426,
+          "high": 1.7088882007030572
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157377229405682
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-06",
+      "population": "full_session",
+      "testRows": 1890,
+      "trainRows": 42190,
+      "trainCutoff": "2026-06-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4866547579238686,
+        "hmm_only": 0.5173705565813332,
+        "bocpd_only": 0.49123974157162575,
+        "hawkes_only": 0.480362584863091,
+        "hmm_heavy": 0.5032655897604099,
+        "hmm_bocpd": 0.5070231337615068,
+        "hmm_hawkes": 0.5078871520884867
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0936417660133142,
+          "high": 0.1989276559606787
+        },
+        "dmd": {
+          "low": -1.1303695676960261,
+          "high": 1.7121196411340616
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157366383727151
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-06",
+      "population": "dmd_complete",
+      "testRows": 1134,
+      "trainRows": 25314,
+      "trainCutoff": "2026-06-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4809722667672134,
+        "hmm_only": 0.47319888774619157,
+        "dmd_only": 0.49553913478056144,
+        "hmm_dmd": 0.4699411532303801,
+        "hmm_heavy_dmdlow": 0.4693788327937892
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.0936417660133142,
+          "high": 0.1989276559606787
+        },
+        "dmd": {
+          "low": -1.1303695676960261,
+          "high": 1.7121196411340616
+        },
+        "hmm": {
+          "low": 0.2907116580475918,
+          "high": 0.5157366383727151
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-07",
+      "population": "full_session",
+      "testRows": 270,
+      "trainRows": 44080,
+      "trainCutoff": "2026-07-01T10:40:00",
+      "selectedCandidate": "hmm_only",
+      "selectedWeights": {
+        "hmm": 1.0
+      },
+      "trainObjectives": {
+        "equal_full": 0.4894266752305694,
+        "hmm_only": 0.5214538778313709,
+        "bocpd_only": 0.49128373438495043,
+        "hawkes_only": 0.4785582745548658,
+        "hmm_heavy": 0.5071315185126104,
+        "hmm_bocpd": 0.5116786577316046,
+        "hmm_hawkes": 0.5113431045098993
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093046750645018,
+          "high": 0.2052787355650032
+        },
+        "dmd": {
+          "low": -1.127624468551913,
+          "high": 1.729518735137455
+        },
+        "hmm": {
+          "low": 0.2812951201476916,
+          "high": 0.5157354519582922
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    },
+    {
+      "month": "2026-07",
+      "population": "dmd_complete",
+      "testRows": 162,
+      "trainRows": 26448,
+      "trainCutoff": "2026-07-01T10:40:00",
+      "selectedCandidate": "dmd_only",
+      "selectedWeights": {
+        "dmd": 1.0
+      },
+      "trainObjectives": {
+        "equal_dmd": 0.4782729917606047,
+        "hmm_only": 0.4732108276086264,
+        "dmd_only": 0.49530910735404937,
+        "hmm_dmd": 0.46931295506001885,
+        "hmm_heavy_dmdlow": 0.46838384509236186
+      },
+      "normalizer": {
+        "bocpd": {
+          "low": 0.093046750645018,
+          "high": 0.2052787355650032
+        },
+        "dmd": {
+          "low": -1.127624468551913,
+          "high": 1.729518735137455
+        },
+        "hmm": {
+          "low": 0.2812951201476916,
+          "high": 0.5157354519582922
+        },
+        "hawkes": {
+          "low": 0.2725235320484088,
+          "high": 1.2918306506688455
+        }
+      }
+    }
+  ],
+  "evaluation": {
+    "dmd_complete": {
+      "adaptive": {
+        "turning_point_5": {
+          "count": 8816,
+          "positiveRate": 0.03573049001814882,
+          "auc": 0.5207017661787688,
+          "brier": 0.034531543375391945,
+          "logloss": 0.15517558313689458,
+          "ece": 0.0014705558140640368,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.7792794632977638,
+          "topBucketCount": 882,
+          "topBucketHitRate": 0.03854875283446712,
+          "topBucketLift": 1.0788755713925782,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 6,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.016908212560386472,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.010582010582010581,
+              "top": 0.043478260869565216,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06186868686868687,
+              "top": 0.11594202898550725,
+              "improves": true
+            },
+            {
+              "month": "2025-10",
+              "base": 0.03431372549019608,
+              "top": 0.015384615384615385,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.025,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.012077294685990338,
+              "top": 0.014492753623188406,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.055710306406685235,
+              "top": 0.07792207792207792,
+              "improves": true
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04365079365079365,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05063291139240506,
+              "top": 0.06451612903225806,
+              "improves": true
+            },
+            {
+              "month": "2026-04",
+              "base": 0.03968253968253968,
+              "top": 0.03260869565217391,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.030864197530864196,
+              "top": 0.058823529411764705,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05291005291005291,
+              "top": 0.021505376344086023,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.027777777777777776,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 4408,
+          "positiveRate": 0.05694192377495463,
+          "auc": 0.44706332236605656,
+          "brier": 0.0537758209920285,
+          "logloss": 0.21906546572855412,
+          "ece": 0.00445729174180165,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.7963457494878434,
+          "topBucketCount": 441,
+          "topBucketHitRate": 0.034013605442176874,
+          "topBucketLift": 0.597338537008429,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 2,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.043478260869565216,
+              "top": 0.03125,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.03439153439153439,
+              "top": 0.046511627906976744,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.08838383838383838,
+              "top": 0.07142857142857142,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.0392156862745098,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.05555555555555555,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.026570048309178744,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-01",
+              "base": 0.09749303621169916,
+              "top": 0.10810810810810811,
+              "improves": true
+            },
+            {
+              "month": "2026-02",
+              "base": 0.07142857142857142,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.060759493670886074,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.042328042328042326,
+              "top": 0.023809523809523808,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.06481481481481481,
+              "top": 0.03333333333333333,
+              "improves": false
+            },
+            {
+              "month": "2026-06",
+              "base": 0.07142857142857142,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.018518518518518517,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        }
+      },
+      "dmd_only": {
+        "turning_point_5": {
+          "count": 8816,
+          "positiveRate": 0.03573049001814882,
+          "auc": 0.5207017661787688,
+          "brier": 0.034531543375391945,
+          "logloss": 0.15517558313689458,
+          "ece": 0.0014705558140640368,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.7792794632977638,
+          "topBucketCount": 882,
+          "topBucketHitRate": 0.03854875283446712,
+          "topBucketLift": 1.0788755713925782,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 6,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.016908212560386472,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.010582010582010581,
+              "top": 0.043478260869565216,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06186868686868687,
+              "top": 0.11594202898550725,
+              "improves": true
+            },
+            {
+              "month": "2025-10",
+              "base": 0.03431372549019608,
+              "top": 0.015384615384615385,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.025,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.012077294685990338,
+              "top": 0.014492753623188406,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.055710306406685235,
+              "top": 0.07792207792207792,
+              "improves": true
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04365079365079365,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05063291139240506,
+              "top": 0.06451612903225806,
+              "improves": true
+            },
+            {
+              "month": "2026-04",
+              "base": 0.03968253968253968,
+              "top": 0.03260869565217391,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.030864197530864196,
+              "top": 0.058823529411764705,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05291005291005291,
+              "top": 0.021505376344086023,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.027777777777777776,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 4408,
+          "positiveRate": 0.05694192377495463,
+          "auc": 0.44706332236605656,
+          "brier": 0.0537758209920285,
+          "logloss": 0.21906546572855412,
+          "ece": 0.00445729174180165,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.7963457494878434,
+          "topBucketCount": 441,
+          "topBucketHitRate": 0.034013605442176874,
+          "topBucketLift": 0.597338537008429,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 2,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.043478260869565216,
+              "top": 0.03125,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.03439153439153439,
+              "top": 0.046511627906976744,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.08838383838383838,
+              "top": 0.07142857142857142,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.0392156862745098,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.05555555555555555,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.026570048309178744,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-01",
+              "base": 0.09749303621169916,
+              "top": 0.10810810810810811,
+              "improves": true
+            },
+            {
+              "month": "2026-02",
+              "base": 0.07142857142857142,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.060759493670886074,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.042328042328042326,
+              "top": 0.023809523809523808,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.06481481481481481,
+              "top": 0.03333333333333333,
+              "improves": false
+            },
+            {
+              "month": "2026-06",
+              "base": 0.07142857142857142,
+              "top": 0.021739130434782608,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.018518518518518517,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        }
+      },
+      "equal": {
+        "turning_point_5": {
+          "count": 8816,
+          "positiveRate": 0.03573049001814882,
+          "auc": 0.4726545709841793,
+          "brier": 0.0345268202969566,
+          "logloss": 0.15517399658620964,
+          "ece": 0.0016350441625479287,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.5279629867731193,
+          "topBucketCount": 882,
+          "topBucketHitRate": 0.026077097505668934,
+          "topBucketLift": 0.7298275924126264,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 4,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.016908212560386472,
+              "top": 0.013333333333333334,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.010582010582010581,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06186868686868687,
+              "top": 0.052083333333333336,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.03431372549019608,
+              "top": 0.01282051282051282,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.025,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.012077294685990338,
+              "top": 0.017241379310344827,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.055710306406685235,
+              "top": 0.014084507042253521,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04365079365079365,
+              "top": 0.04,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05063291139240506,
+              "top": 0.05185185185185185,
+              "improves": true
+            },
+            {
+              "month": "2026-04",
+              "base": 0.03968253968253968,
+              "top": 0.045454545454545456,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.030864197530864196,
+              "top": 0.046153846153846156,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05291005291005291,
+              "top": 0.010752688172043012,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.027777777777777776,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 4408,
+          "positiveRate": 0.05694192377495463,
+          "auc": 0.44808593386856704,
+          "brier": 0.05384489978133037,
+          "logloss": 0.21949678141957446,
+          "ece": 0.00516786818961036,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.49570532530613887,
+          "topBucketCount": 442,
+          "topBucketHitRate": 0.033936651583710405,
+          "topBucketLift": 0.5959870923545636,
+          "selectionFractionIfUsedAsHardGate": 0.10027223230490018,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8997277676950999,
+          "improvingMonths": 1,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.043478260869565216,
+              "top": 0.038461538461538464,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.03439153439153439,
+              "top": 0.03076923076923077,
+              "improves": false
+            },
+            {
+              "month": "2025-09",
+              "base": 0.08838383838383838,
+              "top": 0.04,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.0392156862745098,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.05555555555555555,
+              "top": 0.05,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.026570048309178744,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-01",
+              "base": 0.09749303621169916,
+              "top": 0.04,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.07142857142857142,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.060759493670886074,
+              "top": 0.0379746835443038,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.042328042328042326,
+              "top": 0.041666666666666664,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.06481481481481481,
+              "top": 0.125,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.07142857142857142,
+              "top": 0.02564102564102564,
+              "improves": false
+            }
+          ]
+        }
+      },
+      "hmm_only": {
+        "turning_point_5": {
+          "count": 8816,
+          "positiveRate": 0.03573049001814882,
+          "auc": 0.462259715476984,
+          "brier": 0.03455939788943498,
+          "logloss": 0.15558760945628153,
+          "ece": 0.0021798210454278474,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9991855008930437,
+          "topBucketCount": 882,
+          "topBucketHitRate": 0.02834467120181406,
+          "topBucketLift": 0.7932908613180722,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 6,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.016908212560386472,
+              "top": 0.006944444444444444,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.010582010582010581,
+              "top": 0.044444444444444446,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06186868686868687,
+              "top": 0.018518518518518517,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.03431372549019608,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.025,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.012077294685990338,
+              "top": 0.016666666666666666,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.055710306406685235,
+              "top": 0.041666666666666664,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04365079365079365,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05063291139240506,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.03968253968253968,
+              "top": 0.041666666666666664,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.030864197530864196,
+              "top": 0.1111111111111111,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05291005291005291,
+              "top": 0.05555555555555555,
+              "improves": true
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 4408,
+          "positiveRate": 0.05694192377495463,
+          "auc": 0.48982755530679783,
+          "brier": 0.053888873109949796,
+          "logloss": 0.21990687160124628,
+          "ece": 0.006339638716989758,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9983066107274262,
+          "topBucketCount": 450,
+          "topBucketHitRate": 0.07111111111111111,
+          "topBucketLift": 1.2488357680389552,
+          "selectionFractionIfUsedAsHardGate": 0.10208711433756806,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8979128856624319,
+          "improvingMonths": 8,
+          "totalEvaluableMonths": 11,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.043478260869565216,
+              "top": 0.07407407407407407,
+              "improves": true
+            },
+            {
+              "month": "2025-08",
+              "base": 0.03439153439153439,
+              "top": 0.08333333333333333,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.08838383838383838,
+              "top": 0.08333333333333333,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.05555555555555555,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.026570048309178744,
+              "top": 0.027777777777777776,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.09749303621169916,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.07142857142857142,
+              "top": 0.07407407407407407,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.060759493670886074,
+              "top": 0.1111111111111111,
+              "improves": true
+            },
+            {
+              "month": "2026-04",
+              "base": 0.042328042328042326,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.06481481481481481,
+              "top": 0.1111111111111111,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.07142857142857142,
+              "top": 0.16666666666666666,
+              "improves": true
+            }
+          ]
+        }
+      }
+    },
+    "full_session": {
+      "adaptive": {
+        "turning_point_5": {
+          "count": 17632,
+          "positiveRate": 0.044237749546279494,
+          "auc": 0.5240887485012812,
+          "brier": 0.04234572751736514,
+          "logloss": 0.1820706945654165,
+          "ece": 0.005026518143296667,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9990897271716546,
+          "topBucketCount": 1764,
+          "topBucketHitRate": 0.046485260770975055,
+          "topBucketLift": 1.050805279376708,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 9,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.024154589371980676,
+              "top": 0.030303030303030304,
+              "improves": true
+            },
+            {
+              "month": "2025-08",
+              "base": 0.02513227513227513,
+              "top": 0.03333333333333333,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.05618686868686869,
+              "top": 0.012345679012345678,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.04493464052287582,
+              "top": 0.12962962962962962,
+              "improves": true
+            },
+            {
+              "month": "2025-11",
+              "base": 0.035416666666666666,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2025-12",
+              "base": 0.030193236714975844,
+              "top": 0.049019607843137254,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.052924791086350974,
+              "top": 0.034722222222222224,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04265873015873016,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05506329113924051,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.06415343915343916,
+              "top": 0.07936507936507936,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.044753086419753084,
+              "top": 0.1111111111111111,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05886243386243386,
+              "top": 0.08333333333333333,
+              "improves": true
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 13224,
+          "positiveRate": 0.07100725952813067,
+          "auc": 0.52741995116862,
+          "brier": 0.06602383773825639,
+          "logloss": 0.25678840936298,
+          "ece": 0.007690936071965207,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9985206491448336,
+          "topBucketCount": 1332,
+          "topBucketHitRate": 0.09384384384384384,
+          "topBucketLift": 1.3216091490851873,
+          "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+          "improvingMonths": 9,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.05475040257648953,
+              "top": 0.07291666666666667,
+              "improves": true
+            },
+            {
+              "month": "2025-08",
+              "base": 0.04585537918871252,
+              "top": 0.06790123456790123,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06734006734006734,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.06971677559912855,
+              "top": 0.3888888888888889,
+              "improves": true
+            },
+            {
+              "month": "2025-11",
+              "base": 0.06296296296296296,
+              "top": 0.06349206349206349,
+              "improves": true
+            },
+            {
+              "month": "2025-12",
+              "base": 0.06360708534621579,
+              "top": 0.09444444444444444,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.0807799442896936,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.06084656084656084,
+              "top": 0.07407407407407407,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.09029535864978903,
+              "top": 0.06666666666666667,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.09259259259259259,
+              "top": 0.23333333333333334,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.07098765432098765,
+              "top": 0.1527777777777778,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.09259259259259259,
+              "top": 0.2037037037037037,
+              "improves": true
+            }
+          ]
+        }
+      },
+      "equal": {
+        "turning_point_5": {
+          "count": 17632,
+          "positiveRate": 0.044237749546279494,
+          "auc": 0.48753632681504744,
+          "brier": 0.04229250739723221,
+          "logloss": 0.18139507968745175,
+          "ece": 0.0046582137869186566,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.5138568277417047,
+          "topBucketCount": 1770,
+          "topBucketHitRate": 0.02824858757062147,
+          "topBucketLift": 0.6385629436476894,
+          "selectionFractionIfUsedAsHardGate": 0.10038566243194193,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8996143375680581,
+          "improvingMonths": 2,
+          "totalEvaluableMonths": 13,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.024154589371980676,
+              "top": 0.007782101167315175,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.02513227513227513,
+              "top": 0.005988023952095809,
+              "improves": false
+            },
+            {
+              "month": "2025-09",
+              "base": 0.05618686868686869,
+              "top": 0.07017543859649122,
+              "improves": true
+            },
+            {
+              "month": "2025-10",
+              "base": 0.04493464052287582,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.035416666666666666,
+              "top": 0.02857142857142857,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.030193236714975844,
+              "top": 0.0335195530726257,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.052924791086350974,
+              "top": 0.01875,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04265873015873016,
+              "top": 0.02127659574468085,
+              "improves": false
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05506329113924051,
+              "top": 0.025510204081632654,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.06415343915343916,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.044753086419753084,
+              "top": 0.02912621359223301,
+              "improves": false
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05886243386243386,
+              "top": 0.03571428571428571,
+              "improves": false
+            },
+            {
+              "month": "2026-07",
+              "base": 0.032407407407407406,
+              "top": 0.0,
+              "improves": false
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 13224,
+          "positiveRate": 0.07100725952813067,
+          "auc": 0.49738804563085715,
+          "brier": 0.06602108325951833,
+          "logloss": 0.2567174007148721,
+          "ece": 0.006323405676397109,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.4248526856152549,
+          "topBucketCount": 1332,
+          "topBucketHitRate": 0.04279279279279279,
+          "topBucketLift": 0.6026537719828455,
+          "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+          "improvingMonths": 1,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.05475040257648953,
+              "top": 0.034722222222222224,
+              "improves": false
+            },
+            {
+              "month": "2025-08",
+              "base": 0.04585537918871252,
+              "top": 0.020833333333333332,
+              "improves": false
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06734006734006734,
+              "top": 0.050505050505050504,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.06971677559912855,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2025-11",
+              "base": 0.06296296296296296,
+              "top": 0.037037037037037035,
+              "improves": false
+            },
+            {
+              "month": "2025-12",
+              "base": 0.06360708534621579,
+              "top": 0.031746031746031744,
+              "improves": false
+            },
+            {
+              "month": "2026-01",
+              "base": 0.0807799442896936,
+              "top": 0.0,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.06084656084656084,
+              "top": 0.1388888888888889,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.09029535864978903,
+              "top": 0.050505050505050504,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.09259259259259259,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2026-05",
+              "base": 0.07098765432098765,
+              "top": 0.044444444444444446,
+              "improves": false
+            },
+            {
+              "month": "2026-06",
+              "base": 0.09259259259259259,
+              "top": 0.041666666666666664,
+              "improves": false
+            }
+          ]
+        }
+      },
+      "hmm_only": {
+        "turning_point_5": {
+          "count": 17632,
+          "positiveRate": 0.044237749546279494,
+          "auc": 0.5240887485012812,
+          "brier": 0.04234572751736514,
+          "logloss": 0.1820706945654165,
+          "ece": 0.005026518143296667,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9990897271716546,
+          "topBucketCount": 1764,
+          "topBucketHitRate": 0.046485260770975055,
+          "topBucketLift": 1.050805279376708,
+          "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+          "improvingMonths": 9,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.024154589371980676,
+              "top": 0.030303030303030304,
+              "improves": true
+            },
+            {
+              "month": "2025-08",
+              "base": 0.02513227513227513,
+              "top": 0.03333333333333333,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.05618686868686869,
+              "top": 0.012345679012345678,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.04493464052287582,
+              "top": 0.12962962962962962,
+              "improves": true
+            },
+            {
+              "month": "2025-11",
+              "base": 0.035416666666666666,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2025-12",
+              "base": 0.030193236714975844,
+              "top": 0.049019607843137254,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.052924791086350974,
+              "top": 0.034722222222222224,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.04265873015873016,
+              "top": 0.05555555555555555,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.05506329113924051,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.06415343915343916,
+              "top": 0.07936507936507936,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.044753086419753084,
+              "top": 0.1111111111111111,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.05886243386243386,
+              "top": 0.08333333333333333,
+              "improves": true
+            }
+          ]
+        },
+        "turning_point_10": {
+          "count": 13224,
+          "positiveRate": 0.07100725952813067,
+          "auc": 0.52741995116862,
+          "brier": 0.06602383773825639,
+          "logloss": 0.25678840936298,
+          "ece": 0.007690936071965207,
+          "topBucketFraction": 0.1,
+          "topBucketCutoff": 0.9985206491448336,
+          "topBucketCount": 1332,
+          "topBucketHitRate": 0.09384384384384384,
+          "topBucketLift": 1.3216091490851873,
+          "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+          "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+          "improvingMonths": 9,
+          "totalEvaluableMonths": 12,
+          "monthDiagnostics": [
+            {
+              "month": "2025-07",
+              "base": 0.05475040257648953,
+              "top": 0.07291666666666667,
+              "improves": true
+            },
+            {
+              "month": "2025-08",
+              "base": 0.04585537918871252,
+              "top": 0.06790123456790123,
+              "improves": true
+            },
+            {
+              "month": "2025-09",
+              "base": 0.06734006734006734,
+              "top": 0.027777777777777776,
+              "improves": false
+            },
+            {
+              "month": "2025-10",
+              "base": 0.06971677559912855,
+              "top": 0.3888888888888889,
+              "improves": true
+            },
+            {
+              "month": "2025-11",
+              "base": 0.06296296296296296,
+              "top": 0.06349206349206349,
+              "improves": true
+            },
+            {
+              "month": "2025-12",
+              "base": 0.06360708534621579,
+              "top": 0.09444444444444444,
+              "improves": true
+            },
+            {
+              "month": "2026-01",
+              "base": 0.0807799442896936,
+              "top": 0.05555555555555555,
+              "improves": false
+            },
+            {
+              "month": "2026-02",
+              "base": 0.06084656084656084,
+              "top": 0.07407407407407407,
+              "improves": true
+            },
+            {
+              "month": "2026-03",
+              "base": 0.09029535864978903,
+              "top": 0.06666666666666667,
+              "improves": false
+            },
+            {
+              "month": "2026-04",
+              "base": 0.09259259259259259,
+              "top": 0.23333333333333334,
+              "improves": true
+            },
+            {
+              "month": "2026-05",
+              "base": 0.07098765432098765,
+              "top": 0.1527777777777778,
+              "improves": true
+            },
+            {
+              "month": "2026-06",
+              "base": 0.09259259259259259,
+              "top": 0.2037037037037037,
+              "improves": true
+            }
+          ]
+        }
+      }
+    }
+  },
+  "conclusions": {
+    "adaptiveFullImprovesEqualAucBothHorizons": true,
+    "adaptiveFullImprovesEqualBrierBothHorizons": false,
+    "dominantFullSessionCandidate": "hmm_only",
+    "multiModelBlendValidated": false,
+    "interpretation": "Weight adaptation is useful only if the selected weights improve walk-forward metrics without collapsing to a single reused component. If the selected candidate is HMM-only, the result is evidence to down-weight weak physics layers, not evidence for a validated multi-model stack.",
+    "costedReplayJustifiedNow": false,
+    "paperIntegrationAllowed": false,
+    "recommendedNextStep": "keep_hmm_as_primary_shadow_risk_context_and_collect_forward_data"
+  },
+  "skipped": [
+    "continuous_weight_optimization",
+    "negative_weights",
+    "full_sample_refit",
+    "paper_trading_integration",
+    "build_decision_integration",
+    "position_sizing_integration",
+    "online_inference"
+  ]
+}

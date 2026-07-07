@@ -1,0 +1,27 @@
+month,population,selectedCandidate,selectedWeights,trainRows,testRows,trainCutoff
+2025-07,full_session,hmm_only,"{""hmm"": 1.0}",22310,2070,2025-07-01T10:40:00
+2025-07,dmd_complete,dmd_only,"{""dmd"": 1.0}",13386,1242,2025-07-01T10:40:00
+2025-08,full_session,hmm_only,"{""hmm"": 1.0}",24380,1890,2025-08-01T10:40:00
+2025-08,dmd_complete,dmd_only,"{""dmd"": 1.0}",14628,1134,2025-08-01T10:40:00
+2025-09,full_session,hmm_only,"{""hmm"": 1.0}",26270,1980,2025-09-01T10:40:00
+2025-09,dmd_complete,dmd_only,"{""dmd"": 1.0}",15762,1188,2025-09-01T10:40:00
+2025-10,full_session,hmm_only,"{""hmm"": 1.0}",28250,1530,2025-10-09T10:40:00
+2025-10,dmd_complete,dmd_only,"{""dmd"": 1.0}",16950,918,2025-10-09T10:40:00
+2025-11,full_session,hmm_only,"{""hmm"": 1.0}",29780,1800,2025-11-03T10:40:00
+2025-11,dmd_complete,dmd_only,"{""dmd"": 1.0}",17868,1080,2025-11-03T10:40:00
+2025-12,full_session,hmm_only,"{""hmm"": 1.0}",31580,2070,2025-12-01T10:40:00
+2025-12,dmd_complete,dmd_only,"{""dmd"": 1.0}",18948,1242,2025-12-01T10:40:00
+2026-01,full_session,hmm_only,"{""hmm"": 1.0}",33650,1795,2026-01-05T10:40:00
+2026-01,dmd_complete,dmd_only,"{""dmd"": 1.0}",20190,1077,2026-01-05T10:40:00
+2026-02,full_session,hmm_only,"{""hmm"": 1.0}",35445,1260,2026-02-02T10:40:00
+2026-02,dmd_complete,dmd_only,"{""dmd"": 1.0}",21267,756,2026-02-02T10:40:00
+2026-03,full_session,hmm_only,"{""hmm"": 1.0}",36705,1975,2026-03-02T10:40:00
+2026-03,dmd_complete,dmd_only,"{""dmd"": 1.0}",22023,1185,2026-03-02T10:40:00
+2026-04,full_session,hmm_only,"{""hmm"": 1.0}",38680,1890,2026-04-01T10:40:00
+2026-04,dmd_complete,dmd_only,"{""dmd"": 1.0}",23208,1134,2026-04-01T10:40:00
+2026-05,full_session,hmm_only,"{""hmm"": 1.0}",40570,1620,2026-05-06T10:40:00
+2026-05,dmd_complete,dmd_only,"{""dmd"": 1.0}",24342,972,2026-05-06T10:40:00
+2026-06,full_session,hmm_only,"{""hmm"": 1.0}",42190,1890,2026-06-01T10:40:00
+2026-06,dmd_complete,dmd_only,"{""dmd"": 1.0}",25314,1134,2026-06-01T10:40:00
+2026-07,full_session,hmm_only,"{""hmm"": 1.0}",44080,270,2026-07-01T10:40:00
+2026-07,dmd_complete,dmd_only,"{""dmd"": 1.0}",26448,162,2026-07-01T10:40:00
