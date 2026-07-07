@@ -1,0 +1,1665 @@
+{
+  "schemaVersion": "risk_stack_phase1_7_audit_result_v1",
+  "runId": "risk_stack_p17_20260708_v2",
+  "sourceCommitAtRun": "4ba2bfa",
+  "generatedAt": "2026-07-08T06:29:59+09:00",
+  "status": "diagnostic_only",
+  "researchOnly": true,
+  "shadowOnly": true,
+  "paperIntegrationAllowed": false,
+  "dataAudit": {
+    "phase16FeatureRows": 44350,
+    "symbols": 18,
+    "tradingDays": 500,
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "trainingStatisticsEnd": "2025-06-30",
+    "dmdCompleteRows": 26610,
+    "dmdCompleteCoverage": 0.6,
+    "hmmSourceFitEnd": "2025-06-30"
+  },
+  "literatureMap": {
+    "bocpd": {
+      "role": "online structural-break hazard",
+      "primaryReference": "Adams and MacKay (2007), Bayesian Online Changepoint Detection, arXiv:0710.3742"
+    },
+    "koopmanDmd": {
+      "role": "short-horizon dynamical instability diagnostics",
+      "primaryReference": "Schmid (2010), Dynamic Mode Decomposition of Numerical and Experimental Data"
+    },
+    "hmm": {
+      "role": "regime labeling and transition-risk context",
+      "primaryReference": "Hamilton (1989), A New Approach to the Economic Analysis of Nonstationary Time Series and the Business Cycle"
+    },
+    "hawkes": {
+      "role": "self-exciting observable risk-event intensity",
+      "primaryReference": "Bacry, Mastromatteo and Muzy (2015), Hawkes Processes in Finance, arXiv:1502.04592"
+    },
+    "exitPositionLayer": {
+      "role": "risk-conditioned exit tightening / position de-risking hypotheses",
+      "primaryReference": "López de Prado triple-barrier labeling framework"
+    }
+  },
+  "thresholds": {
+    "marketDropReturn": -0.0011682203858461799,
+    "bocpdHighHazard": 0.15627860084590733,
+    "dmdHighResidual": 1.1788616545252573,
+    "hmmHighTransitionRisk": 0.5156687676825782
+  },
+  "bocpdAudit": {
+    "rows": 24000,
+    "firstTimestamp": "2024-06-12 09:35:00",
+    "lastTimestamp": "2026-07-03 15:00:00",
+    "sessionReset": true,
+    "hazard": 0.04,
+    "maxRunLengthBars": 120,
+    "alertRunLengthBars": 3,
+    "observationVarianceFitEnd": "2025-06-30",
+    "observationVariance": 6.655508329000388e-07,
+    "prefixInvarianceCheckPassed": true,
+    "meanChangeProbability": 0.18797223224022858,
+    "p90ChangeProbability": 0.24544525368434258
+  },
+  "hawkesAudit": {
+    "implementation": "fixed_discrete_time_exponential_self_exciting_intensity",
+    "baselineEventRate": 0.2725235320484088,
+    "decayBars": 12.0,
+    "excitation": 0.6,
+    "usesCurrentEventInCurrentIntensity": false,
+    "trainingEvents": 6080,
+    "trainingRows": 22310,
+    "overallEvents": 10599,
+    "overallRows": 44350,
+    "eventDensity": 0.23898534385569334
+  },
+  "scoreAudit": {
+    "score_bocpd": {
+      "source": "bocpd_change_probability",
+      "trainingNonNull": 22310,
+      "trainingP05": 0.09348497527172543,
+      "trainingP95": 0.2142749108839765
+    },
+    "score_dmd": {
+      "source": "dmd_residual_zscore",
+      "trainingNonNull": 13386,
+      "trainingP05": -1.1290169424609626,
+      "trainingP95": 1.783555957607771
+    },
+    "score_hmm": {
+      "source": "regime_transition_risk",
+      "trainingNonNull": 22310,
+      "trainingP05": 0.2741272062808153,
+      "trainingP95": 0.5157413218577802
+    },
+    "score_hawkes": {
+      "source": "hawkes_event_intensity",
+      "trainingNonNull": 22310,
+      "trainingP05": 0.2725235320484088,
+      "trainingP95": 1.332439215760371
+    },
+    "combinedScores": {
+      "fullSession": [
+        "score_bocpd",
+        "score_hmm",
+        "score_hawkes"
+      ],
+      "dmdComplete": [
+        "score_bocpd",
+        "score_dmd",
+        "score_hmm",
+        "score_hawkes"
+      ],
+      "weights": "equal_weight_no_parameter_search"
+    }
+  },
+  "evaluation": {
+    "turning_point_5": {
+      "bocpd_only": {
+        "count": 17632,
+        "positiveRate": 0.044237749546279494,
+        "auc": 0.48430312616017573,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.48633448165172716,
+        "topBucketCount": 1780,
+        "topBucketHitRate": 0.0348314606741573,
+        "topBucketLift": 0.7873696341112071,
+        "selectionFractionIfUsedAsHardGate": 0.10095281306715063,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8990471869328494,
+        "improvingMonths": 5,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 1,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.024154589371980676,
+            "top": 0.041666666666666664,
+            "improves": true
+          },
+          {
+            "month": "2025-08",
+            "base": 0.02513227513227513,
+            "top": 0.031746031746031744,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.05618686868686869,
+            "top": 0.03535353535353535,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.04493464052287582,
+            "top": 0.015873015873015872,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.035416666666666666,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.030193236714975844,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.052924791086350974,
+            "top": 0.05555555555555555,
+            "improves": true
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04265873015873016,
+            "top": 0.125,
+            "improves": true
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05506329113924051,
+            "top": 0.0603448275862069,
+            "improves": true
+          },
+          {
+            "month": "2026-04",
+            "base": 0.06415343915343916,
+            "top": 0.027777777777777776,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.044753086419753084,
+            "top": 0.006944444444444444,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05886243386243386,
+            "top": 0.040740740740740744,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.032407407407407406,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.03041922290388548,
+            "top": 0.0532994923857868,
+            "improves": true
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.050340136054421766,
+            "top": 0.03367003367003367,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.02891156462585034,
+            "top": 0.006734006734006734,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.06054421768707483,
+            "top": 0.04377104377104377,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06377551020408163,
+            "top": 0.04040404040404041,
+            "improves": false
+          }
+        ]
+      },
+      "dmd_only": {
+        "count": 8816,
+        "positiveRate": 0.03573049001814882,
+        "auc": 0.5201740971650395,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.7612290303410708,
+        "topBucketCount": 882,
+        "topBucketHitRate": 0.03741496598639456,
+        "topBucketLift": 1.0471439369398554,
+        "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+        "improvingMonths": 6,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 2,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.016908212560386472,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.010582010582010581,
+            "top": 0.04285714285714286,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06186868686868687,
+            "top": 0.11428571428571428,
+            "improves": true
+          },
+          {
+            "month": "2025-10",
+            "base": 0.03431372549019608,
+            "top": 0.015384615384615385,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.025,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.012077294685990338,
+            "top": 0.014492753623188406,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.055710306406685235,
+            "top": 0.08,
+            "improves": true
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04365079365079365,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05063291139240506,
+            "top": 0.05434782608695652,
+            "improves": true
+          },
+          {
+            "month": "2026-04",
+            "base": 0.03968253968253968,
+            "top": 0.03260869565217391,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.030864197530864196,
+            "top": 0.058823529411764705,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05291005291005291,
+            "top": 0.021739130434782608,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.027777777777777776,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.029141104294478526,
+            "top": 0.0392156862745098,
+            "improves": true
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.034013605442176874,
+            "top": 0.04790419161676647,
+            "improves": true
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.023809523809523808,
+            "top": 0.008264462809917356,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.050340136054421766,
+            "top": 0.04294478527607362,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.050510204081632655,
+            "top": 0.04245283018867924,
+            "improves": false
+          }
+        ]
+      },
+      "hmm_transition_only": {
+        "count": 17632,
+        "positiveRate": 0.044237749546279494,
+        "auc": 0.5275698463851205,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.9990901708226125,
+        "topBucketCount": 1764,
+        "topBucketHitRate": 0.046485260770975055,
+        "topBucketLift": 1.050805279376708,
+        "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+        "improvingMonths": 9,
+        "totalEvaluableMonths": 12,
+        "improvingCategories": 3,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.024154589371980676,
+            "top": 0.030303030303030304,
+            "improves": true
+          },
+          {
+            "month": "2025-08",
+            "base": 0.02513227513227513,
+            "top": 0.03333333333333333,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.05618686868686869,
+            "top": 0.012345679012345678,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.04493464052287582,
+            "top": 0.12962962962962962,
+            "improves": true
+          },
+          {
+            "month": "2025-11",
+            "base": 0.035416666666666666,
+            "top": 0.05555555555555555,
+            "improves": true
+          },
+          {
+            "month": "2025-12",
+            "base": 0.030193236714975844,
+            "top": 0.049019607843137254,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.052924791086350974,
+            "top": 0.034722222222222224,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04265873015873016,
+            "top": 0.05555555555555555,
+            "improves": true
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05506329113924051,
+            "top": 0.027777777777777776,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.06415343915343916,
+            "top": 0.07936507936507936,
+            "improves": true
+          },
+          {
+            "month": "2026-05",
+            "base": 0.044753086419753084,
+            "top": 0.1111111111111111,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05886243386243386,
+            "top": 0.08333333333333333,
+            "improves": true
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.03041922290388548,
+            "top": 0.02806122448979592,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.050340136054421766,
+            "top": 0.05782312925170068,
+            "improves": true
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.02891156462585034,
+            "top": 0.034013605442176874,
+            "improves": true
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.06054421768707483,
+            "top": 0.05782312925170068,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06377551020408163,
+            "top": 0.06887755102040816,
+            "improves": true
+          }
+        ]
+      },
+      "hawkes_only": {
+        "count": 17632,
+        "positiveRate": 0.044237749546279494,
+        "auc": 0.47816864923588165,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.5208212853727431,
+        "topBucketCount": 2569,
+        "topBucketHitRate": 0.033086804203970414,
+        "topBucketLift": 0.747931450928726,
+        "selectionFractionIfUsedAsHardGate": 0.14570099818511797,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.854299001814882,
+        "improvingMonths": 4,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 1,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.024154589371980676,
+            "top": 0.015267175572519083,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.02513227513227513,
+            "top": 0.03187250996015936,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.05618686868686869,
+            "top": 0.07589285714285714,
+            "improves": true
+          },
+          {
+            "month": "2025-10",
+            "base": 0.04493464052287582,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.035416666666666666,
+            "top": 0.01948051948051948,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.030193236714975844,
+            "top": 0.030303030303030304,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.052924791086350974,
+            "top": 0.028708133971291867,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04265873015873016,
+            "top": 0.019230769230769232,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05506329113924051,
+            "top": 0.03482587064676617,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.06415343915343916,
+            "top": 0.04225352112676056,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.044753086419753084,
+            "top": 0.05925925925925926,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05886243386243386,
+            "top": 0.04838709677419355,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.032407407407407406,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.03041922290388548,
+            "top": 0.033216783216783216,
+            "improves": true
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.050340136054421766,
+            "top": 0.038202247191011236,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.02891156462585034,
+            "top": 0.012048192771084338,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.06054421768707483,
+            "top": 0.04838709677419355,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06377551020408163,
+            "top": 0.040280210157618214,
+            "improves": false
+          }
+        ]
+      },
+      "risk_stack_full": {
+        "count": 17632,
+        "positiveRate": 0.044237749546279494,
+        "auc": 0.48556752755512544,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.510490131082621,
+        "topBucketCount": 1776,
+        "topBucketHitRate": 0.026463963963963964,
+        "topBucketLift": 0.5982212982212982,
+        "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+        "improvingMonths": 2,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 0,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.024154589371980676,
+            "top": 0.007575757575757576,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.02513227513227513,
+            "top": 0.005988023952095809,
+            "improves": false
+          },
+          {
+            "month": "2025-09",
+            "base": 0.05618686868686869,
+            "top": 0.07017543859649122,
+            "improves": true
+          },
+          {
+            "month": "2025-10",
+            "base": 0.04493464052287582,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.035416666666666666,
+            "top": 0.02857142857142857,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.030193236714975844,
+            "top": 0.03333333333333333,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.052924791086350974,
+            "top": 0.01875,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04265873015873016,
+            "top": 0.022222222222222223,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05506329113924051,
+            "top": 0.025510204081632654,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.06415343915343916,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.044753086419753084,
+            "top": 0.02912621359223301,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05886243386243386,
+            "top": 0.02,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.032407407407407406,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.03041922290388548,
+            "top": 0.025510204081632654,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.050340136054421766,
+            "top": 0.02922077922077922,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.02891156462585034,
+            "top": 0.0034965034965034965,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.06054421768707483,
+            "top": 0.030303030303030304,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06377551020408163,
+            "top": 0.04522613065326633,
+            "improves": false
+          }
+        ]
+      },
+      "risk_stack_dmd_complete": {
+        "count": 8816,
+        "positiveRate": 0.03573049001814882,
+        "auc": 0.47081613180895615,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.5239838285674395,
+        "topBucketCount": 883,
+        "topBucketHitRate": 0.026047565118912798,
+        "topBucketLift": 0.7290010605978896,
+        "selectionFractionIfUsedAsHardGate": 0.10015880217785844,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8998411978221416,
+        "improvingMonths": 4,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 2,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.016908212560386472,
+            "top": 0.012987012987012988,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.010582010582010581,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06186868686868687,
+            "top": 0.04950495049504951,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.03431372549019608,
+            "top": 0.0125,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.025,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.012077294685990338,
+            "top": 0.017543859649122806,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.055710306406685235,
+            "top": 0.014285714285714285,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.04365079365079365,
+            "top": 0.03571428571428571,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.05063291139240506,
+            "top": 0.05384615384615385,
+            "improves": true
+          },
+          {
+            "month": "2026-04",
+            "base": 0.03968253968253968,
+            "top": 0.047619047619047616,
+            "improves": true
+          },
+          {
+            "month": "2026-05",
+            "base": 0.030864197530864196,
+            "top": 0.046153846153846156,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.05291005291005291,
+            "top": 0.011111111111111112,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.027777777777777776,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.029141104294478526,
+            "top": 0.03684210526315789,
+            "improves": true
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.034013605442176874,
+            "top": 0.03821656050955414,
+            "improves": true
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.023809523809523808,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.050340136054421766,
+            "top": 0.030303030303030304,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.050510204081632655,
+            "top": 0.024630541871921183,
+            "improves": false
+          }
+        ]
+      }
+    },
+    "turning_point_10": {
+      "bocpd_only": {
+        "count": 13224,
+        "positiveRate": 0.07100725952813067,
+        "auc": 0.4853459048347228,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.47136961083099205,
+        "topBucketCount": 1331,
+        "topBucketHitRate": 0.054845980465815174,
+        "topBucketLift": 0.7723996226623429,
+        "selectionFractionIfUsedAsHardGate": 0.10065033272837265,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8993496672716274,
+        "improvingMonths": 3,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 0,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.05475040257648953,
+            "top": 0.018518518518518517,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.04585537918871252,
+            "top": 0.022222222222222223,
+            "improves": false
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06734006734006734,
+            "top": 0.009259259259259259,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.06971677559912855,
+            "top": 0.04040404040404041,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.06296296296296296,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.06360708534621579,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.0807799442896936,
+            "top": 0.12962962962962962,
+            "improves": true
+          },
+          {
+            "month": "2026-02",
+            "base": 0.06084656084656084,
+            "top": 0.3055555555555556,
+            "improves": true
+          },
+          {
+            "month": "2026-03",
+            "base": 0.09029535864978903,
+            "top": 0.09497206703910614,
+            "improves": true
+          },
+          {
+            "month": "2026-04",
+            "base": 0.09259259259259259,
+            "top": 0.011111111111111112,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.07098765432098765,
+            "top": 0.022222222222222223,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.09259259259259259,
+            "top": 0.06111111111111111,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.05555555555555555,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.07498295841854125,
+            "top": 0.06440677966101695,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.06666666666666667,
+            "top": 0.03153153153153153,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.061224489795918366,
+            "top": 0.04054054054054054,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.09614512471655329,
+            "top": 0.08558558558558559,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.07653061224489796,
+            "top": 0.06418918918918919,
+            "improves": false
+          }
+        ]
+      },
+      "dmd_only": {
+        "count": 4408,
+        "positiveRate": 0.05694192377495463,
+        "auc": 0.44680934668830097,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.7771690392351985,
+        "topBucketCount": 441,
+        "topBucketHitRate": 0.034013605442176874,
+        "topBucketLift": 0.597338537008429,
+        "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+        "improvingMonths": 2,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 0,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.043478260869565216,
+            "top": 0.029411764705882353,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.03439153439153439,
+            "top": 0.045454545454545456,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.08838383838383838,
+            "top": 0.07142857142857142,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.0392156862745098,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.05555555555555555,
+            "top": 0.021739130434782608,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.026570048309178744,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.09749303621169916,
+            "top": 0.10810810810810811,
+            "improves": true
+          },
+          {
+            "month": "2026-02",
+            "base": 0.07142857142857142,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.060759493670886074,
+            "top": 0.022222222222222223,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.042328042328042326,
+            "top": 0.023809523809523808,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.06481481481481481,
+            "top": 0.034482758620689655,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.07142857142857142,
+            "top": 0.021739130434782608,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.018518518518518517,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.06952965235173825,
+            "top": 0.05825242718446602,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.04353741496598639,
+            "top": 0.043010752688172046,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.04353741496598639,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.08163265306122448,
+            "top": 0.03488372093023256,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06020408163265306,
+            "top": 0.022222222222222223,
+            "improves": false
+          }
+        ]
+      },
+      "hmm_transition_only": {
+        "count": 13224,
+        "positiveRate": 0.07100725952813067,
+        "auc": 0.5318234008329856,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.9985971095606686,
+        "topBucketCount": 1332,
+        "topBucketHitRate": 0.09384384384384384,
+        "topBucketLift": 1.3216091490851873,
+        "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+        "improvingMonths": 9,
+        "totalEvaluableMonths": 12,
+        "improvingCategories": 4,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.05475040257648953,
+            "top": 0.07291666666666667,
+            "improves": true
+          },
+          {
+            "month": "2025-08",
+            "base": 0.04585537918871252,
+            "top": 0.06790123456790123,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06734006734006734,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.06971677559912855,
+            "top": 0.3888888888888889,
+            "improves": true
+          },
+          {
+            "month": "2025-11",
+            "base": 0.06296296296296296,
+            "top": 0.06349206349206349,
+            "improves": true
+          },
+          {
+            "month": "2025-12",
+            "base": 0.06360708534621579,
+            "top": 0.09444444444444444,
+            "improves": true
+          },
+          {
+            "month": "2026-01",
+            "base": 0.0807799442896936,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.06084656084656084,
+            "top": 0.07407407407407407,
+            "improves": true
+          },
+          {
+            "month": "2026-03",
+            "base": 0.09029535864978903,
+            "top": 0.06666666666666667,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.09259259259259259,
+            "top": 0.23333333333333334,
+            "improves": true
+          },
+          {
+            "month": "2026-05",
+            "base": 0.07098765432098765,
+            "top": 0.15555555555555556,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.09259259259259259,
+            "top": 0.2037037037037037,
+            "improves": true
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.07498295841854125,
+            "top": 0.06756756756756757,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.06666666666666667,
+            "top": 0.11261261261261261,
+            "improves": true
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.061224489795918366,
+            "top": 0.08108108108108109,
+            "improves": true
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.09614512471655329,
+            "top": 0.13963963963963963,
+            "improves": true
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.07653061224489796,
+            "top": 0.10472972972972973,
+            "improves": true
+          }
+        ]
+      },
+      "hawkes_only": {
+        "count": 13224,
+        "positiveRate": 0.07100725952813067,
+        "auc": 0.47517839317626326,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.5208212853727431,
+        "topBucketCount": 1403,
+        "topBucketHitRate": 0.03706343549536707,
+        "topBucketLift": 0.5219668487654251,
+        "selectionFractionIfUsedAsHardGate": 0.10609497882637628,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8939050211736237,
+        "improvingMonths": 2,
+        "totalEvaluableMonths": 13,
+        "improvingCategories": 0,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.05475040257648953,
+            "top": 0.034722222222222224,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.04585537918871252,
+            "top": 0.05555555555555555,
+            "improves": true
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06734006734006734,
+            "top": 0.03968253968253968,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.06971677559912855,
+            "top": 0.006172839506172839,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.06296296296296296,
+            "top": 0.041666666666666664,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.06360708534621579,
+            "top": 0.013888888888888888,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.0807799442896936,
+            "top": 0.08333333333333333,
+            "improves": true
+          },
+          {
+            "month": "2026-02",
+            "base": 0.06084656084656084,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.09029535864978903,
+            "top": 0.034334763948497854,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.09259259259259259,
+            "top": 0.027777777777777776,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.07098765432098765,
+            "top": 0.044444444444444446,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.09259259259259259,
+            "top": 0.031746031746031744,
+            "improves": false
+          },
+          {
+            "month": "2026-07",
+            "base": 0.05555555555555555,
+            "top": 0.0,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.07498295841854125,
+            "top": 0.04501607717041801,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.06666666666666667,
+            "top": 0.04700854700854701,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.061224489795918366,
+            "top": 0.02564102564102564,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.09614512471655329,
+            "top": 0.04700854700854701,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.07653061224489796,
+            "top": 0.03205128205128205,
+            "improves": false
+          }
+        ]
+      },
+      "risk_stack_full": {
+        "count": 13224,
+        "positiveRate": 0.07100725952813067,
+        "auc": 0.494942965762987,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.4201673972814996,
+        "topBucketCount": 1332,
+        "topBucketHitRate": 0.04279279279279279,
+        "topBucketLift": 0.6026537719828455,
+        "selectionFractionIfUsedAsHardGate": 0.10072595281306715,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8992740471869328,
+        "improvingMonths": 1,
+        "totalEvaluableMonths": 12,
+        "improvingCategories": 0,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.05475040257648953,
+            "top": 0.034722222222222224,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.04585537918871252,
+            "top": 0.020833333333333332,
+            "improves": false
+          },
+          {
+            "month": "2025-09",
+            "base": 0.06734006734006734,
+            "top": 0.050505050505050504,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.06971677559912855,
+            "top": 0.023809523809523808,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.06296296296296296,
+            "top": 0.037037037037037035,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.06360708534621579,
+            "top": 0.031746031746031744,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.0807799442896936,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.06084656084656084,
+            "top": 0.1388888888888889,
+            "improves": true
+          },
+          {
+            "month": "2026-03",
+            "base": 0.09029535864978903,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.09259259259259259,
+            "top": 0.05555555555555555,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.07098765432098765,
+            "top": 0.044444444444444446,
+            "improves": false
+          },
+          {
+            "month": "2026-06",
+            "base": 0.09259259259259259,
+            "top": 0.041666666666666664,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.07498295841854125,
+            "top": 0.057432432432432436,
+            "improves": false
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.06666666666666667,
+            "top": 0.04954954954954955,
+            "improves": false
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.061224489795918366,
+            "top": 0.02702702702702703,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.09614512471655329,
+            "top": 0.04054054054054054,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.07653061224489796,
+            "top": 0.0472972972972973,
+            "improves": false
+          }
+        ]
+      },
+      "risk_stack_dmd_complete": {
+        "count": 4408,
+        "positiveRate": 0.05694192377495463,
+        "auc": 0.4468563082287161,
+        "topBucketFraction": 0.1,
+        "topBucketCutoff": 0.4911641421397432,
+        "topBucketCount": 441,
+        "topBucketHitRate": 0.02947845804988662,
+        "topBucketLift": 0.5176933987406384,
+        "selectionFractionIfUsedAsHardGate": 0.10004537205081669,
+        "mechanicalTradeReductionIfUsedAsHardGate": 0.8999546279491834,
+        "improvingMonths": 1,
+        "totalEvaluableMonths": 12,
+        "improvingCategories": 2,
+        "totalEvaluableCategories": 5,
+        "monthDiagnostics": [
+          {
+            "month": "2025-07",
+            "base": 0.043478260869565216,
+            "top": 0.03571428571428571,
+            "improves": false
+          },
+          {
+            "month": "2025-08",
+            "base": 0.03439153439153439,
+            "top": 0.03125,
+            "improves": false
+          },
+          {
+            "month": "2025-09",
+            "base": 0.08838383838383838,
+            "top": 0.041666666666666664,
+            "improves": false
+          },
+          {
+            "month": "2025-10",
+            "base": 0.0392156862745098,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2025-11",
+            "base": 0.05555555555555555,
+            "top": 0.04878048780487805,
+            "improves": false
+          },
+          {
+            "month": "2025-12",
+            "base": 0.026570048309178744,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-01",
+            "base": 0.09749303621169916,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-02",
+            "base": 0.07142857142857142,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "month": "2026-03",
+            "base": 0.060759493670886074,
+            "top": 0.0375,
+            "improves": false
+          },
+          {
+            "month": "2026-04",
+            "base": 0.042328042328042326,
+            "top": 0.041666666666666664,
+            "improves": false
+          },
+          {
+            "month": "2026-05",
+            "base": 0.06481481481481481,
+            "top": 0.06666666666666667,
+            "improves": true
+          },
+          {
+            "month": "2026-06",
+            "base": 0.07142857142857142,
+            "top": 0.02702702702702703,
+            "improves": false
+          }
+        ],
+        "categoryDiagnostics": [
+          {
+            "category": "commodity",
+            "base": 0.06952965235173825,
+            "top": 0.07216494845360824,
+            "improves": true
+          },
+          {
+            "category": "cross_border_hk",
+            "base": 0.04353741496598639,
+            "top": 0.06172839506172839,
+            "improves": true
+          },
+          {
+            "category": "cross_border_us",
+            "base": 0.04353741496598639,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "category": "domestic_broad",
+            "base": 0.08163265306122448,
+            "top": 0.0,
+            "improves": false
+          },
+          {
+            "category": "domestic_growth",
+            "base": 0.06020408163265306,
+            "top": 0.010101010101010102,
+            "improves": false
+          }
+        ]
+      }
+    }
+  },
+  "lookaheadAudit": {
+    "featuresPastOnly": true,
+    "bocpdSessionReset": true,
+    "bocpdPrefixInvariant": true,
+    "hawkesCurrentEventExcludedFromCurrentIntensity": true,
+    "thresholdsFitThroughTrainingEndOnly": true,
+    "labelsSeparateAndFutureUsing": true,
+    "phase15LedgerRead": false,
+    "paperTradingArtifactsRead": false
+  },
+  "mechanicalReductionAudit": {
+    "topBucketFraction": 0.1,
+    "hardGateWouldDropAbout": 0.9,
+    "interpretation": "Top-bucket diagnostics identify risky subsets. They do not prove trading improvement unless costed replay shows drawdown reduction without excessive opportunity loss."
+  },
+  "conclusions": {
+    "bocpdFeasible": true,
+    "hawkesEventDensitySufficient": true,
+    "fullRiskStackShowsStableEdge": false,
+    "dmdCompleteStackShowsStableEdge": false,
+    "costedReplayJustifiedNow": false,
+    "productionOrForwardUseAllowed": false,
+    "recommendedNextStep": "retain_audit_only_collect_more_forward_events"
+  },
+  "skipped": [
+    "continuous_time_hawkes_mle",
+    "neural_hawkes",
+    "online_inference",
+    "paper_trading_integration",
+    "position_sizing_integration",
+    "exit_gate_integration"
+  ]
+}

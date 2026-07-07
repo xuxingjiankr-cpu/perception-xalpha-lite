@@ -5814,6 +5814,138 @@ def t95_online_viterbi_ablation_is_causal_and_research_only() -> None:
     )
 
 
+def t96_risk_stack_phase1_7_is_causal_audit_only() -> None:
+    import json
+
+    import numpy as np
+
+    import research_risk_stack_phase1_7 as risk_stack
+
+    config_path = (
+        ROOT / "configs" / "research" / "risk_stack_phase1_7_audit_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    risk_stack.validate_config(config)
+    check(
+        "T96 risk stack is explicitly audit-only and uses fixed parameters",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["diagnosticOnly"] is True
+        and config["bocpd"]["parameterSearchAllowed"] is False
+        and config["hawkes"]["parameterSearchAllowed"] is False
+        and config["hawkes"]["usesCurrentEventInCurrentIntensity"] is False
+        and config["riskStack"]["noParameterSearch"] is True,
+    )
+    rng = np.random.default_rng(20260708)
+    prefix = rng.normal(0.0, 0.001, size=40)
+    future = np.asarray([0.05, -0.05, 0.04])
+    first = risk_stack.bocpd_gaussian_known_variance(
+        prefix,
+        hazard=0.04,
+        max_run_length=120,
+        alert_run_length=3,
+        prior_mean=0.0,
+        prior_variance=25.0 * float(np.var(prefix) + 1e-8),
+        observation_variance=float(np.var(prefix) + 1e-8),
+    )
+    second = risk_stack.bocpd_gaussian_known_variance(
+        np.concatenate([prefix, future]),
+        hazard=0.04,
+        max_run_length=120,
+        alert_run_length=3,
+        prior_mean=0.0,
+        prior_variance=25.0 * float(np.var(prefix) + 1e-8),
+        observation_variance=float(np.var(prefix) + 1e-8),
+    ).iloc[: len(prefix)]
+    check(
+        "T96 BOCPD prefix output is invariant to appended unseen future shocks",
+        np.allclose(
+            first.to_numpy(dtype=float),
+            second.to_numpy(dtype=float),
+            atol=1e-12,
+            rtol=0.0,
+        ),
+    )
+    toy = risk_stack.pd.DataFrame(
+        {
+            "timestamp": risk_stack.pd.date_range(
+                "2026-01-01 09:35", periods=5, freq="5min"
+            ),
+            "trade_date": ["2026-01-01"] * 5,
+            "stockCode": ["000001"] * 5,
+            "observable_risk_event": [0, 1, 0, 0, 1],
+        }
+    )
+    toy_config = json.loads(json.dumps(config))
+    toy_config["data"]["trainingStatisticsEnd"] = "2026-01-01"
+    toy_out, _ = risk_stack.add_discrete_hawkes_intensity(toy, toy_config)
+    check(
+        "T96 Hawkes intensity excludes current event from current score",
+        abs(float(toy_out["hawkes_event_intensity"].iloc[0]) - 0.4) < 1e-12
+        and abs(float(toy_out["hawkes_event_intensity"].iloc[1]) - 0.4) < 1e-12
+        and float(toy_out["hawkes_event_intensity"].iloc[2]) > 0.4,
+    )
+    safety = config["safety"]
+    integration = config["paperIntegration"]
+    check(
+        "T96 risk stack cannot trade, size, gate, overlay or promote",
+        safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and integration["allowed"] is False
+        and integration["mayGenerateIndependentOrders"] is False
+        and integration["mayChangeSellPath"] is False
+        and integration["mayChangePositionSizing"] is False
+        and integration["mayBypassTripleLock"] is False,
+    )
+    source = (ROOT / "scripts" / "research_risk_stack_phase1_7.py").read_text(
+        encoding="utf-8"
+    )
+    check(
+        "T96 risk-stack source has no broker, order or production decision path",
+        "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "run_t0_intraday_agent" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "risk_stack_phase1_7"
+        / "risk_stack_p17_20260708_v2"
+        / "risk_stack_phase1_7_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    check(
+        "T96 Phase 1.7 result does not justify costed replay or paper integration",
+        result["lookaheadAudit"]["bocpdPrefixInvariant"] is True
+        and result["lookaheadAudit"][
+            "hawkesCurrentEventExcludedFromCurrentIntensity"
+        ]
+        is True
+        and result["conclusions"]["fullRiskStackShowsStableEdge"] is False
+        and result["conclusions"]["dmdCompleteStackShowsStableEdge"] is False
+        and result["conclusions"]["costedReplayJustifiedNow"] is False
+        and result["paperIntegrationAllowed"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5909,6 +6041,7 @@ if __name__ == "__main__":
     t93_koopman_paper_exception_cannot_waive_predictive_evidence()
     t94_koopman_minute_direction_is_causal_and_shadow_only()
     t95_online_viterbi_ablation_is_causal_and_research_only()
+    t96_risk_stack_phase1_7_is_causal_audit_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

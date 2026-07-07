@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "risk_stack_phase1_7_audit_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-08T09:30:00+08:00",
+  "researchQuestion": "Can a causal BOCPD -> Koopman/DMD -> HMM -> Hawkes risk stack provide stable risk-context information for exits and position control beyond the existing HMM+EWS baseline?",
+  "literatureMap": {
+    "bocpd": {
+      "role": "online structural-break hazard",
+      "primaryReference": "Adams and MacKay (2007), Bayesian Online Changepoint Detection, arXiv:0710.3742"
+    },
+    "koopmanDmd": {
+      "role": "short-horizon dynamical instability diagnostics",
+      "primaryReference": "Schmid (2010), Dynamic Mode Decomposition of Numerical and Experimental Data"
+    },
+    "hmm": {
+      "role": "regime labeling and transition-risk context",
+      "primaryReference": "Hamilton (1989), A New Approach to the Economic Analysis of Nonstationary Time Series and the Business Cycle"
+    },
+    "hawkes": {
+      "role": "self-exciting observable risk-event intensity",
+      "primaryReference": "Bacry, Mastromatteo and Muzy (2015), Hawkes Processes in Finance, arXiv:1502.04592"
+    },
+    "exitPositionLayer": {
+      "role": "risk-conditioned exit tightening / position de-risking hypotheses",
+      "primaryReference": "López de Prado triple-barrier labeling framework"
+    }
+  },
+  "source": {
+    "phase16ModelResult": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/model_20260705_break_20260612_v2/phase1_6_model_result.json",
+    "phase16FeatureTable": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/model_20260705_break_20260612_v2/model_feature_table.csv",
+    "phase2AConfig": "configs/research/singularity_phase2a_historical.json",
+    "phase15LedgerAllowedAsInput": false,
+    "paperTradingArtifactsAllowedAsInput": false
+  },
+  "data": {
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "trainingStatisticsEnd": "2025-06-30",
+    "primaryHorizonsBars": [5, 10],
+    "barIntervalMinutes": 5,
+    "sameSessionOnly": true
+  },
+  "bocpd": {
+    "implementation": "fixed_hazard_gaussian_known_variance_online_bocpd",
+    "hazard": 0.04,
+    "maxRunLengthBars": 120,
+    "alertRunLengthBars": 3,
+    "priorMean": 0.0,
+    "priorVarianceScale": 25.0,
+    "sessionReset": true,
+    "fitVarianceThroughTrainingEndOnly": true,
+    "parameterSearchAllowed": false
+  },
+  "hawkes": {
+    "implementation": "fixed_discrete_time_exponential_self_exciting_intensity",
+    "decayBars": 12,
+    "excitation": 0.6,
+    "baselineFitThroughTrainingEndOnly": true,
+    "parameterSearchAllowed": false,
+    "usesCurrentEventInCurrentIntensity": false,
+    "eventDefinitions": {
+      "marketDropQuantile": 0.05,
+      "bocpdHazardQuantile": 0.9,
+      "dmdResidualQuantile": 0.9,
+      "hmmTransitionRiskQuantile": 0.9
+    }
+  },
+  "riskStack": {
+    "scoreQuantilesFitThroughTrainingEndOnly": true,
+    "fullSessionComponents": [
+      "bocpd_change_probability",
+      "regime_transition_risk",
+      "hawkes_event_intensity"
+    ],
+    "dmdCompleteComponents": [
+      "bocpd_change_probability",
+      "dmd_residual_zscore",
+      "regime_transition_risk",
+      "hawkes_event_intensity"
+    ],
+    "topBucketFraction": 0.1,
+    "noParameterSearch": true
+  },
+  "evaluation": {
+    "labels": ["turning_point_5", "turning_point_10"],
+    "primaryUseCase": "exit_and_position_risk_context_not_buy_signal",
+    "metrics": [
+      "auc",
+      "top_bucket_hit_rate",
+      "baseline_hit_rate",
+      "lift",
+      "monthly_top_bucket_stability",
+      "etf_category_stability",
+      "selection_fraction"
+    ],
+    "mechanicalTradeReductionAuditRequired": true,
+    "costedReplayRequiredBeforeAnyIntegration": true,
+    "forwardValidationDaysRequiredBeforeAnyIntegration": 20
+  },
+  "output": {
+    "root": "outputs/edge_research/risk_stack_phase1_7"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "forwardTaskIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "paperIntegration": {
+    "allowed": false,
+    "mayGenerateIndependentOrders": false,
+    "mayChangeSellPath": false,
+    "mayChangePositionSizing": false,
+    "mayBypassTripleLock": false,
+    "automaticPromotionAllowed": false
+  }
+}
