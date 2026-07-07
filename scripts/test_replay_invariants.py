@@ -5691,6 +5691,129 @@ def t94_koopman_minute_direction_is_causal_and_shadow_only() -> None:
     )
 
 
+def t95_online_viterbi_ablation_is_causal_and_research_only() -> None:
+    import json
+
+    import numpy as np
+
+    import research_singularity_phase1_6_viterbi_ablation as viterbi
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "singularity_phase1_6_viterbi_ablation_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    viterbi.validate_config(config)
+    check(
+        "T95 Viterbi is online endpoint decoding, not smoothing or full-path hindsight",
+        config["viterbi"]["mode"] == "online_endpoint_decode"
+        and config["viterbi"]["sessionReset"] is True
+        and config["viterbi"]["usesFullSequenceBacktracking"] is False
+        and config["viterbi"]["usesForwardBackwardSmoothing"] is False
+        and config["viterbi"]["usesFutureObservations"] is False
+        and config["viterbi"]["newHmmFitAllowed"] is False
+        and config["viterbi"]["automaticStateOrParameterSearchAllowed"] is False,
+    )
+    phase16_result = json.loads(
+        (
+            ROOT
+            / "outputs"
+            / "edge_research"
+            / "singularity_phase1_6_hmm_physics_features"
+            / "model_20260705_break_20260612_v2"
+            / "phase1_6_model_result.json"
+        ).read_text(encoding="utf-8")
+    )
+    hmm_audit = phase16_result["hmmAudit"]
+    rng = np.random.default_rng(20260708)
+    prefix = rng.normal(0.0, 0.001, size=30)
+    future = np.asarray([0.05, -0.05, 0.04, -0.04])
+    first = viterbi.online_viterbi_decode(prefix, hmm_audit)
+    second = viterbi.online_viterbi_decode(
+        np.concatenate([prefix, future]), hmm_audit
+    ).iloc[: len(prefix)]
+    columns = [
+        "viterbi_state",
+        "viterbi_bear_state",
+        "viterbi_middle_state",
+        "viterbi_bull_state",
+        "viterbi_state_age_bars",
+        "viterbi_path_transition_risk",
+        "viterbi_endpoint_confidence",
+        "viterbi_log_margin",
+    ]
+    check(
+        "T95 Viterbi prefix output is invariant to appended unseen future shocks",
+        np.allclose(
+            first[columns].to_numpy(dtype=float),
+            second[columns].to_numpy(dtype=float),
+            atol=1e-12,
+            rtol=0.0,
+        ),
+    )
+    safety = config["safety"]
+    integration = config["paperIntegration"]
+    check(
+        "T95 Viterbi ablation remains offline, record-only, and non-promoting",
+        safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and integration["allowed"] is False
+        and integration["mayGenerateIndependentOrders"] is False
+        and integration["mayChangeSellPath"] is False
+        and integration["mayChangePositionSizing"] is False
+        and integration["mayBypassTripleLock"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_singularity_phase1_6_viterbi_ablation.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T95 Viterbi research has no broker, order, or paper decision path",
+        "submitOrder(" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "run_t0_intraday_agent" not in source
+        and "output_dir.mkdir(parents=True, exist_ok=False)" in source,
+    )
+    result_path = (
+        ROOT
+        / "outputs"
+        / "edge_research"
+        / "singularity_phase1_6_viterbi_ablation"
+        / "viterbi_ablation_20260708_v1"
+        / "viterbi_ablation_result.json"
+    )
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    diagnostic = result["candidateDiagnostics"]
+    check(
+        "T95 Viterbi does not pass historical HMM+EWS incremental gate",
+        result["viterbiFeatureAudit"]["prefixInvarianceCheckPassed"] is True
+        and result["viterbiFeatureAudit"]["filteredAgreementRate"] > 0.97
+        and diagnostic["5"]["improvedMetricCountOfFour"] == 1
+        and diagnostic["5"]["passes"] is False
+        and diagnostic["10"]["improvedMetricCountOfFour"] == 0
+        and diagnostic["10"]["passes"] is False
+        and result["conclusions"]["viterbiHelpsHMM"] is False
+        and result["paperIntegrationAllowed"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -5785,6 +5908,7 @@ if __name__ == "__main__":
     t92_singularity_phase1_6_hmm_auxiliary_stays_historical_only()
     t93_koopman_paper_exception_cannot_waive_predictive_evidence()
     t94_koopman_minute_direction_is_causal_and_shadow_only()
+    t95_online_viterbi_ablation_is_causal_and_research_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

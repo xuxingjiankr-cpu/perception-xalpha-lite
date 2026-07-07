@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "singularity_phase1_6_viterbi_ablation_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-08T08:30:00+08:00",
+  "researchQuestion": "Does causal online Viterbi decoding of the existing frozen GaussianHMM1D state process add stable 5/10-bar turning-risk information beyond current HMM filtered probabilities plus EWS?",
+  "source": {
+    "phase16ModelConfig": "configs/research/singularity_phase1_6_hmm_physics_model_v1.json",
+    "phase16ModelResult": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/model_20260705_break_20260612_v2/phase1_6_model_result.json",
+    "phase16FeatureTable": "outputs/edge_research/singularity_phase1_6_hmm_physics_features/model_20260705_break_20260612_v2/model_feature_table.csv",
+    "phase2AConfig": "configs/research/singularity_phase2a_historical.json",
+    "reuseExistingGaussianHMM1DParameters": true,
+    "phase15LedgerAllowedAsInput": false
+  },
+  "data": {
+    "walkForwardStart": "2025-07-01",
+    "walkForwardEnd": "2026-07-03",
+    "primaryHorizonsBars": [5, 10],
+    "barIntervalMinutes": 5,
+    "sameSessionOnly": true
+  },
+  "viterbi": {
+    "mode": "online_endpoint_decode",
+    "sessionReset": true,
+    "usesFullSequenceBacktracking": false,
+    "usesForwardBackwardSmoothing": false,
+    "usesFutureObservations": false,
+    "observation": "market_ret_1",
+    "stateCount": 3,
+    "stateParametersSource": "phase16ModelResult.hmmAudit",
+    "automaticStateOrParameterSearchAllowed": false,
+    "newHmmFitAllowed": false
+  },
+  "features": {
+    "base": [
+      "ret_1",
+      "ret_3",
+      "ret_6",
+      "acceleration_1",
+      "vol_6",
+      "market_ret_1",
+      "market_ret_3",
+      "breadth",
+      "relative_strength",
+      "amount_rank",
+      "session_fraction"
+    ],
+    "ews": [
+      "ews_log_variance",
+      "ews_autocorrelation_1",
+      "ews_variance_slope",
+      "ews_market_dispersion",
+      "ews_score"
+    ],
+    "hmm": [
+      "hmm_bear_probability",
+      "hmm_middle_probability",
+      "hmm_bull_probability",
+      "hmm_expected_return",
+      "regime_transition_risk",
+      "regime_entropy"
+    ],
+    "viterbi": [
+      "viterbi_bear_state",
+      "viterbi_middle_state",
+      "viterbi_bull_state",
+      "viterbi_state_age_bars",
+      "viterbi_agrees_with_filtered_state",
+      "viterbi_path_transition_risk",
+      "viterbi_endpoint_confidence",
+      "viterbi_log_margin"
+    ],
+    "winsorizationQuantiles": [0.01, 0.99],
+    "winsorizationFitPerFoldOnly": true
+  },
+  "variants": [
+    "constant_prior",
+    "ews_baseline",
+    "current_hmm",
+    "current_hmm_ews",
+    "hmm_viterbi",
+    "hmm_ews_viterbi"
+  ],
+  "models": {
+    "logisticC": 0.1,
+    "calibrationC": 1.0,
+    "calibrationDays": 20,
+    "walkForwardTestBlockDays": 40,
+    "minimumBaseFitDays": 160,
+    "purgeDecisionRowsPerSymbol": 30,
+    "embargoTradingDays": 1,
+    "randomSeed": 20260708,
+    "probabilityBinEdges": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+    "highRiskThreshold": 0.35,
+    "clusterBootstrapReplicates": 2000,
+    "clusterBootstrapConfidence": 0.95
+  },
+  "successGate": {
+    "comparisonBaseline": "current_hmm_ews",
+    "candidate": "hmm_ews_viterbi",
+    "minimumImprovedMetricCountOfFour": 3,
+    "minimumImprovingFoldFraction": 0.5,
+    "minimumImprovingMonthFraction": 0.5,
+    "minimumImprovingEtfCategories": 2,
+    "minimumHighRiskSamples": 100,
+    "maximumHighRiskOptimism": 0.1,
+    "requireBrierClusterBootstrapUpperBelowZero": true,
+    "sameForecastPopulationRequired": true,
+    "automaticPromotionAllowed": false
+  },
+  "output": {
+    "root": "outputs/edge_research/singularity_phase1_6_viterbi_ablation"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "phase15WritesAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "forwardTaskIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "paperIntegration": {
+    "allowed": false,
+    "mayGenerateIndependentOrders": false,
+    "mayChangeSellPath": false,
+    "mayChangePositionSizing": false,
+    "mayBypassTripleLock": false,
+    "automaticPromotionAllowed": false
+  }
+}
