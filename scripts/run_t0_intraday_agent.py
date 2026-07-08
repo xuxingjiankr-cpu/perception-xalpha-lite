@@ -2383,6 +2383,28 @@ def evaluate_exit_for_code(
     near_close_comp = as_float(sell_score_result.get("near_close_component"), 0.0)
     score_pass = sell_score_val >= sell_threshold and (sell_score_val - near_close_comp) > 0
     min_hold_passed = holding_minutes is None or holding_minutes >= min_hold_minutes
+    risk_take_profit_enabled = bool(strategy.get("risk_take_profit_enabled", False))
+    risk_take_profit_pct = as_float(strategy.get("take_profit_pct"), 0.05)
+    risk_take_profit_min_components = int(as_float(strategy.get("risk_take_profit_min_negative_components"), 1))
+    sell_components = sell_score_result.get("components") if isinstance(sell_score_result.get("components"), dict) else {}
+    risk_take_profit_component_names = [
+        "structure_break",
+        "momentum_reversal",
+        "bid_pressure_negative",
+        "acceleration_negative",
+        "liquidity_deterioration",
+        "vwap_breakdown",
+        "profit_drawdown",
+    ]
+    risk_take_profit_component_count = sum(
+        1 for name in risk_take_profit_component_names
+        if as_float(sell_components.get(name), 0.0) > 0
+    )
+    risk_take_profit_pass = (
+        risk_take_profit_enabled
+        and pnl_pct >= risk_take_profit_pct
+        and risk_take_profit_component_count >= max(1, risk_take_profit_min_components)
+    )
     im_cfg = strategy.get("intraday_momentum", {}) if isinstance(strategy.get("intraday_momentum", {}), dict) else {}
     is_im_position = bool(node.get("im_trade"))
     exit_reason = None
@@ -2404,6 +2426,8 @@ def evaluate_exit_for_code(
         unconditional_exit = True
     elif not min_hold_passed:
         exit_reason = None
+    elif risk_take_profit_pass:
+        exit_reason = "risk_take_profit_exit"
     elif score_pass:
         exit_reason = "unified_sell_score_exit"
     # v2 timing-sell de-noising (default OFF). Only gates the unified_sell_score_exit
@@ -2439,6 +2463,9 @@ def evaluate_exit_for_code(
             "sell_score": sell_score_val,
             "sell_score_components": sell_score_result.get("components"),
             "sell_score_threshold": sell_threshold,
+            "risk_take_profit_enabled": risk_take_profit_enabled,
+            "risk_take_profit_pct": risk_take_profit_pct,
+            "risk_take_profit_component_count": risk_take_profit_component_count,
             "exit_policy": "unified_sell_score",
             "unconditional_exit": unconditional_exit,
             "holding_minutes": holding_minutes,
@@ -2469,6 +2496,9 @@ def evaluate_exit_for_code(
             "sell_score": sell_score_val,
             "sell_score_components": sell_score_result.get("components"),
             "sell_score_threshold": sell_threshold,
+            "risk_take_profit_enabled": risk_take_profit_enabled,
+            "risk_take_profit_pct": risk_take_profit_pct,
+            "risk_take_profit_component_count": risk_take_profit_component_count,
             "carry_allowed": carry_allowed,
             "holding_minutes": holding_minutes,
             "min_hold_minutes": min_hold_minutes,

@@ -6056,6 +6056,118 @@ def t97_risk_stack_weight_adaptation_is_train_only_and_shadow() -> None:
     )
 
 
+def t98_risk_take_profit_requires_profit_and_risk_component() -> None:
+    import copy as _copy
+    import io as _io
+    import json as _json
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    cfg = _json.load(_io.open(ROOT / "configs" / "t0_intraday_paper_agent.json", encoding="utf-8"))
+    cfg["strategy"]["risk_take_profit_enabled"] = True
+    cfg["strategy"]["take_profit_pct"] = 0.03
+    cfg["strategy"]["risk_take_profit_min_negative_components"] = 1
+    cfg["strategy"]["profit_exit_score_threshold"] = 999
+    now = datetime(2026, 7, 8, 10, 45, tzinfo=ZoneInfo("Asia/Shanghai"))
+    trade_date = "2026-07-08"
+    ts = now.isoformat()
+    base_position = {
+        "stockCode": "513050",
+        "stockName": "513050",
+        "exchange": "SH",
+        "quantity": 10000,
+        "availableQuantity": 10000,
+        "costPrice": 1.0,
+    }
+    base_state = {
+        "t0_inventory_by_date": {
+            trade_date: {
+                "513050": {
+                    "buy_quantity_submitted": 10000,
+                    "sell_quantity_submitted": 0,
+                    "baseline_available_quantity": 0,
+                    "entry_price": 1.0,
+                    "last_buy_price": 1.0,
+                    "first_buy_at": (now - timedelta(minutes=30)).isoformat(),
+                    "highest_price_since_entry": 1.05,
+                }
+            }
+        }
+    }
+    balance = {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 600_000.0}}
+    positions_resp = {"ok": True, "data": {"positions": [base_position]}}
+    pending_resp = {"ok": True, "data": {"orders": []}}
+    risk_quote = {
+        "stockCode": "513050",
+        "exchange": "SH",
+        "name": "513050",
+        "asset_class": "hk_etf",
+        "currentPrice": 1.04,
+        "bidPrice1": 1.039,
+        "askPrice1": 1.041,
+        "prevClose": 1.0,
+        "timestamp": ts,
+        "quote_ok": True,
+        "isSuspended": False,
+        "momentum_available": True,
+        "momentum": -0.002,
+        "spread_pct": 0.0008,
+        "change_pct": 0.04,
+        "acceleration": 0.001,
+        "bid_pressure_3m_pct": 0.001,
+    }
+    clean_quote = dict(risk_quote)
+    clean_quote.update(
+        {
+            "momentum": 0.004,
+            "acceleration": 0.002,
+            "bid_pressure_3m_pct": 0.003,
+            "currentPrice": 1.05,
+        }
+    )
+    clean_state = _copy.deepcopy(base_state)
+    clean_state["t0_inventory_by_date"][trade_date]["513050"]["highest_price_since_entry"] = 1.05
+
+    agent.set_replay_now(now)
+    try:
+        risk_decision = agent.build_decision(
+            cfg,
+            [risk_quote],
+            balance,
+            positions_resp,
+            pending_resp,
+            _copy.deepcopy(base_state),
+            None,
+        )
+        clean_decision = agent.build_decision(
+            cfg,
+            [clean_quote],
+            balance,
+            positions_resp,
+            pending_resp,
+            clean_state,
+            None,
+        )
+    finally:
+        agent.set_replay_now(None)
+
+    risk_orders = risk_decision.get("orders", [])
+    clean_orders = clean_decision.get("orders", [])
+    check(
+        "T98 risk take-profit exits profitable position when a risk component turns negative",
+        len(risk_orders) == 1
+        and risk_orders[0].get("direction") == "sell"
+        and risk_orders[0].get("reason") == "risk_take_profit_exit"
+        and risk_orders[0].get("risk_take_profit_component_count", 0) >= 1,
+        str(risk_orders),
+    )
+    check(
+        "T98 risk take-profit does not sell pure profit without a risk component",
+        not clean_orders,
+        str(clean_orders),
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6153,6 +6265,7 @@ if __name__ == "__main__":
     t95_online_viterbi_ablation_is_causal_and_research_only()
     t96_risk_stack_phase1_7_is_causal_audit_only()
     t97_risk_stack_weight_adaptation_is_train_only_and_shadow()
+    t98_risk_take_profit_requires_profit_and_risk_component()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

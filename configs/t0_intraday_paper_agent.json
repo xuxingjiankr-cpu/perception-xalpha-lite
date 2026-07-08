@@ -149,7 +149,9 @@
     "entry_momentum_pct": 0.0015,
     "exit_momentum_pct": -0.001,
     "stop_loss_pct": -0.012,
-    "take_profit_pct": 0.05,
+    "take_profit_pct": 0.03,
+    "risk_take_profit_enabled": true,
+    "risk_take_profit_min_negative_components": 1,
     "max_sell_orders_per_run": 5,
     "sell_throttle_interval_minutes": 5,
     "sell_throttle_bypass_reasons": [
