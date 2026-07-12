@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "trade_success_shadow_v1",
+  "status": "research_only",
+  "shadowOnly": true,
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-12T12:00:00+08:00",
+  "researchQuestion": "Can point-in-time capacity replacement, ETF cooldown memory, ranking diagnostics, regime conditioning, and immediate-weakness diagnostics improve trade selection without changing the paper agent?",
+  "data": {
+    "decisionScoresRoot": "outputs/decision_scores",
+    "minuteQuotesRoot": "outputs/t0_intraday_agent",
+    "agentRunsPath": "outputs/t0_intraday_agent/t0_agent_runs.jsonl",
+    "orderLifecyclePath": "outputs/execution_research/paper_order_lifecycle.jsonl",
+    "agentName": "t0_intraday_paper_agent",
+    "effectiveFrom": "2026-06-22",
+    "roundTripCost": 0.0014,
+    "incrementalSwapCost": 0.0014,
+    "maximumQuoteLagMinutes": 6,
+    "nonOverlappingEventSpacingMinutes": 20,
+    "maxLabelHorizonMinutes": 20,
+    "purgeTradingDays": 1,
+    "embargoTradingDays": 1,
+    "initialTrainDays": 20
+  },
+  "capacityRebalance": {
+    "enabled": true,
+    "policy": "rank_le_3_partial_entry_gate_candidate_vs_highest_sell_score_sellable_holding",
+    "capacityReason": "at_target_holdings_capacity",
+    "candidateMaximumRank": 3,
+    "candidateMustPassRecordedExecutionAndSafetyChecks": true,
+    "candidatePreCapacityEntryGateMustBeRecorded": true,
+    "incumbentMinimumSellScore": 65.0,
+    "candidateMustNotAlreadyBeHeld": true,
+    "holdingMustBeSellable": true,
+    "oneEventPerTradingDay": false,
+    "minimumIndependentDays": 30,
+    "minimumEvents": 50,
+    "minimumDistinctCandidateEtfs": 10,
+    "minimumWinRate": 0.55,
+    "minimumMeanIncrementalNetReturn": 0.0,
+    "bootstrapCiLowerMustExceed": 0.0
+  },
+  "cooldown": {
+    "enabled": true,
+    "unit": "one_symbol_one_day_mean",
+    "shadowMinimumPriorDays": 5,
+    "promotionMinimumPriorDays": 20,
+    "minimumPriorRawRows": 20,
+    "lookbackIndependentEtfDays": 5,
+    "minimumLossDaysInLookback": 4,
+    "maximumPriorMeanNetReturn": -0.003,
+    "maximumPriorWinRate": 0.2,
+    "maximumWilsonUpperWinRate": 0.65,
+    "cooldownTradingDays": 1,
+    "minimumEvaluationDays": 20,
+    "minimumFlaggedSymbolDays": 50,
+    "minimumDistinctEtfs": 10,
+    "replacementWithNextRankRequired": true
+  },
+  "rankingAudit": {
+    "enabled": true,
+    "fixedRankBuckets": [[1, 3], [4, 10], [11, 20], [21, 999]],
+    "minimumCandidatesPerSnapshot": 2,
+    "primaryHorizonMinutes": 10,
+    "primaryComparison": "rank1_minus_mean_rank2_rank3_same_snapshot",
+    "minimumIndependentDays": 20,
+    "minimumPairedSnapshots": 200,
+    "minimumEconomicDifference": 0.001,
+    "minimumWeeksWithCorrectSignOutOfFour": 3
+  },
+  "regimeAudit": {
+    "enabled": true,
+    "minimumIndependentDaysPerGroup": 20,
+    "minimumSymbolDaysPerGroup": 30
+  },
+  "entryWeakness": {
+    "enabled": true,
+    "horizonsMinutes": [5, 10, 20],
+    "primaryHorizonMinutes": 10,
+    "weaknessNetReturnThreshold": -0.002,
+    "nearPriorHighDistancePct": -0.002,
+    "confirmedFillEvidenceOnly": true,
+    "unknownFillTimeMayUseSubmissionTimeForMarkoutOnly": true,
+    "minimumExecutedBuys": 30,
+    "minimumIndependentDays": 20
+  },
+  "validation": {
+    "bootstrapTradingDayResamples": 5000,
+    "bootstrapSeed": 20260712,
+    "allThresholdsFrozen": true,
+    "sameDayClusterRequired": true,
+    "purgedWalkForwardRequiredForEvidence": true,
+    "separateFutureOosRequiredBeforeIntegration": true,
+    "actualExecutionsRequiredBeforeIntegration": true,
+    "counterfactualRowsMayPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/trade_success_shadow"
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifact": "decision_probability_v1.json"
+  },
+  "paperIntegration": {
+    "allowed": false,
+    "mayGenerateIndependentOrders": false,
+    "mayChangeSellPath": false,
+    "mayChangePositionSizing": false,
+    "mayBypassTripleLock": false,
+    "automaticPromotionAllowed": false
+  }
+}

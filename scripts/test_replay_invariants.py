@@ -6168,6 +6168,436 @@ def t98_risk_take_profit_requires_profit_and_risk_component() -> None:
     )
 
 
+def t99_trade_success_shadow_is_causal_purged_idempotent_and_safe() -> None:
+    import copy
+    import json
+    import tempfile
+    from datetime import date, datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    import decision_scoring as scoring
+    import research_trade_success_shadow as shadow
+
+    config_path = ROOT / "configs" / "research" / "trade_success_shadow_v1.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    shadow.validate_config(config)
+    safety = config["safety"]
+    integration = config["paperIntegration"]
+    check(
+        "T99 success-rate package is research/shadow-only with all mutation paths disabled",
+        config["status"] == "research_only"
+        and config["shadowOnly"] is True
+        and config["diagnosticOnly"] is True
+        and safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        )
+        and all(
+            integration[key] is False
+            for key in [
+                "allowed",
+                "mayGenerateIndependentOrders",
+                "mayChangeSellPath",
+                "mayChangePositionSizing",
+                "mayBypassTripleLock",
+                "automaticPromotionAllowed",
+            ]
+        ),
+    )
+    source = (ROOT / "scripts" / "research_trade_success_shadow.py").read_text(
+        encoding="utf-8"
+    )
+    check(
+        "T99 research source has no broker, order, production-decision or overlay path",
+        "SkillClient(" not in source
+        and "submitOrder(" not in source
+        and "submit_order(" not in source
+        and "build_decision(" not in source
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "decision_probability_v1.json" not in source,
+    )
+
+    # The new policy hash must ignore the dynamic observation universe while still
+    # changing when an actual strategy parameter changes.
+    cfg_a = {"mode": "paper_execute", "universe": [{"stockCode": "510300"}], "strategy": {"x": 1}}
+    cfg_b = {"mode": "paper_execute", "universe": [{"stockCode": "518880"}], "strategy": {"x": 1}}
+    cfg_c = {"mode": "paper_execute", "universe": [{"stockCode": "518880"}], "strategy": {"x": 2}}
+    check(
+        "T99 policy cohort hash ignores dynamic universe but detects strategy changes",
+        scoring.policy_fingerprint(cfg_a) == scoring.policy_fingerprint(cfg_b)
+        and scoring.policy_fingerprint(cfg_b) != scoring.policy_fingerprint(cfg_c),
+    )
+    future_clock_run = {
+        "trade_date": "2026-01-05",
+        "system_time": {"exchange_local_time": "2026-01-05T10:00:30+08:00"},
+        "ranked": [
+            {
+                "stockCode": "510300",
+                "exchange": "SH",
+                "name": "future-clock",
+                "source_quote_time": "2026-01-05 10:01:00",
+            }
+        ],
+        "positions_t0": {},
+        "state_machine": {"reason": "no_entry_signal"},
+        "risk_checks": [],
+    }
+    future_rows, future_snapshots = shadow.build_point_in_time_candidate_events(
+        [future_clock_run], {}, config
+    )
+    check(
+        "T99 exchange decision time controls the event and future-dated source quotes fail closed",
+        shadow._exchange_event_minute(future_clock_run) == 600
+        and not future_rows
+        and len(future_snapshots) == 1
+        and future_snapshots[0]["source_time_causal"] is False,
+    )
+
+    # The forward pre-capacity collector may annotate the selected quote, but it must
+    # leave the decision at HOLD and create no order.
+    paper_cfg = json.loads(
+        (ROOT / "configs" / "t0_intraday_paper_agent.json").read_text(encoding="utf-8")
+    )
+    paper_cfg["strategy"]["target_holdings"] = 1
+    paper_cfg["strategy"]["legacy_inventory_codes"] = []
+    paper_cfg["strategy"]["risk_take_profit_enabled"] = False
+    paper_cfg["strategy"]["profit_exit_score_threshold"] = 999
+    paper_cfg["strategy"]["loss_exit_score_threshold"] = 999
+    paper_cfg["strategy"]["stop_loss_pct"] = -0.99
+    paper_cfg["strategy"]["take_profit_pct"] = 99.0
+    paper_cfg["sector_diversification"]["enabled"] = False
+    paper_cfg["universe"] = [
+        {"stockCode": "518880", "exchange": "SH", "name": "held", "asset_class": "dynamic"},
+        {"stockCode": "513500", "exchange": "SH", "name": "candidate", "asset_class": "cross_border_etf"},
+    ]
+    now = datetime(2026, 7, 8, 10, 30, tzinfo=ZoneInfo("Asia/Shanghai"))
+    timestamp = now.isoformat()
+    held_quote = {
+        "stockCode": "518880",
+        "exchange": "SH",
+        "name": "held",
+        "asset_class": "dynamic",
+        "currentPrice": 8.0,
+        "prevClose": 8.0,
+        "bidPrice1": 7.999,
+        "askPrice1": 8.001,
+        "spread_pct": 0.00025,
+        "quote_ok": True,
+        "isSuspended": False,
+        "momentum_available": True,
+        "momentum": 0.0,
+        "change_pct": 0.0,
+        "timestamp": timestamp,
+    }
+    candidate_quote = {
+        "stockCode": "513500",
+        "exchange": "SH",
+        "name": "candidate",
+        "asset_class": "cross_border_etf",
+        "currentPrice": 2.5,
+        "prevClose": 2.49,
+        "bidPrice1": 2.499,
+        "askPrice1": 2.501,
+        "spread_pct": 0.0008,
+        "quote_ok": True,
+        "isSuspended": False,
+        "momentum_available": True,
+        "momentum": 0.004,
+        "change_pct": 0.004,
+        "bid_pressure_3m_pct": 0.002,
+        "acceleration": 0.001,
+        "timestamp": timestamp,
+    }
+    state = {
+        "t0_inventory_by_date": {
+            "2026-07-08": {
+                "518880": {
+                    "buy_quantity_submitted": 10000,
+                    "sell_quantity_submitted": 0,
+                    "buy_quantity_filled": 10000,
+                    "entry_price": 8.0,
+                    "last_buy_price": 8.0,
+                    "first_buy_at": (now - timedelta(minutes=30)).isoformat(),
+                    "highest_price_since_entry": 8.0,
+                }
+            }
+        }
+    }
+    agent.set_replay_now(now)
+    try:
+        capacity_decision = agent.build_decision(
+            paper_cfg,
+            [candidate_quote, held_quote],
+            {"ok": True, "data": {"totalAssets": 1_000_000.0, "availableBalance": 500_000.0}},
+            {
+                "ok": True,
+                "data": {
+                    "positions": [
+                        {
+                            "stockCode": "518880",
+                            "stockName": "held",
+                            "exchange": "SH",
+                            "quantity": 10000,
+                            "availableQuantity": 10000,
+                            "costPrice": 8.0,
+                        }
+                    ]
+                },
+            },
+            {"ok": True, "data": {"orders": []}},
+            state,
+            {"available": True, "block_new_buy": False},
+        )
+    finally:
+        agent.set_replay_now(None)
+    annotated = next(
+        (
+            row
+            for row in capacity_decision.get("ranked", [])
+            if str(row.get("stockCode")) == "513500"
+        ),
+        {},
+    )
+    gate = annotated.get("shadow_capacity_entry_gate") or {}
+    score_contexts = scoring.contexts_from_decision(
+        paper_cfg,
+        capacity_decision,
+        trade_date="2026-07-08",
+        timestamp="10:30:00",
+    )
+    candidate_context = next(
+        (
+            row
+            for row in score_contexts
+            if row.get("decision_type") == "BUY_CANDIDATE"
+            and row.get("etf_code") == "513500"
+        ),
+        {},
+    )
+    check(
+        "T99 pre-capacity gate is record-only and cannot create an order",
+        capacity_decision.get("state_machine", {}).get("reason") == "at_target_holdings_capacity"
+        and not capacity_decision.get("orders")
+        and gate.get("record_only") is True
+        and gate.get("used_by_trading") is False
+        and gate.get("excluded_from_order_path") is True,
+        str(capacity_decision.get("state_machine")),
+    )
+    check(
+        "T99 pre-capacity metadata and stable policy cohort reach the score ledger",
+        candidate_context.get("pre_capacity_entry_eligible")
+        == annotated.get("pre_capacity_entry_eligible")
+        and isinstance(candidate_context.get("shadow_capacity_entry_gate"), dict)
+        and bool(candidate_context.get("policy_sha256")),
+    )
+    check(
+        "T99 shadow candidate remains an unexecuted no-trade ledger observation",
+        candidate_context.get("decision_type") == "BUY_CANDIDATE"
+        and candidate_context.get("ledger_record_type") == "no_trade_buy_candidate"
+        and candidate_context.get("order_planned") is False
+        and candidate_context.get("was_executed") is False,
+    )
+
+    # Cooldown for day t can use only completed dates < t. Shock day t and append a
+    # future day; the already-produced day-t flag must not change.
+    base_day = date(2026, 1, 5)
+    daily: list[dict] = []
+    for offset in range(6):
+        daily.append(
+            {
+                "trade_date": (base_day + timedelta(days=offset)).isoformat(),
+                "stockCode": "510300",
+                "symbol_group": "broad",
+                "market_regime": "neutral",
+                "raw_rows": 4,
+                "actual_buy_rows": 0,
+                "candidate_rows": 4,
+                "mean_net_return": -0.004 if offset < 5 else 0.02,
+                "median_net_return": -0.004 if offset < 5 else 0.02,
+                "win": 0 if offset < 5 else 1,
+                "mean_candidate_rank": 1.0,
+                "first_timestamp": "10:00:00",
+            }
+        )
+    first = shadow.build_cooldown_panel(copy.deepcopy(daily), config)
+    shocked = copy.deepcopy(daily)
+    shocked[-1]["mean_net_return"] = -0.99
+    shocked.append(
+        {
+            **copy.deepcopy(daily[-1]),
+            "trade_date": (base_day + timedelta(days=6)).isoformat(),
+            "mean_net_return": 0.99,
+        }
+    )
+    second = shadow.build_cooldown_panel(shocked, config)
+    first_flag = next(row for row in first if row["trade_date"] == daily[-1]["trade_date"])
+    second_flag = next(row for row in second if row["trade_date"] == daily[-1]["trade_date"])
+    check(
+        "T99 cooldown state is prefix-invariant and excludes current-day outcomes",
+        first_flag["shadow_cooldown_candidate"] is True
+        and {
+            key: first_flag[key]
+            for key in [
+                "prior_days",
+                "prior_raw_rows",
+                "prior_mean_net_return",
+                "prior_win_rate",
+                "prior_loss_days",
+                "shadow_cooldown_candidate",
+            ]
+        }
+        == {
+            key: second_flag[key]
+            for key in [
+                "prior_days",
+                "prior_raw_rows",
+                "prior_mean_net_return",
+                "prior_win_rate",
+                "prior_loss_days",
+                "shadow_cooldown_candidate",
+            ]
+        },
+    )
+
+    # Capacity candidate/holding selection is fixed by rank, pre-capacity gate and
+    # current sell score. Future prices may change its label, never the selected pair.
+    local_config = copy.deepcopy(config)
+    local_config["capacityRebalance"]["incumbentMinimumSellScore"] = 65.0
+    snapshot = {
+        "snapshot_id": "2026-01-05|0600",
+        "trade_date": "2026-01-05",
+        "event_minute_cn": 600,
+        "state_reason": "at_target_holdings_capacity",
+        "held_codes": ["510300"],
+        "positions_t0": {"510300": {"quantity": 10000}},
+        "sellable_by_code": {"510300": 10000},
+        "sell_score_by_code": {"510300": 70.0},
+        "pending_order_count": 0,
+        "planned_order_count": 0,
+        "frontier_applied": True,
+        "frontier_mode": "active_rerank",
+        "full_market_regime": "neutral",
+    }
+    candidate = {
+        "snapshot_id": snapshot["snapshot_id"],
+        "trade_date": snapshot["trade_date"],
+        "event_minute_cn": 600,
+        "stockCode": "518880",
+        "eligible_rank": 1,
+        "recorded_partial_entry_pass": True,
+        "pre_capacity_entry_gate_recorded": True,
+        "pre_capacity_entry_gate_pass": True,
+    }
+
+    def quote(price: float) -> dict:
+        return {
+            "currentPrice": price,
+            "bidPrice1": price - 0.001,
+            "askPrice1": price + 0.001,
+        }
+
+    quote_index = {
+        "510300": {"2026-01-05": {601: quote(5.0), 611: quote(5.05)}},
+        "518880": {"2026-01-05": {601: quote(8.0), 611: quote(8.1)}},
+    }
+    shocked_quotes = copy.deepcopy(quote_index)
+    shocked_quotes["510300"]["2026-01-05"][611] = quote(9.0)
+    shocked_quotes["518880"]["2026-01-05"][611] = quote(1.0)
+    capacity_a = shadow.build_capacity_events_from_snapshots(
+        [snapshot], [candidate], quote_index, local_config
+    )[0]
+    capacity_b = shadow.build_capacity_events_from_snapshots(
+        [snapshot], [candidate], shocked_quotes, local_config
+    )[0]
+    check(
+        "T99 future price shocks change capacity labels but not point-in-time selection",
+        capacity_a["candidate_code"] == capacity_b["candidate_code"] == "518880"
+        and capacity_a["held_code"] == capacity_b["held_code"] == "510300"
+        and capacity_a["incremental_net_return"] != capacity_b["incremental_net_return"]
+        and capacity_a["selection_uses_future_label"] is False,
+    )
+
+    split_rows = [
+        {"trade_date": (base_day + timedelta(days=offset)).isoformat()}
+        for offset in range(30)
+    ]
+    folds = shadow.purged_day_splits(split_rows, config)
+    check(
+        "T99 walk-forward keeps whole dates disjoint with declared purge and embargo",
+        bool(folds)
+        and int(config["data"]["purgeTradingDays"]) >= 1
+        and int(config["data"]["embargoTradingDays"]) >= 1
+        and all(
+            not (set(fold["train_dates"]) & set(fold["test_dates"]))
+            and max(fold["train_dates"]) < min(fold["test_dates"])
+            and len(fold["purge_dates"]) >= int(config["data"]["purgeTradingDays"])
+            for fold in folds
+        ),
+    )
+
+    # Atomic sealed artifacts: same run+fingerprint is byte-identical; a different
+    # fingerprint cannot rewrite the sealed directory.
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        minimal = {"inputFingerprint": "same-input"}
+        original_render = shadow.render_report
+        shadow.render_report = lambda _: "stable report\n"
+        try:
+            output = shadow.write_artifacts(minimal, {"events": [{"event_key": "x", "value": 1}]}, root, "run")
+            first_hashes = {path.name: sha(path) for path in sorted(output.iterdir())}
+            shadow.write_artifacts(minimal, {"events": [{"event_key": "x", "value": 1}]}, root, "run")
+            second_hashes = {path.name: sha(path) for path in sorted(output.iterdir())}
+            changed_content_rejected = False
+            try:
+                shadow.write_artifacts(
+                    minimal,
+                    {"events": [{"event_key": "x", "value": 2}]},
+                    root,
+                    "run",
+                )
+            except ValueError:
+                changed_content_rejected = True
+            rejected = False
+            try:
+                shadow.write_artifacts(
+                    {"inputFingerprint": "different-input"},
+                    {"events": [{"event_key": "x", "value": 2}]},
+                    root,
+                    "run",
+                )
+            except ValueError:
+                rejected = True
+        finally:
+            shadow.render_report = original_render
+    check(
+        "T99 artifacts are atomic, idempotent and sealed against changed inputs",
+        first_hashes == second_hashes and changed_content_rejected and rejected,
+    )
+
+    check(
+        "T99 result schema permanently forbids automatic trade integration",
+        config["validation"]["counterfactualRowsMayPromote"] is False
+        and config["validation"]["actualExecutionsRequiredBeforeIntegration"] is True
+        and config["capacityRebalance"]["minimumIndependentDays"] >= 30
+        and config["rankingAudit"]["minimumIndependentDays"] >= 20
+        and config["entryWeakness"]["minimumExecutedBuys"] >= 30,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6266,6 +6696,7 @@ if __name__ == "__main__":
     t96_risk_stack_phase1_7_is_causal_audit_only()
     t97_risk_stack_weight_adaptation_is_train_only_and_shadow()
     t98_risk_take_profit_requires_profit_and_risk_component()
+    t99_trade_success_shadow_is_causal_purged_idempotent_and_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

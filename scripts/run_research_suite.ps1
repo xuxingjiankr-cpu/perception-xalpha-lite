@@ -22,6 +22,9 @@ $observationPool = Join-Path $Root "scripts\build_t0_observation_pool.py"
 try {
     Write-SuiteLog "build next-session ETF observation pool (system 20 + validated ChatGPT inbox)"
     py -3.13 $observationPool 2>&1 | ForEach-Object { Write-SuiteLog $_ }
+    if ($LASTEXITCODE -ne 0) {
+        throw "build_t0_observation_pool.py exited with code $LASTEXITCODE"
+    }
 }
 catch {
     Write-SuiteLog "ERROR build_t0_observation_pool.py : $($_.Exception.Message)"
@@ -41,6 +44,7 @@ $scripts = @(
     "research_sizing.py",
     "research_timing.py",
     "run_decision_score_daily.py",
+    "research_trade_success_shadow.py",
     "run_singularity_phase1_5_forward.py"
 )
 foreach ($s in $scripts) {
@@ -48,6 +52,9 @@ foreach ($s in $scripts) {
     try {
         Write-SuiteLog "run $s"
         py -3.13 $path 2>&1 | ForEach-Object { Write-SuiteLog $_ }
+        if ($LASTEXITCODE -ne 0) {
+            throw "$s exited with code $LASTEXITCODE"
+        }
     }
     catch {
         Write-SuiteLog "ERROR $s : $($_.Exception.Message)"

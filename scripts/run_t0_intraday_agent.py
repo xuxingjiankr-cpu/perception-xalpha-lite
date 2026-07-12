@@ -3780,6 +3780,98 @@ def build_decision(
             else "no_entry_candidate"
         )
 
+    # Record-only capacity diagnostic. When the new-book slots are full, the normal
+    # entry branch deliberately stops before building an order, which historically
+    # left researchers unable to tell whether the top non-held quote would otherwise
+    # have passed the observable entry gates. Compute that pre-capacity fact for the
+    # single selected quote and attach it to the logged ranked snapshot. It is never
+    # read by this decision function and cannot create, size, approve, or submit an
+    # order. Any failure is contained so trading behavior remains unchanged.
+    if best is not None and len(budget_codes) >= target_holdings:
+        try:
+            shadow_orb = get_orb(state, trade_date, best.get("stockCode"))
+            shadow_cons_cfg = strategy.get("consolidation", {})
+            shadow_earliest = str(shadow_cons_cfg.get("earliest_entry_time", "10:00"))
+            try:
+                shadow_cons_h, shadow_cons_m = (int(value) for value in shadow_earliest.split(":"))
+            except Exception:
+                shadow_cons_h, shadow_cons_m = 10, 0
+            shadow_cons_allowed = (local_time.hour, local_time.minute) >= (
+                shadow_cons_h,
+                shadow_cons_m,
+            )
+            shadow_entry_score = score_entry(
+                strategy=strategy,
+                filters=filters,
+                q=best,
+                orb=shadow_orb,
+                broad_market_not_declining=broad_market_not_declining,
+                consolidation_entry_allowed=shadow_cons_allowed,
+            )
+            shadow_score_pass = as_float(
+                shadow_entry_score.get("score"), 0.0
+            ) >= as_float(shadow_entry_score.get("threshold"), 50.0)
+            entry_v2_cfg = strategy.get("entry_logic_v2", {})
+            entry_v2_enabled = bool(
+                isinstance(entry_v2_cfg, dict) and entry_v2_cfg.get("enabled", False)
+            )
+            shadow_im_cfg = strategy.get("intraday_momentum", {})
+            shadow_im_path_active = bool(
+                isinstance(shadow_im_cfg, dict)
+                and shadow_im_cfg.get("enabled", False)
+                and im_in_entry_window(local_time, shadow_im_cfg)
+            )
+            skip_dates = strategy.get("skip_dates") or []
+            today_skipped_shadow = trade_date in skip_dates
+            checks_before_order = {
+                str(check.get("name")): bool(check.get("passed")) for check in checks
+            }
+            recorded_check_pass = all(checks_before_order.values())
+            gate_recorded = not entry_v2_enabled and not shadow_im_path_active
+            pre_capacity_pass = bool(
+                gate_recorded
+                and recorded_check_pass
+                and shadow_score_pass
+                and not today_skipped_shadow
+                and open_quiet_passed
+                and no_new_entry_after_cutoff
+                and vwap_entry_ok
+                and cooldown_ok
+                and not best_has_non_t0_position
+            )
+            best["pre_capacity_entry_eligible"] = pre_capacity_pass if gate_recorded else None
+            best["shadow_capacity_entry_gate"] = {
+                "record_only": True,
+                "used_by_trading": False,
+                "gate_recorded": gate_recorded,
+                "entry_path": (
+                    "intraday_momentum_unreplayed"
+                    if shadow_im_path_active
+                    else "normal_entry"
+                ),
+                "entry_logic_v2_enabled_but_not_replayed": entry_v2_enabled,
+                "recorded_checks_pass": recorded_check_pass,
+                "entry_score": shadow_entry_score,
+                "entry_score_pass": shadow_score_pass,
+                "skip_date_pass": not today_skipped_shadow,
+                "open_quiet_pass": open_quiet_passed,
+                "afternoon_cutoff_pass": no_new_entry_after_cutoff,
+                "vwap_pass": vwap_entry_ok,
+                "reentry_cooldown_pass": cooldown_ok,
+                "no_existing_non_t0_position_pass": not best_has_non_t0_position,
+                "would_pass_before_capacity": pre_capacity_pass if gate_recorded else None,
+                "excluded_from_order_path": True,
+            }
+        except Exception as exc:
+            best["pre_capacity_entry_eligible"] = None
+            best["shadow_capacity_entry_gate"] = {
+                "record_only": True,
+                "used_by_trading": False,
+                "gate_recorded": False,
+                "error": f"{type(exc).__name__}: {exc}",
+                "excluded_from_order_path": True,
+            }
+
     # A decision is EITHER one BUY (when adding) OR throttled SELLs (one+ per run).
     orders_list: list[dict[str, Any]] = sell_orders if sell_orders else ([order] if order else [])
     is_sell_batch = bool(orders_list) and all(o.get("direction") == "sell" for o in orders_list)

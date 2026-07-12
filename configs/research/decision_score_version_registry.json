@@ -1,13 +1,13 @@
 {
   "schemaVersion": "decision_score_version_registry_v1",
-  "nextIterationNumber": 12,
+  "nextIterationNumber": 13,
   "active": {
-    "iterationId": "DSI-0011",
+    "iterationId": "DSI-0012",
     "scorerLogicVersion": "DSCORE-1.2.0",
     "weightsVersion": "DWEIGHTS-1.0.0",
     "outcomeModelVersion": "DOUTCOME-2.2.0",
-    "pipelineVersion": "DPIPE-1.5.0",
-    "shadowCandidateVersion": "DSHADOW-2.1.0",
+    "pipelineVersion": "DPIPE-1.6.0",
+    "shadowCandidateVersion": "DSHADOW-3.0.0",
     "calibrationVersion": "DCAL-1.0.1",
     "bayesianModelVersion": "DBAYES-1.0.1"
   },
@@ -150,6 +150,18 @@
       "versions": {
         "outcomeModelVersion": "DOUTCOME-2.2.0",
         "pipelineVersion": "DPIPE-1.5.0"
+      }
+    },
+    {
+      "iterationId": "DSI-0012",
+      "date": "2026-07-12",
+      "commit": "self",
+      "status": "forward_shadow",
+      "changeType": "pipeline",
+      "summary": "Clean point-in-time trade-success shadow: capacity, cooldown, rank, regime and confirmed-fill weakness",
+      "versions": {
+        "pipelineVersion": "DPIPE-1.6.0",
+        "shadowCandidateVersion": "DSHADOW-3.0.0"
       }
     }
   ],

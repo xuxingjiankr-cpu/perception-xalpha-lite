@@ -46,10 +46,11 @@ DECISION_FIELDS = [
     "iteration_id", "sample_origin", "scorer_version", "weights_version",
     "outcome_model_version", "pipeline_version", "shadow_candidate_version",
     "calibration_version", "bayesian_model_version",
-    "scorer_sha256", "config_sha256",
+    "scorer_sha256", "config_sha256", "policy_sha256",
     "ledger_record_type", "order_planned", "was_executed", "signal_direction", "strategy_type",
     "symbol_group", "holding_horizon", "candidate_rank", "candidate_count",
-    "candidate_eligible", "candidate_rejection_reason", "held_quantity",
+    "candidate_eligible", "pre_capacity_entry_eligible", "shadow_capacity_entry_gate",
+    "candidate_rejection_reason", "held_quantity",
     "available_quantity", "sell_score", "carry_allowed",
     "signal_name", "market_regime",
     "market_regime_score", "relative_strength_score", "liquidity_score",
@@ -90,6 +91,24 @@ def active_version_metadata() -> dict[str, Any]:
 
 def config_fingerprint(cfg: dict[str, Any]) -> str:
     stable = {key: value for key, value in cfg.items() if not str(key).startswith("_")}
+    payload = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def policy_fingerprint(cfg: dict[str, Any]) -> str:
+    """Hash stable decision policy while excluding per-run universe/output plumbing.
+
+    The dynamic observation pool replaces ``cfg['universe']`` before every run, so the
+    broader config hash legitimately changes even when the trading policy does not.
+    This second fingerprint lets forward research identify a stable policy cohort.
+    It is metadata only and is never consulted by the decision engine.
+    """
+    excluded = {"universe", "outputs", "skill"}
+    stable = {
+        key: value
+        for key, value in cfg.items()
+        if key not in excluded and not str(key).startswith("_")
+    }
     payload = json.dumps(stable, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -307,6 +326,7 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "bayesian_model_version": ctx.get("bayesian_model_version"),
         "scorer_sha256": ctx.get("scorer_sha256"),
         "config_sha256": ctx.get("config_sha256"),
+        "policy_sha256": ctx.get("policy_sha256"),
         "ledger_record_type": ctx.get("ledger_record_type") or "final_decision",
         "order_planned": bool(ctx.get("order_planned")),
         "was_executed": bool(ctx.get("was_executed")),
@@ -317,6 +337,8 @@ def score_decision(ctx: dict[str, Any]) -> dict[str, Any]:
         "candidate_rank": ctx.get("candidate_rank"),
         "candidate_count": ctx.get("candidate_count"),
         "candidate_eligible": ctx.get("candidate_eligible"),
+        "pre_capacity_entry_eligible": ctx.get("pre_capacity_entry_eligible"),
+        "shadow_capacity_entry_gate": ctx.get("shadow_capacity_entry_gate"),
         "candidate_rejection_reason": ctx.get("candidate_rejection_reason"),
         "held_quantity": ctx.get("held_quantity"),
         "available_quantity": ctx.get("available_quantity"),
@@ -606,6 +628,7 @@ def context_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
         "bayesian_model_version": scoring_cfg.get("bayesian_model_version") or versions["bayesian_model_version"],
         "scorer_sha256": scoring_cfg.get("scorer_sha256") or versions["scorer_sha256"],
         "config_sha256": scoring_cfg.get("config_sha256") or config_fingerprint(cfg),
+        "policy_sha256": scoring_cfg.get("policy_sha256") or policy_fingerprint(cfg),
         "market_breadth_up_frac": breadth,
         "signal_name": signal_name, "decision_reason": signal_name,
         "market_regime": (decision.get("market_correlation_stress", {}) or {}).get("regime")
@@ -807,6 +830,8 @@ def contexts_from_decision(cfg: dict[str, Any], decision: dict[str, Any], *,
             "candidate_rank": index + 1,
             "candidate_count": n,
             "candidate_eligible": quote.get("entry_eligible"),
+            "pre_capacity_entry_eligible": quote.get("pre_capacity_entry_eligible"),
+            "shadow_capacity_entry_gate": quote.get("shadow_capacity_entry_gate"),
             "candidate_rejection_reason": cand_reason,
             "candidate_gates": cand_gates,
             "snapshot_final_reason": final_reason,
