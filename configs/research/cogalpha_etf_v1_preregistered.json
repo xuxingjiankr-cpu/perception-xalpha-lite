@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "cogalpha_etf_research_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Generate and evolve interpretable ETF alpha candidates, then reject them unless they add cost-surviving sealed OOS value over fixed baselines.",
+  "safety": {
+    "mayReadLiveConfig": false,
+    "mayWriteLiveConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "outputStatus": "diagnostic_only",
+    "allowedOutputRoot": "outputs/edge_research/cogalpha_etf"
+  },
+  "data": {
+    "barsRoot": "data/market/mootdx/bars_1d",
+    "barInterval": "1d",
+    "universe": "all_available_non_money_a_share_etfs_with_point_in_time_bars",
+    "minimumObservationsPerSymbol": 250,
+    "minimumMedianDailyAmountCny": 30000000,
+    "signalTiming": "day_t_close_features",
+    "executionTiming": "day_t_plus_1_open_or_later_proxy",
+    "gradedReturn": "close_t_plus_1_to_close_t_plus_2",
+    "trainEnd": "2024-12-31",
+    "validationStart": "2025-01-01",
+    "validationEnd": "2025-12-31",
+    "sealedTestStart": "2026-01-01",
+    "sealedTestEnd": null,
+    "testContaminationWarning": "The 2026 window has already been inspected by earlier research and is not a pristine final OOS. Treat it as historical OOS only; require new forward shadow days for promotion.",
+    "minimumCrossSection": 30,
+    "roundTripCost": 0.00155,
+    "topQuantile": 0.1
+  },
+  "generator": {
+    "provider": "deterministic_safe_dsl",
+    "optionalOllama": {
+      "enabled": false,
+      "baseUrl": "http://127.0.0.1:11434",
+      "model": "",
+      "timeoutSeconds": 180,
+      "temperature": 0.8,
+      "maximumGeneratedCandidates": 21
+    },
+    "rawInputs": ["open", "high", "low", "close", "volume", "amount", "vwap", "returns"],
+    "allowedWindows": [3, 5, 10, 20, 30, 60, 120, 252],
+    "maximumExpressionDepth": 8,
+    "maximumCandidateCount": 96,
+    "generations": 2,
+    "parentPoolSize": 12,
+    "elitePoolSize": 6,
+    "childrenPerParent": 3,
+    "randomSeed": 20260714,
+    "agentHierarchy": {
+      "market_structure_cycle": ["market_cycle", "volatility_regime"],
+      "extreme_risk_fragility": ["tail_risk", "crash_predictor"],
+      "price_volume_dynamics": ["liquidity", "order_imbalance_proxy", "price_volume_coherence", "volume_structure"],
+      "price_volatility_behavior": ["daily_trend", "reversal", "range_volatility", "lag_response", "volatility_asymmetry"],
+      "multi_scale_complexity": ["drawdown", "fractal_proxy"],
+      "stability_regime_gating": ["regime_gating", "stability"],
+      "geometric_fusion": ["bar_shape", "creative", "composite", "herding_proxy"]
+    }
+  },
+  "selection": {
+    "fitnessData": "train_only",
+    "fitnessMetrics": ["rank_ic", "rank_icir", "ic", "icir", "long_only_net_ir"],
+    "orientation": "train_rank_ic_sign_only",
+    "validationRole": "select_one_frozen_ensemble_from_train_elites",
+    "sealedTestRole": "report_once_no_selection",
+    "ensembleMaximumFactors": 5,
+    "minimumAbsoluteTrainRankIc": 0.005,
+    "minimumTrainRankIcDays": 120,
+    "candidateMustBeatFixedBaselineOnValidation": true,
+    "candidateMustRemainPositiveNetOnValidation": true,
+    "multipleTestingTrials": "all_evaluated_candidates"
+  },
+  "fixedBaselines": [
+    {"zoo": "qlib158", "name": "cntp30"},
+    {"zoo": "qlib158", "name": "cntd30"},
+    {"zoo": "academic", "name": "high52w"}
+  ],
+  "promotion": {
+    "historicalRunCanPromote": false,
+    "minimumNewForwardTradingDays": 20,
+    "minimumForwardCandidateEvents": 200,
+    "requiresPositiveCostedOosNet": true,
+    "requiresPboAtMost": 0.2,
+    "requiresDsrNotConsistentWithLuck": true,
+    "requiresStableAcrossMonths": true,
+    "requiresStableAcrossEtfCategories": true,
+    "requiresReplayInvariants": true,
+    "requiresSeparateHumanApproval": true
+  }
+}

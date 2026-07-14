@@ -6598,6 +6598,72 @@ def t99_trade_success_shadow_is_causal_purged_idempotent_and_safe() -> None:
     )
 
 
+def t100_cogalpha_research_is_causal_bounded_and_never_trades() -> None:
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_etf as cog
+
+    config = cog.load_json(cog.DEFAULT_CONFIG)
+    cog.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T100 CogAlpha config is isolated and cannot mutate trading",
+        safety["mayReadLiveConfig"] is False
+        and safety["mayWriteLiveConfig"] is False
+        and safety["mayWriteStrategyOverlay"] is False
+        and safety["mayCallBroker"] is False
+        and safety["mayCreateOrders"] is False
+        and safety["mayAlterBuildDecision"] is False
+        and safety["mayAlterRiskGate"] is False
+        and safety["mayAlterPositionSizing"] is False
+        and safety["mayPromoteAutomatically"] is False
+        and config["promotion"]["historicalRunCanPromote"] is False,
+    )
+
+    index = pd.date_range("2025-01-01", periods=40, freq="D")
+    panel = {
+        field: pd.DataFrame(
+            {"510300": np.arange(1.0, 41.0), "510500": np.arange(2.0, 42.0)},
+            index=index,
+        )
+        for field in config["generator"]["rawInputs"]
+    }
+    expression = {"zscore": True, "arg": {"field": "close"}, "window": 10}
+    cog.validate_expression(expression, config)
+    full = cog.evaluate_expression(expression, panel)
+    prefix_panel = {key: value.iloc[:25].copy() for key, value in panel.items()}
+    prefix = cog.evaluate_expression(expression, prefix_panel)
+    check(
+        "T100 expression DSL is prefix invariant and strictly past-only",
+        full.iloc[:25].equals(prefix),
+    )
+
+    future_rejected = False
+    try:
+        cog.validate_expression({"lag": -1, "arg": {"field": "close"}}, config)
+    except ValueError:
+        future_rejected = True
+    arbitrary_rejected = False
+    try:
+        cog.validate_expression({"python": "submit_order()"}, config)
+    except ValueError:
+        arbitrary_rejected = True
+    check(
+        "T100 future lags and arbitrary generated Python fail closed",
+        future_rejected and arbitrary_rejected,
+    )
+
+    source = (ROOT / "scripts" / "research_cogalpha_etf.py").read_text(encoding="utf-8")
+    check(
+        "T100 CogAlpha script has no broker/order or live-config integration",
+        "submitOrder" not in source
+        and "paper_order" not in source
+        and "run_t0_intraday_agent" not in source
+        and "write_strategy_overlay" not in source
+        and config["safety"]["allowedOutputRoot"] == "outputs/edge_research/cogalpha_etf",
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6697,6 +6763,7 @@ if __name__ == "__main__":
     t97_risk_stack_weight_adaptation_is_train_only_and_shadow()
     t98_risk_take_profit_requires_profit_and_risk_component()
     t99_trade_success_shadow_is_causal_purged_idempotent_and_safe()
+    t100_cogalpha_research_is_causal_bounded_and_never_trades()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
