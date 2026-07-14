@@ -6678,6 +6678,85 @@ def t100_cogalpha_research_is_causal_bounded_and_never_trades() -> None:
     )
 
 
+def t101_autonomous_cogalpha_iterates_train_only_and_never_trades() -> None:
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_autonomous as autonomous
+
+    config = autonomous.load_json(autonomous.DEFAULT_CONFIG)
+    autonomous.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T101 autonomous CogAlpha is permanently research-only",
+        all(value is False for key, value in safety.items() if key.startswith("may"))
+        and config["promotion"]["historicalOrAutonomousRunCanPromote"] is False
+        and config["promotion"]["mayConnectToObservationPoolAutomatically"] is False
+        and config["promotion"]["mayConnectToTradingAutomatically"] is False,
+    )
+    check(
+        "T101 autonomous feedback and persistent parents are train-only",
+        config["fitness"]["feedbackData"] == "train_only"
+        and config["fitness"]["validationFeedbackAllowed"] is False
+        and config["fitness"]["shadowFeedbackAllowed"] is False
+        and config["fitness"]["previousRunValidationFeedbackAllowed"] is False
+        and config["fitness"]["previousRunShadowFeedbackAllowed"] is False
+        and config["continuousIteration"]["persistentStateUsesTrainMetricsOnly"] is True,
+    )
+
+    index = pd.bdate_range("2020-01-01", periods=1100)
+    split = autonomous.make_split(index, config)
+    horizon = int(config["data"]["predictionHorizonTradingDays"])
+    check(
+        "T101 rolling split is disjoint and purged by the full label horizon",
+        int(config["data"]["purgeTradingDays"]) >= horizon
+        and not bool((split.train & split.validation).any())
+        and not bool((split.train & split.shadow).any())
+        and not bool((split.validation & split.shadow).any())
+        and split.audit["purgeTradingDays"] >= split.audit["labelHorizonTradingDays"],
+    )
+
+    columns = [f"51{number:04d}"[-6:] for number in range(40)]
+    base = pd.DataFrame(
+        np.arange(1.0, len(index) * len(columns) + 1.0).reshape(len(index), len(columns)),
+        index=index,
+        columns=columns,
+    )
+    panel = {field: base.copy() for field in config["search"]["allowedInputs"]}
+    expression = {"zscore": True, "arg": {"field": "close"}, "window": 20}
+    autonomous.core.validate_expression(expression, autonomous.expression_config(config))
+    full = autonomous.core.evaluate_expression(expression, panel)
+    prefix_panel = {key: value.iloc[:800].copy() for key, value in panel.items()}
+    prefix = autonomous.core.evaluate_expression(expression, prefix_panel)
+    check(
+        "T101 generated factor language is prefix-causal",
+        np.allclose(full.iloc[:800].to_numpy(), prefix.to_numpy(), equal_nan=True),
+    )
+    future_rejected = False
+    try:
+        autonomous.core.validate_expression(
+            {"lag": -1, "arg": {"field": "close"}}, autonomous.expression_config(config)
+        )
+    except ValueError:
+        future_rejected = True
+    check("T101 future factor lags fail closed", future_rejected)
+
+    strategy = autonomous.latest_shadow_ranking(base, config, "test-run")
+    check(
+        "T101 autonomous strategy artifact cannot create orders",
+        strategy["status"] == "research_only_not_a_trade_signal"
+        and strategy["orders"] == []
+        and strategy["automaticTradingChanges"] == [],
+    )
+    source = (ROOT / "scripts" / "research_cogalpha_autonomous.py").read_text(encoding="utf-8")
+    check(
+        "T101 autonomous engine uses no remote API or trading integration",
+        "api.openai.com" not in source
+        and "OPENAI_API_KEY" not in source
+        and "run_t0_intraday_agent" not in source
+        and "write_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6778,6 +6857,7 @@ if __name__ == "__main__":
     t98_risk_take_profit_requires_profit_and_risk_component()
     t99_trade_success_shadow_is_causal_purged_idempotent_and_safe()
     t100_cogalpha_research_is_causal_bounded_and_never_trades()
+    t101_autonomous_cogalpha_iterates_train_only_and_never_trades()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "cogalpha_autonomous_research_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Continuously discover economically interpretable ETF alpha programs with a CogAlpha-style train-feedback loop while permanently isolating research from trading execution.",
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "outputStatus": "diagnostic_only",
+    "allowedOutputRoot": "outputs/edge_research/cogalpha_autonomous"
+  },
+  "data": {
+    "barsRoot": "data/market/mootdx/bars_1d",
+    "barInterval": "1d",
+    "minimumObservationsPerSymbol": 500,
+    "minimumMedianDailyAmountCny": 30000000,
+    "minimumCrossSection": 30,
+    "predictionHorizonTradingDays": 10,
+    "validationTradingDays": 126,
+    "shadowQuarantineTradingDays": 126,
+    "purgeTradingDays": 10,
+    "minimumTrainingTradingDays": 756,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open",
+    "targetDefinition": "open_t_plus_11_div_open_t_plus_1_minus_1",
+    "oneDayExecutionProxy": "open_t_plus_2_div_open_t_plus_1_minus_1",
+    "roundTripCost": 0.00155,
+    "topQuantile": 0.1,
+    "latestShadowRankingCount": 20,
+    "survivorshipWarning": "The local ETF files primarily represent currently observable products; historical delistings and point-in-time membership are incomplete."
+  },
+  "search": {
+    "provider": "local_grammar_with_optional_ollama",
+    "randomSeed": 20260715,
+    "initialGrammarCandidates": 48,
+    "generationsPerRun": 4,
+    "parentPoolSize": 16,
+    "elitePoolSize": 12,
+    "childrenPerParent": 3,
+    "maximumEvaluatedCandidatesPerRun": 288,
+    "maximumPersistentParents": 24,
+    "maximumExpressionDepth": 9,
+    "maximumNanFraction": 0.3,
+    "minimumMedianCrossSectionDistinct": 5,
+    "allowedInputs": ["open", "high", "low", "close", "volume", "amount", "vwap", "returns"],
+    "allowedWindows": [3, 5, 10, 20, 30, 60, 120, 252],
+    "guidanceModes": ["light", "moderate", "creative", "divergent", "concrete"],
+    "agentHierarchy": {
+      "market_structure_cycle": ["market_cycle", "volatility_regime"],
+      "extreme_risk_fragility": ["tail_risk", "crash_predictor"],
+      "price_volume_dynamics": ["liquidity", "order_imbalance_proxy", "price_volume_coherence", "volume_structure"],
+      "price_volatility_behavior": ["daily_trend", "reversal", "range_volatility", "lag_response", "volatility_asymmetry"],
+      "multi_scale_complexity": ["drawdown", "fractal_proxy"],
+      "stability_regime_gating": ["regime_gating", "stability"],
+      "geometric_fusion": ["bar_shape", "creative", "composite", "herding_proxy"]
+    },
+    "ollama": {
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:11434",
+      "modelEnvironmentVariable": "COGALPHA_OLLAMA_MODEL",
+      "defaultModel": "",
+      "timeoutSeconds": 240,
+      "temperatureChoices": [0.7, 0.8, 0.9, 1.0, 1.1],
+      "maximumCandidatesPerGeneration": 24
+    }
+  },
+  "fitness": {
+    "feedbackData": "train_only",
+    "metrics": ["ic", "icir", "rank_ic", "rank_icir", "mutual_information", "costed_long_only_ir"],
+    "qualifiedPercentile": 65,
+    "elitePercentile": 80,
+    "weights": {
+      "rankIcIr": 1.0,
+      "icIr": 0.35,
+      "mutualInformation": 0.25,
+      "costedLongOnlyIr": 1.0,
+      "complexityPenaltyPerDepth": 0.03
+    },
+    "minimumAbsoluteTrainRankIc": 0.005,
+    "minimumTrainRankIcIr": 0.05,
+    "minimumTrainMutualInformation": 0.0001,
+    "validationFeedbackAllowed": false,
+    "shadowFeedbackAllowed": false,
+    "previousRunValidationFeedbackAllowed": false,
+    "previousRunShadowFeedbackAllowed": false
+  },
+  "ensemble": {
+    "method": "ridge_train_only",
+    "maximumFactors": 10,
+    "ridgeAlpha": 10.0,
+    "maximumTrainingRows": 250000,
+    "missingRankFill": 0.5
+  },
+  "multipleTesting": {
+    "priorCogAlphaFamilyTrials": 243,
+    "pboBlocks": 8,
+    "projectPboMaximum": 0.2,
+    "projectClusteredTMinimum": 3.0,
+    "fullDsrRequiredBeforePromotion": true,
+    "quickDsrIsDiagnosticOnly": true
+  },
+  "continuousIteration": {
+    "enabled": true,
+    "frequency": "weekly",
+    "scheduledDay": "SAT",
+    "scheduledTimeLocal": "09:00",
+    "skipWhenDataFingerprintUnchanged": true,
+    "persistentStateUsesTrainMetricsOnly": true,
+    "stateDirectory": "outputs/edge_research/cogalpha_autonomous/state"
+  },
+  "promotion": {
+    "historicalOrAutonomousRunCanPromote": false,
+    "minimumFreshForwardTradingDays": 60,
+    "minimumIndependentForwardEvents": 200,
+    "requiresPositiveCostedValidationAndForward": true,
+    "requiresStableAcrossMonths": true,
+    "requiresStableAcrossEtfFamilies": true,
+    "requiresPboAndFullDsr": true,
+    "requiresReplayInvariants": true,
+    "requiresSeparateHumanApproval": true,
+    "mayConnectToObservationPoolAutomatically": false,
+    "mayConnectToTradingAutomatically": false
+  }
+}
