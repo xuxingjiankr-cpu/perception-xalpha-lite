@@ -86,6 +86,17 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("historical CogAlpha run must not promote")
     if config["generator"]["maximumCandidateCount"] > 256:
         raise ValueError("candidate count exceeds preregistered multiple-testing bound")
+    feedback = config["generator"].get("adaptiveFeedback")
+    if feedback:
+        if (
+            feedback.get("feedbackData") != "train_only"
+            or feedback.get("validationFeedbackAllowed") is not False
+            or feedback.get("testFeedbackAllowed") is not False
+            or feedback.get("previousRunTestFeedbackAllowed") is not False
+        ):
+            raise ValueError("adaptive feedback must remain train-only")
+    if int(config["selection"].get("priorResearchTrials", 0)) < 0:
+        raise ValueError("priorResearchTrials cannot be negative")
 
 
 def build_panel(config: dict[str, Any]) -> dict[str, pd.DataFrame]:
@@ -634,11 +645,14 @@ def run(config_path: Path, output_root: Path, maximum_candidates: int | None = N
     performance_matrix = [item.long_short.reindex(common_dates).fillna(0.0).tolist() for item in evaluated]
     pbo = og.combinatorial_symmetric_pbo(performance_matrix, n_blocks=8) if len(performance_matrix) >= 2 else {"pbo": None}
     test_net_ir = ensemble_summary["periods"]["test"]["longNet"].get("irAnn") or 0.0
-    dsr = og.deflated_significance_note(len(evaluated), test_net_ir, ensemble_summary["periods"]["test"]["longNet"].get("n") or 1)
+    prior_trials = int(config["selection"].get("priorResearchTrials", 0))
+    total_trials = prior_trials + len(evaluated)
+    dsr = og.deflated_significance_note(total_trials, test_net_ir, ensemble_summary["periods"]["test"]["longNet"].get("n") or 1)
 
     close = panel["close"]
     fingerprint = input_fingerprint(config_path, config)
-    run_id = f"cogalpha_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}_{fingerprint[:10]}"
+    run_label = re.sub(r"[^a-z0-9_]+", "_", str(config.get("runLabel", "cogalpha")).lower()).strip("_") or "cogalpha"
+    run_id = f"{run_label}_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}_{fingerprint[:10]}"
     output = output_root / run_id
     verdict = (
         "Historical validation beats the fixed baselines, but this remains diagnostic-only because the test window is research-contaminated and the multiple-testing/forward gates still apply."
@@ -669,7 +683,13 @@ def run(config_path: Path, output_root: Path, maximum_candidates: int | None = N
         },
         "comparison": baseline_summaries + [ensemble_summary],
         "candidateSummaries": summaries,
-        "guards": {"pbo": pbo, "dsr": dsr, "nTrials": len(evaluated)},
+        "guards": {
+            "pbo": pbo,
+            "dsr": dsr,
+            "currentRunTrials": len(evaluated),
+            "priorResearchTrials": prior_trials,
+            "nTrials": total_trials,
+        },
         "limitations": {"testContaminationWarning": config["data"]["testContaminationWarning"]},
         "skippedChecks": {
             "etfCategoryStability": "skipped: local point-in-time ETF category history is incomplete; current-name classification would add survivorship leakage",

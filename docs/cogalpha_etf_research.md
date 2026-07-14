@@ -107,3 +107,20 @@ A candidate is not eligible for further consideration unless it:
 8. receives separate human approval in a separate change.
 
 Until then, the honest expected effect on automatic-trading success rate is unknown.
+
+## Adaptive rerun 2026-07-15
+
+The preregistered adaptive rerun used four train-feedback generations, a different
+random seed and a maximum of 160 evaluated candidates. Parent selection was recomputed
+from training fitness after every generation. Validation, historical test and the
+previous run's test result were prohibited as feedback.
+
+The run also carried the first run's 83 evaluated candidates into the multiple-testing
+trial count, for 243 total CogAlpha trials. The frozen ensemble increased training
+RankIC IR to 2.7484 but produced net long-only IR of -0.4003 in training, -2.2156 in
+validation and -1.1914 in the historical test. PBO was 0.6857 and the deflated-
+significance check remained consistent with luck.
+
+Interpretation: the adaptive loop learned to optimize correlation more aggressively,
+but did not learn a cost-harvestable long-only ETF edge. No third historical search is
+authorized on the same window; doing so would only increase selection contamination.

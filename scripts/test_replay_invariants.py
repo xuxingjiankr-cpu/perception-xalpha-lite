@@ -6605,6 +6605,10 @@ def t100_cogalpha_research_is_causal_bounded_and_never_trades() -> None:
 
     config = cog.load_json(cog.DEFAULT_CONFIG)
     cog.validate_config(config)
+    adaptive_config = cog.load_json(
+        ROOT / "configs" / "research" / "cogalpha_etf_v1_adaptive_20260715.json"
+    )
+    cog.validate_config(adaptive_config)
     safety = config["safety"]
     check(
         "T100 CogAlpha config is isolated and cannot mutate trading",
@@ -6618,6 +6622,16 @@ def t100_cogalpha_research_is_causal_bounded_and_never_trades() -> None:
         and safety["mayAlterPositionSizing"] is False
         and safety["mayPromoteAutomatically"] is False
         and config["promotion"]["historicalRunCanPromote"] is False,
+    )
+    adaptive = adaptive_config["generator"]["adaptiveFeedback"]
+    check(
+        "T100 adaptive CogAlpha feedback is training-only and counts prior searches",
+        adaptive["feedbackData"] == "train_only"
+        and adaptive["validationFeedbackAllowed"] is False
+        and adaptive["testFeedbackAllowed"] is False
+        and adaptive["previousRunTestFeedbackAllowed"] is False
+        and adaptive_config["selection"]["priorResearchTrials"] == 83
+        and adaptive_config["promotion"]["historicalRunCanPromote"] is False,
     )
 
     index = pd.date_range("2025-01-01", periods=40, freq="D")
