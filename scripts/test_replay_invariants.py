@@ -7121,6 +7121,108 @@ def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
     )
 
 
+def t111_all_ashare_research_universe_is_complete_and_isolated() -> None:
+    import copy
+    import json
+    import tempfile
+
+    import pandas as pd
+
+    import collect_ashare_research_daily as collector
+    import research_ashare_universe as ashare
+    import research_perception_xalpha_autonomous as px2
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_all_ashares_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    px2.validate_config(config)
+    checks = [
+        collector.classify_security("SH", "600000") == ("SH_MAIN", "SH"),
+        collector.classify_security("SH", "688001") == ("STAR", "SH"),
+        collector.classify_security("SZ", "000001") == ("SZ_MAIN", "SZ"),
+        collector.classify_security("SZ", "300001") == ("CHINEXT", "SZ"),
+        collector.classify_security("BJ", "920000") == ("BSE", "BJ"),
+        collector.classify_security("SH", "510300") is None,
+        set(config["assetUniverse"]["exchanges"]) == {"SH", "SZ", "BJ"},
+        config["assetUniverse"]["minimumEligibleSymbols"] >= 3000,
+        config["assetUniverse"][
+            "minimumMasterCoverageForHistoricalValidation"
+        ]
+        >= 0.95,
+        config["fullEvaluation"]["roundTripCost"] == 0.003,
+    ]
+    check(
+        "T111 all-A-share universe includes SH/SZ/BJ stocks and excludes ETF codes",
+        all(checks),
+    )
+    weak = copy.deepcopy(config)
+    weak["assetUniverse"][
+        "minimumMasterCoverageForHistoricalValidation"
+    ] = 0.1
+    failed_closed = False
+    try:
+        px2.validate_config(weak)
+    except ValueError:
+        failed_closed = True
+    check(
+        "T111 all-A-share validation rejects partial-universe convenience samples",
+        failed_closed,
+    )
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "SH_600000.jsonl"
+        rows = [
+            {
+                "dt": "2026-01-02",
+                "open": 10.0,
+                "high": 10.2,
+                "low": 9.9,
+                "close": 10.1,
+                "vol": 1000,
+                "amount": 10000,
+            },
+            {
+                "dt": "2026-01-06",
+                "open": 10.1,
+                "high": 10.3,
+                "low": 10.0,
+                "close": 10.2,
+                "vol": 1000,
+                "amount": 10100,
+            },
+        ]
+        path.write_text(
+            "".join(json.dumps(row) + "\n" for row in rows),
+            encoding="utf-8",
+        )
+        frame, audit = ashare._series_frame(path)
+        check(
+            "T111 all-A-share loader preserves missing dates without forward fill",
+            frame is not None
+            and len(frame) == 2
+            and pd.Timestamp("2026-01-05") not in frame.index
+            and audit["invalidRows"] == 0,
+        )
+    source = (
+        ROOT / "scripts" / "collect_ashare_research_daily.py"
+    ).read_text(encoding="utf-8")
+    weekly = (
+        ROOT / "scripts" / "run_perception_xalpha_all_ashares_weekly.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T111 all-A-share collection and weekly research remain trading-isolated",
+        "run_t0_intraday_agent" not in source
+        and "submitOrder" not in source
+        and "decision_probability_v1.json" not in source
+        and "etf_paper_trading_agent" not in weekly
+        and config["safety"]["mayConnectToTrading"] is False
+        and config["safety"]["mayCreateOrders"] is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -7225,6 +7327,7 @@ if __name__ == "__main__":
     t102_kronos_kline_shadow_is_causal_frozen_and_isolated()
     t103_perception_xalpha_tickets_dsl_and_registry_are_safe()
     t104_t110_autonomous_perception_factor_discovery_is_safe()
+    t111_all_ashare_research_universe_is_complete_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

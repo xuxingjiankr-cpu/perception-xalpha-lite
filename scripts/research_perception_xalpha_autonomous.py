@@ -1,4 +1,4 @@
-"""Autonomous, mechanism-first ETF factor discovery.
+"""Autonomous, mechanism-first A-share instrument factor discovery.
 
 The engine converts immutable market-phenomenon tickets into falsifiable mechanism
 hypotheses, causal DSL programs and Primary/Counter/Placebo bundles. Evolution uses
@@ -37,7 +37,7 @@ import research_perception_xalpha as perception  # noqa: E402
 DEFAULT_CONFIG = (
     ROOT / "configs" / "research" / "perception_xalpha_autonomous_v2.json"
 )
-CODE_VERSION = "perception_xalpha_autonomous_v2.1"
+CODE_VERSION = "perception_xalpha_autonomous_v2.2"
 
 
 REJECTION_REASONS = {
@@ -71,7 +71,7 @@ ARCHETYPES: dict[str, dict[str, Any]] = {
             "correlation_break",
         },
         "mechanism": (
-            "Large parent orders are split across sessions because available ETF "
+            "Large parent orders are split across sessions because available instrument "
             "liquidity is finite."
         ),
         "forcedTrader": "benchmark-sensitive institutions and execution algorithms",
@@ -91,7 +91,7 @@ ARCHETYPES: dict[str, dict[str, Any]] = {
             "volume_anomaly",
         },
         "mechanism": (
-            "Urgent liquidity demand temporarily pushes ETF prices away from the "
+            "Urgent liquidity demand temporarily pushes instrument prices away from the "
             "cross-sectional clearing level."
         ),
         "forcedTrader": "urgent sellers and inventory-constrained liquidity providers",
@@ -131,7 +131,7 @@ ARCHETYPES: dict[str, dict[str, Any]] = {
             "cusum_shift",
         },
         "mechanism": (
-            "Related ETFs incorporate common information at different speeds because "
+            "Related instruments incorporate common information at different speeds because "
             "attention and liquidity differ."
         ),
         "forcedTrader": "attention-constrained and rule-based investors",
@@ -280,8 +280,35 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("historical research cannot promote")
     if not full.get("humanApprovalRequired"):
         raise ValueError("human approval must remain mandatory")
-    if not math.isclose(float(full["roundTripCost"]), 0.00155, abs_tol=1e-12):
-        raise ValueError("registered round-trip cost must stay at 15.5 bps")
+    universe = config.get("assetUniverse", {"kind": "etf"})
+    universe_kind = universe.get("kind", "etf")
+    registered_cost = 0.003 if universe_kind == "all_a_shares" else 0.00155
+    if not math.isclose(
+        float(full["roundTripCost"]), registered_cost, abs_tol=1e-12
+    ):
+        raise ValueError(
+            "registered round-trip cost differs from the frozen universe cost"
+        )
+    if universe_kind == "all_a_shares":
+        if set(universe.get("exchanges", [])) != {"SH", "SZ", "BJ"}:
+            raise ValueError("all-A-share research must include SH, SZ and BJ")
+        if universe.get("pointInTimeMembershipAvailable") is not False:
+            raise ValueError("current-master survivorship limitation must be explicit")
+        for key in ("masterPath", "barsRoot"):
+            value = str(universe.get(key, "")).replace("\\", "/").lower()
+            if not value.startswith("data/market/ashare_research/"):
+                raise ValueError("all-A-share inputs must stay in the research data root")
+        output_root = str(config["registry"]["outputRoot"]).replace("\\", "/")
+        if "perception_xalpha_all_ashares" not in output_root:
+            raise ValueError("all-A-share output root must be independently isolated")
+        if int(universe["minimumEligibleSymbols"]) < 1000:
+            raise ValueError("all-A-share validation cannot use a small convenience sample")
+        if float(
+            universe["minimumMasterCoverageForHistoricalValidation"]
+        ) < 0.9:
+            raise ValueError("all-A-share research must fail closed on partial coverage")
+    elif universe_kind != "etf":
+        raise ValueError(f"unsupported asset universe: {universe_kind}")
     horizon = int(full["maximumLabelHorizonTradingDays"])
     if int(full["purgeTradingDays"]) < horizon:
         raise ValueError("walk-forward purge must cover the label horizon")
@@ -304,11 +331,50 @@ def load_base_configs(
     cog_config["data"]["roundTripCost"] = float(
         config["fullEvaluation"]["roundTripCost"]
     )
+    universe = config.get("assetUniverse", {})
+    if universe.get("kind") == "all_a_shares":
+        overrides = universe.get("dataOverrides", {})
+        for key in (
+            "minimumObservationsPerSymbol",
+            "minimumMedianDailyAmountCny",
+            "minimumCrossSection",
+        ):
+            if key in overrides:
+                cog_config["data"][key] = overrides[key]
+        cog_config["data"]["barsRoot"] = universe["barsRoot"]
+        cog_config["data"]["survivorshipWarning"] = (
+            "Current discoverable SH/SZ/BJ master only; delisted securities and "
+            "historical point-in-time ST membership are incomplete."
+        )
     if int(cog_config["data"]["predictionHorizonTradingDays"]) != int(
         config["fullEvaluation"]["maximumLabelHorizonTradingDays"]
     ):
         raise ValueError("frozen label horizon differs from the base evaluator")
     return perception_config, cog_config
+
+
+def build_configured_panel(
+    config: dict[str, Any],
+    cog_config: dict[str, Any],
+) -> tuple[dict[str, pd.DataFrame], dict[str, Any]]:
+    universe = config.get("assetUniverse", {"kind": "etf"})
+    if universe.get("kind", "etf") == "etf":
+        panel = core.build_panel(cog_config)
+        return panel, {
+            "status": "diagnostic_only_research_only",
+            "universeKind": "etf",
+            "historicalValidationEligible": True,
+            "pointInTimeMembership": False,
+            "survivorshipWarning": cog_config["data"].get(
+                "survivorshipWarning"
+            ),
+            "orders": [],
+            "automaticTradingChanges": [],
+        }
+    import research_ashare_universe as ashare
+
+    panel, audit = ashare.build_panel(universe, cog_config["data"])
+    return panel, audit
 
 
 APPEND_ONLY_TABLES = [
@@ -442,7 +508,7 @@ def build_research_plan(
         "cycleId": cycle_id,
         "objective": (
             "Select recurring phenomena whose competing market mechanisms can be "
-            "falsified with causal ETF factors."
+            "falsified with causal A-share instrument factors."
         ),
         "availableTicketIds": [ticket["ticketId"] for ticket in tickets],
         "historicalFeedbackScope": "train_only_counts_and_rejections",
@@ -1267,13 +1333,19 @@ def apply_project_pbo(
 
 
 def render_report(result: dict[str, Any]) -> str:
+    universe_kind = result["dataAudit"]["universe"].get(
+        "universeKind", "unknown"
+    )
     lines = [
         "# Perception-XAlpha Autonomous Factor Discovery v2",
         "",
         f"- run_id: `{result['runId']}`",
         f"- status: `{result['status']}`",
         f"- data: `{result['dataAudit']['start']}..{result['dataAudit']['end']}`",
-        f"- universe: `{result['dataAudit']['symbols']}` ETFs",
+        (
+            f"- universe: `{result['dataAudit']['symbols']}` instruments "
+            f"(`{universe_kind}`)"
+        ),
         f"- research questions: `{len(result['researchPlan']['questions'])}`",
         (
             "- primary candidates generated / fast-screened / Stage-2: "
@@ -1354,6 +1426,7 @@ def input_fingerprint(
     config_path: Path,
     config: dict[str, Any],
     panel: dict[str, pd.DataFrame],
+    universe_audit: dict[str, Any],
 ) -> str:
     close = panel["close"]
     payload = {
@@ -1362,6 +1435,7 @@ def input_fingerprint(
         ).hexdigest(),
         "sourceSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "codeVersion": CODE_VERSION,
+        "universeAudit": universe_audit,
         "start": close.index.min().isoformat(),
         "end": close.index.max().isoformat(),
         "shape": list(close.shape),
@@ -1382,13 +1456,21 @@ def run_cycle(
     config = load_json(config_path)
     validate_config(config)
     perception_config, cog_config = load_base_configs(config)
-    panel = perception.enrich_panel(core.build_panel(cog_config), perception_config)
+    raw_panel, universe_audit = build_configured_panel(config, cog_config)
+    if not universe_audit.get("historicalValidationEligible", False):
+        raise RuntimeError(
+            "research universe failed closed: incomplete coverage or insufficient "
+            f"eligible symbols ({universe_audit})"
+        )
+    panel = perception.enrich_panel(raw_panel, perception_config)
     close = panel["close"]
     if close.empty:
-        raise RuntimeError("no eligible daily ETF panel")
+        raise RuntimeError("no eligible daily A-share instrument panel")
     split = autonomous.make_split(close.index, cog_config)
     target, one_day = autonomous.target_frames(panel, cog_config)
-    fingerprint = input_fingerprint(config_path, config, panel)
+    fingerprint = input_fingerprint(
+        config_path, config, panel, universe_audit
+    )
     state_directory = ROOT / config["registry"]["stateDirectory"]
     registry_path = ROOT / config["registry"]["sqlitePath"]
     connection: sqlite3.Connection | None = None
@@ -1626,6 +1708,7 @@ def run_cycle(
             "symbols": int(len(close.columns)),
             "barInterval": "1d",
             "quality": quality_audit,
+            "universe": universe_audit,
         },
         "splitAudit": split.audit,
         "ticketAudit": ticket_audit,
