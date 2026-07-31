@@ -6843,6 +6843,80 @@ def t102_kronos_kline_shadow_is_causal_frozen_and_isolated() -> None:
     )
 
 
+def t103_perception_xalpha_tickets_dsl_and_registry_are_safe() -> None:
+    import json
+    import sqlite3
+    import numpy as np
+    import pandas as pd
+    import research_perception_xalpha as px
+
+    config = json.loads(px.DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    px.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T103 Perception-XAlpha is research-only and cannot reach trading",
+        all(value is False for key, value in safety.items() if key.startswith("may"))
+        and config["factorGeneration"]["arbitraryPythonAllowed"] is False
+        and config["factorGeneration"]["networkGenerationAllowed"] is False
+        and config["factorGeneration"]["subprocessAllowed"] is False
+        and config["validation"]["validationOrShadowFeedbackAllowed"] is False,
+    )
+    index = pd.bdate_range("2025-01-01", periods=100)
+    frame = pd.DataFrame(
+        {"510300": np.linspace(0.0, 0.02, 100), "513100": np.linspace(0.01, -0.01, 100)},
+        index=index,
+    )
+    full = px.past_zscore(frame, 20)
+    shocked = frame.copy()
+    shocked.iloc[80:] *= 100.0
+    prefix = px.past_zscore(shocked.iloc[:80], 20)
+    check(
+        "T103 phenomenon residual baseline is prefix-causal through t-1",
+        np.allclose(
+            full.iloc[:80].to_numpy(),
+            prefix.to_numpy(),
+            equal_nan=True,
+        ),
+    )
+    scores = {
+        detector: pd.DataFrame(3.0, index=index, columns=frame.columns)
+        for detector in config["perception"]["detectors"]
+    }
+    tickets, audit = px.build_tickets(
+        scores, config, "data_hash", "config_hash"
+    )
+    candidates = px.generate_candidates(tickets, config)
+    check(
+        "T103 recurring anomalies create immutable tickets and all four factor families",
+        audit["accepted"] == 5
+        and all(ticket["immutable"] is True for ticket in tickets)
+        and {row["family"] for row in candidates}
+        == set(config["factorGeneration"]["families"]),
+    )
+    connection = sqlite3.connect(":memory:")
+    px.initialize_registry(connection)
+    px.insert_entity(connection, "factors", "factor_test", {"value": 1})
+    immutable = False
+    try:
+        connection.execute(
+            "UPDATE factors SET payload='changed' WHERE entity_id='factor_test'"
+        )
+    except sqlite3.DatabaseError:
+        immutable = True
+    connection.close()
+    check("T103 SQLite factor registry is append-only", immutable)
+    source = (
+        ROOT / "scripts" / "research_perception_xalpha.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T103 perception source has no broker, agent, order or overlay path",
+        "run_t0_intraday_agent" not in source
+        and "submitOrder" not in source
+        and "write_strategy_overlay" not in source
+        and "decision_probability_v1.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6945,6 +7019,7 @@ if __name__ == "__main__":
     t100_cogalpha_research_is_causal_bounded_and_never_trades()
     t101_autonomous_cogalpha_iterates_train_only_and_never_trades()
     t102_kronos_kline_shadow_is_causal_frozen_and_isolated()
+    t103_perception_xalpha_tickets_dsl_and_registry_are_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

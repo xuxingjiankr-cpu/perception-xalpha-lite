@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "perception_xalpha_mvp_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "baseCogAlphaConfig": "configs/research/cogalpha_autonomous_v1.json",
+  "purpose": "Detect recurring market anomalies, seal them as immutable Phenomenon Tickets, generate bounded causal factor programs, and validate them with the existing CogAlpha evaluator.",
+  "perception": {
+    "rollingWindow": 60,
+    "correlationFastWindow": 20,
+    "correlationSlowWindow": 120,
+    "cusumWindow": 5,
+    "residualZThreshold": 2.0,
+    "maximumResidualZForRegistry": 20.0,
+    "maximumAbsoluteDailyReturn": 0.2,
+    "maximumDailyRangePct": 0.2,
+    "minimumIndependentDays": 10,
+    "minimumEventCount": 30,
+    "maximumAffectedAssets": 100,
+    "detectors": [
+      "return_shock",
+      "volume_anomaly",
+      "range_anomaly",
+      "correlation_break",
+      "cusum_shift"
+    ]
+  },
+  "factorGeneration": {
+    "families": [
+      "price_volume_coupling",
+      "lead_lag",
+      "conditional_beta",
+      "shock_response"
+    ],
+    "candidatesPerFamily": 2,
+    "maximumCandidatesPerRun": 16,
+    "maximumExpressionDepth": 9,
+    "allowedWindows": [
+      3,
+      5,
+      10,
+      20,
+      30,
+      60,
+      120,
+      252
+    ],
+    "additionalPastOnlyInputs": [
+      "market_return",
+      "market_up_return",
+      "market_down_return",
+      "market_abs_return",
+      "market_shock"
+    ],
+    "arbitraryPythonAllowed": false,
+    "networkGenerationAllowed": false,
+    "subprocessAllowed": false,
+    "dynamicImportAllowed": false
+  },
+  "validation": {
+    "minimumAbsoluteTrainRankIc": 0.005,
+    "minimumTrainRankIcIr": 0.05,
+    "historicalValidationTMinimum": 3.0,
+    "validationCostedIrMinimum": 0.0,
+    "pboMaximum": 0.2,
+    "priorFamilyTrials": 547,
+    "freshForwardDaysRequiredForShadow": 60,
+    "humanApprovalRequired": true,
+    "validationOrShadowFeedbackAllowed": false
+  },
+  "registry": {
+    "sqlitePath": "outputs/edge_research/perception_xalpha/state/perception_xalpha.sqlite",
+    "outputRoot": "outputs/edge_research/perception_xalpha",
+    "appendOnlyEntities": [
+      "phenomenon_tickets",
+      "factors",
+      "experiments",
+      "validations",
+      "factor_relationships"
+    ],
+    "skipWhenDataFingerprintUnchanged": true
+  },
+  "stateMachine": [
+    "DRAFT",
+    "STATIC_VALIDATED",
+    "LEAKAGE_VALIDATED",
+    "HISTORICALLY_VALIDATED",
+    "BORN",
+    "SHADOW",
+    "REJECTED",
+    "RETIRED"
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToObservationPool": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
