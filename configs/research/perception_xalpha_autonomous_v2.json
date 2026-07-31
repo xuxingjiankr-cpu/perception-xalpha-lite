@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "perception_xalpha_autonomous_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Autonomously turn recurring market phenomena into falsifiable mechanism hypotheses, bounded causal factor programs, counterfactual controls, and append-only research evidence.",
+  "basePerceptionConfig": "configs/research/perception_xalpha_mvp.json",
+  "baseCogAlphaConfig": "configs/research/cogalpha_autonomous_v1.json",
+  "researchDirector": {
+    "maximumQuestionsPerCycle": 4,
+    "maximumMechanismsPerPhenomenon": 2,
+    "priority": [
+      "market_mechanism",
+      "historical_train_feedback",
+      "novelty",
+      "recurrence"
+    ],
+    "validationFeedbackAllowed": false,
+    "shadowFeedbackAllowed": false
+  },
+  "mechanismLibrary": {
+    "archetypes": [
+      "order_splitting",
+      "liquidity_reversal",
+      "risk_budgeting",
+      "information_diffusion",
+      "crowding_unwind",
+      "benchmark_rebalancing",
+      "volatility_feedback"
+    ],
+    "requiredBundleMembers": [
+      "primary",
+      "counter",
+      "placebo"
+    ],
+    "failureConditionsRequired": true
+  },
+  "synthesis": {
+    "provider": "deterministic_local_grammar",
+    "remoteApiAllowed": false,
+    "arbitraryPythonAllowed": false,
+    "maximumPrimaryCandidatesPerCycle": 32,
+    "maximumStage2Bundles": 6,
+    "initialVariantsPerQuestion": 3,
+    "generationsPerCycle": 2,
+    "parentPoolSize": 8,
+    "childrenPerParent": 2,
+    "maximumPersistentParents": 12,
+    "maximumExpressionDepth": 9,
+    "placeboLagTradingDays": 20,
+    "operators": [
+      "mutation",
+      "crossover",
+      "refinement",
+      "novelty_injection"
+    ],
+    "operatorWeights": {
+      "mutation": 0.35,
+      "crossover": 0.2,
+      "refinement": 0.25,
+      "novelty_injection": 0.2
+    },
+    "randomSeed": 20260731
+  },
+  "fastScreen": {
+    "selectionData": "train_only",
+    "minimumTrainIcDays": 120,
+    "minimumAbsoluteRankIc": 0.003,
+    "minimumRankIcIr": 0.05,
+    "minimumCostedLongOnlyIr": -0.25,
+    "maximumNanFraction": 0.3,
+    "minimumMedianCrossSectionDistinct": 5,
+    "maximumBehaviorCorrelation": 0.97,
+    "complexityPenaltyPerDepth": 0.03
+  },
+  "fullEvaluation": {
+    "selectionData": "purged_train_validation_shadow",
+    "roundTripCost": 0.00155,
+    "maximumLabelHorizonTradingDays": 10,
+    "purgedWalkForwardFolds": 5,
+    "purgeTradingDays": 10,
+    "minimumPositiveWalkForwardFolds": 3,
+    "minimumValidationRankIc": 0.0,
+    "minimumValidationCostedIr": 0.0,
+    "minimumPrimaryAdvantageOverCounterIr": 0.0,
+    "minimumPrimaryAdvantageOverPlaceboIr": 0.0,
+    "pboMaximum": 0.2,
+    "priorProjectTrials": 555,
+    "failureConditionTrainQuantile": 0.75,
+    "validationOrShadowMetricsReturnedToGenerator": false,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60,
+    "humanApprovalRequired": true
+  },
+  "registry": {
+    "sqlitePath": "outputs/edge_research/perception_xalpha_autonomous/state/perception_xalpha_autonomous.sqlite",
+    "outputRoot": "outputs/edge_research/perception_xalpha_autonomous",
+    "stateDirectory": "outputs/edge_research/perception_xalpha_autonomous/state",
+    "skipWhenDataFingerprintUnchanged": true,
+    "appendOnlyEntities": [
+      "research_cycles",
+      "research_plans",
+      "mechanism_hypotheses",
+      "factor_bundles",
+      "experiments",
+      "rejection_events"
+    ]
+  },
+  "stateMachine": [
+    "DRAFT",
+    "STATIC_VALIDATED",
+    "LEAKAGE_VALIDATED",
+    "FAST_SCREENED",
+    "HISTORICALLY_VALIDATED",
+    "BORN",
+    "SHADOW",
+    "REJECTED",
+    "RETIRED"
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToObservationPool": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

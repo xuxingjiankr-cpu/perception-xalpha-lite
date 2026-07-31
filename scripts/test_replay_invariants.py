@@ -6926,6 +6926,201 @@ def t103_perception_xalpha_tickets_dsl_and_registry_are_safe() -> None:
     )
 
 
+def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
+    import json
+    import random
+    import sqlite3
+    import numpy as np
+    import pandas as pd
+    import research_perception_xalpha_autonomous as px2
+
+    config = json.loads(px2.DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    px2.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T104 autonomous factor miner is permanently research/shadow-only",
+        all(value is False for key, value in safety.items() if key.startswith("may"))
+        and config["synthesis"]["remoteApiAllowed"] is False
+        and config["synthesis"]["arbitraryPythonAllowed"] is False
+        and config["fullEvaluation"]["historicalRunCanPromote"] is False,
+    )
+    check(
+        "T104 purged walk-forward covers the complete label horizon",
+        config["fullEvaluation"]["purgeTradingDays"]
+        >= config["fullEvaluation"]["maximumLabelHorizonTradingDays"]
+        and config["fullEvaluation"]["purgedWalkForwardFolds"] == 5,
+    )
+    tickets = []
+    for index, phenomenon in enumerate(
+        [
+            "return_shock",
+            "volume_anomaly",
+            "range_anomaly",
+            "correlation_break",
+            "cusum_shift",
+        ]
+    ):
+        tickets.append(
+            {
+                "ticketId": f"ticket_{index}",
+                "phenomenonId": phenomenon,
+                "independentDays": 100 + index,
+                "eventCount": 1000 + 10 * index,
+                "residualZScore": 3.0 + index,
+                "affectedAssets": [{"stockCode": "510300"}] * 20,
+            }
+        )
+    request, plan, hypotheses = px2.build_research_plan(
+        tickets, config, {}, "cycle_test"
+    )
+    _, _, repeated_hypotheses = px2.build_research_plan(
+        tickets, config, {}, "cycle_test_repeated"
+    )
+    check(
+        "T105 Research Director selects bounded falsifiable mechanism questions",
+        0 < len(plan["questions"])
+        <= config["researchDirector"]["maximumQuestionsPerCycle"]
+        and len(px2.ARCHETYPES) == 7
+        and all(
+            row["falsifiablePrediction"]
+            and row["failureCondition"]
+            and row["forcedTrader"]
+            for row in hypotheses
+        )
+        and request["validationFeedbackUsed"] is False
+        and request["shadowFeedbackUsed"] is False,
+    )
+    check(
+        "T105 mechanism identities are deterministic across repeated cycles",
+        [row["hypothesisId"] for row in hypotheses]
+        == [row["hypothesisId"] for row in repeated_hypotheses],
+    )
+    _, cog_config = px2.load_base_configs(config)
+    hypothesis = hypotheses[0]
+    rng = random.Random(9)
+    expression = px2.autonomous.random_expression(
+        px2.ARCHETYPES[hypothesis["archetypeId"]]["agent"],
+        rng,
+        cog_config,
+    )
+    candidate = px2.make_candidate(
+        hypothesis, expression, 0, [], "test_mechanism"
+    )
+    index = pd.bdate_range("2025-01-01", periods=320)
+    columns = ["510300", "513100", "588000"]
+    base = pd.DataFrame(
+        np.arange(len(index) * len(columns), dtype=float).reshape(
+            len(index), len(columns)
+        )
+        / 10000.0,
+        index=index,
+        columns=columns,
+    )
+    panel = {
+        "open": 100.0 + base,
+        "high": 100.5 + base,
+        "low": 99.5 + base,
+        "close": 100.1 + base,
+        "returns": base.diff().fillna(0.0),
+        "volume": 1000000.0 + base * 1000.0,
+        "amount": 100000000.0 + base * 10000.0,
+        "vwap": 100.0 + base,
+        "market_return": base * 0.1,
+        "market_up_return": base.clip(lower=0.0) * 0.1,
+        "market_down_return": base.clip(upper=0.0) * 0.1,
+        "market_abs_return": base.abs() * 0.1,
+        "market_shock": base * 0.2,
+    }
+    cutoff = 280
+    full = px2.core.evaluate_expression(candidate["expression"], panel).iloc[
+        :cutoff
+    ]
+    prefix = px2.core.evaluate_expression(
+        candidate["expression"],
+        {key: value.iloc[:cutoff] for key, value in panel.items()},
+    )
+    check(
+        "T106 synthesized DSL factor is prefix-causal",
+        np.allclose(
+            full.to_numpy(dtype=float),
+            prefix.to_numpy(dtype=float),
+            equal_nan=True,
+        ),
+    )
+    dummy = px2.FastResult(
+        candidate=candidate,
+        signal=base,
+        long_net=pd.Series(0.0, index=index),
+        metrics={"trainFitness": 1.0},
+        fitness=1.0,
+        behavior={"fingerprint": "test"},
+    )
+    children = px2.evolve_candidates(
+        [dummy], hypotheses, 1, config, cog_config
+    )
+    check(
+        "T107 evolution consumes train-only parents and stays inside the DSL",
+        bool(children)
+        and all(child["generation"] == 1 for child in children)
+        and all(
+            not any(
+                token in json.dumps(child, ensure_ascii=False).lower()
+                for token in ("validationmetrics", "shadowmetrics", "__import__")
+            )
+            for child in children
+        ),
+    )
+    counter = px2.counter_candidate(
+        dummy, hypothesis, config, cog_config
+    )
+    placebo = px2.placebo_candidate(dummy, config, cog_config)
+    check(
+        "T108 every Stage-2 design has Primary, Counter and causal Placebo",
+        counter["source"] == "counter_mechanism"
+        and placebo["source"] == "causal_delayed_placebo"
+        and placebo["expression"].get("lag", 0) > 0
+        and config["mechanismLibrary"]["requiredBundleMembers"]
+        == ["primary", "counter", "placebo"],
+    )
+    connection = sqlite3.connect(":memory:")
+    px2.initialize_registry(connection)
+    px2.insert_entity(
+        connection,
+        "research_cycles",
+        "cycle_test",
+        {"cycleId": "cycle_test", "immutable": True},
+    )
+    immutable = False
+    try:
+        connection.execute(
+            "DELETE FROM research_cycles WHERE entity_id='cycle_test'"
+        )
+    except sqlite3.DatabaseError:
+        immutable = True
+    connection.close()
+    check(
+        "T109 autonomous experiment and rejection registry is append-only",
+        immutable
+        and "rejection_events" in config["registry"]["appendOnlyEntities"],
+    )
+    source = (
+        ROOT / "scripts" / "research_perception_xalpha_autonomous.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T110 autonomous miner has no remote generator or trading integration path",
+        "urllib.request" not in source
+        and "requests." not in source
+        and "run_t0_intraday_agent" not in source
+        and "submitOrder" not in source
+        and "write_strategy_overlay" not in source
+        and "decision_probability_v1.json" not in source
+        and config["fullEvaluation"][
+            "validationOrShadowMetricsReturnedToGenerator"
+        ]
+        is False,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -7029,6 +7224,7 @@ if __name__ == "__main__":
     t101_autonomous_cogalpha_iterates_train_only_and_never_trades()
     t102_kronos_kline_shadow_is_causal_frozen_and_isolated()
     t103_perception_xalpha_tickets_dsl_and_registry_are_safe()
+    t104_t110_autonomous_perception_factor_discovery_is_safe()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
