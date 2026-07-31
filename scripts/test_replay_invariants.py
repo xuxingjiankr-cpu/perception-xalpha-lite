@@ -6757,6 +6757,92 @@ def t101_autonomous_cogalpha_iterates_train_only_and_never_trades() -> None:
     )
 
 
+def t102_kronos_kline_shadow_is_causal_frozen_and_isolated() -> None:
+    import copy
+    import json
+    import numpy as np
+    import pandas as pd
+    import research_kronos_etf_shadow as kronos
+
+    config = json.loads(kronos.DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    kronos.validate_config(config)
+    safety = config["safety"]
+    check(
+        "T102 Kronos is frozen zero-shot shadow-only and cannot trade",
+        config["forecast"]["zeroShot"] is True
+        and config["forecast"]["weightsFrozen"] is True
+        and config["forecast"]["fineTuningAllowed"] is False
+        and safety["offlineOnly"] is True
+        and safety["recordOnly"] is True
+        and all(
+            safety[key] is False
+            for key in [
+                "brokerCallsAllowed",
+                "onlineInferenceAllowed",
+                "liveConfigWritesAllowed",
+                "overlayWritesAllowed",
+                "positionSizingAllowed",
+                "orderSubmissionAllowed",
+                "riskGateChangesAllowed",
+                "buildDecisionIntegrationAllowed",
+                "buySellGateIntegrationAllowed",
+                "promotionAllowed",
+            ]
+        ),
+    )
+    test_config = copy.deepcopy(config)
+    test_config["forecast"]["lookbackBars"] = 20
+    test_config["forecast"]["horizonsBars"] = [1, 3, 6, 12]
+    test_config["data"]["decisionTimes"] = ["11:10"]
+    timestamps = pd.date_range("2025-01-02 09:35", periods=45, freq="5min")
+    close = np.linspace(1.0, 1.044, len(timestamps))
+    frame = pd.DataFrame(
+        {
+            "timestamp": timestamps,
+            "open": close - 0.0002,
+            "high": close + 0.0005,
+            "low": close - 0.0005,
+            "close": close,
+            "volume": np.arange(100.0, 145.0),
+            "amount": np.arange(1000.0, 1045.0),
+        }
+    )
+    frame["date"] = frame["timestamp"].dt.strftime("%Y-%m-%d")
+    frame["time"] = frame["timestamp"].dt.strftime("%H:%M")
+    original = kronos.build_contexts({"513100": frame}, test_config)[0]
+    shocked = frame.copy()
+    shocked.loc[
+        shocked["timestamp"]
+        > original["decisionTimestamp"] + pd.Timedelta(minutes=5),
+        ["open", "high", "low", "close"],
+    ] *= 1.2
+    future_changed = kronos.build_contexts({"513100": shocked}, test_config)[0]
+    check(
+        "T102 completed-bar Kronos features ignore all future price shocks",
+        np.allclose(original["features"], future_changed["features"])
+        and original["prefix"].equals(future_changed["prefix"]),
+    )
+    check(
+        "T102 future outcomes stay separate and fill only at next bar open",
+        original["outcomes"][3]["netReturn"]
+        != future_changed["outcomes"][3]["netReturn"]
+        and max(original["prefix"]["timestamp"]) == original["decisionTimestamp"]
+        and original["outcomes"][1]["exitTimestamp"] > original["decisionTimestamp"],
+    )
+    source = (
+        ROOT / "scripts" / "research_kronos_etf_shadow.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T102 Kronos module has no agent, broker, overlay or production artifact write",
+        "run_t0_intraday_agent" not in source
+        and "submitOrder" not in source
+        and "write_strategy_overlay" not in source
+        and "decision_probability_v1.json" not in source
+        and config["artifact"]["outputRoot"]
+        == "outputs/edge_research/kronos_etf_shadow",
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -6858,6 +6944,7 @@ if __name__ == "__main__":
     t99_trade_success_shadow_is_causal_purged_idempotent_and_safe()
     t100_cogalpha_research_is_causal_bounded_and_never_trades()
     t101_autonomous_cogalpha_iterates_train_only_and_never_trades()
+    t102_kronos_kline_shadow_is_causal_frozen_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

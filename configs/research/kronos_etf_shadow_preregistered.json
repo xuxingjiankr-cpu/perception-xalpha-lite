@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "kronos_etf_shadow_preregistered_v1",
+  "status": "research_only",
+  "diagnosticOnly": true,
+  "preregisteredAt": "2026-07-31T00:00:00+08:00",
+  "hypothesis": "Zero-shot Kronos candlestick path probabilities add out-of-time directional and tail-risk information beyond a causal OHLCVA baseline for liquid A-share ETFs.",
+  "data": {
+    "barsDirectory": "data/market/mootdx/bars_5m",
+    "barIntervalMinutes": 5,
+    "symbols": [
+      "513050",
+      "513100",
+      "513180",
+      "513500",
+      "518880",
+      "159920",
+      "159941",
+      "159985"
+    ],
+    "decisionTimes": [
+      "11:00"
+    ],
+    "modelFitStart": "2024-07-01",
+    "modelFitEnd": "2024-12-31",
+    "calibrationStart": "2025-01-01",
+    "calibrationEnd": "2025-06-30",
+    "oosStart": "2025-07-01",
+    "oosEnd": "2026-03-20",
+    "sameSessionLabelsOnly": true,
+    "minimumCompleteBarsPerDay": 44
+  },
+  "forecast": {
+    "modelRepo": "NeoQuasar/Kronos-small",
+    "tokenizerRepo": "NeoQuasar/Kronos-Tokenizer-base",
+    "upstreamCommit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+    "lookbackBars": 400,
+    "horizonsBars": [
+      1,
+      3,
+      6,
+      12
+    ],
+    "temperature": 0.6,
+    "topP": 0.9,
+    "samplePaths": 10,
+    "randomSeed": 20260731,
+    "maxContext": 512,
+    "zeroShot": true,
+    "weightsFrozen": true,
+    "fineTuningAllowed": false
+  },
+  "executionAssumptions": {
+    "decisionUsesCompletedBarOnly": true,
+    "entry": "next_bar_open",
+    "exit": "horizon_bar_close",
+    "roundTripCostPct": 0.00155,
+    "sameBarFillAllowed": false
+  },
+  "baseline": {
+    "features": [
+      "ret_1",
+      "ret_3",
+      "ret_6",
+      "ret_12",
+      "range_6",
+      "volatility_12",
+      "volume_z_20",
+      "session_fraction"
+    ],
+    "logisticC": 0.1,
+    "minimumFitRows": 200
+  },
+  "calibration": {
+    "method": "platt_logit",
+    "minimumRowsPerHorizon": 100,
+    "clipProbability": 0.001,
+    "ensembleWeightGrid": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0
+    ],
+    "weightMeaning": "weight_on_calibrated_kronos",
+    "parametersFrozenBeforeOos": true
+  },
+  "evaluation": {
+    "primaryHorizonsBars": [
+      3,
+      6
+    ],
+    "probabilityThresholds": [
+      0.55,
+      0.65
+    ],
+    "probabilityBinEdges": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "minimumOosDaysForConclusion": 60,
+    "minimumHighProbabilityRows": 100,
+    "requireSameRowsForAblation": true,
+    "promotionAllowed": false
+  },
+  "artifact": {
+    "outputRoot": "outputs/edge_research/kronos_etf_shadow",
+    "researchOnly": true,
+    "shadowOnly": true,
+    "overwriteProductionArtifacts": false
+  },
+  "safety": {
+    "offlineOnly": true,
+    "recordOnly": true,
+    "brokerCallsAllowed": false,
+    "onlineInferenceAllowed": false,
+    "liveConfigWritesAllowed": false,
+    "overlayWritesAllowed": false,
+    "positionSizingAllowed": false,
+    "orderSubmissionAllowed": false,
+    "riskGateChangesAllowed": false,
+    "buildDecisionIntegrationAllowed": false,
+    "buySellGateIntegrationAllowed": false,
+    "promotionAllowed": false,
+    "forbiddenArtifacts": [
+      "decision_probability_v1.json",
+      "latest_strategy_overlay.json"
+    ]
+  }
+}
