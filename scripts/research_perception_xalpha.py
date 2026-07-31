@@ -181,7 +181,15 @@ def data_fingerprint(
         },
     }
     data_hash = digest(snapshot)
-    return data_hash, hashlib.sha256(config_text.encode("utf-8")).hexdigest()
+    config_hash = digest(
+        {
+            "configTextSha256": hashlib.sha256(
+                config_text.encode("utf-8")
+            ).hexdigest(),
+            "codeVersion": CODE_VERSION,
+        }
+    )
+    return data_hash, config_hash
 
 
 def detector_scores(
@@ -439,10 +447,12 @@ def generate_candidates(
             )
             candidate["family"] = family
             candidate["phenomenonTicketIds"] = source_tickets
+            # A factor's identity is its executable meaning, not the date of the
+            # ticket that proposed it. New tickets create new experiments and
+            # lineage without inflating the unique-factor/multiple-test count.
             candidate["factorId"] = "factor_" + digest(
                 {
                     "family": family,
-                    "tickets": source_tickets,
                     "expression": expression,
                 }
             )[:20]

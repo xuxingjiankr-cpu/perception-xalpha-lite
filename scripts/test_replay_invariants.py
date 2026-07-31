@@ -6886,12 +6886,21 @@ def t103_perception_xalpha_tickets_dsl_and_registry_are_safe() -> None:
         scores, config, "data_hash", "config_hash"
     )
     candidates = px.generate_candidates(tickets, config)
+    changed_ticket = [dict(ticket) for ticket in tickets]
+    for ticket in changed_ticket:
+        ticket["ticketId"] += "_new_event"
+    same_factor_candidates = px.generate_candidates(changed_ticket, config)
     check(
         "T103 recurring anomalies create immutable tickets and all four factor families",
         audit["accepted"] == 5
         and all(ticket["immutable"] is True for ticket in tickets)
         and {row["family"] for row in candidates}
         == set(config["factorGeneration"]["families"]),
+    )
+    check(
+        "T103 factor IDs are stable across new ticket events",
+        [row["factorId"] for row in candidates]
+        == [row["factorId"] for row in same_factor_candidates],
     )
     connection = sqlite3.connect(":memory:")
     px.initialize_registry(connection)
