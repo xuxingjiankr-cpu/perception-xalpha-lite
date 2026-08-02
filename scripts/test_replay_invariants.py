@@ -7270,6 +7270,14 @@ def t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it() -> N
         "factor_observations" in xalpha.APPEND_ONLY_TABLES
         and "factor_observations" in config["registry"]["appendOnlyEntities"],
     )
+    daily_runner = (
+        ROOT / "scripts" / "run_perception_xalpha_all_ashares_daily.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T115 Windows runner tolerates collector stderr but checks native exit codes",
+        '$ErrorActionPreference = "Continue"' in daily_runner
+        and daily_runner.count("$LASTEXITCODE -ne 0") >= 3,
+    )
 
     index = pd.bdate_range("2023-01-02", periods=360)
     codes = [f"S{i:03d}" for i in range(40)]

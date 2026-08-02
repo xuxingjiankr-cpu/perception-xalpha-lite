@@ -1,4 +1,8 @@
-$ErrorActionPreference = "Stop"
+# Windows PowerShell 5 promotes any native-process stderr line inside `2>&1 |
+# Tee-Object` to a terminating NativeCommandError when this is `Stop`. Market-data
+# collectors legitimately emit warnings on stderr, so native exit codes below are the
+# authority. Every stage is checked explicitly and still fails closed on non-zero exit.
+$ErrorActionPreference = "Continue"
 $env:PYTHONIOENCODING = "utf-8"
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
