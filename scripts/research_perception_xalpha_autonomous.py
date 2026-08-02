@@ -9,6 +9,7 @@ the paper-trading system.
 from __future__ import annotations
 
 import argparse
+import atexit
 import copy
 import hashlib
 import json
@@ -613,6 +614,25 @@ def make_candidate(
     return candidate
 
 
+def book_identity(cog_config: dict[str, Any]) -> str:
+    """Hash of the effective book definition a parent pool was bred under.
+
+    Two configs that price portfolios differently must not share search memory: a v1 run
+    finishing after a v2 run would otherwise hand v2 parents selected under the old screen
+    and construction, silently mixing search histories and corrupting trial accounting.
+    """
+    data = cog_config.get("data", {})
+    return digest({
+        "topQuantile": data.get("topQuantile"),
+        "roundTripCost": data.get("roundTripCost"),
+        "sizeNeutralise": data.get("sizeNeutralise"),
+        "sizeNeutraliseBins": data.get("sizeNeutraliseBins"),
+        "bookConstruction": data.get("bookConstruction"),
+        "holdForPredictionHorizon": data.get("holdForPredictionHorizon"),
+        "predictionHorizonTradingDays": data.get("predictionHorizonTradingDays"),
+    })
+
+
 def load_train_parents(
     state_directory: Path,
     hypotheses: list[dict[str, Any]],
@@ -623,9 +643,14 @@ def load_train_parents(
     if not path.exists():
         return []
     try:
-        rows = load_json(path).get("parents", [])
+        payload = load_json(path)
     except (OSError, ValueError):
         return []
+    # Refuse a pool bred under a different screen/book definition. Silently inheriting one
+    # would mix search histories across config versions and make the trial accounting a lie.
+    if str(payload.get("bookIdentitySha256") or "") != book_identity(cog_config):
+        return []
+    rows = payload.get("parents", [])
     by_archetype = {
         str(hypothesis["archetypeId"]): hypothesis for hypothesis in hypotheses
     }
@@ -1506,6 +1531,24 @@ def run_cycle(
     connection: sqlite3.Connection | None = None
     if use_state:
         state_directory.mkdir(parents=True, exist_ok=True)
+        # Single instance per state directory. Two concurrent runs share one SQLite registry
+        # and one parent pool, so the later finisher overwrites the other's search memory --
+        # observed when a v1 and a v2 cycle ran together against the same directory.
+        lock_path = state_directory / "research.lock"
+        try:
+            lock_handle = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            raise RuntimeError(
+                f"another research run holds {lock_path}; concurrent cycles would corrupt "
+                "the shared registry and parent pool. Remove the lock only if no run is live."
+            )
+        os.write(lock_handle, json.dumps({
+            "pid": os.getpid(),
+            "startedAt": datetime.now(timezone.utc).isoformat(),
+            "config": str(config.get("schemaVersion", "unknown")),
+        }).encode("utf-8"))
+        os.close(lock_handle)
+        atexit.register(lambda: lock_path.unlink(missing_ok=True))
         connection = sqlite3.connect(registry_path)
         initialize_registry(connection)
         if (
@@ -1906,6 +1949,10 @@ def run_cycle(
             {
                 "schemaVersion": "perception_xalpha_train_parent_pool_v1",
                 "status": "train_only_research_memory",
+                # Parents bred under one book definition are not interchangeable with another:
+                # a v1 run finishing after a v2 run would otherwise hand v2 a pool selected
+                # under the old screen and construction. Readers must match this exactly.
+                "bookIdentitySha256": book_identity(cog_config),
                 "sourceRunId": cycle_id,
                 "containsValidationMetrics": False,
                 "containsShadowMetrics": False,

@@ -6988,6 +6988,7 @@ def t113_factor_search_success_path_actually_works() -> None:
     priced two different portfolios. Rejection-path tests cannot see any of these -- only
     exercising a candidate that SUCCEEDS can.
     """
+    import json
     import numpy as np
     import pandas as pd
     import research_cogalpha_autonomous as auto
@@ -7005,7 +7006,7 @@ def t113_factor_search_success_path_actually_works() -> None:
     )
 
     # (b) one book definition: screen and full evaluation must price the SAME strategy
-    index = pd.date_range("2024-01-01", periods=140, freq="B")
+    index = pd.date_range("2024-01-01", periods=420, freq="B")
     codes = [f"S{i:02d}" for i in range(40)]
     rng = np.random.default_rng(5)
     close = pd.DataFrame(
@@ -7051,6 +7052,85 @@ def t113_factor_search_success_path_actually_works() -> None:
         "T113 horizon holding materially lowers turnover",
         float(_to.mean()) < 0.5 * float(legacy_to.mean()),
     )
+
+    # (d) THE regression guard: drive a candidate all the way THROUGH evaluate_candidate.
+    # Comparing the two portfolio helpers side by side (b) still passes while the full
+    # validator is broken -- exactly what happened when unifying the book engine deleted
+    # rank_ic and left its downstream reference, so the first candidate to reach full
+    # evaluation raised NameError. Only calling the real entry point can catch that class.
+    # Base on a real preregistered config so the DSL grammar, windows and guards are the
+    # production ones; only the book knobs and sample-size floors are overridden.
+    horizon = 10
+    full_config = json.loads(
+        (ROOT / "configs" / "research" / "cogalpha_autonomous_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    full_config["data"].update({
+        "topQuantile": 0.2, "roundTripCost": 0.003,
+        "predictionHorizonTradingDays": horizon,
+        "sizeNeutralise": True, "sizeNeutraliseBins": 5,
+        "bookConstruction": "rank_weighted", "holdForPredictionHorizon": True,
+        "minimumCrossSection": 5,
+    })
+    full_config.setdefault("selection", {})["minimumTrainRankIcDays"] = 5
+    target, one_day_full = auto.target_frames(panel, full_config)
+    marks = pd.Series(False, index=index)
+    train_mask = marks.copy(); train_mask.iloc[:260] = True
+    validation_mask = marks.copy(); validation_mask.iloc[275:345] = True
+    shadow_mask = marks.copy(); shadow_mask.iloc[360:] = True
+    split = auto.Split(train_mask, validation_mask, shadow_mask, {"purgeTradingDays": 0})
+    # Expressions come from the pipeline's own grammar so the test exercises real DSL output
+    # rather than a hand-built shape the validator would reject for unrelated reasons.
+    import random as _random
+
+    agent = sorted(auto.ROLE_HYPOTHESES)[0]
+    evaluation, reason, crashed = None, "no_candidate_tried", None
+    for seed in range(40):
+        candidate = auto.candidate_record(
+            agent=agent,
+            expression=auto.random_expression(agent, _random.Random(seed), full_config),
+            generation=1, parents=[], guidance="regression guard", source="test",
+            rationale="drive the real validator",
+            hypothesis={"mechanism": "m", "forcedTrader": "f", "persistence": "p"},
+        )
+        try:
+            evaluation, reason = auto.evaluate_candidate(
+                candidate, panel, target, one_day_full, split, full_config
+            )
+        except Exception as exc:  # a NameError here is the exact regression being guarded
+            evaluation, reason, crashed = None, None, f"{type(exc).__name__}: {exc}"
+            break
+        if evaluation is not None:
+            break
+    check("T113 evaluate_candidate does not raise on the success path", crashed is None, str(crashed))
+    if crashed is None and evaluation is not None:
+        check("T113 full evaluation returns an Evaluation with no rejection reason", reason is None)
+        check("T113 evaluation exposes a populated rank_ic series", len(evaluation.rank_ic) > 0)
+        check(
+            "T113 full report carries all period blocks",
+            all(
+                period in evaluation.summary.get("periods", {})
+                for period in ("train", "validation", "shadow")
+            ),
+        )
+        # Consistency must be checked on the SAME factor: re-price the very signal the
+        # validator used through the screen's entry point and demand an identical series.
+        screen_same, _same_to, _same_w = xalpha.long_only_portfolio(
+            evaluation.signal, one_day_full, panel, full_config,
+            {"fastScreen": {}, "fullEvaluation": {}},
+        )
+        paired = pd.concat(
+            [evaluation.long_net.rename("full"), screen_same.rename("screen")], axis=1
+        ).dropna()
+        check(
+            "T113 full evaluation prices the same book as the screen (same factor)",
+            len(paired) > 50 and bool(np.allclose(paired["full"], paired["screen"])),
+            f"rows={len(paired)}",
+        )
+    else:
+        check("T113 full evaluation returns an Evaluation with no rejection reason", False,
+              f"reason={reason} crashed={crashed}")
 
 
 def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:

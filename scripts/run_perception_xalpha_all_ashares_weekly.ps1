@@ -42,6 +42,17 @@ $status.minerStarted = $true
 Save-Status
 py -3.13 scripts\research_perception_xalpha_autonomous.py `
   --config configs\research\perception_xalpha_all_ashares_v2.json run
+# Distinguish a real new cycle from an idempotent skip: exit 0 alone cannot tell them apart.
+$latestResult = Get-ChildItem -Path (Join-Path $root "outputs\edge_research\perception_xalpha_all_ashares_v2") -Filter "result.json" -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$cycleStatus = "unknown"
+if ($latestResult) {
+    try {
+        $parsed = Get-Content $latestResult.FullName -Raw | ConvertFrom-Json
+        $cycleStatus = if ($parsed.status -eq "no_new_data") { "no_new_data" } else { "completed_with_new_cycle" }
+    } catch { $cycleStatus = "unreadable_result" }
+}
+$status.cycleStatus = $cycleStatus
 $status.minerCompleted = ($LASTEXITCODE -eq 0)
 $status.exitCode = $LASTEXITCODE
 $status.finishedAt = (Get-Date).ToString("o")

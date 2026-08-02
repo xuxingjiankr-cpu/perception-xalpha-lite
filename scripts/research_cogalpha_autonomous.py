@@ -631,6 +631,7 @@ def evaluate_candidate(
     direction = 1.0 if float(raw_train_rank_ic.mean()) >= 0 else -1.0
     signal = raw * direction
     ic = signal.corrwith(target, axis=1, method="pearson").dropna()
+    rank_ic = signal.corrwith(target, axis=1, method="spearman").dropna()
     long_net, turnover, weights, top_return, benchmark = long_only_portfolio(
         signal, one_day, panel, config
     )

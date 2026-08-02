@@ -120,9 +120,9 @@
     "humanApprovalRequired": true
   },
   "registry": {
-    "sqlitePath": "outputs/edge_research/perception_xalpha_all_ashares/state/perception_xalpha_all_ashares.sqlite",
-    "outputRoot": "outputs/edge_research/perception_xalpha_all_ashares",
-    "stateDirectory": "outputs/edge_research/perception_xalpha_all_ashares/state",
+    "sqlitePath": "outputs/edge_research/perception_xalpha_all_ashares_v2/state/perception_xalpha_all_ashares_v2.sqlite",
+    "outputRoot": "outputs/edge_research/perception_xalpha_all_ashares_v2",
+    "stateDirectory": "outputs/edge_research/perception_xalpha_all_ashares_v2/state",
     "skipWhenDataFingerprintUnchanged": true,
     "appendOnlyEntities": [
       "research_cycles",

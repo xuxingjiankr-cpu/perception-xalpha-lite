@@ -36,6 +36,7 @@ BARS_ROOT = DATA_ROOT / "bars_1d_raw"
 # Preregistered: the unattended weekly run continues on isolated symbol failures and aborts
 # only on a coverage collapse. 5 unreachable BJ symbols out of 5,539 must not stop mining.
 MINIMUM_BACKFILL_COVERAGE = 0.995
+LATEST_SESSION_CACHE: list[str | None] = [None]
 
 
 def latest_expected_session(today: date | None = None) -> str:
@@ -421,7 +422,9 @@ def collect_one(
     old = load_jsonl(path) if path.exists() else []
     if old and not force:
         last = str(old[-1].get("dt") or "")[:10] if old else None
-        freshness_target = end_date or latest_expected_session()
+        # Resolved once per backfill and passed in; recomputing per symbol reloaded the
+        # exchange calendar thousands of times per run.
+        freshness_target = end_date or LATEST_SESSION_CACHE[0] or latest_expected_session()
         if last and last >= freshness_target:
             return {
                 "securityId": security["securityId"],
@@ -470,6 +473,7 @@ def collect_one(
 
 
 def backfill(args: argparse.Namespace) -> dict[str, Any]:
+    LATEST_SESSION_CACHE[0] = args.end_date or latest_expected_session()
     master = load_jsonl(LATEST_MASTER)
     if not master:
         raise RuntimeError("A-share master is missing; run --mode master first")
@@ -537,6 +541,23 @@ def backfill(args: argparse.Namespace) -> dict[str, Any]:
         "orders": [],
         "automaticTradingChanges": [],
     }
+    # Coverage must live in the persisted artefact: it was previously computed in main()
+    # AFTER this write, so the summary on disk never carried it and an unattended run left
+    # no durable record of how complete the collection actually was.
+    failed = int(counts.get("failed", 0))
+    attempted = sum(int(value) for value in counts.values()) or 1
+    coverage = 1.0 - failed / attempted
+    summary["freshnessTarget"] = LATEST_SESSION_CACHE[0]
+    summary["coverage"] = round(coverage, 6)
+    summary["minimumCoverage"] = MINIMUM_BACKFILL_COVERAGE
+    summary["failedSecurityIds"] = sorted(
+        row["securityId"] for row in results if row.get("status") == "failed"
+    )[:200]
+    summary["collectorStatus"] = (
+        "ok" if failed == 0
+        else "degraded_within_tolerance" if coverage >= MINIMUM_BACKFILL_COVERAGE
+        else "insufficient_coverage"
+    )
     atomic_json(OUTPUT_ROOT / "latest_collection_summary.json", summary)
     append_jsonl(MANIFEST, {key: value for key, value in summary.items() if key != "results"})
     return summary
@@ -630,25 +651,16 @@ def main() -> int:
             return 2
     if args.mode in {"backfill", "all"}:
         summary = backfill(args)
-        counts = summary["statusCounts"]
-        failed = int(counts.get("failed", 0))
-        attempted = sum(int(value) for value in counts.values()) or 1
-        coverage = 1.0 - failed / attempted
-        summary["coverage"] = round(coverage, 6)
-        summary["minimumCoverage"] = MINIMUM_BACKFILL_COVERAGE
-        summary["collectorStatus"] = (
-            "ok" if failed == 0
-            else "degraded_within_tolerance" if coverage >= MINIMUM_BACKFILL_COVERAGE
-            else "insufficient_coverage"
-        )
-        print(json.dumps({"backfillCoverage": summary["coverage"],
-                          "collectorStatus": summary["collectorStatus"],
-                          "failed": failed, "attempted": attempted},
-                         ensure_ascii=False))
+        print(json.dumps({
+            "backfillCoverage": summary["coverage"],
+            "collectorStatus": summary["collectorStatus"],
+            "freshnessTarget": summary["freshnessTarget"],
+            "failed": int(summary["statusCounts"].get("failed", 0)),
+        }, ensure_ascii=False))
         # A handful of unreachable symbols (typically BJ timeouts) must not abort the whole
         # unattended weekly run: on 2026-08-01 five failures out of 5,539 returned exit 3 and
         # the miner never started. Only a genuine coverage collapse is fatal.
-        if coverage < MINIMUM_BACKFILL_COVERAGE:
+        if float(summary["coverage"]) < MINIMUM_BACKFILL_COVERAGE:
             return 3
     if args.mode in {"audit", "all"}:
         print(json.dumps(audit(), ensure_ascii=False, indent=2))
