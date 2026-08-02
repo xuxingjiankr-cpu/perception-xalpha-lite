@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import atexit
 import copy
+import csv
 import hashlib
 import json
 import math
@@ -224,6 +225,49 @@ def canonical(value: Any) -> str:
 
 def digest(value: Any) -> str:
     return hashlib.sha256(canonical(value).encode("utf-8")).hexdigest()
+
+
+def expression_text(expression: dict[str, Any]) -> str:
+    """Stable readable rendering of the audited factor DSL."""
+    if "field" in expression:
+        return str(expression["field"])
+    if "unary" in expression:
+        return f"{expression['unary']}({expression_text(expression['arg'])})"
+    if "binary" in expression:
+        return (
+            f"{expression['binary']}("
+            f"{expression_text(expression['left'])},"
+            f"{expression_text(expression['right'])})"
+        )
+    if "lag" in expression:
+        return f"lag({expression_text(expression['arg'])},{int(expression['lag'])})"
+    if "rolling" in expression:
+        return (
+            f"rolling_{expression['rolling']}("
+            f"{expression_text(expression['arg'])},{int(expression['window'])})"
+        )
+    if "corr" in expression:
+        return (
+            f"rolling_corr({expression_text(expression['left'])},"
+            f"{expression_text(expression['right'])},{int(expression['window'])})"
+        )
+    for operator in ("zscore", "drawdown", "range_position"):
+        if operator in expression:
+            return (
+                f"{operator}({expression_text(expression['arg'])},"
+                f"{int(expression['window'])})"
+            )
+    return canonical(expression)
+
+
+def append_jsonl_record(path: Path, payload: dict[str, Any]) -> None:
+    """Append one complete UTF-8 JSON line so an active cycle is inspectable."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+        handle.write("\n")
+        handle.flush()
+        os.fsync(handle.fileno())
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -1996,6 +2040,24 @@ def run_cycle(
     cycle_id = (
         f"cycle_{generated_at:%Y%m%dT%H%M%SZ}_{fingerprint[:10]}"
     )
+    output = ROOT / config["registry"]["outputRoot"] / cycle_id
+    output.mkdir(parents=True, exist_ok=False)
+    candidate_manifest_path = output / "candidate_manifest.jsonl"
+    atomic_json(
+        output / "run_status.json",
+        {
+            "schemaVersion": "perception_xalpha_active_cycle_v1",
+            "status": "running_research_only_not_trading",
+            "runId": cycle_id,
+            "startedAt": generated_at.isoformat(),
+            "candidateBudget": int(
+                config["synthesis"]["maximumPrimaryCandidatesPerCycle"]
+            ),
+            "evaluatedCandidates": 0,
+            "orders": [],
+            "automaticTradingChanges": [],
+        },
+    )
     quality_audit = perception.data_quality_audit(panel, perception_config)
     scores = perception.detector_scores(panel, perception_config)
     tickets, ticket_audit = perception.build_tickets(
@@ -2073,6 +2135,43 @@ def run_cycle(
                 )
             else:
                 accepted.append(fast)
+            append_jsonl_record(
+                candidate_manifest_path,
+                {
+                    "schemaVersion": "perception_xalpha_candidate_manifest_v1",
+                    "status": "research_only_not_a_trade_signal",
+                    "runId": cycle_id,
+                    "ordinal": generated_count,
+                    "factorId": candidate["factorId"],
+                    "fingerprint": candidate["fingerprint"],
+                    "archetypeId": candidate["archetypeId"],
+                    "agent": candidate["agent"],
+                    "generation": candidate["generation"],
+                    "parents": candidate["parents"],
+                    "source": candidate["source"],
+                    "expression": candidate["expression"],
+                    "expressionText": expression_text(candidate["expression"]),
+                    "fastScreenPassed": fast is not None,
+                    "fastScreenRejection": reason,
+                    "fastTrainMetrics": audit,
+                    "orders": [],
+                    "automaticTradingChanges": [],
+                },
+            )
+            atomic_json(
+                output / "run_status.json",
+                {
+                    "schemaVersion": "perception_xalpha_active_cycle_v1",
+                    "status": "running_research_only_not_trading",
+                    "runId": cycle_id,
+                    "startedAt": generated_at.isoformat(),
+                    "candidateBudget": budget,
+                    "evaluatedCandidates": generated_count,
+                    "fastScreenPassed": len(accepted),
+                    "orders": [],
+                    "automaticTradingChanges": [],
+                },
+            )
 
     evaluate_rows(candidates)
     generation_audit: list[dict[str, Any]] = []
@@ -2357,8 +2456,6 @@ def run_cycle(
             "overfitting guards."
         ),
     }
-    output = ROOT / config["registry"]["outputRoot"] / cycle_id
-    output.mkdir(parents=True, exist_ok=False)
     atomic_json(output / "result.json", result)
     atomic_json(output / "research_cycle_request.json", cycle_request)
     atomic_json(output / "research_plan.json", research_plan)
@@ -2394,6 +2491,59 @@ def run_cycle(
             "actualCount": len(daily_factor_candidates),
             "candidates": daily_factor_candidates,
             "credibleCount": len(credible_factors),
+            "orders": [],
+            "automaticTradingChanges": [],
+        },
+    )
+    manifest_rows = [
+        json.loads(line)
+        for line in candidate_manifest_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    with (output / "candidate_manifest.csv").open(
+        "w", encoding="utf-8-sig", newline=""
+    ) as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=[
+                "ordinal",
+                "factorId",
+                "archetypeId",
+                "agent",
+                "generation",
+                "source",
+                "expressionText",
+                "fastScreenPassed",
+                "fastScreenRejection",
+                "parents",
+            ],
+        )
+        writer.writeheader()
+        for row in manifest_rows:
+            writer.writerow(
+                {
+                    key: (
+                        json.dumps(row.get(key), ensure_ascii=False)
+                        if key == "parents"
+                        else row.get(key)
+                    )
+                    for key in writer.fieldnames
+                }
+            )
+    atomic_json(
+        output / "run_status.json",
+        {
+            "schemaVersion": "perception_xalpha_active_cycle_v1",
+            "status": "complete_research_only_not_trading",
+            "runId": cycle_id,
+            "startedAt": generated_at.isoformat(),
+            "completedAt": datetime.now(timezone.utc).isoformat(),
+            "candidateBudget": budget,
+            "evaluatedCandidates": generated_count,
+            "fastScreenPassed": len(accepted),
+            "stage2Bundles": len(bundles),
+            "dailyResearchCandidates": len(daily_factor_candidates),
+            "credibleResearchFactors": len(credible_factors),
             "orders": [],
             "automaticTradingChanges": [],
         },

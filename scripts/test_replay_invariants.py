@@ -7278,6 +7278,25 @@ def t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it() -> N
         '$ErrorActionPreference = "Continue"' in daily_runner
         and daily_runner.count("$LASTEXITCODE -ne 0") >= 3,
     )
+    check(
+        "T115 readable candidate manifest preserves the complete DSL formula",
+        xalpha.expression_text(
+            {
+                "binary": "sub",
+                "left": {"rolling": "sum", "arg": {"field": "returns"}, "window": 60},
+                "right": {"rolling": "sum", "arg": {"field": "returns"}, "window": 10},
+            }
+        ) == "sub(rolling_sum(returns,60),rolling_sum(returns,10))",
+    )
+    miner_source = (
+        ROOT / "scripts" / "research_perception_xalpha_autonomous.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T115 every evaluated candidate is streamed to an inspectable manifest",
+        'candidate_manifest_path = output / "candidate_manifest.jsonl"' in miner_source
+        and '"ordinal": generated_count' in miner_source
+        and '"expressionText": expression_text' in miner_source,
+    )
 
     index = pd.bdate_range("2023-01-02", periods=360)
     codes = [f"S{i:03d}" for i in range(40)]
