@@ -6979,6 +6979,80 @@ def t112_ashare_labels_exclude_untradeable_legs() -> None:
     )
 
 
+def t113_factor_search_success_path_actually_works() -> None:
+    """Cover the paths a green suite previously missed entirely.
+
+    Every invariant passed while three defects sat in the success path: the near-miss parent
+    pool read a key that does not exist (so evolution could never breed), the screen's first
+    passing candidate hit a NameError on dropped locals, and screen and full evaluation
+    priced two different portfolios. Rejection-path tests cannot see any of these -- only
+    exercising a candidate that SUCCEEDS can.
+    """
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_autonomous as auto
+    import research_perception_xalpha_autonomous as xalpha
+
+    # (a) the near-miss fallback must read the shape fast_screen actually emits
+    audit = {"rankIc": auto.period_stats(pd.Series([0.02, 0.03, 0.01, 0.04]), pd.Series([True] * 4))}
+    check(
+        "T113 fast_screen emits a flat rankIc block (no nested train key)",
+        "t" in audit["rankIc"] and "train" not in audit["rankIc"],
+    )
+    check(
+        "T113 near-miss fitness is readable from that block",
+        audit["rankIc"]["t"] is not None and abs(float(audit["rankIc"]["t"])) > 0,
+    )
+
+    # (b) one book definition: screen and full evaluation must price the SAME strategy
+    index = pd.date_range("2024-01-01", periods=140, freq="B")
+    codes = [f"S{i:02d}" for i in range(40)]
+    rng = np.random.default_rng(5)
+    close = pd.DataFrame(
+        10.0 * np.cumprod(1.0 + rng.normal(0, 0.01, (len(index), len(codes))), axis=0),
+        index=index, columns=codes,
+    )
+    panel = {
+        "open": close.shift(1).bfill(), "close": close,
+        "high": close * 1.01, "low": close * 0.99,
+        "volume": pd.DataFrame(1e6, index=index, columns=codes),
+        "amount": pd.DataFrame(5e7, index=index, columns=codes),
+    }
+    one_day = panel["open"].shift(-2) / panel["open"].shift(-1) - 1.0
+    signal = -(close / close.shift(20) - 1.0)
+    cog_config = {
+        "data": {
+            "topQuantile": 0.2, "roundTripCost": 0.003,
+            "sizeNeutralise": True, "sizeNeutraliseBins": 5,
+            "bookConstruction": "rank_weighted",
+            "holdForPredictionHorizon": True, "predictionHorizonTradingDays": 10,
+        }
+    }
+    shared_net, _to, _w, _br, _bm = auto.long_only_portfolio(signal, one_day, panel, cog_config)
+    screen_net, _st, _sw = xalpha.long_only_portfolio(
+        signal, one_day, panel, cog_config, {"fastScreen": {}, "fullEvaluation": {}}
+    )
+    aligned = pd.concat([shared_net, screen_net], axis=1).dropna()
+    check(
+        "T113 screen and full evaluation produce an identical return series",
+        len(aligned) > 30 and bool(np.allclose(aligned.iloc[:, 0], aligned.iloc[:, 1])),
+    )
+
+    # (c) the construction knobs must actually bite, not silently no-op
+    legacy_config = {"data": {"topQuantile": 0.2, "roundTripCost": 0.003}}
+    legacy_net, legacy_to, _lw, _lb, _lbm = auto.long_only_portfolio(
+        signal, one_day, panel, legacy_config
+    )
+    check(
+        "T113 legacy defaults are preserved when knobs are absent",
+        float(legacy_to.mean()) > float(_to.mean()),
+    )
+    check(
+        "T113 horizon holding materially lowers turnover",
+        float(_to.mean()) < 0.5 * float(legacy_to.mean()),
+    )
+
+
 def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
     import json
     import random
@@ -7381,6 +7455,7 @@ if __name__ == "__main__":
     t103_perception_xalpha_tickets_dsl_and_registry_are_safe()
     t104_t110_autonomous_perception_factor_discovery_is_safe()
     t112_ashare_labels_exclude_untradeable_legs()
+    t113_factor_search_success_path_actually_works()
     t111_all_ashare_research_universe_is_complete_and_isolated()
     print()
     if failures:

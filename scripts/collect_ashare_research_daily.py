@@ -24,7 +24,7 @@ import time
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -33,6 +33,32 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = ROOT / "data" / "market" / "ashare_research"
 MASTER_ROOT = DATA_ROOT / "master"
 BARS_ROOT = DATA_ROOT / "bars_1d_raw"
+# Preregistered: the unattended weekly run continues on isolated symbol failures and aborts
+# only on a coverage collapse. 5 unreachable BJ symbols out of 5,539 must not stop mining.
+MINIMUM_BACKFILL_COVERAGE = 0.995
+
+
+def latest_expected_session(today: date | None = None) -> str:
+    """Most recent CLOSED XSHG session -- the only defensible freshness target.
+
+    Using the calendar date makes every weekend and holiday look stale, so the collector
+    re-requested all 5,539 symbols on Saturday 2026-08-01. Falls back to a weekday walk-back
+    if the calendar package is unavailable, which is still strictly better than today().
+    """
+    moment = today or date.today()
+    try:
+        import exchange_calendars as xcals
+        import pandas as pd
+
+        calendar = xcals.get_calendar("XSHG")
+        stamp = pd.Timestamp(moment.isoformat())
+        session = calendar.previous_close(stamp + pd.Timedelta(days=1)).date()
+        return session.isoformat()
+    except Exception:
+        probe = moment
+        while probe.weekday() >= 5:
+            probe -= timedelta(days=1)
+        return probe.isoformat()
 OUTPUT_ROOT = ROOT / "outputs" / "edge_research" / "ashare_data_audit"
 LATEST_MASTER = MASTER_ROOT / "ashare_master_latest.jsonl"
 MANIFEST = DATA_ROOT / "collection_manifest.jsonl"
@@ -395,7 +421,7 @@ def collect_one(
     old = load_jsonl(path) if path.exists() else []
     if old and not force:
         last = str(old[-1].get("dt") or "")[:10] if old else None
-        freshness_target = end_date or date.today().isoformat()
+        freshness_target = end_date or latest_expected_session()
         if last and last >= freshness_target:
             return {
                 "securityId": security["securityId"],
@@ -604,7 +630,25 @@ def main() -> int:
             return 2
     if args.mode in {"backfill", "all"}:
         summary = backfill(args)
-        if summary["statusCounts"].get("failed", 0):
+        counts = summary["statusCounts"]
+        failed = int(counts.get("failed", 0))
+        attempted = sum(int(value) for value in counts.values()) or 1
+        coverage = 1.0 - failed / attempted
+        summary["coverage"] = round(coverage, 6)
+        summary["minimumCoverage"] = MINIMUM_BACKFILL_COVERAGE
+        summary["collectorStatus"] = (
+            "ok" if failed == 0
+            else "degraded_within_tolerance" if coverage >= MINIMUM_BACKFILL_COVERAGE
+            else "insufficient_coverage"
+        )
+        print(json.dumps({"backfillCoverage": summary["coverage"],
+                          "collectorStatus": summary["collectorStatus"],
+                          "failed": failed, "attempted": attempted},
+                         ensure_ascii=False))
+        # A handful of unreachable symbols (typically BJ timeouts) must not abort the whole
+        # unattended weekly run: on 2026-08-01 five failures out of 5,539 returned exit 3 and
+        # the miner never started. Only a genuine coverage collapse is fatal.
+        if coverage < MINIMUM_BACKFILL_COVERAGE:
             return 3
     if args.mode in {"audit", "all"}:
         print(json.dumps(audit(), ensure_ascii=False, indent=2))

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "perception_xalpha_autonomous_v2",
   "status": "research_only_shadow_only_not_trading",
-  "purpose": "Run the frozen mechanism-first autonomous factor discovery protocol across the current discoverable SH/SZ/BJ A-share universe without changing any trading system.",
+  "purpose": "Run the frozen mechanism-first autonomous factor discovery protocol across the current discoverable SH/SZ/BJ A-share universe without changing any trading system. | v2 (2026-08-02): unified book engine (size-neutral, rank-weighted, horizon-hold), screen relaxed to a funnel with the burden on IC, evolution seeded from screened-out candidates. fullEvaluation gates unchanged from v1.",
   "basePerceptionConfig": "configs/research/perception_xalpha_mvp.json",
   "baseCogAlphaConfig": "configs/research/cogalpha_autonomous_v1.json",
   "assetUniverse": {
@@ -61,12 +61,12 @@
     "provider": "deterministic_local_grammar",
     "remoteApiAllowed": false,
     "arbitraryPythonAllowed": false,
-    "maximumPrimaryCandidatesPerCycle": 32,
+    "maximumPrimaryCandidatesPerCycle": 128,
     "maximumStage2Bundles": 6,
-    "initialVariantsPerQuestion": 3,
-    "generationsPerCycle": 2,
-    "parentPoolSize": 8,
-    "childrenPerParent": 2,
+    "initialVariantsPerQuestion": 12,
+    "generationsPerCycle": 5,
+    "parentPoolSize": 16,
+    "childrenPerParent": 3,
     "maximumPersistentParents": 12,
     "maximumExpressionDepth": 9,
     "placeboLagTradingDays": 20,
@@ -82,18 +82,23 @@
       "refinement": 0.25,
       "novelty_injection": 0.2
     },
-    "randomSeed": 20260731
+    "randomSeed": 20260731,
+    "seedParentsFromBestScreened": true,
+    "minimumParentsToContinue": 4
   },
   "fastScreen": {
     "selectionData": "train_only",
     "minimumTrainIcDays": 120,
-    "minimumAbsoluteRankIc": 0.003,
-    "minimumRankIcIr": 0.05,
-    "minimumCostedLongOnlyIr": -0.25,
+    "minimumAbsoluteRankIc": 0.005,
+    "minimumRankIcIr": 0.08,
+    "minimumCostedLongOnlyIr": -1.0,
     "maximumNanFraction": 0.3,
     "minimumMedianCrossSectionDistinct": 5,
     "maximumBehaviorCorrelation": 0.97,
-    "complexityPenaltyPerDepth": 0.03
+    "complexityPenaltyPerDepth": 0.03,
+    "sizeNeutralise": true,
+    "sizeNeutraliseBins": 5,
+    "bookConstruction": "rank_weighted"
   },
   "fullEvaluation": {
     "selectionData": "purged_train_validation_shadow",

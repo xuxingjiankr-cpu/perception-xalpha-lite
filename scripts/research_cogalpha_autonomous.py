@@ -518,6 +518,66 @@ def tradability_frames(panel: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, pd
     return buyable, sellable
 
 
+def size_neutralise(signal: pd.DataFrame, panel: dict[str, pd.DataFrame], bins: int) -> pd.DataFrame:
+    """Standardise the signal inside trailing-liquidity buckets.
+
+    An un-neutralised A-share cross-section is largely a size bet, and the size bet is what
+    the cost model then destroys. Bucketing on trailing median amount (causal, shifted) and
+    z-scoring within bucket keeps the intra-bucket ordering a factor can actually claim.
+    """
+    if bins < 2 or "amount" not in panel:
+        return signal
+    scale = np.log(panel["amount"].rolling(20).median().shift(1).replace(0.0, np.nan))
+    buckets = scale.rank(axis=1, pct=True)
+    out = signal * np.nan
+    for index in range(bins):
+        lower, upper = index / bins, (index + 1) / bins
+        member = buckets.le(upper) if index == 0 else (buckets.gt(lower) & buckets.le(upper))
+        group = signal.where(member)
+        centred = group.sub(group.mean(axis=1), axis=0).div(
+            group.std(axis=1).replace(0.0, np.nan), axis=0
+        )
+        out = out.fillna(centred)
+    return out
+
+
+def long_only_portfolio(
+    signal: pd.DataFrame,
+    one_day: pd.DataFrame,
+    panel: dict[str, pd.DataFrame],
+    config: dict[str, Any],
+) -> tuple[pd.Series, pd.Series, pd.DataFrame, pd.Series, pd.Series]:
+    """THE book definition: (net, turnover, weights, book_return, benchmark).
+
+    Every stage -- fast screen, purged walk-forward, Primary/Counter/Placebo, DSR/PBO -- must
+    price the same strategy, otherwise a factor is screened as one portfolio and validated as
+    a different one. Construction knobs live in config["data"] and DEFAULT TO THE LEGACY
+    behaviour (equal-weight top decile, daily rebalance, no neutralisation) so no pipeline
+    silently changes; the A-share config opts in explicitly.
+    """
+    data = config["data"]
+    if bool(data.get("sizeNeutralise", False)):
+        signal = size_neutralise(signal, panel, int(data.get("sizeNeutraliseBins", 5)))
+    ranks = signal.rank(axis=1, pct=True)
+    quantile = float(data["topQuantile"])
+    if str(data.get("bookConstruction", "top_decile")) == "rank_weighted":
+        raw_weights = ranks.sub(1.0 - quantile).clip(lower=0.0)
+    else:
+        raw_weights = ranks.ge(1.0 - quantile).astype(float)
+    weights = raw_weights.div(raw_weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    hold = int(data.get("predictionHorizonTradingDays", 1)) if bool(
+        data.get("holdForPredictionHorizon", False)
+    ) else 1
+    if hold > 1:
+        weights = weights.rolling(hold).mean().fillna(0.0)
+        weights = weights.div(weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    book_return = (weights * one_day).sum(axis=1, min_count=1)
+    benchmark = one_day.mean(axis=1)
+    turnover = weights.diff().abs().sum(axis=1) / 2.0
+    net = book_return - benchmark - turnover * float(data["roundTripCost"])
+    return net, turnover, weights, book_return, benchmark
+
+
 def target_frames(panel: dict[str, pd.DataFrame], config: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Labels are entered at the next open and exited at the horizon open.
 
@@ -571,14 +631,9 @@ def evaluate_candidate(
     direction = 1.0 if float(raw_train_rank_ic.mean()) >= 0 else -1.0
     signal = raw * direction
     ic = signal.corrwith(target, axis=1, method="pearson").dropna()
-    rank_ic = signal.corrwith(target, axis=1, method="spearman").dropna()
-    ranks = signal.rank(axis=1, pct=True)
-    top = ranks.ge(1.0 - float(config["data"]["topQuantile"]))
-    weights = top.div(top.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
-    top_return = (weights * one_day).sum(axis=1, min_count=1)
-    benchmark = one_day.mean(axis=1)
-    turnover = weights.diff().abs().sum(axis=1) / 2.0
-    long_net = top_return - benchmark - turnover * float(config["data"]["roundTripCost"])
+    long_net, turnover, weights, top_return, benchmark = long_only_portfolio(
+        signal, one_day, panel, config
+    )
     hit = (top_return > benchmark).astype(float)
     masks = {"train": split.train, "validation": split.validation, "shadow": split.shadow}
     mi = {period: discrete_mutual_information(signal, target, mask) for period, mask in masks.items()}

@@ -331,6 +331,17 @@ def load_base_configs(
     cog_config["data"]["roundTripCost"] = float(
         config["fullEvaluation"]["roundTripCost"]
     )
+    # One book definition for every stage: inject the construction knobs the screen uses so
+    # evaluate_candidate (Primary/Counter/Placebo, purged walk-forward, DSR/PBO) prices the
+    # same portfolio. Without this a factor is screened as one strategy and validated as
+    # another, and the two verdicts are not comparable.
+    screen = config["fastScreen"]
+    cog_config["data"]["sizeNeutralise"] = bool(screen.get("sizeNeutralise", False))
+    cog_config["data"]["sizeNeutraliseBins"] = int(screen.get("sizeNeutraliseBins", 5))
+    cog_config["data"]["bookConstruction"] = str(
+        screen.get("bookConstruction", "top_decile")
+    )
+    cog_config["data"]["holdForPredictionHorizon"] = True
     universe = config.get("assetUniverse", {})
     if universe.get("kind") == "all_a_shares":
         overrides = universe.get("dataOverrides", {})
@@ -701,30 +712,6 @@ def initial_candidates(
     return deduplicated
 
 
-def size_neutralise(signal: pd.DataFrame, panel: dict[str, pd.DataFrame], bins: int) -> pd.DataFrame:
-    """Standardise the signal inside trailing-liquidity buckets.
-
-    Un-neutralised A-share cross-sections are dominated by size: a raw signal is largely a
-    size bet, and the size bet is what the cost model then destroys. Bucketing on trailing
-    median amount (causal, shifted) and z-scoring within bucket keeps the intra-bucket
-    ordering -- the part a factor can actually claim -- and discards the size tilt.
-    """
-    if bins < 2:
-        return signal
-    scale = np.log(panel["amount"].rolling(20).median().shift(1).replace(0.0, np.nan))
-    buckets = scale.rank(axis=1, pct=True)
-    out = signal * np.nan
-    for index in range(bins):
-        lower, upper = index / bins, (index + 1) / bins
-        member = buckets.gt(lower) & buckets.le(upper) if index else buckets.le(upper)
-        group = signal.where(member)
-        centred = group.sub(group.mean(axis=1), axis=0).div(
-            group.std(axis=1).replace(0.0, np.nan), axis=0
-        )
-        out = out.fillna(centred)
-    return out
-
-
 def long_only_portfolio(
     signal: pd.DataFrame,
     one_day: pd.DataFrame,
@@ -732,36 +719,16 @@ def long_only_portfolio(
     cog_config: dict[str, Any],
     config: dict[str, Any],
 ) -> tuple[pd.Series, pd.Series, pd.DataFrame]:
-    """(net excess return, turnover, weights) for the harvestable long-only book.
+    """Delegate to the single shared book definition in research_cogalpha_autonomous.
 
-    Three construction choices, each measured on the real panel with a 20-day reversal probe
-    (IC t=15.8) before being adopted:
-      * size neutralisation lifted gross IR 0.08 -> 0.29;
-      * rank weighting over the whole book beats a hard decile cut (0.08 -> 0.21 gross)
-        because a decile discards the monotone middle of a broad signal;
-      * holding for the prediction horizon instead of rebalancing daily cut turnover
-        0.23 -> 0.069/day, i.e. the cost drag the old screen was charging was ~3.3x the
-        drag the strategy the label describes would actually pay.
-    Together they moved that probe from -0.41 net IR to break-even, which is why an
-    un-neutralised daily-rebalanced decile screen was rejecting real signals as unprofitable.
+    Screen and full evaluation must price the identical strategy; keeping a second
+    implementation here is exactly how a factor ends up screened as one portfolio and
+    validated as another. Construction knobs are injected into cog_config["data"] by
+    build_cog_config, so both stages read one source of truth.
     """
-    screen = config["fastScreen"]
-    if bool(screen.get("sizeNeutralise", True)):
-        signal = size_neutralise(signal, panel, int(screen.get("sizeNeutraliseBins", 5)))
-    ranks = signal.rank(axis=1, pct=True)
-    if str(screen.get("bookConstruction", "rank_weighted")) == "rank_weighted":
-        raw_weights = ranks.sub(1.0 - float(cog_config["data"]["topQuantile"])).clip(lower=0.0)
-    else:
-        raw_weights = ranks.ge(1.0 - float(cog_config["data"]["topQuantile"])).astype(float)
-    weights = raw_weights.div(raw_weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
-    hold = int(cog_config["data"]["predictionHorizonTradingDays"])
-    if hold > 1:
-        weights = weights.rolling(hold).mean().fillna(0.0)
-        weights = weights.div(weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
-    book_return = (weights * one_day).sum(axis=1, min_count=1)
-    benchmark = one_day.mean(axis=1)
-    turnover = weights.diff().abs().sum(axis=1) / 2.0
-    net = book_return - benchmark - turnover * float(config["fullEvaluation"]["roundTripCost"])
+    net, turnover, weights, _book, _bench = autonomous.long_only_portfolio(
+        signal, one_day, panel, cog_config
+    )
     return net, turnover, weights
 
 
@@ -1610,11 +1577,13 @@ def run_cycle(
                 # survivors, generations 2..N never ran) -- an evolutionary algorithm that
                 # cannot evolve. Fitness here is |train rank-IC t|, which is train-only and
                 # therefore does not breach the validation/shadow quarantine.
+                # fast_screen reports metrics["rankIc"] as a FLAT period_stats block
+                # ({n, mean, t, irAnn}) already restricted to train -- there is no nested
+                # "train" key. Reading one used to leave near_miss permanently empty, so the
+                # fallback below never fired and evolution stayed dead while appearing wired.
                 rank_block = audit.get("rankIc") if isinstance(audit, dict) else None
-                if isinstance(rank_block, dict):
-                    train_block = rank_block.get("train")
-                    if isinstance(train_block, dict) and train_block.get("t") is not None:
-                        near_miss.append((abs(float(train_block["t"])), candidate))
+                if isinstance(rank_block, dict) and rank_block.get("t") is not None:
+                    near_miss.append((abs(float(rank_block["t"])), candidate))
                 rejected_rows.append(
                     {
                         "rejectionId": "rejection_"
