@@ -262,6 +262,11 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("search budget is not bounded")
     if int(synthesis["maximumStage2Bundles"]) > 16:
         raise ValueError("Stage-2 budget is not bounded")
+    structured_library = synthesis.get("structuredSeedLibrary")
+    if structured_library not in {None, "a_share_tradeable_v1"}:
+        raise ValueError("unknown structured seed library")
+    if int(synthesis.get("maximumStructuredSeedsPerQuestion", 0)) > 8:
+        raise ValueError("structured seed budget is not bounded")
     if not math.isclose(
         sum(float(value) for value in synthesis["operatorWeights"].values()),
         1.0,
@@ -313,6 +318,9 @@ def validate_config(config: dict[str, Any]) -> None:
     horizon = int(full["maximumLabelHorizonTradingDays"])
     if int(full["purgeTradingDays"]) < horizon:
         raise ValueError("walk-forward purge must cover the label horizon")
+    construction = str(config["fastScreen"].get("bookConstruction", "top_decile"))
+    if construction not in {"top_decile", "rank_weighted", "linear_rank_tilt"}:
+        raise ValueError("unknown long-only book construction")
 
 
 def load_base_configs(
@@ -614,6 +622,109 @@ def make_candidate(
     return candidate
 
 
+def structured_tradeable_seeds(
+    archetype_id: str,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Frozen A-share OHLCV hypotheses, not a parameter sweep.
+
+    Random grammar is useful for novelty but can miss the small set of mechanisms that
+    have a plausible path from cross-sectional IC to a long-only, costed portfolio.  These
+    expressions are strictly close-t/past-only and use the existing audited DSL.  Direction
+    is still learned on train only; names are provenance, never a promise of alpha.
+    """
+
+    def field(name: str) -> dict[str, Any]:
+        return {"field": name}
+
+    def roll(op: str, arg: dict[str, Any], window: int) -> dict[str, Any]:
+        return {"rolling": op, "arg": arg, "window": window}
+
+    def unary(op: str, arg: dict[str, Any]) -> dict[str, Any]:
+        return {"unary": op, "arg": arg}
+
+    def binary(
+        op: str, left: dict[str, Any], right: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {"binary": op, "left": left, "right": right}
+
+    def zscore(arg: dict[str, Any], window: int) -> dict[str, Any]:
+        return {"zscore": True, "arg": arg, "window": window}
+
+    returns = field("returns")
+    close = field("close")
+    open_price = field("open")
+    log_volume = unary("signed_log1p", field("volume"))
+    log_amount = unary("signed_log1p", field("amount"))
+    return_3 = roll("sum", returns, 3)
+    return_5 = roll("sum", returns, 5)
+    return_10 = roll("sum", returns, 10)
+    return_20 = roll("sum", returns, 20)
+    return_60 = roll("sum", returns, 60)
+    return_120 = roll("sum", returns, 120)
+    gap = binary("div", open_price, {"lag": 1, "arg": close})
+    intraday = binary("div", close, open_price)
+    amihud_20 = roll(
+        "mean", binary("div", unary("abs", returns), field("amount")), 20
+    )
+    volume_shock_20 = zscore(log_volume, 20)
+    amount_shock_60 = zscore(log_amount, 60)
+    range_position_60 = {"range_position": True, "arg": close, "window": 60}
+
+    library: dict[str, list[tuple[str, dict[str, Any]]]] = {
+        "liquidity_reversal": [
+            ("short_reversal_3", unary("neg", return_3)),
+            ("short_reversal_5", unary("neg", return_5)),
+            ("short_reversal_10", unary("neg", return_10)),
+            ("volume_shock_reversal", binary("mul", unary("neg", return_5), volume_shock_20)),
+            ("illiquidity_shock_reversal", binary("mul", unary("neg", return_5), amihud_20)),
+            ("gap_reversal", unary("neg", gap)),
+        ],
+        "information_diffusion": [
+            ("momentum_120_ex_recent_20", binary("sub", return_120, return_20)),
+            ("momentum_60_ex_recent_5", binary("sub", return_60, return_5)),
+            ("lagged_momentum_20", {"lag": 5, "arg": return_20}),
+            ("overnight_gap_continuation", gap),
+            ("intraday_continuation", intraday),
+            ("gap_intraday_divergence", binary("sub", gap, intraday)),
+        ],
+        "benchmark_rebalancing": [
+            ("medium_reversal_30_ex_10", binary("sub", roll("sum", returns, 30), return_10)),
+            ("momentum_120_ex_recent_20", binary("sub", return_120, return_20)),
+            ("flow_confirmed_momentum", binary("mul", return_20, amount_shock_60)),
+            ("slow_fast_momentum", binary("sub", return_60, return_10)),
+            ("liquidity_persistence", binary("div", roll("mean", log_amount, 5), roll("mean", log_amount, 60))),
+            ("risk_adjusted_momentum", binary("div", return_60, roll("std", returns, 20))),
+        ],
+        "crowding_unwind": [
+            ("max_return_reversal_20", unary("neg", roll("max", returns, 20))),
+            ("crowded_momentum_unwind", unary("neg", binary("mul", return_20, zscore(log_volume, 60)))),
+            ("volume_price_divergence", binary("mul", return_10, unary("neg", volume_shock_20))),
+            ("volatility_compression", unary("neg", binary("div", roll("std", returns, 5), roll("std", returns, 60)))),
+            ("range_position_reversal", unary("neg", range_position_60)),
+            ("drawdown_flow_rebound", binary("mul", unary("neg", {"drawdown": True, "arg": close, "window": 60}), volume_shock_20)),
+        ],
+        "order_splitting": [
+            ("flow_confirmed_momentum", binary("mul", return_20, amount_shock_60)),
+            ("volume_confirmed_momentum", binary("mul", return_10, volume_shock_20)),
+            ("persistent_intraday_pressure", roll("mean", intraday, 10)),
+            ("slow_fast_momentum", binary("sub", return_60, return_10)),
+        ],
+        "risk_budgeting": [
+            ("low_volatility_20", unary("neg", roll("std", returns, 20))),
+            ("volatility_compression", unary("neg", binary("div", roll("std", returns, 5), roll("std", returns, 60)))),
+            ("drawdown_60", {"drawdown": True, "arg": close, "window": 60}),
+            ("risk_adjusted_momentum", binary("div", return_60, roll("std", returns, 20))),
+        ],
+        "volatility_feedback": [
+            ("low_volatility_20", unary("neg", roll("std", returns, 20))),
+            ("downside_pressure_20", roll("mean", binary("sub", returns, unary("abs", returns)), 20)),
+            ("max_return_reversal_20", unary("neg", roll("max", returns, 20))),
+            ("drawdown_flow_rebound", binary("mul", unary("neg", {"drawdown": True, "arg": close, "window": 60}), volume_shock_20)),
+        ],
+    }
+    return copy.deepcopy(library.get(archetype_id, []))
+
+
 def book_identity(cog_config: dict[str, Any]) -> str:
     """Hash of the effective book definition a parent pool was bred under.
 
@@ -692,6 +803,24 @@ def initial_candidates(
     seed = int(config["synthesis"]["randomSeed"])
     output: list[dict[str, Any]] = []
     for hypothesis in hypotheses:
+        if config["synthesis"].get("structuredSeedLibrary") == "a_share_tradeable_v1":
+            structured = structured_tradeable_seeds(str(hypothesis["archetypeId"]))
+            maximum_structured = int(
+                config["synthesis"].get("maximumStructuredSeedsPerQuestion", 0)
+            )
+            for seed_name, expression in structured[:maximum_structured]:
+                core.validate_expression(
+                    expression, autonomous.expression_config(cog_config)
+                )
+                output.append(
+                    make_candidate(
+                        hypothesis,
+                        expression,
+                        0,
+                        [],
+                        f"structured_seed:{seed_name}",
+                    )
+                )
         local_seed = seed + int(digest(hypothesis["hypothesisId"])[:8], 16)
         rng = random.Random(local_seed)
         agent = str(ARCHETYPES[hypothesis["archetypeId"]]["agent"])
@@ -1431,8 +1560,8 @@ def render_report(result: dict[str, Any]) -> str:
             "",
             "## Full factor bundles",
             "",
-            "| factor | archetype | state | validation net IR | counter IR | placebo IR | rejection |",
-            "|---|---|---|---:|---:|---:|---|",
+            "| factor | archetype | state | validation gross IR | validation net IR | turnover/day | cost/day | counter IR | placebo IR | rejection |",
+            "|---|---|---|---:|---:|---:|---:|---:|---:|---|",
         ]
     )
     for bundle in result["factorBundles"]:
@@ -1443,6 +1572,17 @@ def render_report(result: dict[str, Any]) -> str:
             primary_metrics.get("validation", {})
             .get("costedLongOnly", {})
             .get("irAnn")
+        )
+        primary_gross_ir = (
+            primary_metrics.get("validation", {})
+            .get("grossLongOnly", {})
+            .get("irAnn")
+        )
+        turnover_mean = (
+            primary_metrics.get("validation", {}).get("turnover", {}).get("mean")
+        )
+        cost_mean = (
+            primary_metrics.get("validation", {}).get("costDrag", {}).get("mean")
         )
         counter_ir = (
             counter_metrics.get("validation", {})
@@ -1456,7 +1596,8 @@ def render_report(result: dict[str, Any]) -> str:
         )
         lines.append(
             f"| {bundle['factorId']} | {bundle['archetypeId']} | "
-            f"{bundle['status']} | {primary_ir} | {counter_ir} | "
+            f"{bundle['status']} | {primary_gross_ir} | {primary_ir} | "
+            f"{turnover_mean} | {cost_mean} | {counter_ir} | "
             f"{placebo_ir} | {', '.join(bundle['rejectionReasons'])} |"
         )
     lines.extend(

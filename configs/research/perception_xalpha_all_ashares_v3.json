@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "perception_xalpha_autonomous_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Pre-registered v3 historical research: test whether structured A-share OHLCV mechanisms plus a broad linear-rank long-only tilt can convert persistent cross-sectional IC into positive costed PnL. This window is already researched and cannot promote; any survivor requires fresh forward shadow validation.",
+  "basePerceptionConfig": "configs/research/perception_xalpha_mvp.json",
+  "baseCogAlphaConfig": "configs/research/cogalpha_autonomous_v1.json",
+  "assetUniverse": {
+    "kind": "all_a_shares",
+    "definition": "current_discoverable_SH_SZ_BJ_A_shares",
+    "exchanges": ["SH", "SZ", "BJ"],
+    "masterPath": "data/market/ashare_research/master/ashare_master_latest.jsonl",
+    "barsRoot": "data/market/ashare_research/bars_1d_raw",
+    "pointInTimeMembershipAvailable": false,
+    "minimumMasterCoverageForHistoricalValidation": 0.95,
+    "minimumEligibleSymbols": 3000,
+    "maximumSuspensionFraction": 0.2,
+    "maximumMissingBarFraction": 0.15,
+    "maximumAbsoluteRawDailyReturn": 0.5,
+    "maximumExtremeReturnFraction": 0.005,
+    "dataOverrides": {
+      "minimumObservationsPerSymbol": 500,
+      "minimumMedianDailyAmountCny": 30000000,
+      "minimumCrossSection": 300
+    },
+    "survivorshipWarning": "The security master is current, not historical point-in-time. Delisted stocks and historical ST status are incomplete, so results retain survivorship and membership bias."
+  },
+  "researchDirector": {
+    "maximumQuestionsPerCycle": 4,
+    "maximumMechanismsPerPhenomenon": 2,
+    "priority": ["market_mechanism", "historical_train_feedback", "novelty", "recurrence"],
+    "validationFeedbackAllowed": false,
+    "shadowFeedbackAllowed": false
+  },
+  "mechanismLibrary": {
+    "archetypes": [
+      "order_splitting",
+      "liquidity_reversal",
+      "risk_budgeting",
+      "information_diffusion",
+      "crowding_unwind",
+      "benchmark_rebalancing",
+      "volatility_feedback"
+    ],
+    "requiredBundleMembers": ["primary", "counter", "placebo"],
+    "failureConditionsRequired": true
+  },
+  "synthesis": {
+    "provider": "deterministic_local_grammar",
+    "remoteApiAllowed": false,
+    "arbitraryPythonAllowed": false,
+    "structuredSeedLibrary": "a_share_tradeable_v1",
+    "maximumStructuredSeedsPerQuestion": 6,
+    "maximumPrimaryCandidatesPerCycle": 128,
+    "maximumStage2Bundles": 12,
+    "initialVariantsPerQuestion": 6,
+    "generationsPerCycle": 5,
+    "parentPoolSize": 16,
+    "childrenPerParent": 3,
+    "maximumPersistentParents": 12,
+    "maximumExpressionDepth": 9,
+    "placeboLagTradingDays": 20,
+    "operators": ["mutation", "crossover", "refinement", "novelty_injection"],
+    "operatorWeights": {
+      "mutation": 0.35,
+      "crossover": 0.2,
+      "refinement": 0.25,
+      "novelty_injection": 0.2
+    },
+    "randomSeed": 20260802,
+    "seedParentsFromBestScreened": true,
+    "minimumParentsToContinue": 4
+  },
+  "fastScreen": {
+    "selectionData": "train_only",
+    "minimumTrainIcDays": 120,
+    "minimumAbsoluteRankIc": 0.005,
+    "minimumRankIcIr": 0.08,
+    "minimumCostedLongOnlyIr": 0.0,
+    "maximumNanFraction": 0.3,
+    "minimumMedianCrossSectionDistinct": 5,
+    "maximumBehaviorCorrelation": 0.97,
+    "complexityPenaltyPerDepth": 0.03,
+    "sizeNeutralise": true,
+    "sizeNeutraliseBins": 5,
+    "bookConstruction": "linear_rank_tilt"
+  },
+  "fullEvaluation": {
+    "selectionData": "purged_train_validation_shadow",
+    "roundTripCost": 0.003,
+    "maximumLabelHorizonTradingDays": 10,
+    "purgedWalkForwardFolds": 5,
+    "purgeTradingDays": 10,
+    "minimumPositiveWalkForwardFolds": 3,
+    "minimumValidationRankIc": 0.0,
+    "minimumValidationCostedIr": 0.0,
+    "minimumPrimaryAdvantageOverCounterIr": 0.0,
+    "minimumPrimaryAdvantageOverPlaceboIr": 0.0,
+    "pboMaximum": 0.2,
+    "priorProjectTrials": 715,
+    "failureConditionTrainQuantile": 0.75,
+    "validationOrShadowMetricsReturnedToGenerator": false,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60,
+    "humanApprovalRequired": true
+  },
+  "registry": {
+    "sqlitePath": "outputs/edge_research/perception_xalpha_all_ashares_v3/state/perception_xalpha_all_ashares_v3.sqlite",
+    "outputRoot": "outputs/edge_research/perception_xalpha_all_ashares_v3",
+    "stateDirectory": "outputs/edge_research/perception_xalpha_all_ashares_v3/state",
+    "skipWhenDataFingerprintUnchanged": true,
+    "appendOnlyEntities": [
+      "research_cycles",
+      "research_plans",
+      "mechanism_hypotheses",
+      "factor_bundles",
+      "experiments",
+      "rejection_events"
+    ]
+  },
+  "stateMachine": [
+    "DRAFT",
+    "STATIC_VALIDATED",
+    "LEAKAGE_VALIDATED",
+    "FAST_SCREENED",
+    "HISTORICALLY_VALIDATED",
+    "BORN",
+    "SHADOW",
+    "REJECTED",
+    "RETIRED"
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToObservationPool": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

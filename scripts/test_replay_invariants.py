@@ -7133,6 +7133,107 @@ def t113_factor_search_success_path_actually_works() -> None:
               f"reason={reason} crashed={crashed}")
 
 
+def t114_tradeable_factor_harvest_is_causal_and_isolated() -> None:
+    """The stronger search must broaden harvesting, not weaken evidence or safety."""
+    import json
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_autonomous as auto
+    import research_perception_xalpha_autonomous as xalpha
+
+    config_path = (
+        ROOT / "configs" / "research" / "perception_xalpha_all_ashares_v3.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    xalpha.validate_config(config)
+    _perception, cog_config = xalpha.load_base_configs(config)
+    check(
+        "T114 v3 is research-only and cannot promote or trade",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["fullEvaluation"]["historicalRunCanPromote"] is False
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+    check(
+        "T114 v3 uses an isolated registry and state directory",
+        "all_ashares_v3" in config["registry"]["sqlitePath"]
+        and "all_ashares_v3" in config["registry"]["stateDirectory"],
+    )
+
+    index = pd.date_range("2024-01-01", periods=100, freq="B")
+    codes = [f"S{i:02d}" for i in range(20)]
+    rng = np.random.default_rng(114)
+    close = pd.DataFrame(
+        10.0 * np.cumprod(1.0 + rng.normal(0.0, 0.01, (len(index), len(codes))), axis=0),
+        index=index,
+        columns=codes,
+    )
+    panel = {
+        "open": close * (1.0 + rng.normal(0.0, 0.002, close.shape)),
+        "high": close * 1.01,
+        "low": close * 0.99,
+        "close": close,
+        "volume": pd.DataFrame(rng.uniform(1e5, 2e6, close.shape), index=index, columns=codes),
+        "amount": pd.DataFrame(rng.uniform(1e7, 2e8, close.shape), index=index, columns=codes),
+        "returns": close.pct_change(fill_method=None),
+    }
+    causal = True
+    validated = 0
+    cutoff = 75
+    shocked = {key: value.copy() for key, value in panel.items()}
+    for value in shocked.values():
+        value.iloc[cutoff + 1 :] = value.iloc[cutoff + 1 :] * 7.0 + 3.0
+    for archetype in xalpha.ARCHETYPES:
+        for _name, expression in xalpha.structured_tradeable_seeds(archetype):
+            xalpha.core.validate_expression(
+                expression, auto.expression_config(cog_config)
+            )
+            before = xalpha.core.evaluate_expression(expression, panel).iloc[: cutoff + 1]
+            after = xalpha.core.evaluate_expression(expression, shocked).iloc[: cutoff + 1]
+            causal = causal and bool(
+                np.allclose(before, after, equal_nan=True)
+            )
+            validated += 1
+    check("T114 every structured factor seed validates inside the DSL", validated >= 30)
+    check("T114 structured factors are invariant to an unseen future suffix", causal)
+
+    # A linear rank tilt must invest broadly and harvest a monotone cross-section with
+    # less discontinuity than a hard top-decile selection.
+    signal = pd.DataFrame(
+        np.tile(np.arange(1.0, len(codes) + 1.0), (len(index), 1)),
+        index=index,
+        columns=codes,
+    )
+    one_day = (signal.rank(axis=1, pct=True) - 0.5) * 0.002
+    linear_config = {
+        "data": {
+            "topQuantile": 0.1,
+            "roundTripCost": 0.003,
+            "bookConstruction": "linear_rank_tilt",
+            "holdForPredictionHorizon": False,
+        }
+    }
+    net, turnover, weights, book_return, benchmark = auto.long_only_portfolio(
+        signal, one_day, panel, linear_config
+    )
+    check(
+        "T114 linear rank tilt remains fully invested",
+        bool(np.allclose(weights.sum(axis=1), 1.0)),
+    )
+    check(
+        "T114 linear rank tilt holds the broad cross-section instead of one decile",
+        int(weights.gt(0.0).sum(axis=1).median()) == len(codes),
+    )
+    check(
+        "T114 monotone planted IC becomes positive gross and costed PnL",
+        float((book_return - benchmark).mean()) > 0.0 and float(net.mean()) > 0.0,
+    )
+    check("T114 static ranks have zero steady-state turnover", float(turnover.iloc[1:].max()) == 0.0)
+
+
 def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
     import json
     import random
@@ -7536,6 +7637,7 @@ if __name__ == "__main__":
     t104_t110_autonomous_perception_factor_discovery_is_safe()
     t112_ashare_labels_exclude_untradeable_legs()
     t113_factor_search_success_path_actually_works()
+    t114_tradeable_factor_harvest_is_causal_and_isolated()
     t111_all_ashare_research_universe_is_complete_and_isolated()
     print()
     if failures:

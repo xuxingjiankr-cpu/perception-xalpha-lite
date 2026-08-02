@@ -560,7 +560,14 @@ def long_only_portfolio(
         signal = size_neutralise(signal, panel, int(data.get("sizeNeutraliseBins", 5)))
     ranks = signal.rank(axis=1, pct=True)
     quantile = float(data["topQuantile"])
-    if str(data.get("bookConstruction", "top_decile")) == "rank_weighted":
+    construction = str(data.get("bookConstruction", "top_decile"))
+    if construction == "linear_rank_tilt":
+        # A broad long-only tilt is the natural way to harvest a weak but monotone
+        # cross-sectional IC.  It remains fully invested, gives the best-ranked name
+        # roughly twice the equal-weight allocation and the worst-ranked name almost
+        # zero, and avoids the discontinuous turnover of a hard top-decile cut.
+        raw_weights = ranks.where(ranks.notna()).clip(lower=0.0)
+    elif construction == "rank_weighted":
         raw_weights = ranks.sub(1.0 - quantile).clip(lower=0.0)
     else:
         raw_weights = ranks.ge(1.0 - quantile).astype(float)
@@ -640,10 +647,17 @@ def evaluate_candidate(
     mi = {period: discrete_mutual_information(signal, target, mask) for period, mask in masks.items()}
     periods = {}
     for period, mask in masks.items():
+        gross_excess = top_return - benchmark
+        cost_drag = turnover * float(config["data"]["roundTripCost"])
+        filled_weight = weights.where(one_day.notna(), 0.0).sum(axis=1)
         periods[period] = {
             "ic": period_stats(ic, mask),
             "rankIc": period_stats(rank_ic, mask),
+            "grossLongOnly": period_stats(gross_excess, mask),
             "costedLongOnly": period_stats(long_net, mask),
+            "turnover": period_stats(turnover, mask),
+            "costDrag": period_stats(cost_drag, mask),
+            "filledWeight": period_stats(filled_weight, mask),
             "hitRate": period_stats(hit, mask),
             "mutualInformation": mi[period],
         }
