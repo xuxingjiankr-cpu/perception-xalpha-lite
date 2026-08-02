@@ -7234,6 +7234,115 @@ def t114_tradeable_factor_harvest_is_causal_and_isolated() -> None:
     check("T114 static ranks have zero steady-state turnover", float(turnover.iloc[1:].max()) == 0.0)
 
 
+def t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it() -> None:
+    """V4 may discover gross predictors, but it must remain causal and non-trading."""
+    import copy
+    import json
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_autonomous as auto
+    import research_perception_xalpha_autonomous as xalpha
+
+    config_path = (
+        ROOT / "configs" / "research" /
+        "perception_xalpha_all_ashares_v4_gross_discovery.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    xalpha.validate_config(config)
+    _perception, cog_config = xalpha.load_base_configs(config)
+    check(
+        "T115 v4 selects on gross evidence while retaining mandatory cost diagnostics",
+        xalpha.objective_group(config) == "grossLongOnly"
+        and config["discoveryObjective"]["costMetricsRemainMandatory"] is True
+        and config["fullEvaluation"]["roundTripCost"] == 0.003,
+    )
+    check(
+        "T115 v4 remains isolated from every trading mutation path",
+        config["fullEvaluation"]["historicalRunCanPromote"] is False
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    index = pd.bdate_range("2023-01-02", periods=360)
+    codes = [f"S{i:03d}" for i in range(40)]
+    rng = np.random.default_rng(115)
+    planted_values = rng.normal(0.0, 1.0, (len(index), len(codes)))
+    for row in range(1, len(index)):
+        planted_values[row] = (
+            0.95 * planted_values[row - 1] + 0.30 * planted_values[row]
+        )
+    planted = pd.DataFrame(planted_values, index=index, columns=codes)
+    close = 10.0 * (1.0 + planted * 0.001).cumprod()
+    panel = {
+        "open": close,
+        "high": close * 1.01,
+        "low": close * 0.99,
+        "close": close,
+        "volume": pd.DataFrame(1_000_000.0, index=index, columns=codes),
+        "amount": pd.DataFrame(50_000_000.0, index=index, columns=codes),
+        "returns": planted,
+        "market_return": pd.DataFrame(
+            np.tile(planted.mean(axis=1).to_numpy()[:, None], (1, len(codes))),
+            index=index,
+            columns=codes,
+        ),
+    }
+    shocked = {key: value.copy() for key, value in panel.items()}
+    shocked_cutoff = 300
+    for value in shocked.values():
+        value.iloc[shocked_cutoff + 1 :] = value.iloc[shocked_cutoff + 1 :] * 9.0
+    causal = True
+    seed_count = 0
+    for archetype in xalpha.ARCHETYPES:
+        for _name, expression in xalpha.structured_predictive_seeds(archetype):
+            xalpha.core.validate_expression(expression, auto.expression_config(cog_config))
+            before = xalpha.core.evaluate_expression(expression, panel).iloc[: shocked_cutoff + 1]
+            after = xalpha.core.evaluate_expression(expression, shocked).iloc[: shocked_cutoff + 1]
+            causal = causal and bool(np.allclose(before, after, equal_nan=True))
+            seed_count += 1
+    check("T115 expanded predictive library stays inside the audited DSL", seed_count >= 50)
+    check("T115 expanded predictive factors are prefix-causal", causal)
+
+    train = pd.Series(False, index=index)
+    validation = pd.Series(False, index=index)
+    shadow = pd.Series(False, index=index)
+    train.iloc[:240] = True
+    validation.iloc[250:310] = True
+    shadow.iloc[320:] = True
+    split = auto.Split(train, validation, shadow, {})
+    hypothesis = {
+        "hypothesisId": "t115_hypothesis",
+        "ticketId": "t115_ticket",
+        "archetypeId": "information_diffusion",
+        "falsifiablePrediction": "past planted ranks predict the supplied next return",
+        "mechanism": "test-only planted causal relation",
+        "forcedTrader": "test fixture",
+        "persistence": "test fixture",
+    }
+    candidate = xalpha.make_candidate(
+        hypothesis, {"field": "returns"}, 0, [], "t115_planted"
+    )
+    target = planted + pd.DataFrame(
+        rng.normal(0.0, 0.1, planted.shape), index=index, columns=codes
+    )
+    one_day = target.rank(axis=1, pct=True) * 0.002
+    punitive = copy.deepcopy(cog_config)
+    punitive["data"]["roundTripCost"] = 1.0
+    accepted, reason, audit = xalpha.fast_screen(
+        candidate, panel, target, one_day, split, config, punitive, []
+    )
+    check(
+        "T115 a gross predictor is not rejected solely by deliberately punitive costs",
+        accepted is not None and reason is None
+        and float(audit["grossLongOnly"]["irAnn"] or -99.0) > 0.0
+        and float(audit["costedLongOnly"]["irAnn"] or 99.0) < 0.0,
+        f"reason={reason} audit={audit}",
+    )
+
+
 def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
     import json
     import random
@@ -7638,6 +7747,7 @@ if __name__ == "__main__":
     t112_ashare_labels_exclude_untradeable_legs()
     t113_factor_search_success_path_actually_works()
     t114_tradeable_factor_harvest_is_causal_and_isolated()
+    t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it()
     t111_all_ashare_research_universe_is_complete_and_isolated()
     print()
     if failures:

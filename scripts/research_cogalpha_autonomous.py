@@ -165,6 +165,7 @@ class Evaluation:
     signal: pd.DataFrame
     ic: pd.Series
     rank_ic: pd.Series
+    gross_excess: pd.Series
     long_net: pd.Series
     hit: pd.Series
     mutual_information: dict[str, float | None]
@@ -688,7 +689,18 @@ def evaluate_candidate(
         - float(weights_cfg["complexityPenaltyPerDepth"]) * float(summary["expressionDepth"])
     )
     summary["trainFitness"] = round(fitness, 8)
-    return Evaluation(candidate, signal, ic, rank_ic, long_net, hit, mi, summary, fitness), None
+    return Evaluation(
+        candidate,
+        signal,
+        ic,
+        rank_ic,
+        top_return - benchmark,
+        long_net,
+        hit,
+        mi,
+        summary,
+        fitness,
+    ), None
 
 
 def choose_parents(evaluated: list[Evaluation], config: dict[str, Any]) -> tuple[list[Evaluation], dict[str, Any]]:

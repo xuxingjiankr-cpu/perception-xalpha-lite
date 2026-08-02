@@ -38,7 +38,7 @@ import research_perception_xalpha as perception  # noqa: E402
 DEFAULT_CONFIG = (
     ROOT / "configs" / "research" / "perception_xalpha_autonomous_v2.json"
 )
-CODE_VERSION = "perception_xalpha_autonomous_v2.2"
+CODE_VERSION = "perception_xalpha_autonomous_v2.3"
 
 
 REJECTION_REASONS = {
@@ -50,6 +50,7 @@ REJECTION_REASONS = {
     "WEAK_TRAIN_RANK_IC",
     "WEAK_TRAIN_RANK_IC_IR",
     "NEGATIVE_COSTED_TRAIN_IR",
+    "NEGATIVE_GROSS_TRAIN_IR",
     "DUPLICATE_BEHAVIOR",
     "FULL_EVALUATION_FAILED",
     "COUNTER_NOT_BEATEN",
@@ -57,6 +58,7 @@ REJECTION_REASONS = {
     "PURGED_WALK_FORWARD_FAILED",
     "VALIDATION_RANK_IC_FAILED",
     "VALIDATION_COSTED_IR_FAILED",
+    "VALIDATION_GROSS_IR_FAILED",
     "PROJECT_PBO_FAILED",
     "MULTIPLE_TESTING_DSR_FAILED",
 }
@@ -258,14 +260,18 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("remote factor generation is prohibited")
     if synthesis.get("arbitraryPythonAllowed") is not False:
         raise ValueError("generated Python is prohibited")
-    if int(synthesis["maximumPrimaryCandidatesPerCycle"]) > 128:
+    if int(synthesis["maximumPrimaryCandidatesPerCycle"]) > 512:
         raise ValueError("search budget is not bounded")
-    if int(synthesis["maximumStage2Bundles"]) > 16:
+    if int(synthesis["maximumStage2Bundles"]) > 32:
         raise ValueError("Stage-2 budget is not bounded")
     structured_library = synthesis.get("structuredSeedLibrary")
-    if structured_library not in {None, "a_share_tradeable_v1"}:
+    if structured_library not in {
+        None,
+        "a_share_tradeable_v1",
+        "a_share_predictive_v2",
+    }:
         raise ValueError("unknown structured seed library")
-    if int(synthesis.get("maximumStructuredSeedsPerQuestion", 0)) > 8:
+    if int(synthesis.get("maximumStructuredSeedsPerQuestion", 0)) > 16:
         raise ValueError("structured seed budget is not bounded")
     if not math.isclose(
         sum(float(value) for value in synthesis["operatorWeights"].values()),
@@ -280,6 +286,15 @@ def validate_config(config: dict[str, Any]) -> None:
     ):
         raise ValueError("validation/shadow feedback is forbidden")
     full = config["fullEvaluation"]
+    objective = config.get("discoveryObjective", {})
+    mode = str(objective.get("mode", "costed_tradeability"))
+    if mode not in {"costed_tradeability", "gross_predictive"}:
+        raise ValueError("unknown discovery objective")
+    if mode == "gross_predictive":
+        if int(objective.get("targetCredibleFactorsPerCycle", 0)) not in range(1, 11):
+            raise ValueError("gross discovery target must be between one and ten")
+        if objective.get("costMetricsRemainMandatory") is not True:
+            raise ValueError("gross discovery must still report cost stress")
     if full.get("validationOrShadowMetricsReturnedToGenerator") is not False:
         raise ValueError("validation/shadow must be quarantined")
     if full.get("historicalRunCanPromote") is not False:
@@ -725,6 +740,128 @@ def structured_tradeable_seeds(
     return copy.deepcopy(library.get(archetype_id, []))
 
 
+def structured_predictive_seeds(
+    archetype_id: str,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Broader, still bounded and causal A-share OHLCV hypotheses.
+
+    These extend the v1 economic seed set without forming a free parameter grid.  Each
+    expression represents a distinct mechanism and all rolling inputs end at t.  The
+    direction continues to be learned on train only.
+    """
+
+    def field(name: str) -> dict[str, Any]:
+        return {"field": name}
+
+    def roll(op: str, arg: dict[str, Any], window: int) -> dict[str, Any]:
+        return {"rolling": op, "arg": arg, "window": window}
+
+    def unary(op: str, arg: dict[str, Any]) -> dict[str, Any]:
+        return {"unary": op, "arg": arg}
+
+    def binary(op: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+        return {"binary": op, "left": left, "right": right}
+
+    def zscore(arg: dict[str, Any], window: int) -> dict[str, Any]:
+        return {"zscore": True, "arg": arg, "window": window}
+
+    returns = field("returns")
+    close = field("close")
+    open_price = field("open")
+    high = field("high")
+    low = field("low")
+    amount_log = unary("signed_log1p", field("amount"))
+    volume_log = unary("signed_log1p", field("volume"))
+    r5 = roll("sum", returns, 5)
+    r10 = roll("sum", returns, 10)
+    r20 = roll("sum", returns, 20)
+    r60 = roll("sum", returns, 60)
+    r120 = roll("sum", returns, 120)
+    r252 = roll("sum", returns, 252)
+    vol20 = roll("std", returns, 20)
+    vol60 = roll("std", returns, 60)
+    amount20 = roll("mean", amount_log, 20)
+    amount120 = roll("mean", amount_log, 120)
+    volume20 = roll("mean", volume_log, 20)
+    volume120 = roll("mean", volume_log, 120)
+    # Ratios retain the same cross-sectional ordering as minus-one returns and avoid
+    # introducing a constant node that the deliberately small DSL does not permit.
+    gap = binary("div", open_price, {"lag": 1, "arg": close})
+    intraday = binary("div", close, open_price)
+    close_location = binary(
+        "div",
+        binary("sub", close, low),
+        binary("sub", high, low),
+    )
+    downside = roll("mean", binary("sub", returns, unary("abs", returns)), 20)
+    market_corr = {
+        "corr": True,
+        "left": returns,
+        "right": field("market_return"),
+        "window": 60,
+    }
+
+    common: dict[str, dict[str, Any]] = {
+        "momentum_252_ex_recent_20": binary("sub", r252, r20),
+        "momentum_120_ex_recent_10": binary("sub", r120, r10),
+        "risk_adjusted_reversal_60": unary("neg", binary("div", r60, vol20)),
+        "short_long_reversal_spread": binary("sub", unary("neg", r5), r60),
+        "turnover_acceleration": binary("div", amount20, amount120),
+        "volume_acceleration": binary("div", volume20, volume120),
+        "price_volume_disagreement": binary("mul", r20, unary("neg", zscore(amount_log, 60))),
+        "overnight_intraday_disagreement": binary("sub", gap, intraday),
+        "close_location_pressure": roll("mean", close_location, 10),
+        "low_beta_proxy": unary("neg", market_corr),
+        "downside_risk_pressure": downside,
+        "volatility_term_structure": unary("neg", binary("div", vol20, vol60)),
+        "range_breakout_position": {"range_position": True, "arg": close, "window": 120},
+        "drawdown_recovery_with_flow": binary(
+            "mul",
+            unary("neg", {"drawdown": True, "arg": close, "window": 120}),
+            zscore(amount_log, 60),
+        ),
+    }
+    family_names: dict[str, list[str]] = {
+        "order_splitting": [
+            "turnover_acceleration", "volume_acceleration", "close_location_pressure",
+            "momentum_120_ex_recent_10", "price_volume_disagreement",
+        ],
+        "liquidity_reversal": [
+            "risk_adjusted_reversal_60", "short_long_reversal_spread",
+            "price_volume_disagreement", "overnight_intraday_disagreement",
+            "drawdown_recovery_with_flow",
+        ],
+        "risk_budgeting": [
+            "low_beta_proxy", "downside_risk_pressure", "volatility_term_structure",
+            "risk_adjusted_reversal_60", "drawdown_recovery_with_flow",
+        ],
+        "information_diffusion": [
+            "momentum_252_ex_recent_20", "momentum_120_ex_recent_10",
+            "overnight_intraday_disagreement", "close_location_pressure",
+            "turnover_acceleration",
+        ],
+        "crowding_unwind": [
+            "short_long_reversal_spread", "price_volume_disagreement",
+            "risk_adjusted_reversal_60", "drawdown_recovery_with_flow",
+            "range_breakout_position",
+        ],
+        "benchmark_rebalancing": [
+            "momentum_252_ex_recent_20", "turnover_acceleration",
+            "volume_acceleration", "low_beta_proxy", "range_breakout_position",
+        ],
+        "volatility_feedback": [
+            "downside_risk_pressure", "volatility_term_structure", "low_beta_proxy",
+            "risk_adjusted_reversal_60", "drawdown_recovery_with_flow",
+        ],
+    }
+    extended = structured_tradeable_seeds(archetype_id)
+    extended.extend((name, common[name]) for name in family_names.get(archetype_id, []))
+    deduplicated: dict[str, tuple[str, dict[str, Any]]] = {}
+    for name, expression in extended:
+        deduplicated.setdefault(digest(expression), (name, expression))
+    return copy.deepcopy(list(deduplicated.values()))
+
+
 def book_identity(cog_config: dict[str, Any]) -> str:
     """Hash of the effective book definition a parent pool was bred under.
 
@@ -803,8 +940,14 @@ def initial_candidates(
     seed = int(config["synthesis"]["randomSeed"])
     output: list[dict[str, Any]] = []
     for hypothesis in hypotheses:
-        if config["synthesis"].get("structuredSeedLibrary") == "a_share_tradeable_v1":
-            structured = structured_tradeable_seeds(str(hypothesis["archetypeId"]))
+        structured_library = config["synthesis"].get("structuredSeedLibrary")
+        if structured_library in {"a_share_tradeable_v1", "a_share_predictive_v2"}:
+            seed_builder = (
+                structured_predictive_seeds
+                if structured_library == "a_share_predictive_v2"
+                else structured_tradeable_seeds
+            )
+            structured = seed_builder(str(hypothesis["archetypeId"]))
             maximum_structured = int(
                 config["synthesis"].get("maximumStructuredSeedsPerQuestion", 0)
             )
@@ -886,6 +1029,14 @@ def long_only_portfolio(
     return net, turnover, weights
 
 
+def objective_group(config: dict[str, Any]) -> str:
+    """Metric family used for discovery selection, never for cost reporting."""
+    mode = str(
+        config.get("discoveryObjective", {}).get("mode", "costed_tradeability")
+    )
+    return "grossLongOnly" if mode == "gross_predictive" else "costedLongOnly"
+
+
 def fast_screen(
     candidate: dict[str, Any],
     panel: dict[str, pd.DataFrame],
@@ -935,14 +1086,17 @@ def fast_screen(
     rank_ic = signal.loc[train_mask].corrwith(
         target.loc[train_mask], axis=1, method="spearman"
     ).dropna()
-    long_net, turnover, book_weights = long_only_portfolio(
-        signal, one_day, panel, cog_config, config
+    long_net, turnover, book_weights, book_return, benchmark = (
+        autonomous.long_only_portfolio(signal, one_day, panel, cog_config)
     )
+    gross_excess = book_return - benchmark
     held = book_weights.gt(0.0)
     rank_stats = autonomous.period_stats(rank_ic, train_mask)
+    gross_stats = autonomous.period_stats(gross_excess, train_mask)
     net_stats = autonomous.period_stats(long_net, train_mask)
     metrics = {
         "rankIc": rank_stats,
+        "grossLongOnly": gross_stats,
         "costedLongOnly": net_stats,
         "directionFromTrain": direction,
         "nanFraction": round(nan_fraction, 8),
@@ -957,7 +1111,12 @@ def fast_screen(
         config["fastScreen"]["minimumRankIcIr"]
     ):
         return None, "WEAK_TRAIN_RANK_IC_IR", metrics
-    if float(net_stats["irAnn"] or -99.0) < float(
+    if objective_group(config) == "grossLongOnly":
+        if float(gross_stats["irAnn"] or -99.0) < float(
+            config["fastScreen"].get("minimumGrossLongOnlyIr", 0.0)
+        ):
+            return None, "NEGATIVE_GROSS_TRAIN_IR", metrics
+    elif float(net_stats["irAnn"] or -99.0) < float(
         config["fastScreen"]["minimumCostedLongOnlyIr"]
     ):
         return None, "NEGATIVE_COSTED_TRAIN_IR", metrics
@@ -996,9 +1155,12 @@ def fast_screen(
             max(0.0, maximum_similarity), 8
         ),
     }
+    selected_return_stats = (
+        gross_stats if objective_group(config) == "grossLongOnly" else net_stats
+    )
     fitness = (
         float(rank_stats["irAnn"] or -3.0)
-        + max(-3.0, float(net_stats["irAnn"] or -3.0))
+        + max(-3.0, float(selected_return_stats["irAnn"] or -3.0))
         - float(config["fastScreen"]["complexityPenaltyPerDepth"])
         * float(metrics["expressionDepth"])
     )
@@ -1278,8 +1440,10 @@ def purged_walk_forward_audit(
             continue
         direction = 1.0 if float(raw_train_ic.mean()) >= 0.0 else -1.0
         fold_signal = raw * direction
-        long_net, _fold_turnover, _fold_weights = long_only_portfolio(
-            fold_signal, one_day, panel, cog_config, config
+        long_net, _fold_turnover, _fold_weights, fold_book, fold_benchmark = (
+            autonomous.long_only_portfolio(
+                fold_signal, one_day, panel, cog_config
+            )
         )
         test_mask = pd.Series(False, index=dates)
         test_mask.loc[test_dates] = True
@@ -1300,13 +1464,17 @@ def purged_walk_forward_audit(
                 "purgeTradingDays": purge,
                 "directionFromFoldTrain": direction,
                 "rankIc": autonomous.period_stats(rank_ic, test_mask),
+                "grossLongOnly": autonomous.period_stats(
+                    fold_book - fold_benchmark, test_mask
+                ),
                 "costedLongOnly": autonomous.period_stats(long_net, test_mask),
             }
         )
+    fold_group = objective_group(config)
     positive = sum(
         1
         for row in rows
-        if float(row["costedLongOnly"].get("irAnn") or -99.0) > 0.0
+        if float(row[fold_group].get("irAnn") or -99.0) > 0.0
     )
     required = int(
         config["fullEvaluation"]["minimumPositiveWalkForwardFolds"]
@@ -1315,6 +1483,8 @@ def purged_walk_forward_audit(
         "status": "passed" if positive >= required else "failed",
         "folds": rows,
         "positiveCostedFolds": positive,
+        "positiveObjectiveFolds": positive,
+        "objectiveMetric": fold_group,
         "requiredPositiveCostedFolds": required,
         "purgeTradingDays": purge,
         "labelHorizonTradingDays": int(
@@ -1369,20 +1539,26 @@ def full_bundle_evaluation(
         primary_rank = metric_value(
             primary_evaluation, "validation", "rankIc", "mean"
         )
+        comparison_group = objective_group(config)
         primary_ir = metric_value(
-            primary_evaluation, "validation", "costedLongOnly", "irAnn"
+            primary_evaluation, "validation", comparison_group, "irAnn"
         )
         counter_ir = metric_value(
-            counter_evaluation, "validation", "costedLongOnly", "irAnn"
+            counter_evaluation, "validation", comparison_group, "irAnn"
         )
         placebo_ir = metric_value(
-            placebo_evaluation, "validation", "costedLongOnly", "irAnn"
+            placebo_evaluation, "validation", comparison_group, "irAnn"
         )
         if primary_rank <= float(
             config["fullEvaluation"]["minimumValidationRankIc"]
         ):
             reasons.append("VALIDATION_RANK_IC_FAILED")
-        if primary_ir <= float(
+        if comparison_group == "grossLongOnly":
+            if primary_ir <= float(
+                config["fullEvaluation"].get("minimumValidationGrossIr", 0.0)
+            ):
+                reasons.append("VALIDATION_GROSS_IR_FAILED")
+        elif primary_ir <= float(
             config["fullEvaluation"]["minimumValidationCostedIr"]
         ):
             reasons.append("VALIDATION_COSTED_IR_FAILED")
@@ -1477,6 +1653,10 @@ def full_bundle_evaluation(
         "rejectionReasons": reasons,
         "validationOrShadowUsedForGeneration": False,
         "historicalResultCanPromote": False,
+        "selectionObjective": objective_group(config),
+        "costMetricsAreDiagnosticNotSelectionGate": (
+            objective_group(config) == "grossLongOnly"
+        ),
     }
     return bundle, primary_evaluation
 
@@ -1492,7 +1672,13 @@ def apply_project_pbo(
     common = sorted(
         set.intersection(
             *(
-                set(evaluation.long_net.loc[split.train].dropna().index)
+                set(
+                    (
+                        evaluation.gross_excess
+                        if objective_group(config) == "grossLongOnly"
+                        else evaluation.long_net
+                    ).loc[split.train].dropna().index
+                )
                 for evaluation in primary_evaluations
             )
         )
@@ -1500,7 +1686,11 @@ def apply_project_pbo(
     if not common:
         return {"pbo": None, "reason": "no common train dates"}
     matrix = [
-        evaluation.long_net.reindex(common).fillna(0.0).tolist()
+        (
+            evaluation.gross_excess
+            if objective_group(config) == "grossLongOnly"
+            else evaluation.long_net
+        ).reindex(common).fillna(0.0).tolist()
         for evaluation in primary_evaluations
     ]
     result = og.combinatorial_symmetric_pbo(matrix, n_blocks=8)
@@ -1531,6 +1721,7 @@ def render_report(result: dict[str, Any]) -> str:
             f"(`{universe_kind}`)"
         ),
         f"- research questions: `{len(result['researchPlan']['questions'])}`",
+        f"- discovery selection objective: `{result['candidateAudit'].get('selectionObjective')}`",
         (
             "- primary candidates generated / fast-screened / Stage-2: "
             f"`{result['candidateAudit']['generated']}` / "
@@ -1538,11 +1729,12 @@ def render_report(result: dict[str, Any]) -> str:
             f"`{result['candidateAudit']['stage2Bundles']}`"
         ),
         (
-            "- historically validated after Counter/Placebo/walk-forward/PBO/DSR: "
+            "- credible historical research factors after Counter/Placebo/walk-forward/PBO/DSR: "
             f"`{result['candidateAudit']['historicallyValidated']}`"
         ),
         f"- PBO: `{result['guards']['pbo']}`",
         f"- quick DSR diagnostic: `{result['guards']['quickDsr']}`",
+        "- costs: `reported as a separate stress test; never deleted from artifacts`",
         "- automatic trading changes: `[]`",
         "",
         "## Research plan",
@@ -1565,6 +1757,9 @@ def render_report(result: dict[str, Any]) -> str:
         ]
     )
     for bundle in result["factorBundles"]:
+        comparison_group = result["candidateAudit"].get(
+            "selectionObjective", "costedLongOnly"
+        )
         primary_metrics = bundle["primary"].get("fullMetrics") or {}
         counter_metrics = bundle["counter"].get("fullMetrics") or {}
         placebo_metrics = bundle["placebo"].get("fullMetrics") or {}
@@ -1586,12 +1781,12 @@ def render_report(result: dict[str, Any]) -> str:
         )
         counter_ir = (
             counter_metrics.get("validation", {})
-            .get("costedLongOnly", {})
+            .get(comparison_group, {})
             .get("irAnn")
         )
         placebo_ir = (
             placebo_metrics.get("validation", {})
-            .get("costedLongOnly", {})
+            .get(comparison_group, {})
             .get("irAnn")
         )
         lines.append(
@@ -1611,7 +1806,8 @@ def render_report(result: dict[str, Any]) -> str:
             "",
             "Evolution saw train-only fast-screen metrics. Validation, Counter, Placebo, "
             "failure-condition and shadow results were quarantined. No historical result "
-            "can create an instruction, modify configuration or promote itself.",
+            "can create an instruction, modify configuration or promote itself. A gross "
+            "research factor is not the same thing as a costed tradeable strategy.",
             "",
         ]
     )
@@ -1845,6 +2041,11 @@ def run_cycle(
         if primary_evaluation is not None:
             primary_evaluations.append(primary_evaluation)
     pbo = apply_project_pbo(bundles, primary_evaluations, split, config)
+    # Preserve the pre-DSR outcome as a candidate tier. This allows the daily research
+    # loop to produce useful hypotheses without lying that each one has survived the
+    # project-wide multiple-testing burden. The credible tier below remains stricter.
+    for bundle in bundles:
+        bundle["preMultipleTestingStatus"] = bundle["status"]
     for bundle in bundles:
         for reason in bundle["rejectionReasons"]:
             rejected_rows.append(
@@ -1869,11 +2070,12 @@ def run_cycle(
         int(config["fullEvaluation"]["priorProjectTrials"])
         + generated_count
     )
+    selected_metric_group = objective_group(config)
     best_validation = (
         max(
             primary_evaluations,
             key=lambda item: metric_value(
-                item, "validation", "costedLongOnly", "irAnn"
+                item, "validation", selected_metric_group, "irAnn"
             ),
         )
         if primary_evaluations
@@ -1883,11 +2085,11 @@ def run_cycle(
         og.deflated_significance_note(
             total_trials,
             metric_value(
-                best_validation, "validation", "costedLongOnly", "irAnn", 0.0
+                best_validation, "validation", selected_metric_group, "irAnn", 0.0
             ),
             int(
                 metric_value(
-                    best_validation, "validation", "costedLongOnly", "n", 0.0
+                    best_validation, "validation", selected_metric_group, "n", 0.0
                 )
             ),
         )
@@ -1933,6 +2135,65 @@ def run_cycle(
         for bundle in bundles
         if bundle["status"] == "HISTORICALLY_VALIDATED"
     ]
+    target_count = int(
+        config.get("discoveryObjective", {}).get(
+            "targetCredibleFactorsPerCycle", len(validated)
+        )
+    )
+    credible_factors = []
+    for bundle in validated[:target_count]:
+        metrics = bundle["primary"].get("fullMetrics") or {}
+        credible_factors.append(
+            {
+                "factorId": bundle["factorId"],
+                "archetypeId": bundle["archetypeId"],
+                "expression": bundle["primary"]["candidate"]["expression"],
+                "directionFromTrain": bundle["primary"]["fastTrainMetrics"].get(
+                    "directionFromTrain"
+                ),
+                "train": metrics.get("train"),
+                "validation": metrics.get("validation"),
+                "shadow": metrics.get("shadow"),
+                "purgedWalkForward": bundle.get("purgedWalkForward"),
+                "selectionObjective": selected_metric_group,
+                "costStressDidNotGateDiscovery": (
+                    selected_metric_group == "grossLongOnly"
+                ),
+                "status": "historical_research_factor_not_a_trade_signal",
+            }
+        )
+    daily_factor_candidates = []
+    for bundle in bundles:
+        if bundle.get("preMultipleTestingStatus") != "HISTORICALLY_VALIDATED":
+            continue
+        metrics = bundle["primary"].get("fullMetrics") or {}
+        daily_factor_candidates.append(
+            {
+                "factorId": bundle["factorId"],
+                "archetypeId": bundle["archetypeId"],
+                "expression": bundle["primary"]["candidate"]["expression"],
+                "directionFromTrain": bundle["primary"]["fastTrainMetrics"].get(
+                    "directionFromTrain"
+                ),
+                "train": metrics.get("train"),
+                "validation": metrics.get("validation"),
+                "shadow": metrics.get("shadow"),
+                "purgedWalkForward": bundle.get("purgedWalkForward"),
+                "selectionObjective": selected_metric_group,
+                "remainingGuards": bundle.get("rejectionReasons", []),
+                "status": "research_candidate_not_yet_credible_not_a_trade_signal",
+            }
+        )
+    daily_factor_candidates.sort(
+        key=lambda row: float(
+            (row.get("validation") or {})
+            .get(selected_metric_group, {})
+            .get("irAnn")
+            or -99.0
+        ),
+        reverse=True,
+    )
+    daily_factor_candidates = daily_factor_candidates[:target_count]
     result = {
         "schemaVersion": "perception_xalpha_autonomous_result_v2",
         "status": "diagnostic_only_research_only_not_promotable",
@@ -1959,6 +2220,7 @@ def run_cycle(
             "fastScreenPassed": len(accepted),
             "stage2Bundles": len(bundles),
             "historicallyValidated": len(validated),
+            "dailyResearchCandidates": len(daily_factor_candidates),
             "rejected": len(rejected_rows),
             "rejectedReasons": rejection_counts,
             "generationAudit": generation_audit,
@@ -1966,12 +2228,21 @@ def run_cycle(
             "remoteApiUsed": False,
             "arbitraryPythonExecuted": False,
             "validationOrShadowFedBack": False,
+            "selectionObjective": selected_metric_group,
+            "targetCredibleFactorsPerCycle": int(
+                config.get("discoveryObjective", {}).get(
+                    "targetCredibleFactorsPerCycle", 0
+                )
+            ),
         },
         "factorBundles": bundles,
+        "credibleResearchFactors": credible_factors,
+        "dailyResearchCandidates": daily_factor_candidates,
         "guards": {
             "pbo": pbo,
             "quickDsr": quick_dsr,
             "quickDsrIsFullDsr": False,
+            "multipleTestingMetric": selected_metric_group,
             "priorProjectTrials": int(
                 config["fullEvaluation"]["priorProjectTrials"]
             ),
@@ -2002,6 +2273,35 @@ def run_cycle(
         output / "mechanism_hypotheses.json", {"hypotheses": hypotheses}
     )
     atomic_json(output / "factor_bundles.json", {"bundles": bundles})
+    atomic_json(
+        output / "credible_research_factors.json",
+        {
+            "schemaVersion": "perception_xalpha_credible_research_factors_v1",
+            "status": "historical_research_only_not_trade_signals",
+            "runId": cycle_id,
+            "selectionObjective": selected_metric_group,
+            "targetCount": target_count,
+            "actualCount": len(credible_factors),
+            "factors": credible_factors,
+            "orders": [],
+            "automaticTradingChanges": [],
+        },
+    )
+    atomic_json(
+        output / "daily_factor_candidates.json",
+        {
+            "schemaVersion": "perception_xalpha_daily_factor_candidates_v1",
+            "status": "research_candidates_not_trade_signals",
+            "runId": cycle_id,
+            "selectionObjective": selected_metric_group,
+            "targetCount": target_count,
+            "actualCount": len(daily_factor_candidates),
+            "candidates": daily_factor_candidates,
+            "credibleCount": len(credible_factors),
+            "orders": [],
+            "automaticTradingChanges": [],
+        },
+    )
     atomic_json(
         output / "shadow_candidate.json",
         {
