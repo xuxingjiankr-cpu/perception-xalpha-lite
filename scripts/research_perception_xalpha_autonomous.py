@@ -731,8 +731,8 @@ def long_only_portfolio(
     panel: dict[str, pd.DataFrame],
     cog_config: dict[str, Any],
     config: dict[str, Any],
-) -> tuple[pd.Series, pd.Series]:
-    """(net excess return, turnover) for the harvestable long-only book.
+) -> tuple[pd.Series, pd.Series, pd.DataFrame]:
+    """(net excess return, turnover, weights) for the harvestable long-only book.
 
     Three construction choices, each measured on the real panel with a 20-day reversal probe
     (IC t=15.8) before being adopted:
@@ -762,7 +762,7 @@ def long_only_portfolio(
     benchmark = one_day.mean(axis=1)
     turnover = weights.diff().abs().sum(axis=1) / 2.0
     net = book_return - benchmark - turnover * float(config["fullEvaluation"]["roundTripCost"])
-    return net, turnover
+    return net, turnover, weights
 
 
 def fast_screen(
@@ -814,9 +814,10 @@ def fast_screen(
     rank_ic = signal.loc[train_mask].corrwith(
         target.loc[train_mask], axis=1, method="spearman"
     ).dropna()
-    long_net, _turnover = long_only_portfolio(
+    long_net, turnover, book_weights = long_only_portfolio(
         signal, one_day, panel, cog_config, config
     )
+    held = book_weights.gt(0.0)
     rank_stats = autonomous.period_stats(rank_ic, train_mask)
     net_stats = autonomous.period_stats(long_net, train_mask)
     metrics = {
@@ -865,7 +866,7 @@ def fast_screen(
                 "coverageBucket": round(1.0 - nan_fraction, 2),
                 "turnoverBucket": round(float(turnover.loc[train_mask].mean()), 2),
                 "eventDensityBucket": round(
-                    float(top.loc[train_mask].mean().mean()), 2
+                    float(held.loc[train_mask].mean().mean()), 2
                 ),
             }
         ),
@@ -1156,7 +1157,7 @@ def purged_walk_forward_audit(
             continue
         direction = 1.0 if float(raw_train_ic.mean()) >= 0.0 else -1.0
         fold_signal = raw * direction
-        long_net, _fold_turnover = long_only_portfolio(
+        long_net, _fold_turnover, _fold_weights = long_only_portfolio(
             fold_signal, one_day, panel, cog_config, config
         )
         test_mask = pd.Series(False, index=dates)
