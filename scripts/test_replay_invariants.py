@@ -6926,6 +6926,59 @@ def t103_perception_xalpha_tickets_dsl_and_registry_are_safe() -> None:
     )
 
 
+def t112_ashare_labels_exclude_untradeable_legs() -> None:
+    """A-share labels may only contain legs an account could actually have transacted.
+
+    A sealed bar (high == low) is a locked price limit on every A-share board, so a
+    sealed-up entry is unbuyable and a sealed-down exit is unsellable; a zero-volume bar is
+    a halt. Measured on the real panel these legs carry ~16x the forward return of tradeable
+    legs (+6.05% vs +0.38% over 10 days), so admitting them silently inflates momentum-family
+    factors -- the classic A-share backtest leak.
+    """
+    import pandas as pd
+    import research_cogalpha_autonomous as auto
+
+    index = pd.date_range("2026-01-01", periods=8, freq="D")
+    frame = lambda values: pd.DataFrame({"X": values}, index=index)
+    # bar1 sealed-up (limit up), bar3 sealed-down (limit down), bar4 halted, bars 6-7 ordinary
+    panel = {
+        "open": frame([10.0, 10.5, 11.0, 11.0, 11.2, 11.3, 11.4, 11.6]),
+        "close": frame([10.0, 11.0, 11.0, 10.0, 11.2, 11.3, 11.5, 11.7]),
+        "high": frame([10.2, 11.0, 11.0, 10.0, 11.4, 11.5, 11.6, 11.8]),
+        "low": frame([9.8, 11.0, 10.9, 10.0, 11.0, 11.1, 11.3, 11.5]),
+        "volume": frame([1e6, 1e5, 1e6, 1e5, 0.0, 1e6, 1e6, 1e6]),
+    }
+    buyable, sellable = auto.tradability_frames(panel)
+    check(
+        "T112 sealed-up bar is unbuyable but still sellable",
+        bool(buyable["X"].iloc[1]) is False and bool(sellable["X"].iloc[1]) is True,
+    )
+    check(
+        "T112 sealed-down bar is unsellable but still buyable",
+        bool(sellable["X"].iloc[3]) is False and bool(buyable["X"].iloc[3]) is True,
+    )
+    check(
+        "T112 halted bar is neither buyable nor sellable",
+        bool(buyable["X"].iloc[4]) is False and bool(sellable["X"].iloc[4]) is False,
+    )
+    check(
+        "T112 an ordinary bar stays fully tradeable (no over-masking)",
+        bool(buyable["X"].iloc[2]) is True and bool(sellable["X"].iloc[2]) is True,
+    )
+
+    target, one_day = auto.target_frames(panel, {"data": {"predictionHorizonTradingDays": 1}})
+    # row 0 enters at open[1], which is the sealed-up (unbuyable) bar -> label must be dropped
+    check("T112 label with an unbuyable entry leg is dropped", bool(target["X"].isna().iloc[0]))
+    check("T112 one-day label follows the same entry rule", bool(one_day["X"].isna().iloc[0]))
+    # row 2 enters at open[3] (buyable) and exits at open[4] (halted) -> unsellable exit
+    check("T112 label with an unsellable exit leg is dropped", bool(target["X"].isna().iloc[2]))
+    # row 5 enters at open[6] and exits at open[7]: both ordinary bars -> label survives
+    check(
+        "T112 tradeable entry and exit still produce a label",
+        bool(target["X"].notna().iloc[5]),
+    )
+
+
 def t104_t110_autonomous_perception_factor_discovery_is_safe() -> None:
     import json
     import random
@@ -7327,6 +7380,7 @@ if __name__ == "__main__":
     t102_kronos_kline_shadow_is_causal_frozen_and_isolated()
     t103_perception_xalpha_tickets_dsl_and_registry_are_safe()
     t104_t110_autonomous_perception_factor_discovery_is_safe()
+    t112_ashare_labels_exclude_untradeable_legs()
     t111_all_ashare_research_universe_is_complete_and_isolated()
     print()
     if failures:

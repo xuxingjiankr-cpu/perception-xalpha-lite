@@ -498,11 +498,42 @@ def discrete_mutual_information(signal: pd.DataFrame, target: pd.DataFrame, mask
     return round(float(mutual_info_score(x_bin, y_bin) / math.log(10)), 8)
 
 
+def tradability_frames(panel: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(buyable, sellable) per bar under A-share microstructure.
+
+    A bar that never leaves a single price (high == low) is a sealed session: on the A-share
+    boards that is a locked price limit (10% main / 20% STAR-ChiNext / 30% BJ), so it is
+    board-agnostic and needs no per-board limit arithmetic. Sealed-up cannot be bought into
+    (the queue never fills); sealed-down cannot be sold out of. A bar with no volume is a
+    halt. Both stay in the panel as observations -- only the ability to TRANSACT is denied,
+    which is what the label must respect.
+    """
+    high, low, close = panel["high"], panel["low"], panel["close"]
+    volume = panel.get("volume")
+    previous_close = close.shift(1)
+    sealed = (high == low) & high.notna() & low.notna()
+    halted = volume.fillna(0.0).le(0.0) if volume is not None else False
+    buyable = ~((sealed & close.gt(previous_close)) | halted)
+    sellable = ~((sealed & close.lt(previous_close)) | halted)
+    return buyable, sellable
+
+
 def target_frames(panel: dict[str, pd.DataFrame], config: dict[str, Any]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Labels are entered at the next open and exited at the horizon open.
+
+    Untradeable legs are dropped (NaN) rather than priced: a limit-locked or halted entry
+    could not have been bought and a limit-locked exit could not have been sold, so keeping
+    those samples would credit the factor with returns no account could have realised. This
+    is the classic A-share backtest inflation channel for momentum-family signals.
+    """
     horizon = int(config["data"]["predictionHorizonTradingDays"])
     open_price = panel["open"]
     target = open_price.shift(-(horizon + 1)) / open_price.shift(-1) - 1.0
     one_day = open_price.shift(-2) / open_price.shift(-1) - 1.0
+    buyable, sellable = tradability_frames(panel)
+    entry_ok = buyable.shift(-1)
+    target = target.where(entry_ok & sellable.shift(-(horizon + 1)))
+    one_day = one_day.where(entry_ok & sellable.shift(-2))
     return target, one_day
 
 
