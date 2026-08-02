@@ -26,7 +26,12 @@
       "minimumMedianDailyAmountCny": 30000000,
       "minimumCrossSection": 300
     },
-    "survivorshipWarning": "The security master is current, not historical point-in-time. Delisted stocks and historical ST status are incomplete, so results retain survivorship and membership bias."
+    "survivorshipWarning": "The security master is current, not historical point-in-time. Delisted stocks and historical ST status are incomplete, so results retain survivorship and membership bias.",
+    "pointInTimeAmountWindow": 60,
+    "pointInTimeMinimumHistory": 120,
+    "pointInTimeMinimumAmount": 30000000,
+    "pointInTimeMembership": true,
+    "pointInTimeNote": "Membership is decided per date from a trailing 60-session median amount (shifted), 120 prior observations of seasoning, and the bar having actually traded. The symbol-level whole-history filters remain as data-validity gates only."
   },
   "researchDirector": {
     "maximumQuestionsPerCycle": 4,

@@ -557,6 +557,10 @@ def long_only_portfolio(
     silently changes; the A-share config opts in explicitly.
     """
     data = config["data"]
+    # The book may only ever hold names that were investable on that date.
+    eligible = panel.get("eligible")
+    if eligible is not None:
+        signal = signal.where(eligible)
     if bool(data.get("sizeNeutralise", False)):
         signal = size_neutralise(signal, panel, int(data.get("sizeNeutraliseBins", 5)))
     ranks = signal.rank(axis=1, pct=True)
@@ -602,6 +606,13 @@ def target_frames(panel: dict[str, pd.DataFrame], config: dict[str, Any]) -> tup
     entry_ok = buyable.shift(-1)
     target = target.where(entry_ok & sellable.shift(-(horizon + 1)))
     one_day = one_day.where(entry_ok & sellable.shift(-2))
+    # Point-in-time membership: a name may only contribute a label on dates it was actually
+    # in the investable universe by trailing information. Without this the universe filter's
+    # whole-history verdict leaks future liquidity into early history.
+    eligible = panel.get("eligible")
+    if eligible is not None:
+        target = target.where(eligible)
+        one_day = one_day.where(eligible)
     return target, one_day
 
 

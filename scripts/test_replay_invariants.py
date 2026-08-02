@@ -6979,6 +6979,82 @@ def t112_ashare_labels_exclude_untradeable_legs() -> None:
     )
 
 
+def t120_universe_membership_is_point_in_time() -> None:
+    """Membership must be decided from trailing information only.
+
+    The symbol-level filters take whole-history statistics (median amount, suspension and
+    missing-bar fractions) and apply the verdict to that symbol's entire history, so a stock
+    that only becomes liquid late is admitted to early years on evidence that had not
+    happened yet. Measured on the real panel, removing that leak shrinks the early universe
+    from every listed name to a fraction of it (~77 vs ~372 eligible names per date between
+    the first and last year).
+    """
+    import numpy as np
+    import pandas as pd
+    import research_ashare_universe as ashare
+    import research_cogalpha_autonomous as auto
+
+    index = pd.date_range("2024-01-01", periods=400, freq="B")
+    codes = ["EARLY", "LATE", "HALTED"]
+    amount = pd.DataFrame(1e8, index=index, columns=codes)
+    amount["LATE"] = [0.0] * 200 + [1e8] * 200          # only becomes liquid halfway through
+    volume = pd.DataFrame(1e6, index=index, columns=codes)
+    volume.loc[index[300], "HALTED"] = 0.0              # a single suspended session
+    amount.loc[index[300], "HALTED"] = 0.0
+    close = pd.DataFrame(10.0, index=index, columns=codes)
+    panel = {
+        "close": close, "open": close, "high": close * 1.01, "low": close * 0.99,
+        "volume": volume, "amount": amount,
+    }
+    config = {
+        "pointInTimeAmountWindow": 60,
+        "pointInTimeMinimumHistory": 120,
+        "pointInTimeMinimumAmount": 3e7,
+    }
+    eligible = ashare.point_in_time_eligibility(panel, config)
+
+    check(
+        "T120 a seasoned liquid name is eligible late in the sample",
+        bool(eligible["EARLY"].iloc[-1]),
+    )
+    check(
+        "T120 no name is eligible before the seasoning window elapses",
+        not bool(eligible["EARLY"].iloc[:120].any()),
+    )
+    check(
+        "T120 a late-liquidity name is NOT admitted to its illiquid early history",
+        not bool(eligible["LATE"].iloc[:200].any()),
+        f"eligible early: {int(eligible['LATE'].iloc[:200].sum())}",
+    )
+    check(
+        "T120 the same name becomes eligible once trailing liquidity qualifies",
+        bool(eligible["LATE"].iloc[-1]),
+    )
+    check(
+        "T120 a suspended session is not investable",
+        not bool(eligible["HALTED"].loc[index[300]]),
+    )
+
+    # labels and the book must both respect membership, or the leak returns downstream
+    panel["eligible"] = eligible
+    target, one_day = auto.target_frames(panel, {"data": {"predictionHorizonTradingDays": 5}})
+    check(
+        "T120 labels carry no value on ineligible dates",
+        bool(target["LATE"].iloc[:200].isna().all()),
+    )
+    signal = pd.DataFrame(
+        np.tile(np.arange(len(codes), dtype=float), (len(index), 1)),
+        index=index, columns=codes,
+    )
+    _net, _to, weights, _br, _bm = auto.long_only_portfolio(
+        signal, one_day, panel, {"data": {"topQuantile": 0.5, "roundTripCost": 0.003}}
+    )
+    check(
+        "T120 the book never holds an ineligible name",
+        float(weights["LATE"].iloc[:200].abs().sum()) == 0.0,
+    )
+
+
 def t113_factor_search_success_path_actually_works() -> None:
     """Cover the paths a green suite previously missed entirely.
 
@@ -7916,6 +7992,7 @@ if __name__ == "__main__":
     t104_t110_autonomous_perception_factor_discovery_is_safe()
     t112_ashare_labels_exclude_untradeable_legs()
     t113_factor_search_success_path_actually_works()
+    t120_universe_membership_is_point_in_time()
     t114_tradeable_factor_harvest_is_causal_and_isolated()
     t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it()
     t111_all_ashare_research_universe_is_complete_and_isolated()

@@ -61,6 +61,36 @@ def _series_frame(path: Path) -> tuple[pd.DataFrame | None, dict[str, int]]:
     return frame, audit
 
 
+def point_in_time_eligibility(
+    panel: dict[str, pd.DataFrame], universe_config: dict[str, Any]
+) -> pd.DataFrame:
+    """Per-date membership decided from trailing information only.
+
+    The symbol-level filters above use whole-history statistics (median amount, suspension
+    and missing-bar fractions) and then apply the verdict to that symbol's ENTIRE history.
+    That is lookahead: a stock that only becomes liquid in 2025 is admitted to 2020, and one
+    that dries up late is admitted to the years it was liquid on the strength of data that
+    had not happened yet. Those filters remain as DATA-VALIDITY gates; tradability is decided
+    here, per date, from a trailing window:
+
+      * trailing median amount over `pointInTimeAmountWindow` sessions (shifted, so the
+        deciding day's own turnover cannot admit it);
+      * at least `pointInTimeMinimumHistory` prior observations, which also stands in for a
+        listing-seasoning rule we cannot get from the master;
+      * the bar itself traded (positive volume and amount), i.e. not suspended.
+    """
+    amount = panel["amount"]
+    window = int(universe_config.get("pointInTimeAmountWindow", 60))
+    seasoning = int(universe_config.get("pointInTimeMinimumHistory", 120))
+    floor = float(universe_config.get("pointInTimeMinimumAmount",
+                                       universe_config.get("minimumMedianDailyAmountCny", 0.0)))
+    trailing_amount = amount.rolling(window, min_periods=max(5, window // 3)).median().shift(1)
+    observed = panel["close"].notna() & panel["close"].gt(0)
+    seasoned = observed.cumsum().shift(1).ge(seasoning)
+    traded = panel["volume"].fillna(0.0).gt(0.0) & amount.fillna(0.0).gt(0.0)
+    return (trailing_amount.ge(floor) & seasoned & observed & traded).fillna(False)
+
+
 def build_panel(
     universe_config: dict[str, Any],
     data_config: dict[str, Any],
@@ -163,6 +193,7 @@ def build_panel(
         panel["amount"] / panel["volume"].replace(0.0, np.nan)
     ).combine_first(close)
     panel["returns"] = close.pct_change(fill_method=None)
+    panel["eligible"] = point_in_time_eligibility(panel, universe_config)
     current_coverage = matched_files / len(master) if master else 0.0
     minimum_coverage = float(
         universe_config["minimumMasterCoverageForHistoricalValidation"]
