@@ -1,0 +1,18 @@
+{
+  "status": "research_only_not_trading",
+  "prediction_horizon_days": 10,
+  "purge_days": 10,
+  "validation_days": 126,
+  "shadow_days": 126,
+  "minimum_train_days": 504,
+  "round_trip_cost": 0.003,
+  "candidate_budget": 64,
+  "stage2_budget": 16,
+  "minimum_train_rank_ic": 0.005,
+  "minimum_positive_walk_forward_folds": 2,
+  "pbo_blocks": 8,
+  "pbo_maximum": 0.2,
+  "prior_trials": 1,
+  "random_seed": 20260803
+}
+

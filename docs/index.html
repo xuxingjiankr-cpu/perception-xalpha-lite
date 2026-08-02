@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Perception-XAlpha Lite</title>
+  <style>
+    :root{--bg:#07111f;--card:#0e1d30;--line:#28415f;--text:#eaf2ff;--muted:#9bb0c9;--cyan:#45d6e8;--green:#78e6a5;--amber:#ffd166}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(circle at 15% 0,#123256 0,var(--bg) 42%);color:var(--text);font:15px/1.6 Inter,Segoe UI,sans-serif}
+    main{max-width:1180px;margin:auto;padding:48px 24px 80px}.tag{display:inline-block;border:1px solid var(--cyan);color:var(--cyan);padding:4px 10px;border-radius:99px;font-size:12px;letter-spacing:.08em}
+    h1{font-size:clamp(36px,6vw,72px);line-height:1.05;margin:20px 0 14px}h1 span{color:var(--cyan)}h2{margin-top:54px;font-size:28px}p{color:var(--muted);max-width:850px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{background:linear-gradient(145deg,#10243b,#0a1728);border:1px solid var(--line);border-radius:14px;padding:18px;min-height:150px}.card b{display:block;color:var(--green);font-size:13px;text-transform:uppercase;letter-spacing:.08em}.card h3{margin:8px 0 5px}.card p{margin:0;font-size:13px}
+    .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.node{padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:8px}.arrow{color:var(--cyan)}
+    table{width:100%;border-collapse:collapse;background:#0a1728;border-radius:12px;overflow:hidden}th,td{text-align:left;padding:12px;border-bottom:1px solid var(--line)}th{color:var(--cyan)}td{color:var(--muted)}code,pre{font-family:Cascadia Code,monospace}pre{padding:18px;background:#050c16;border:1px solid var(--line);border-radius:12px;overflow:auto;color:#bce8ff}
+    .warning{border-left:4px solid var(--amber);padding:12px 16px;background:#291f0d;color:#ffe3a3;margin-top:30px}.metric{font-size:30px;color:var(--text)}footer{margin-top:60px;color:#70869f}
+  </style>
+</head>
+<body><main>
+  <span class="tag">RESEARCH-ONLY · POINT-IN-TIME · NO BROKER</span>
+  <h1>Perception-<span>XAlpha</span> Lite</h1>
+  <p>一个可公开审计的自主因子研究最小系统。它把“发现因子”与“相信因子”分开：先用受限表达式提出假设，再用时间隔离、反事实、安慰剂和多重检验校正尝试推翻它。</p>
+
+  <h2>核心研究闭环</h2>
+  <div class="flow">
+    <span class="node">PIT 数据</span><span class="arrow">→</span><span class="node">安全 DSL</span><span class="arrow">→</span><span class="node">Train-only 搜索</span><span class="arrow">→</span><span class="node">Purged WF</span><span class="arrow">→</span><span class="node">Counter / Placebo</span><span class="arrow">→</span><span class="node">PBO / DSR</span><span class="arrow">→</span><span class="node">Forward Shadow</span>
+  </div>
+
+  <h2>论文机制</h2>
+  <div class="grid">
+    <div class="card"><b>Regime</b><h3>Causal HMM</h3><p>只做前向过滤的状态概率；避免使用完整路径 Viterbi 造成在线前视。</p></div>
+    <div class="card"><b>Transition</b><h3>EWS + BOCPD</h3><p>方差、自相关、偏度与贝叶斯在线变点概率，用于状态转换风险而非直接预测涨跌。</p></div>
+    <div class="card"><b>Dynamics</b><h3>Koopman / DMD</h3><p>固定过去窗口拟合线性动力算子，输出无法被局部动力学解释的残差。</p></div>
+    <div class="card"><b>Bubble feasibility</b><h3>Classic LPPLS</h3><p>固定参数网格，报告拟合残差与 tc 分布稳定性，不发布单一“神奇崩盘日”。</p></div>
+    <div class="card"><b>Shrinkage</b><h3>Black–Litterman</h3><p>把嘈杂观点收缩到先验；改善观点融合，但不凭空创造信息。</p></div>
+    <div class="card"><b>Labels & exits</b><h3>Triple Barrier</h3><p>止盈、止损、时间三重离线标签。标签明确使用未来，因此禁止进入特征。</p></div>
+    <div class="card"><b>Tail evidence</b><h3>Hoeffding Bound</h3><p>对有限样本胜率给出保守下界；同时提醒依赖性与有效样本量问题。</p></div>
+    <div class="card"><b>Selection bias</b><h3>PBO + Deflated Sharpe</h3><p>把尝试次数和候选间选择折算进证据门槛，拒绝“最好看的那条曲线”。</p></div>
+  </div>
+
+  <h2>因子空间</h2>
+  <table><thead><tr><th>域</th><th>示例</th><th>验证重点</th></tr></thead><tbody>
+    <tr><td>量价</td><td>动量、反转、低波动、低Beta、流动性</td><td>交易拥挤、换手与成本</td></tr>
+    <tr><td>基本面</td><td>价值、ROE/ROIC、成长、现金转换、财务安全</td><td>真实披露日与重述版本</td></tr>
+    <tr><td>组合</td><td>质量×低Beta、价值×反转、成长×动量</td><td>增量是否超越单腿因子</td></tr>
+    <tr><td>物理/状态</td><td>HMM、EWS、BOCPD、DMD、LPPLS</td><td>是否只减少交易而机械改善</td></tr>
+  </tbody></table>
+
+  <h2>结果契约</h2>
+  <pre>{
+  "status": "diagnostic_only_research_only_not_trading",
+  "candidate_count": 20,
+  "historically_validated_count": 0,
+  "pbo": {"pbo": 0.57, "splits": 70},
+  "orders": [],
+  "automatic_trading_changes": []
+}</pre>
+  <div class="warning">历史验证通过也只会生成 forward-shadow 假设。系统没有券商接口、下单函数、策略覆盖层或自动晋级路径。</div>
+  <footer>MIT · Research and education only · No investment advice</footer>
+</main></body></html>
+
