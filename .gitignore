@@ -12,6 +12,9 @@
 # Paper-trading agent source and configs
 !configs/
 !configs/*.json
+# Preregistered research configs are part of the audit trail, not runtime state
+!configs/research/
+!configs/research/*.json
 !scripts/
 !scripts/*.py
 !scripts/*.ps1

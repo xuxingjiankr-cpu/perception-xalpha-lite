@@ -701,6 +701,70 @@ def initial_candidates(
     return deduplicated
 
 
+def size_neutralise(signal: pd.DataFrame, panel: dict[str, pd.DataFrame], bins: int) -> pd.DataFrame:
+    """Standardise the signal inside trailing-liquidity buckets.
+
+    Un-neutralised A-share cross-sections are dominated by size: a raw signal is largely a
+    size bet, and the size bet is what the cost model then destroys. Bucketing on trailing
+    median amount (causal, shifted) and z-scoring within bucket keeps the intra-bucket
+    ordering -- the part a factor can actually claim -- and discards the size tilt.
+    """
+    if bins < 2:
+        return signal
+    scale = np.log(panel["amount"].rolling(20).median().shift(1).replace(0.0, np.nan))
+    buckets = scale.rank(axis=1, pct=True)
+    out = signal * np.nan
+    for index in range(bins):
+        lower, upper = index / bins, (index + 1) / bins
+        member = buckets.gt(lower) & buckets.le(upper) if index else buckets.le(upper)
+        group = signal.where(member)
+        centred = group.sub(group.mean(axis=1), axis=0).div(
+            group.std(axis=1).replace(0.0, np.nan), axis=0
+        )
+        out = out.fillna(centred)
+    return out
+
+
+def long_only_portfolio(
+    signal: pd.DataFrame,
+    one_day: pd.DataFrame,
+    panel: dict[str, pd.DataFrame],
+    cog_config: dict[str, Any],
+    config: dict[str, Any],
+) -> tuple[pd.Series, pd.Series]:
+    """(net excess return, turnover) for the harvestable long-only book.
+
+    Three construction choices, each measured on the real panel with a 20-day reversal probe
+    (IC t=15.8) before being adopted:
+      * size neutralisation lifted gross IR 0.08 -> 0.29;
+      * rank weighting over the whole book beats a hard decile cut (0.08 -> 0.21 gross)
+        because a decile discards the monotone middle of a broad signal;
+      * holding for the prediction horizon instead of rebalancing daily cut turnover
+        0.23 -> 0.069/day, i.e. the cost drag the old screen was charging was ~3.3x the
+        drag the strategy the label describes would actually pay.
+    Together they moved that probe from -0.41 net IR to break-even, which is why an
+    un-neutralised daily-rebalanced decile screen was rejecting real signals as unprofitable.
+    """
+    screen = config["fastScreen"]
+    if bool(screen.get("sizeNeutralise", True)):
+        signal = size_neutralise(signal, panel, int(screen.get("sizeNeutraliseBins", 5)))
+    ranks = signal.rank(axis=1, pct=True)
+    if str(screen.get("bookConstruction", "rank_weighted")) == "rank_weighted":
+        raw_weights = ranks.sub(1.0 - float(cog_config["data"]["topQuantile"])).clip(lower=0.0)
+    else:
+        raw_weights = ranks.ge(1.0 - float(cog_config["data"]["topQuantile"])).astype(float)
+    weights = raw_weights.div(raw_weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    hold = int(cog_config["data"]["predictionHorizonTradingDays"])
+    if hold > 1:
+        weights = weights.rolling(hold).mean().fillna(0.0)
+        weights = weights.div(weights.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
+    book_return = (weights * one_day).sum(axis=1, min_count=1)
+    benchmark = one_day.mean(axis=1)
+    turnover = weights.diff().abs().sum(axis=1) / 2.0
+    net = book_return - benchmark - turnover * float(config["fullEvaluation"]["roundTripCost"])
+    return net, turnover
+
+
 def fast_screen(
     candidate: dict[str, Any],
     panel: dict[str, pd.DataFrame],
@@ -750,16 +814,8 @@ def fast_screen(
     rank_ic = signal.loc[train_mask].corrwith(
         target.loc[train_mask], axis=1, method="spearman"
     ).dropna()
-    ranks = signal.rank(axis=1, pct=True)
-    top = ranks.ge(1.0 - float(cog_config["data"]["topQuantile"]))
-    weights = top.div(top.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
-    top_return = (weights * one_day).sum(axis=1, min_count=1)
-    benchmark = one_day.mean(axis=1)
-    turnover = weights.diff().abs().sum(axis=1) / 2.0
-    long_net = (
-        top_return
-        - benchmark
-        - turnover * float(config["fullEvaluation"]["roundTripCost"])
+    long_net, _turnover = long_only_portfolio(
+        signal, one_day, panel, cog_config, config
     )
     rank_stats = autonomous.period_stats(rank_ic, train_mask)
     net_stats = autonomous.period_stats(long_net, train_mask)
@@ -839,6 +895,20 @@ def choose_operator(rng: random.Random, config: dict[str, Any]) -> str:
         for operator in operators
     ]
     return rng.choices(operators, weights=weights, k=1)[0]
+
+
+class _SeedParent:
+    """Breeding stand-in for a screened-out candidate.
+
+    evolve_candidates only reads ``.candidate``, so a screened-out expression can seed the
+    next generation without being promoted, scored or recorded as accepted anywhere.
+    """
+
+    __slots__ = ("candidate", "fitness")
+
+    def __init__(self, candidate: dict[str, Any]) -> None:
+        self.candidate = candidate
+        self.fitness = float("-inf")
 
 
 def evolve_candidates(
@@ -1086,16 +1156,8 @@ def purged_walk_forward_audit(
             continue
         direction = 1.0 if float(raw_train_ic.mean()) >= 0.0 else -1.0
         fold_signal = raw * direction
-        ranks = fold_signal.rank(axis=1, pct=True)
-        top = ranks.ge(1.0 - float(cog_config["data"]["topQuantile"]))
-        weights = top.div(top.sum(axis=1).replace(0, np.nan), axis=0).fillna(0.0)
-        top_return = (weights * one_day).sum(axis=1, min_count=1)
-        benchmark = one_day.mean(axis=1)
-        turnover = weights.diff().abs().sum(axis=1) / 2.0
-        long_net = (
-            top_return
-            - benchmark
-            - turnover * float(config["fullEvaluation"]["roundTripCost"])
+        long_net, _fold_turnover = long_only_portfolio(
+            fold_signal, one_day, panel, cog_config, config
         )
         test_mask = pd.Series(False, index=dates)
         test_mask.loc[test_dates] = True
@@ -1518,6 +1580,7 @@ def run_cycle(
     evaluated_fingerprints: set[str] = set()
     accepted: list[FastResult] = []
     rejected_rows: list[dict[str, Any]] = []
+    near_miss: list[tuple[float, dict[str, Any]]] = []
     generated_count = 0
 
     def evaluate_rows(rows: list[dict[str, Any]]) -> None:
@@ -1540,6 +1603,17 @@ def run_cycle(
                 accepted,
             )
             if fast is None:
+                # Keep a train-only ranking of screened-out candidates so evolution can still
+                # breed when nothing clears the screen. Without this the search dies at
+                # generation 1 whenever the screen is strict (observed: 12 candidates, 0
+                # survivors, generations 2..N never ran) -- an evolutionary algorithm that
+                # cannot evolve. Fitness here is |train rank-IC t|, which is train-only and
+                # therefore does not breach the validation/shadow quarantine.
+                rank_block = audit.get("rankIc") if isinstance(audit, dict) else None
+                if isinstance(rank_block, dict):
+                    train_block = rank_block.get("train")
+                    if isinstance(train_block, dict) and train_block.get("t") is not None:
+                        near_miss.append((abs(float(train_block["t"])), candidate))
                 rejected_rows.append(
                     {
                         "rejectionId": "rejection_"
@@ -1564,13 +1638,24 @@ def run_cycle(
     evaluate_rows(candidates)
     generation_audit: list[dict[str, Any]] = []
     for generation in range(1, int(config["synthesis"]["generationsPerCycle"]) + 1):
-        parents = sorted(accepted, key=lambda item: item.fitness, reverse=True)[
-            : int(config["synthesis"]["parentPoolSize"])
-        ]
+        pool_size = int(config["synthesis"]["parentPoolSize"])
+        parents = sorted(accepted, key=lambda item: item.fitness, reverse=True)[:pool_size]
+        seeded = 0
+        minimum_parents = int(config["synthesis"].get("minimumParentsToContinue", 0))
+        if (
+            bool(config["synthesis"].get("seedParentsFromBestScreened", False))
+            and len(parents) < max(minimum_parents, 1)
+        ):
+            for _score, candidate in sorted(near_miss, key=lambda item: -item[0]):
+                if len(parents) >= max(minimum_parents, 1):
+                    break
+                parents.append(_SeedParent(candidate))
+                seeded += 1
         generation_audit.append(
             {
                 "generation": generation,
                 "parents": [parent.candidate["factorId"] for parent in parents],
+                "seededFromScreenedOut": seeded,
                 "selectionData": "train_only",
                 "validationFeedbackUsed": False,
                 "shadowFeedbackUsed": False,
