@@ -124,7 +124,8 @@
       "mechanism_hypotheses",
       "factor_bundles",
       "experiments",
-      "rejection_events"
+      "rejection_events",
+      "factor_observations"
     ]
   },
   "stateMachine": [

@@ -31,6 +31,10 @@ a statistically persistent gross factor. No cost is set to zero and no metric is
 - Train-only evolution; validation and shadow never return to the generator.
 - Behaviour correlation above 0.85 is rejected to avoid reporting five cosmetic variants
   of the same exposure.
+- Each completed new-data cycle increments a deterministic novelty epoch. The grammar
+  explores a different region instead of regenerating the same random formulas forever.
+- Stable factor IDs and immutable per-cycle observations distinguish a newly discovered
+  factor from a repeat validation. `cumulative_factor_catalog.json` keeps that history.
 - Five purged walk-forward folds with a ten-trading-day purge.
 - The project-wide trial ledger starts at 901, conservatively including the earlier
   historical probes and the already-launched superseded v2 batch.

@@ -419,6 +419,7 @@ APPEND_ONLY_TABLES = [
     "factor_bundles",
     "experiments",
     "rejection_events",
+    "factor_observations",
 ]
 
 
@@ -483,6 +484,82 @@ def previous_archetype_counts(
         if archetype:
             counts[archetype] = counts.get(archetype, 0) + 1
     return counts
+
+
+def completed_cycle_count(connection: sqlite3.Connection | None) -> int:
+    if connection is None:
+        return 0
+    return int(
+        connection.execute(
+            "SELECT COUNT(*) FROM run_index WHERE status='complete'"
+        ).fetchone()[0]
+    )
+
+
+def previous_factor_ids(connection: sqlite3.Connection | None) -> set[str]:
+    if connection is None:
+        return set()
+    output: set[str] = set()
+    for (payload_text,) in connection.execute(
+        "SELECT payload FROM factor_observations"
+    ):
+        try:
+            factor_id = str(json.loads(payload_text).get("factorId", ""))
+        except json.JSONDecodeError:
+            continue
+        if factor_id:
+            output.add(factor_id)
+    return output
+
+
+def cumulative_factor_catalog(connection: sqlite3.Connection) -> dict[str, Any]:
+    """Rebuild a compact catalog from immutable per-cycle factor observations."""
+    factors: dict[str, dict[str, Any]] = {}
+    rows = connection.execute(
+        "SELECT created_at, payload FROM factor_observations ORDER BY created_at"
+    )
+    for created_at, payload_text in rows:
+        try:
+            row = json.loads(payload_text)
+        except json.JSONDecodeError:
+            continue
+        factor_id = str(row.get("factorId", ""))
+        if not factor_id:
+            continue
+        current = factors.setdefault(
+            factor_id,
+            {
+                "factorId": factor_id,
+                "fingerprint": row.get("fingerprint"),
+                "archetypeId": row.get("archetypeId"),
+                "expression": row.get("expression"),
+                "firstSeenAt": created_at,
+                "lastSeenAt": created_at,
+                "observationCount": 0,
+                "candidatePassCount": 0,
+                "crediblePassCount": 0,
+            },
+        )
+        current["lastSeenAt"] = created_at
+        current["observationCount"] += 1
+        current["candidatePassCount"] += int(
+            row.get("preMultipleTestingStatus") == "HISTORICALLY_VALIDATED"
+        )
+        current["crediblePassCount"] += int(
+            row.get("finalStatus") == "HISTORICALLY_VALIDATED"
+        )
+        current["latestRunId"] = row.get("cycleId")
+        current["latestStatus"] = row.get("finalStatus")
+        current["latestRejectionReasons"] = row.get("rejectionReasons", [])
+        current["latestMetrics"] = row.get("metrics")
+    return {
+        "schemaVersion": "perception_xalpha_cumulative_factor_catalog_v1",
+        "status": "research_only_not_trade_signals",
+        "uniqueFactorCount": len(factors),
+        "factors": sorted(factors.values(), key=lambda row: row["factorId"]),
+        "orders": [],
+        "automaticTradingChanges": [],
+    }
 
 
 def build_research_plan(
@@ -937,7 +1014,8 @@ def initial_candidates(
     use_state: bool,
 ) -> list[dict[str, Any]]:
     variants = int(config["synthesis"]["initialVariantsPerQuestion"])
-    seed = int(config["synthesis"]["randomSeed"])
+    novelty_epoch = int(config.get("_runtimeNoveltyEpoch", 0))
+    seed = int(config["synthesis"]["randomSeed"]) + novelty_epoch * 1_000_003
     output: list[dict[str, Any]] = []
     for hypothesis in hypotheses:
         structured_library = config["synthesis"].get("structuredSeedLibrary")
@@ -1204,7 +1282,12 @@ def evolve_candidates(
 ) -> list[dict[str, Any]]:
     if not parents:
         return []
-    seed = int(config["synthesis"]["randomSeed"]) + generation * 1009
+    novelty_epoch = int(config.get("_runtimeNoveltyEpoch", 0))
+    seed = (
+        int(config["synthesis"]["randomSeed"])
+        + generation * 1009
+        + novelty_epoch * 1_000_003
+    )
     rng = random.Random(seed)
     hypothesis_map = {
         hypothesis["hypothesisId"]: hypothesis for hypothesis in hypotheses
@@ -1903,6 +1986,12 @@ def run_cycle(
                 "inputFingerprint": fingerprint,
                 "automaticTradingChanges": [],
             }, None
+    novelty_epoch = completed_cycle_count(connection)
+    known_factor_ids = previous_factor_ids(connection)
+    # The epoch is derived only from completed historical research cycles. It changes the
+    # deterministic grammar path when new market data arrive, so a daily loop does not
+    # regenerate the same formulas forever. It contains no validation/shadow information.
+    config["_runtimeNoveltyEpoch"] = novelty_epoch
     generated_at = datetime.now(timezone.utc)
     cycle_id = (
         f"cycle_{generated_at:%Y%m%dT%H%M%SZ}_{fingerprint[:10]}"
@@ -2181,6 +2270,7 @@ def run_cycle(
                 "purgedWalkForward": bundle.get("purgedWalkForward"),
                 "selectionObjective": selected_metric_group,
                 "remainingGuards": bundle.get("rejectionReasons", []),
+                "isNewFactor": bundle["factorId"] not in known_factor_ids,
                 "status": "research_candidate_not_yet_credible_not_a_trade_signal",
             }
         )
@@ -2193,6 +2283,7 @@ def run_cycle(
         ),
         reverse=True,
     )
+    daily_factor_candidates.sort(key=lambda row: not bool(row["isNewFactor"]))
     daily_factor_candidates = daily_factor_candidates[:target_count]
     result = {
         "schemaVersion": "perception_xalpha_autonomous_result_v2",
@@ -2233,6 +2324,11 @@ def run_cycle(
                 config.get("discoveryObjective", {}).get(
                     "targetCredibleFactorsPerCycle", 0
                 )
+            ),
+            "noveltyEpoch": novelty_epoch,
+            "previouslyKnownFactorCount": len(known_factor_ids),
+            "newDailyResearchCandidates": sum(
+                int(bool(row["isNewFactor"])) for row in daily_factor_candidates
             ),
         },
         "factorBundles": bundles,
@@ -2338,6 +2434,27 @@ def run_cycle(
             insert_entity(
                 connection, "factor_bundles", bundle["bundleId"], bundle
             )
+            candidate = bundle["primary"]["candidate"]
+            observation = {
+                "observationId": "factor_observation_"
+                + digest({"cycleId": cycle_id, "factorId": bundle["factorId"]})[:20],
+                "cycleId": cycle_id,
+                "factorId": bundle["factorId"],
+                "fingerprint": candidate.get("fingerprint"),
+                "archetypeId": bundle.get("archetypeId"),
+                "expression": candidate.get("expression"),
+                "preMultipleTestingStatus": bundle.get("preMultipleTestingStatus"),
+                "finalStatus": bundle.get("status"),
+                "rejectionReasons": bundle.get("rejectionReasons", []),
+                "metrics": bundle["primary"].get("fullMetrics"),
+                "immutable": True,
+            }
+            insert_entity(
+                connection,
+                "factor_observations",
+                observation["observationId"],
+                observation,
+            )
         for fast in accepted:
             experiment = {
                 "experimentId": "experiment_"
@@ -2382,6 +2499,10 @@ def run_cycle(
             ),
         )
         connection.commit()
+        atomic_json(
+            state_directory / "cumulative_factor_catalog.json",
+            cumulative_factor_catalog(connection),
+        )
         parent_rows = sorted(
             accepted, key=lambda item: item.fitness, reverse=True
         )[: int(config["synthesis"]["maximumPersistentParents"])]

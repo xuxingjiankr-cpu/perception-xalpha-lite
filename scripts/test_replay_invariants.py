@@ -7265,6 +7265,11 @@ def t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it() -> N
             if key.startswith("may")
         ),
     )
+    check(
+        "T115 factor observations are immutable and separately catalogued",
+        "factor_observations" in xalpha.APPEND_ONLY_TABLES
+        and "factor_observations" in config["registry"]["appendOnlyEntities"],
+    )
 
     index = pd.bdate_range("2023-01-02", periods=360)
     codes = [f"S{i:03d}" for i in range(40)]
@@ -7305,6 +7310,33 @@ def t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it() -> N
             seed_count += 1
     check("T115 expanded predictive library stays inside the audited DSL", seed_count >= 50)
     check("T115 expanded predictive factors are prefix-causal", causal)
+
+    epoch_zero = copy.deepcopy(config)
+    epoch_one = copy.deepcopy(config)
+    epoch_zero["_runtimeNoveltyEpoch"] = 0
+    epoch_one["_runtimeNoveltyEpoch"] = 1
+    initial_hypothesis = {
+        "hypothesisId": "t115_epoch_hypothesis",
+        "ticketId": "t115_epoch_ticket",
+        "archetypeId": "information_diffusion",
+        "falsifiablePrediction": "past-only diffusion hypothesis",
+        "mechanism": "test fixture",
+        "forcedTrader": "test fixture",
+        "persistence": "test fixture",
+    }
+    candidates_zero = xalpha.initial_candidates(
+        [initial_hypothesis], epoch_zero, cog_config, ROOT, False
+    )
+    candidates_one = xalpha.initial_candidates(
+        [initial_hypothesis], epoch_one, cog_config, ROOT, False
+    )
+    structured_count = int(config["synthesis"]["maximumStructuredSeedsPerQuestion"])
+    random_zero = [row["fingerprint"] for row in candidates_zero[structured_count:]]
+    random_one = [row["fingerprint"] for row in candidates_one[structured_count:]]
+    check(
+        "T115 a new completed-cycle epoch explores new grammar expressions",
+        bool(random_zero) and random_zero != random_one,
+    )
 
     train = pd.Series(False, index=index)
     validation = pd.Series(False, index=index)
