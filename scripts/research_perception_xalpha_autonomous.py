@@ -313,6 +313,7 @@ def validate_config(config: dict[str, Any]) -> None:
         None,
         "a_share_tradeable_v1",
         "a_share_predictive_v2",
+        "a_share_fundamental_pit_v1",
     }:
         raise ValueError("unknown structured seed library")
     if int(synthesis.get("maximumStructuredSeedsPerQuestion", 0)) > 16:
@@ -363,6 +364,18 @@ def validate_config(config: dict[str, Any]) -> None:
             value = str(universe.get(key, "")).replace("\\", "/").lower()
             if not value.startswith("data/market/ashare_research/"):
                 raise ValueError("all-A-share inputs must stay in the research data root")
+        fundamental = universe.get("fundamentalData")
+        if fundamental is not None:
+            root = str(fundamental.get("root", "")).replace("\\", "/").lower()
+            if not root.startswith("data/market/ashare_research/fundamentals_pit"):
+                raise ValueError("fundamental inputs must stay in the research data root")
+            fields = list(fundamental.get("fields", []))
+            if not fields or any(not str(field).startswith("fund_") for field in fields):
+                raise ValueError("fundamental fields must be explicit fund_* research fields")
+            if fundamental.get("availabilityRule") != (
+                "first_market_date_strictly_after_max_notice_update"
+            ):
+                raise ValueError("fundamental availability rule must remain conservative")
         output_root = str(config["registry"]["outputRoot"]).replace("\\", "/")
         if "perception_xalpha_all_ashares" not in output_root:
             raise ValueError("all-A-share output root must be independently isolated")
@@ -425,6 +438,11 @@ def load_base_configs(
             "Current discoverable SH/SZ/BJ master only; delisted securities and "
             "historical point-in-time ST membership are incomplete."
         )
+        fundamental = universe.get("fundamentalData")
+        if fundamental:
+            for field in fundamental.get("fields", []):
+                if field not in cog_config["search"]["allowedInputs"]:
+                    cog_config["search"]["allowedInputs"].append(field)
     if int(cog_config["data"]["predictionHorizonTradingDays"]) != int(
         config["fullEvaluation"]["maximumLabelHorizonTradingDays"]
     ):
@@ -453,6 +471,18 @@ def build_configured_panel(
     import research_ashare_universe as ashare
 
     panel, audit = ashare.build_panel(universe, cog_config["data"])
+    fundamental = universe.get("fundamentalData")
+    if fundamental:
+        import research_ashare_fundamentals as fundamentals
+
+        panel, fundamental_audit = fundamentals.attach_point_in_time_fundamentals(
+            panel, fundamental
+        )
+        audit["fundamentalAudit"] = fundamental_audit
+        audit["historicalValidationEligible"] = bool(
+            audit.get("historicalValidationEligible", False)
+            and fundamental_audit.get("historicalValidationEligible", False)
+        )
     return panel, audit
 
 
@@ -983,6 +1013,100 @@ def structured_predictive_seeds(
     return copy.deepcopy(list(deduplicated.values()))
 
 
+def structured_fundamental_seeds(
+    archetype_id: str,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Causal PIT fundamentals plus economically explicit OHLCV interactions.
+
+    Values are already aligned to the first session strictly after public disclosure.
+    These are a bounded hypothesis library, not a parameter sweep; evolution may combine
+    them, but validation/shadow outcomes never return to the generator.
+    """
+
+    def f(name: str) -> dict[str, Any]:
+        return {"field": name}
+
+    def roll(op: str, arg: dict[str, Any], window: int) -> dict[str, Any]:
+        return {"rolling": op, "arg": arg, "window": window}
+
+    def unary(op: str, arg: dict[str, Any]) -> dict[str, Any]:
+        return {"unary": op, "arg": arg}
+
+    def binary(op: str, left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+        return {"binary": op, "left": left, "right": right}
+
+    quality = f("fund_quality_composite")
+    growth = f("fund_growth_composite")
+    safety = f("fund_balance_sheet_safety")
+    accrual = f("fund_accrual_quality")
+    book_to_price = f("fund_book_to_price")
+    earnings_yield = f("fund_annualized_earnings_yield")
+    roe = f("fund_roe")
+    roic = f("fund_roic")
+    debt = f("fund_debt_asset_ratio")
+    cash_profit = f("fund_cash_to_profit")
+    revenue_growth = f("fund_revenue_yoy")
+    profit_growth = f("fund_net_profit_yoy")
+    returns = f("returns")
+    momentum_20 = roll("sum", returns, 20)
+    momentum_120 = roll("sum", returns, 120)
+    volatility_20 = roll("std", returns, 20)
+    liquidity_20 = roll("mean", unary("signed_log1p", f("amount")), 20)
+    low_beta = unary(
+        "neg",
+        {
+            "corr": True,
+            "left": returns,
+            "right": f("market_return"),
+            "window": 60,
+        },
+    )
+    seeds: dict[str, list[tuple[str, dict[str, Any]]]] = {
+        "order_splitting": [
+            ("quality_with_liquidity_confirmation", binary("mul", quality, liquidity_20)),
+            ("cash_profit_with_turnover", binary("mul", cash_profit, liquidity_20)),
+            ("growth_information_diffusion", binary("mul", growth, momentum_20)),
+        ],
+        "liquidity_reversal": [
+            ("value_short_term_reversal", binary("mul", book_to_price, unary("neg", momentum_20))),
+            ("quality_at_discount", binary("mul", quality, book_to_price)),
+            ("earnings_yield_reversal", binary("mul", earnings_yield, unary("neg", momentum_20))),
+        ],
+        "risk_budgeting": [
+            ("quality_composite", quality),
+            ("balance_sheet_safety", safety),
+            ("quality_low_beta", binary("mul", quality, low_beta)),
+            ("roic_low_volatility", binary("div", roic, volatility_20)),
+            ("negative_leverage", unary("neg", debt)),
+        ],
+        "information_diffusion": [
+            ("growth_composite", growth),
+            ("revenue_growth", revenue_growth),
+            ("profit_growth", profit_growth),
+            ("growth_medium_momentum", binary("mul", growth, momentum_120)),
+            ("roe_with_momentum", binary("mul", roe, momentum_20)),
+        ],
+        "crowding_unwind": [
+            ("book_to_price", book_to_price),
+            ("annualized_earnings_yield", earnings_yield),
+            ("value_against_momentum", binary("sub", book_to_price, momentum_120)),
+            ("accrual_quality", accrual),
+        ],
+        "benchmark_rebalancing": [
+            ("quality_value", binary("add", quality, book_to_price)),
+            ("growth_quality", binary("add", growth, quality)),
+            ("fundamental_strength_liquid", binary("mul", binary("add", quality, growth), liquidity_20)),
+        ],
+        "volatility_feedback": [
+            ("safety_low_beta", binary("mul", safety, low_beta)),
+            ("quality_per_volatility", binary("div", quality, volatility_20)),
+            ("cash_quality_per_volatility", binary("div", cash_profit, volatility_20)),
+            ("roic_minus_leverage", binary("sub", roic, debt)),
+        ],
+    }
+    return copy.deepcopy(seeds.get(archetype_id, []))
+
+
 def book_identity(cog_config: dict[str, Any]) -> str:
     """Hash of the effective book definition a parent pool was bred under.
 
@@ -1063,12 +1187,16 @@ def initial_candidates(
     output: list[dict[str, Any]] = []
     for hypothesis in hypotheses:
         structured_library = config["synthesis"].get("structuredSeedLibrary")
-        if structured_library in {"a_share_tradeable_v1", "a_share_predictive_v2"}:
-            seed_builder = (
-                structured_predictive_seeds
-                if structured_library == "a_share_predictive_v2"
-                else structured_tradeable_seeds
-            )
+        if structured_library in {
+            "a_share_tradeable_v1",
+            "a_share_predictive_v2",
+            "a_share_fundamental_pit_v1",
+        }:
+            seed_builder = {
+                "a_share_tradeable_v1": structured_tradeable_seeds,
+                "a_share_predictive_v2": structured_predictive_seeds,
+                "a_share_fundamental_pit_v1": structured_fundamental_seeds,
+            }[structured_library]
             structured = seed_builder(str(hypothesis["archetypeId"]))
             maximum_structured = int(
                 config["synthesis"].get("maximumStructuredSeedsPerQuestion", 0)
@@ -1948,12 +2076,26 @@ def input_fingerprint(
     universe_audit: dict[str, Any],
 ) -> str:
     close = panel["close"]
+    research_fields = sorted(key for key in panel if key.startswith("fund_"))
+    research_field_fingerprint = {
+        field: {
+            str(key): None if pd.isna(value) else round(float(value), 8)
+            for key, value in panel[field].iloc[-1].items()
+        }
+        for field in research_fields
+    }
+    auxiliary_sources = {}
+    for name in ("research_ashare_universe.py", "research_ashare_fundamentals.py"):
+        path = ROOT / "scripts" / name
+        if path.exists():
+            auxiliary_sources[name] = hashlib.sha256(path.read_bytes()).hexdigest()
     payload = {
         "configSha256": hashlib.sha256(
             config_path.read_bytes()
         ).hexdigest(),
         "sourceSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "codeVersion": CODE_VERSION,
+        "auxiliarySourceSha256": auxiliary_sources,
         "universeAudit": universe_audit,
         "start": close.index.min().isoformat(),
         "end": close.index.max().isoformat(),
@@ -1962,6 +2104,7 @@ def input_fingerprint(
             str(key): None if pd.isna(value) else round(float(value), 8)
             for key, value in close.iloc[-1].items()
         },
+        "researchFieldLastValues": research_field_fingerprint,
     }
     return digest(payload)
 

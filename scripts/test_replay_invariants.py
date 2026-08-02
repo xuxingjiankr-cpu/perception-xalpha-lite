@@ -7699,6 +7699,117 @@ def t111_all_ashare_research_universe_is_complete_and_isolated() -> None:
     )
 
 
+def t116_fundamental_factor_discovery_is_point_in_time_and_isolated() -> None:
+    import json
+    import tempfile
+
+    import numpy as np
+    import pandas as pd
+    import research_ashare_fundamentals as fundamentals
+    import research_perception_xalpha_autonomous as px2
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_all_ashares_v5_fundamental.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    px2.validate_config(config)
+    check(
+        "T116 fundamental miner remains research-only with every trading permission false",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["safety"]["outputStatus"] == "diagnostic_only"
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+    dates = pd.bdate_range("2026-01-01", "2026-01-12")
+    close = pd.DataFrame({"SH.600000": np.arange(len(dates)) + 10.0}, index=dates)
+    panel = {"close": close}
+    row = {
+        "securityId": "SH.600000",
+        "reportDate": "2025-12-31",
+        "noticeDate": "2026-01-03",
+        "updateDate": "2026-01-06",
+        "epsYtd": 1.0,
+        "bookValuePerShare": 5.0,
+        "revenueYoyPct": 10.0,
+        "netProfitYoyPct": 8.0,
+        "roePct": 12.0,
+        "roicPct": 9.0,
+        "grossMarginPct": 30.0,
+        "netMarginPct": 11.0,
+        "debtAssetRatioPct": 35.0,
+        "currentRatio": 2.0,
+        "quickRatio": 1.5,
+        "operatingCashToRevenue": 0.8,
+        "operatingCashToNetProfit": 1.1,
+        "receivableTurnoverDays": 25.0,
+        "inventoryTurnoverDays": 40.0,
+        "totalAssetTurnover": 0.7,
+    }
+    previous_root = fundamentals.ROOT
+    try:
+        with tempfile.TemporaryDirectory() as directory:
+            temporary_root = Path(directory)
+            data_root = temporary_root / "fundamentals"
+            data_root.mkdir()
+            (data_root / "SH_600000.jsonl").write_text(
+                json.dumps(row) + "\n", encoding="utf-8"
+            )
+            fundamentals.ROOT = temporary_root
+            feature_config = {
+                "root": "fundamentals",
+                "minimumSymbolCoverage": 1.0,
+                "minimumLatestFeatureCoverage": 1.0,
+                "coreFields": ["fund_eps_ytd"],
+            }
+            enriched, audit = fundamentals.attach_point_in_time_fundamentals(
+                panel, feature_config
+            )
+            eps = enriched["fund_eps_ytd"]["SH.600000"]
+            check(
+                "T116 statement is invisible through update date and visible only next session",
+                eps.loc[: "2026-01-06"].isna().all()
+                and eps.loc[pd.Timestamp("2026-01-07")] == 1.0,
+            )
+            prefix_dates = dates[:5]
+            prefix_panel = {"close": close.loc[prefix_dates]}
+            prefix, _ = fundamentals.attach_point_in_time_fundamentals(
+                prefix_panel, feature_config
+            )
+            check(
+                "T116 full and truncated PIT builds are prefix-identical",
+                enriched["fund_eps_ytd"].loc[prefix_dates].equals(
+                    prefix["fund_eps_ytd"]
+                ),
+            )
+            check(
+                "T116 PIT audit records conservative availability and passes valid fixture",
+                audit["historicalValidationEligible"] is True
+                and audit["missingNoticeDateRows"] == 0
+                and "strictly after" in audit["availabilityRule"],
+            )
+    finally:
+        fundamentals.ROOT = previous_root
+    collector_source = (
+        ROOT / "scripts" / "collect_ashare_fundamentals.py"
+    ).read_text(encoding="utf-8")
+    runner_source = (
+        ROOT / "scripts" / "run_perception_xalpha_fundamental_weekly.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T116 fundamental collection and mining contain no trading connection",
+        "submitOrder" not in collector_source
+        and "run_t0_intraday_agent" not in collector_source
+        and "decision_probability_v1.json" not in collector_source
+        and "etf_paper_trading_agent" not in runner_source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -7808,6 +7919,7 @@ if __name__ == "__main__":
     t114_tradeable_factor_harvest_is_causal_and_isolated()
     t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it()
     t111_all_ashare_research_universe_is_complete_and_isolated()
+    t116_fundamental_factor_discovery_is_point_in_time_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
