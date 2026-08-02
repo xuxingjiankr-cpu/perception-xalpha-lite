@@ -6979,6 +6979,50 @@ def t112_ashare_labels_exclude_untradeable_legs() -> None:
     )
 
 
+def t121_overlapping_labels_use_hac_significance() -> None:
+    """Significance on an overlapping-horizon series must be HAC-corrected.
+
+    Daily observations of an h-day signal share h-1 days of the same future window, so the
+    iid t-statistic counts far more independent evidence than exists. Demonstrated on pure
+    noise with a true mean of exactly zero: 10-day overlapping means produce an iid t near
+    -5.8, which any gate would read as overwhelming significance, against a HAC t of -2.3.
+    Every gate that reads a t must read the corrected one.
+    """
+    import numpy as np
+    import pandas as pd
+    import research_cogalpha_autonomous as auto
+
+    horizon = 10
+    noise = pd.Series(np.random.default_rng(0).normal(0, 0.01, 3000))
+    overlapping = noise.rolling(horizon).mean().dropna().reset_index(drop=True)
+    mask = pd.Series(True, index=overlapping.index)
+    iid = auto.period_stats(overlapping, mask)
+    hac = auto.period_stats(overlapping, mask, horizon - 1)
+
+    check(
+        "T121 the iid statistic is inflated on overlapping data",
+        abs(float(iid["t"])) > 4.0,
+        f"iid t={iid['t']}",
+    )
+    check(
+        "T121 the HAC correction materially deflates it",
+        abs(float(hac["t"])) < 0.6 * abs(float(iid["t"])),
+        f"hac t={hac['t']} vs iid {iid['t']}",
+    )
+    check(
+        "T121 gates read the corrected statistic",
+        float(hac["t"]) == float(hac["tHac"]) and hac["hacLag"] == horizon - 1,
+    )
+    check(
+        "T121 the uncorrected value is retained for comparison",
+        float(hac["tIid"]) == float(iid["t"]),
+    )
+    check(
+        "T121 a non-overlapping series is left alone",
+        auto.period_stats(noise, pd.Series(True, index=noise.index)).get("tHac") is None,
+    )
+
+
 def t120_universe_membership_is_point_in_time() -> None:
     """Membership must be decided from trailing information only.
 
@@ -7993,6 +8037,7 @@ if __name__ == "__main__":
     t112_ashare_labels_exclude_untradeable_legs()
     t113_factor_search_success_path_actually_works()
     t120_universe_membership_is_point_in_time()
+    t121_overlapping_labels_use_hac_significance()
     t114_tradeable_factor_harvest_is_causal_and_isolated()
     t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it()
     t111_all_ashare_research_universe_is_complete_and_isolated()

@@ -474,18 +474,55 @@ def ollama_generate(generation: int, feedback: dict[str, Any], config: dict[str,
         return [], {"status": "failed_closed", "model": model, "reason": str(exc)[:300]}
 
 
-def period_stats(series: pd.Series, mask: pd.Series) -> dict[str, Any]:
+def newey_west_t(values: np.ndarray, lag: int) -> float | None:
+    """HAC t-statistic for a mean, Bartlett-kernel corrected to `lag`.
+
+    Daily observations of an h-day-horizon signal overlap by construction: consecutive
+    entries share h-1 days of the same future window, so they are strongly autocorrelated
+    and the iid t-statistic overstates the effective sample size -- roughly by sqrt(h) when
+    autocorrelation is high. Every gate that reads a t (rank-IC significance, costed-IR
+    significance) therefore judges an overlapping series with an iid yardstick.
+    """
+    n = len(values)
+    if n < 3:
+        return None
+    demeaned = values - values.mean()
+    gamma0 = float(np.dot(demeaned, demeaned) / n)
+    if gamma0 <= 0:
+        return None
+    variance = gamma0
+    for k in range(1, min(int(lag), n - 1) + 1):
+        cov = float(np.dot(demeaned[k:], demeaned[:-k]) / n)
+        variance += 2.0 * (1.0 - k / (int(lag) + 1.0)) * cov
+    if variance <= 0:
+        return None
+    return float(values.mean() / math.sqrt(variance / n))
+
+
+def period_stats(
+    series: pd.Series, mask: pd.Series, overlap_lag: int = 0
+) -> dict[str, Any]:
     values = series[mask.reindex(series.index, fill_value=False)].replace([np.inf, -np.inf], np.nan).dropna()
     if len(values) < 2:
         return {"n": int(len(values)), "mean": None, "t": None, "irAnn": None}
     mean = float(values.mean())
     std = float(values.std(ddof=1))
-    return {
+    stats = {
         "n": int(len(values)),
         "mean": round(mean, 8),
         "t": round(mean / std * math.sqrt(len(values)), 4) if std > 0 else None,
         "irAnn": round(mean / std * math.sqrt(244), 4) if std > 0 else None,
     }
+    if overlap_lag and len(values) > 3:
+        hac = newey_west_t(values.to_numpy(dtype=float), int(overlap_lag))
+        stats["tHac"] = round(hac, 4) if hac is not None else None
+        stats["hacLag"] = int(overlap_lag)
+        # Gates must read the conservative statistic; the iid t stays for comparison so the
+        # size of the overlap correction is visible in every report rather than implied.
+        if hac is not None:
+            stats["tIid"] = stats["t"]
+            stats["t"] = round(hac, 4)
+    return stats
 
 
 def discrete_mutual_information(signal: pd.DataFrame, target: pd.DataFrame, mask: pd.Series) -> float | None:
@@ -655,6 +692,7 @@ def evaluate_candidate(
         signal, one_day, panel, config
     )
     hit = (top_return > benchmark).astype(float)
+    overlap_lag = max(0, int(config["data"].get("predictionHorizonTradingDays", 1)) - 1)
     masks = {"train": split.train, "validation": split.validation, "shadow": split.shadow}
     mi = {period: discrete_mutual_information(signal, target, mask) for period, mask in masks.items()}
     periods = {}
@@ -663,14 +701,16 @@ def evaluate_candidate(
         cost_drag = turnover * float(config["data"]["roundTripCost"])
         filled_weight = weights.where(one_day.notna(), 0.0).sum(axis=1)
         periods[period] = {
-            "ic": period_stats(ic, mask),
-            "rankIc": period_stats(rank_ic, mask),
-            "grossLongOnly": period_stats(gross_excess, mask),
-            "costedLongOnly": period_stats(long_net, mask),
+            # Overlap lag = horizon - 1: daily observations of an h-day signal share h-1
+            # days of the same future window, so significance needs a HAC correction.
+            "ic": period_stats(ic, mask, overlap_lag),
+            "rankIc": period_stats(rank_ic, mask, overlap_lag),
+            "grossLongOnly": period_stats(gross_excess, mask, overlap_lag),
+            "costedLongOnly": period_stats(long_net, mask, overlap_lag),
             "turnover": period_stats(turnover, mask),
             "costDrag": period_stats(cost_drag, mask),
             "filledWeight": period_stats(filled_weight, mask),
-            "hitRate": period_stats(hit, mask),
+            "hitRate": period_stats(hit, mask, overlap_lag),
             "mutualInformation": mi[period],
         }
     summary = {

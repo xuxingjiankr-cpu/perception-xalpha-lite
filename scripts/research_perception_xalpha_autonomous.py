@@ -1341,9 +1341,10 @@ def fast_screen(
     )
     gross_excess = book_return - benchmark
     held = book_weights.gt(0.0)
-    rank_stats = autonomous.period_stats(rank_ic, train_mask)
-    gross_stats = autonomous.period_stats(gross_excess, train_mask)
-    net_stats = autonomous.period_stats(long_net, train_mask)
+    overlap_lag = max(0, int(cog_config["data"].get("predictionHorizonTradingDays", 1)) - 1)
+    rank_stats = autonomous.period_stats(rank_ic, train_mask, overlap_lag)
+    gross_stats = autonomous.period_stats(gross_excess, train_mask, overlap_lag)
+    net_stats = autonomous.period_stats(long_net, train_mask, overlap_lag)
     metrics = {
         "rankIc": rank_stats,
         "grossLongOnly": gross_stats,
