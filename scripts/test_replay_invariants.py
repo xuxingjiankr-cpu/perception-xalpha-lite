@@ -8473,6 +8473,174 @@ def t119_downside_tail_selector_is_purged_past_only_and_isolated() -> None:
     )
 
 
+def t122_expected_utility_selector_is_purged_past_only_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_expected_utility_v4 as utility_v4
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_expected_utility_v4.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    utility_v4.validate_config(config)
+    check(
+        "T122 expected-utility selector is research-only and cannot trade",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=180)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(122)
+    table = pd.DataFrame(index=index).reset_index()
+    features = utility_v4.expected_return_feature_columns(config)
+    for number, name in enumerate(features):
+        if name.startswith("market_"):
+            values = np.sin(np.arange(len(dates)) / (9.0 + number))
+            table[name] = np.repeat(values, len(securities))
+        else:
+            table[name] = rng.normal(0.0, 1.0, len(table))
+    table["target_return_10d"] = (
+        0.006 * table[features[0]]
+        - 0.004 * table[features[1]]
+        + rng.normal(0.0, 0.02, len(table))
+    )
+    toy = copy.deepcopy(config)
+    toy["expectedReturnModel"]["minimumTrainingTradingDays"] = 60
+    toy["expectedReturnModel"]["trainingWindowTradingDays"] = 100
+    toy["expectedReturnModel"]["refitEveryTradingDays"] = 20
+    predictions, audits = utility_v4.rolling_expected_return_predictions(
+        table, dates, toy
+    )
+    check(
+        "T122 every expected-return fit has the complete outcome-horizon purge",
+        len(audits) > 0
+        and all(audit["gapTradingDays"] >= 10 for audit in audits)
+        and all(
+            audit["model"]["fitDateRange"][1]
+            < audit["predictionDateRange"][0]
+            for audit in audits
+        ),
+    )
+    check(
+        "T122 future outcomes never enter expected-return feature columns",
+        "target_return_10d" not in features
+        and "target_cross_sectional_rank_10d" not in features
+        and "label_tail_loss_10d" not in features,
+    )
+
+    shocked = table.copy()
+    shocked.loc[shocked["date"].ge(dates[130]), "target_return_10d"] = 9.0
+    shocked_predictions, _ = utility_v4.rolling_expected_return_predictions(
+        shocked, dates, toy
+    )
+    prefix = predictions[predictions["date"].lt(dates[130])].sort_values(
+        ["date", "securityId"]
+    )
+    shocked_prefix = shocked_predictions[
+        shocked_predictions["date"].lt(dates[130])
+    ].sort_values(["date", "securityId"])
+    future_target_isolated = True
+    try:
+        pdt.assert_series_equal(
+            prefix["predicted_expected_return_10d"].reset_index(drop=True),
+            shocked_prefix["predicted_expected_return_10d"].reset_index(drop=True),
+            check_names=False,
+            check_exact=False,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    except AssertionError:
+        future_target_isolated = False
+    check(
+        "T122 an unseen future return suffix cannot change earlier forecasts",
+        future_target_isolated,
+    )
+
+    probe = pd.DataFrame(
+        {
+            "date": np.repeat(pd.Timestamp("2026-08-03"), 12),
+            "securityId": securities,
+            "rank_score_percentile": np.linspace(0.10, 1.00, 12),
+            "predicted_expected_return_10d": np.linspace(0.006, 0.020, 12),
+            "predicted_tail_probability": np.linspace(0.40, 0.10, 12),
+        }
+    )
+    integrated = utility_v4.add_integrated_score(probe, config)
+    expected_score = (
+        integrated["rank_score_percentile"]
+        + integrated["expected_return_percentile"]
+        + integrated["inverse_tail_probability_percentile"]
+    ) / 3.0
+    check(
+        "T122 integrated score and positive-net-return gate use frozen formulas",
+        np.allclose(
+            integrated["integrated_expected_utility_score"], expected_score
+        )
+        and bool(integrated["positive_net_edge_gate"].all())
+        and np.allclose(integrated["minimum_expected_return_gate"], 0.003),
+    )
+
+    primary_metric = {
+        "newSignalDays": 0,
+        "basketTenDayMeanReturn": None,
+        "costedCumulativeReturn": 0.0,
+    }
+    failed_report = {
+        "periods": {
+            period: {
+                "policies": {utility_v4.PRIMARY_POLICY: primary_metric},
+                "primaryVsRankTop10SameDays": {
+                    "commonSignalDays": 0,
+                    "meanReturnDelta": None,
+                    "winRateDelta": None,
+                    "tailLossRateReduction": None,
+                    "returnDeltaTHac": None,
+                },
+                "expectedReturnForecast": {
+                    "oosR2VsTrainingPrior": None,
+                    "rankIc": {"tHac": None},
+                },
+                "primaryIndependentEvents": {"n": 0},
+            }
+            for period in ("validation", "shadow")
+        }
+    }
+    verdict = utility_v4.build_verdict(failed_report, config)
+    check(
+        "T122 abstention cannot masquerade as expected-utility improvement",
+        verdict["stableHistoricalExpectedUtilityImprovement"] is False
+        and verdict["promotionAllowed"] is False,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_expected_utility_v4.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T122 expected-utility research has no production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8588,6 +8756,7 @@ if __name__ == "__main__":
     t117_two_stage_stock_selector_is_causal_calibrated_and_isolated()
     t118_winrate_rank_selector_is_purged_past_only_and_isolated()
     t119_downside_tail_selector_is_purged_past_only_and_isolated()
+    t122_expected_utility_selector_is_purged_past_only_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
