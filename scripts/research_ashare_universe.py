@@ -29,7 +29,14 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _series_frame(path: Path) -> tuple[pd.DataFrame | None, dict[str, int]]:
     rows = read_jsonl(path)
-    audit = {"sourceRows": len(rows), "invalidRows": 0, "duplicateDates": 0}
+    audit = {
+        "sourceRows": len(rows),
+        "invalidRows": 0,
+        "duplicateDates": 0,
+        "volumeRowsScaledFromLotsToShares": 0,
+        "historicalStatusRows": 0,
+        "adjustedPriceRows": 0,
+    }
     if not rows:
         return None, audit
     frame = pd.DataFrame(rows)
@@ -52,6 +59,36 @@ def _series_frame(path: Path) -> tuple[pd.DataFrame | None, dict[str, int]]:
     )
     audit["invalidRows"] = int((~valid).sum())
     frame = frame.loc[valid].copy()
+    # mootdx/TDX reports A-share ``vol`` in board lots (手), whereas amount is
+    # denominated in CNY.  Treating those lots as shares makes amount/volume (VWAP)
+    # exactly 100x too large.  New collectors declare volumeUnit explicitly; legacy
+    # TDX files are normalized by their immutable source tag.
+    if "volumeUnit" in frame:
+        lot_mask = frame["volumeUnit"].astype(str).eq("hands_100_shares")
+    elif "source" in frame:
+        lot_mask = frame["source"].astype(str).eq("mootdx_tdx")
+    else:
+        lot_mask = pd.Series(False, index=frame.index)
+    audit["volumeRowsScaledFromLotsToShares"] = int(lot_mask.sum())
+    frame.loc[lot_mask, "vol"] = frame.loc[lot_mask, "vol"] * 100.0
+    if "vwap" in frame:
+        frame["vwap"] = pd.to_numeric(frame["vwap"], errors="coerce")
+    else:
+        frame["vwap"] = np.nan
+    implied_vwap = frame["amount"] / frame["vol"].replace(0.0, np.nan)
+    frame["vwap"] = frame["vwap"].combine_first(implied_vwap)
+    for source, target in (("isST", "is_st"), ("tradeStatus", "trade_status")):
+        if source in frame:
+            frame[target] = pd.to_numeric(frame[source], errors="coerce")
+        else:
+            frame[target] = np.nan
+    audit["historicalStatusRows"] = int(
+        (frame["is_st"].notna() & frame["trade_status"].notna()).sum()
+    )
+    if "adjustment" in frame:
+        audit["adjustedPriceRows"] = int(
+            frame["adjustment"].astype(str).str.contains("adjusted", case=False).sum()
+        )
     audit["duplicateDates"] = int(frame["date"].duplicated().sum())
     frame = (
         frame.drop_duplicates("date", keep="last")
@@ -88,7 +125,29 @@ def point_in_time_eligibility(
     observed = panel["close"].notna() & panel["close"].gt(0)
     seasoned = observed.cumsum().shift(1).ge(seasoning)
     traded = panel["volume"].fillna(0.0).gt(0.0) & amount.fillna(0.0).gt(0.0)
-    return (trailing_amount.ge(floor) & seasoned & observed & traded).fillna(False)
+    membership = panel.get("membership")
+    if membership is None:
+        membership = observed
+    membership = membership.fillna(False).astype(bool)
+    status = panel.get("trade_status")
+    if status is None:
+        status_ok = traded
+    else:
+        status_ok = status.fillna(0.0).eq(1.0)
+    is_st = panel.get("is_st")
+    if is_st is None:
+        not_st = pd.DataFrame(True, index=observed.index, columns=observed.columns)
+    else:
+        not_st = is_st.fillna(1.0).eq(0.0)
+    return (
+        trailing_amount.ge(floor)
+        & seasoned
+        & observed
+        & traded
+        & membership
+        & status_ok
+        & not_st
+    ).fillna(False)
 
 
 def build_panel(
@@ -111,12 +170,27 @@ def build_panel(
     maximum_missing_fraction = float(universe_config["maximumMissingBarFraction"])
     allowed_exchanges = set(universe_config["exchanges"])
     fields: dict[str, dict[str, pd.Series]] = {
-        key: {} for key in ("open", "high", "low", "close", "volume", "amount")
+        key: {}
+        for key in (
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "amount",
+            "vwap",
+            "is_st",
+            "trade_status",
+            "membership",
+        )
     }
     rejection_counts: dict[str, int] = {}
     source_counts: dict[str, int] = {}
     invalid_rows = 0
     duplicate_dates = 0
+    volume_rows_scaled = 0
+    historical_status_rows = 0
+    adjusted_price_rows = 0
     accepted_metadata: dict[str, dict[str, Any]] = {}
     matched_files = 0
 
@@ -137,8 +211,32 @@ def build_panel(
         frame, file_audit = _series_frame(path)
         invalid_rows += file_audit["invalidRows"]
         duplicate_dates += file_audit["duplicateDates"]
+        volume_rows_scaled += file_audit["volumeRowsScaledFromLotsToShares"]
+        historical_status_rows += file_audit["historicalStatusRows"]
+        adjusted_price_rows += file_audit["adjustedPriceRows"]
         if frame is None or len(frame) < minimum_obs:
             reject("insufficient_observations")
+            continue
+        require_adjusted = bool(universe_config.get("requireAdjustedPrices", False))
+        adjusted = bool(
+            "adjustment" in frame
+            and frame["adjustment"].astype(str).str.contains("adjusted", case=False).all()
+        )
+        if require_adjusted and not adjusted:
+            reject("adjusted_prices_required")
+            continue
+        status_available = bool(
+            frame["is_st"].notna().all() and frame["trade_status"].notna().all()
+        )
+        if bool(universe_config.get("requirePointInTimeStatus", False)) and not status_available:
+            reject("point_in_time_status_required")
+            continue
+        master_membership_available = bool(
+            security.get("pointInTimeMembership") is True
+            and security.get("listingDate")
+        )
+        if bool(universe_config.get("requirePointInTimeMaster", False)) and not master_membership_available:
+            reject("point_in_time_master_required")
             continue
         median_amount = float(frame["amount"].median())
         if not np.isfinite(median_amount) or median_amount < minimum_amount:
@@ -165,9 +263,21 @@ def build_panel(
         ):
             reject("raw_price_corporate_action_or_anomaly")
             continue
-        for field in fields:
+        for field in ("open", "high", "low", "close", "volume", "amount", "vwap"):
             source = "vol" if field == "volume" else field
             fields[field][security_id] = frame[source]
+        fields["is_st"][security_id] = frame["is_st"].fillna(0.0)
+        fields["trade_status"][security_id] = frame["trade_status"].fillna(
+            frame["vol"].gt(0.0).astype(float)
+        )
+        listing = pd.to_datetime(security.get("listingDate"), errors="coerce")
+        delisting = pd.to_datetime(security.get("delistingDate"), errors="coerce")
+        membership = pd.Series(True, index=frame.index, dtype=bool)
+        if pd.notna(listing):
+            membership &= frame.index >= listing
+        if pd.notna(delisting):
+            membership &= frame.index <= delisting
+        fields["membership"][security_id] = membership
         first = read_jsonl(path)[:1]
         amount_source = (
             str(first[0].get("amountSource")) if first else "unknown"
@@ -182,6 +292,9 @@ def build_panel(
             "suspensionFraction": round(suspension_fraction, 8),
             "missingBarFraction": round(max(0.0, missing_fraction), 8),
             "amountSource": amount_source,
+            "pricesAdjusted": adjusted,
+            "historicalStatusAvailable": status_available,
+            "pointInTimeMasterAvailable": master_membership_available,
         }
 
     panel = {
@@ -189,7 +302,7 @@ def build_panel(
         for field, values in fields.items()
     }
     close = panel["close"]
-    panel["vwap"] = (
+    panel["vwap"] = panel["vwap"].combine_first(
         panel["amount"] / panel["volume"].replace(0.0, np.nan)
     ).combine_first(close)
     panel["returns"] = close.pct_change(fill_method=None)
@@ -205,6 +318,17 @@ def build_panel(
         board = str(metadata["board"])
         exchange_counts[exchange] = exchange_counts.get(exchange, 0) + 1
         board_counts[board] = board_counts.get(board, 0) + 1
+    all_adjusted = bool(accepted_metadata) and all(
+        bool(metadata["pricesAdjusted"]) for metadata in accepted_metadata.values()
+    )
+    all_status = bool(accepted_metadata) and all(
+        bool(metadata["historicalStatusAvailable"])
+        for metadata in accepted_metadata.values()
+    )
+    all_pit_master = bool(accepted_metadata) and all(
+        bool(metadata["pointInTimeMasterAvailable"])
+        for metadata in accepted_metadata.values()
+    )
     audit = {
         "schemaVersion": "ashare_research_panel_audit_v1",
         "status": "diagnostic_only_research_only",
@@ -222,19 +346,30 @@ def build_panel(
         "rejectionCounts": rejection_counts,
         "invalidRows": invalid_rows,
         "duplicateDates": duplicate_dates,
+        "volumeRowsScaledFromLotsToShares": volume_rows_scaled,
+        "historicalStatusRows": historical_status_rows,
+        "adjustedPriceRows": adjusted_price_rows,
         "historicalValidationEligible": bool(
             current_coverage >= minimum_coverage
             and len(accepted_metadata)
             >= int(universe_config["minimumEligibleSymbols"])
             and all(exchange_counts.get(exchange, 0) > 0 for exchange in allowed_exchanges)
         ),
-        "pointInTimeMembership": False,
+        "pointInTimeMembership": all_pit_master,
+        "historicalStatusAvailable": all_status,
         "survivorshipWarning": (
             "The master represents currently discoverable securities. Delisted "
             "stocks and historical ST membership are incomplete."
         ),
         "noForwardFill": True,
-        "rawPricesUnadjusted": True,
+        "rawPricesUnadjusted": not all_adjusted,
+        "unbiasedHistoricalValidationEligible": bool(
+            current_coverage >= minimum_coverage
+            and len(accepted_metadata) >= int(universe_config["minimumEligibleSymbols"])
+            and all_adjusted
+            and all_status
+            and all_pit_master
+        ),
         "orders": [],
         "automaticTradingChanges": [],
     }

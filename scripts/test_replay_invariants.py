@@ -7079,6 +7079,50 @@ def t120_universe_membership_is_point_in_time() -> None:
         not bool(eligible["HALTED"].loc[index[300]]),
     )
 
+    import json as _json
+    import tempfile as _tempfile
+
+    # TDX stores volume in 100-share lots. Dividing CNY amount by the unscaled
+    # lot count made research VWAP exactly 100x too large.
+    with _tempfile.TemporaryDirectory() as temporary:
+        path = Path(temporary) / "SH_600000.jsonl"
+        row = {
+            "dt": "2026-08-03",
+            "open": 10.0,
+            "high": 10.1,
+            "low": 9.9,
+            "close": 10.0,
+            "vol": 100.0,
+            "amount": 100_000.0,
+            "source": "mootdx_tdx",
+            "adjustment": "none_raw",
+        }
+        path.write_text(_json.dumps(row) + "\n", encoding="utf-8")
+        normalized, normalization_audit = ashare._series_frame(path)
+    check(
+        "T120 legacy TDX lots are normalized to shares before VWAP",
+        normalized is not None
+        and float(normalized["vol"].iloc[0]) == 10_000.0
+        and np.isclose(float(normalized["vwap"].iloc[0]), 10.0)
+        and normalization_audit["volumeRowsScaledFromLotsToShares"] == 1,
+    )
+
+    # Historical status and listing membership are causal daily gates.
+    status_panel = {name: value.copy() for name, value in panel.items()}
+    status_panel["membership"] = pd.DataFrame(True, index=index, columns=codes)
+    status_panel["trade_status"] = pd.DataFrame(1.0, index=index, columns=codes)
+    status_panel["is_st"] = pd.DataFrame(0.0, index=index, columns=codes)
+    status_panel["membership"].loc[index[-1], "EARLY"] = False
+    status_panel["trade_status"].loc[index[-2], "EARLY"] = 0.0
+    status_panel["is_st"].loc[index[-3], "EARLY"] = 1.0
+    status_eligible = ashare.point_in_time_eligibility(status_panel, config)
+    check(
+        "T120 PIT delisting, suspension and ST flags each block eligibility",
+        not bool(status_eligible.loc[index[-1], "EARLY"])
+        and not bool(status_eligible.loc[index[-2], "EARLY"])
+        and not bool(status_eligible.loc[index[-3], "EARLY"]),
+    )
+
     # labels and the book must both respect membership, or the leak returns downstream
     panel["eligible"] = eligible
     target, one_day = auto.target_frames(panel, {"data": {"predictionHorizonTradingDays": 5}})
@@ -9475,6 +9519,144 @@ def t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed() -> None:
     )
 
 
+def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> None:
+    import json
+
+    import numpy as np
+    import collect_ashare_pit_adjusted_baostock as pit_data
+
+    config_path = (
+        ROOT / "configs" / "research" / "ashare_pit_adjusted_data_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    pit_data.validate_config(config)
+    check(
+        "T127 PIT adjusted data layer is isolated and cannot trade",
+        config["status"] == "research_only_not_trading"
+        and config["provider"]["priceAdjustmentFlag"] == "1"
+        and set(config["universe"]["exchanges"]) == {"SH", "SZ"}
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+    active = pit_data.normalize_master_record(
+        {
+            "code": "sh.600000",
+            "code_name": "浦发银行",
+            "ipoDate": "1999-11-10",
+            "outDate": "",
+            "type": "1",
+            "status": "1",
+        },
+        config,
+    )
+    delisted = pit_data.normalize_master_record(
+        {
+            "code": "sz.000999",
+            "code_name": "测试退市",
+            "ipoDate": "2000-01-01",
+            "outDate": "2021-06-01",
+            "type": "1",
+            "status": "0",
+        },
+        config,
+    )
+    too_old = pit_data.normalize_master_record(
+        {
+            "code": "sh.600001",
+            "code_name": "旧退市",
+            "ipoDate": "1998-01-01",
+            "outDate": "2018-12-31",
+            "type": "1",
+            "status": "0",
+        },
+        config,
+    )
+    beijing = pit_data.normalize_master_record(
+        {
+            "code": "bj.920000",
+            "code_name": "北交所",
+            "ipoDate": "2022-01-01",
+            "outDate": "",
+            "type": "1",
+            "status": "1",
+        },
+        config,
+    )
+    check(
+        "T127 master retains in-window delistings with explicit date bounds",
+        active is not None
+        and active["pointInTimeMembership"] is True
+        and delisted is not None
+        and delisted["delisted"] is True
+        and delisted["delistingDate"] == "2021-06-01"
+        and too_old is None
+        and beijing is None,
+    )
+    row = pit_data.parse_history_record(
+        {
+            "date": "2026-08-03",
+            "code": "sh.600000",
+            "open": "10.0",
+            "high": "10.2",
+            "low": "9.8",
+            "close": "10.1",
+            "preclose": "9.9",
+            "volume": "123400",
+            "amount": "1240000",
+            "adjustflag": "1",
+            "tradestatus": "1",
+            "pctChg": "2.02",
+            "isST": "0",
+        },
+        active,
+        config,
+    )
+    wrong_adjustment = pit_data.parse_history_record(
+        {
+            "date": "2026-08-03",
+            "open": "10.0",
+            "high": "10.2",
+            "low": "9.8",
+            "close": "10.1",
+            "preclose": "9.9",
+            "volume": "123400",
+            "amount": "1240000",
+            "adjustflag": "3",
+            "tradestatus": "1",
+            "pctChg": "2.02",
+            "isST": "0",
+        },
+        active,
+        config,
+    )
+    check(
+        "T127 adjusted rows preserve shares, PIT status and explicit VWAP proxy",
+        row is not None
+        and row["vol"] == 123400.0
+        and row["volumeUnit"] == "shares"
+        and row["isST"] == 0
+        and row["tradeStatus"] == 1
+        and row["pointInTimeStatus"] is True
+        and row["adjustment"] == "backward_adjusted_baostock_pctchg_method"
+        and np.isclose(row["vwap"], (10.0 + 10.2 + 9.8 + 10.1) / 4.0)
+        and "proxy" in row["vwapSource"]
+        and wrong_adjustment is None,
+    )
+    source = (
+        ROOT / "scripts" / "collect_ashare_pit_adjusted_baostock.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T127 PIT collector has no production or broker path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -9595,6 +9777,7 @@ if __name__ == "__main__":
     t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees()
     t125_conditional_top3_preserves_points_varies_width_and_stays_causal()
     t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed()
+    t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

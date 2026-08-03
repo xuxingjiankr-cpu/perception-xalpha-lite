@@ -322,6 +322,7 @@ def fetch_tdx_daily(
                     "vol": as_float(row.get("vol")),
                     "amount": as_float(row.get("amount")),
                     "amountSource": "exchange_reported_via_tdx",
+                    "volumeUnit": "hands_100_shares",
                     "adjustment": "none_raw",
                     "source": "mootdx_tdx",
                 }
@@ -371,6 +372,7 @@ def fetch_sina_daily(
                 "vol": volume,
                 "amount": typical * volume,
                 "amountSource": "ohlc4_times_volume_estimate",
+                "volumeUnit": "shares",
                 "adjustment": "none_raw",
                 "source": "sina_public_kline",
             }
