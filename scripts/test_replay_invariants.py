@@ -8153,6 +8153,161 @@ def t117_two_stage_stock_selector_is_causal_calibrated_and_isolated() -> None:
     )
 
 
+def t118_winrate_rank_selector_is_purged_past_only_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_winrate_v2 as winrate
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_winrate_v2.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    winrate.validate_config(config)
+    check(
+        "T118 win-rate selector is research-only and cannot trade",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=180)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(118)
+    table = pd.DataFrame(index=index).reset_index()
+    table["candidate_rank"] = np.tile(np.arange(1, 13), len(dates))
+    feature_names = list(config["rankModel"]["featureColumns"])
+    for number, name in enumerate(feature_names):
+        cross_section = np.tile(np.linspace(0.05, 0.95, 12), len(dates))
+        table[name] = cross_section + rng.normal(
+            0.0, 0.02 + number * 0.0001, len(table)
+        )
+    table["market_return_20"] = np.repeat(
+        np.where(np.arange(len(dates)) % 3, 0.02, -0.01), len(securities)
+    )
+    table["market_breadth_20"] = np.repeat(
+        np.where(np.arange(len(dates)) % 3, 0.60, 0.40), len(securities)
+    )
+    signal = table[feature_names[0]].to_numpy(dtype=float)
+    table["target_return_10d"] = (
+        signal - 0.5 + rng.normal(0.0, 0.08, len(table))
+    ) / 20.0
+    table["benchmark_return_10d"] = 0.0
+    table["label_positive_10d"] = table["target_return_10d"].gt(0.0).astype(float)
+
+    prepared = winrate.prepare_rank_table(table, config)
+    future_shock = table.copy()
+    suffix = future_shock["date"].ge(dates[160])
+    future_shock.loc[suffix, feature_names] = 999.0
+    prepared_shock = winrate.prepare_rank_table(future_shock, config)
+    prefix = prepared["date"].lt(dates[160])
+    transformed = winrate.transformed_feature_columns(config)
+    prefix_causal = True
+    try:
+        pdt.assert_frame_equal(
+            prepared.loc[prefix, transformed].reset_index(drop=True),
+            prepared_shock.loc[prefix, transformed].reset_index(drop=True),
+            check_exact=False,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    except AssertionError:
+        prefix_causal = False
+    check(
+        "T118 same-date ranking features ignore an unseen future suffix",
+        prefix_causal,
+    )
+
+    toy = copy.deepcopy(config)
+    toy["rankModel"]["minimumTrainingTradingDays"] = 60
+    toy["rankModel"]["trainingWindowTradingDays"] = 100
+    toy["rankModel"]["refitEveryTradingDays"] = 20
+    predictions, audits = winrate.rolling_walk_forward_predictions(
+        prepared, dates, toy
+    )
+    check(
+        "T118 every rolling fit is separated by the full label-horizon purge",
+        len(audits) > 0
+        and all(audit["gapTradingDays"] >= 10 for audit in audits)
+        and all(
+            audit["model"]["fitDateRange"][1]
+            < audit["predictionDateRange"][0]
+            for audit in audits
+        ),
+    )
+    check(
+        "T118 future labels never enter rank-model feature columns",
+        len(predictions) > 0
+        and "target_return_10d"
+        not in winrate.transformed_feature_columns(toy)
+        and "target_cross_sectional_rank_10d"
+        not in winrate.transformed_feature_columns(toy),
+    )
+    gated = winrate.add_market_gate(predictions, toy)
+    gate_truth = gated["market_return_20"].gt(0.0) & gated[
+        "market_breadth_20"
+    ].ge(0.5)
+    check(
+        "T118 market gate uses only the frozen trend and breadth rule",
+        gated["risk_on"].equals(gate_truth),
+    )
+
+    empty_metric = {
+        "newSignalDays": 0,
+        "basketTenDayWinRate": None,
+        "basketTenDayMeanReturn": None,
+        "costedCumulativeReturn": 0.0,
+    }
+    baseline_metric = {
+        "basketTenDayWinRate": 0.55,
+    }
+    failed_report = {
+        "periods": {
+            period: {
+                "policies": {
+                    winrate.PRIMARY_POLICY: empty_metric,
+                    "frozen_factor_top10_all_days": baseline_metric,
+                },
+                "primaryVsFactorTop5SameRiskDays": {
+                    "winRateDelta": None,
+                    "returnDeltaTHac": None,
+                },
+                "primaryIndependentEvents": {"n": 0},
+            }
+            for period in ("validation", "shadow")
+        }
+    }
+    empty_verdict = winrate.build_verdict(failed_report, toy)
+    check(
+        "T118 abstention cannot masquerade as a win-rate improvement",
+        empty_verdict["stableHistoricalWinRateImprovement"] is False
+        and empty_verdict["promotionAllowed"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_perception_xalpha_winrate_v2.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T118 win-rate research has no broker, order, or production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8266,6 +8421,7 @@ if __name__ == "__main__":
     t111_all_ashare_research_universe_is_complete_and_isolated()
     t116_fundamental_factor_discovery_is_point_in_time_and_isolated()
     t117_two_stage_stock_selector_is_causal_calibrated_and_isolated()
+    t118_winrate_rank_selector_is_purged_past_only_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
