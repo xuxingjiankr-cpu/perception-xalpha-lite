@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "perception_xalpha_conditional_top3_v7",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether a frozen past-volatility scale can turn V6's common-width return interval into stock-specific Top10 intervals and improve the reliability of an abstaining Top3 policy.",
+  "baseConformalConfig": "configs/research/perception_xalpha_conformal_top3_v6.json",
+  "baseConformalConfigFileSha256": "f0515927ecfd84337fa18c8517a43089575f984ef8791ceb14e5b60329a3de52",
+  "preregisteredHypothesis": {
+    "economicRationale": "V6 applied one additive residual interval to every stock in a fold, so lower-bound ordering was identical to point-forecast ordering. Under diffusion scaling, ten-session forecast error should increase with recent daily stock volatility. Normalizing calibration residuals by a frozen sqrt(10)-scaled 20-day volatility may distinguish high expected return with tolerable uncertainty from high expected return caused by volatile names.",
+    "primaryPolicy": "conditional_conformal_top3_positive_lower_bound",
+    "onlyIncrementVsV6": "stock_specific_past_volatility_scale",
+    "v6PointForecastMustRemainIdentical": true,
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "countsAsNewResearchTrial": true,
+    "validationAndShadowAlreadyViewed": true,
+    "profitGuaranteeClaimAllowed": false
+  },
+  "conditionalScale": {
+    "sourceField": "stock_volatility_20",
+    "usesOnlySignalDateAndEarlier": true,
+    "formula": "sqrt_holding_days_times_absolute_stock_volatility_20",
+    "holdingDays": 10,
+    "multiplier": 1.0,
+    "baseFitFloorQuantile": 0.05,
+    "baseFitCapQuantile": 0.95,
+    "missingValuePolicy": "base_fit_median",
+    "floorCapFitOnBaseSegmentOnly": true,
+    "calibrationScore": "signed_total_return_residual_divided_by_frozen_conditional_scale",
+    "lowerStandardizedResidualQuantile": 0.1,
+    "upperStandardizedResidualQuantile": 0.9,
+    "dateEqualWeighted": true,
+    "auditSegmentNeverFitsModelsScaleOrBounds": true,
+    "minimumPositiveScale": 1e-08
+  },
+  "selection": {
+    "context": "frozen_v2_predicted_order_top10",
+    "rankingField": "predicted_return_lower_10d",
+    "rankingDirection": "descending",
+    "requiredLowerBoundStrictlyAboveInheritedRoundTripCost": true,
+    "requiresInheritedReliabilityGate": true,
+    "maximumSelectionsPerDay": 3,
+    "allowZeroSelections": true,
+    "neverFillToThree": true
+  },
+  "evaluation": {
+    "allThresholdsInheritedUnchangedFromV6": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false,
+    "additionalAblation": "conditional_lower_bound_top3_vs_v6_point_top3_on_identical_dates",
+    "mustReportWhetherRankingActuallyDiffersFromV6": true,
+    "mustReportWhetherGainIsOnlyReducedCoverage": true
+  },
+  "knownLimitations": [
+    "V7 was designed after observing V6, so it is a new counted trial on already contaminated validation and shadow windows.",
+    "Recent realized volatility is only a scale proxy; it does not solve V6's unstable point-forecast center or guarantee positive returns.",
+    "Sqrt-time diffusion scaling can be wrong during jumps, limit events, volatility clustering and regime changes.",
+    "The A-share research panel still uses raw unadjusted prices and has incomplete historical delisting/ST metadata.",
+    "Historical success cannot promote V7; only a separately frozen forward shadow cohort could justify another paper-only proposal."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_conditional_top3_v7",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
