@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "perception_xalpha_market_opportunity_v8",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test one preregistered market-opportunity probability gate on the frozen V2 cross-sectional ranker, seeking higher ten-session Top3 win rate and return without changing stock ranking or tuning on validation/shadow.",
+  "baseWinrateConfig": "configs/research/perception_xalpha_winrate_v2.json",
+  "baseWinrateConfigFileSha256": "b1ae1786007d61cc48850764fde68e768bedd477f1d5dfa1cb3e793d35c35036",
+  "preregisteredHypothesis": {
+    "economicRationale": "A long-only stock selector contains two separable decisions: relative stock ranking and whether the broad A-share opportunity set has a positive after-cost ten-session return. The frozen V2 Ridge ranker handles the first decision; a simple calibrated logistic model using only past market trend, volatility and breadth handles the second.",
+    "primaryPolicy": "v2_rank_top3_calibrated_market_opportunity",
+    "onlyIncrementVsV2": "replace_fixed_market_gate_with_calibrated_market_opportunity_probability",
+    "v2RankPredictionsMustRemainIdentical": true,
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "countsAsNewResearchTrial": true,
+    "validationAndShadowAlreadyViewed": true,
+    "profitGuaranteeClaimAllowed": false
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 3,
+    "roundTripCost": 0.003,
+    "tailLossThreshold": -0.03,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open",
+    "marketOpportunityLabel": "eligible_a_share_equal_weight_open_t_plus_11_div_open_t_plus_1_minus_1_strictly_above_round_trip_cost"
+  },
+  "walkForward": {
+    "trainingWindowTradingDays": 756,
+    "minimumTrainingTradingDays": 504,
+    "refitEveryTradingDays": 21,
+    "outerPurgeTradingDays": 10,
+    "baseToCalibrationPurgeTradingDays": 10,
+    "calibrationTradingDays": 63,
+    "calibrationToAuditPurgeTradingDays": 10,
+    "reliabilityAuditTradingDays": 63,
+    "minimumBaseFitTradingDays": 350
+  },
+  "marketOpportunityModel": {
+    "kind": "LogisticRegression",
+    "C": 0.1,
+    "solver": "lbfgs",
+    "maximumIterations": 1000,
+    "classWeight": null,
+    "oneObservationPerTradingDate": true,
+    "missingValuePolicy": "base_fit_median",
+    "standardization": "base_fit_only_standard_scaler",
+    "randomSeed": 20260803,
+    "featureColumns": [
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ]
+  },
+  "probabilityCalibration": {
+    "kind": "PlattLogisticRegression",
+    "C": 1.0,
+    "solver": "lbfgs",
+    "maximumIterations": 1000,
+    "fitOnCalibrationSegmentOnly": true,
+    "auditSegmentNeverFitsModelOrCalibrator": true,
+    "probabilityClip": [0.001, 0.999],
+    "eceBins": 10
+  },
+  "reliabilityGate": {
+    "minimumAuditDays": 50,
+    "requireAuditBrierBelowFrozenBasePrior": true,
+    "requireAuditLogLossBelowFrozenBasePrior": true,
+    "minimumAuditAuc": 0.55,
+    "maximumAuditEce": 0.15,
+    "requirePositiveAuditCalibrationSlope": true,
+    "highProbabilityThresholdInclusive": 0.6,
+    "minimumAuditHighProbabilityDays": 10,
+    "minimumAuditHighProbabilityHitRate": 0.6,
+    "allConditionsRequired": true
+  },
+  "selection": {
+    "stockRanking": "frozen_v2_predicted_cross_sectional_rank",
+    "stockRankingDirection": "descending",
+    "marketOpportunityThresholdInclusive": 0.6,
+    "requiresReliabilityGate": true,
+    "maximumSelectionsPerDay": 3,
+    "allowZeroSelections": true,
+    "neverFillToThree": true
+  },
+  "policies": [
+    "v2_rank_top3_all_days",
+    "v2_rank_top3_fixed_v2_risk_on",
+    "v2_rank_top3_calibrated_probability_without_reliability",
+    "v2_rank_top3_calibrated_market_opportunity"
+  ],
+  "evaluation": {
+    "primaryMetric": "selected_top3_ten_day_win_rate",
+    "hacLagTradingDays": 10,
+    "minimumSignalDaysPerValidationPeriod": 20,
+    "minimumIndependentEventsPerValidationPeriod": 8,
+    "minimumSignalDayCoverage": 0.15,
+    "minimumBasketWinRate": 0.6,
+    "minimumPerSlotObservations": 10,
+    "minimumPerSlotWinRateExclusive": 0.5,
+    "minimumPerSlotMeanReturnExclusive": 0.0,
+    "minimumGatedVsExcludedMeanReturnLiftExclusive": 0.0,
+    "minimumHacTForGatedVsExcludedReturnDifference": 1.65,
+    "minimumGatedVsExcludedWinRateLift": 0.0,
+    "requireTailLossRateNoWorseThanExcluded": true,
+    "requireAggregateBrierBelowFrozenPrior": true,
+    "requireAggregateLogLossBelowFrozenPrior": true,
+    "minimumAggregateAuc": 0.55,
+    "maximumAggregateEce": 0.15,
+    "requirePositiveBasketMeanReturn": true,
+    "requirePositiveCostedCumulativeReturn": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false
+  },
+  "knownLimitations": [
+    "This is one historical pseudo-OOS trial. Validation and shadow windows were already viewed in V1-V7 and cannot promote a policy or establish future profitability.",
+    "The market opportunity label is the equal-weight future return of currently eligible A-share observations and is not a directly tradeable index return.",
+    "The current security master has incomplete delisted-name and historical-ST coverage, so survivorship and product-coverage bias remain possible.",
+    "The A-share panel still uses raw unadjusted prices; corporate-action contamination remains a material audit limitation.",
+    "The model has only four preregistered market features and one fixed probability threshold. No HMM, nonlinear learner or threshold search is permitted in V8.",
+    "Abstention can mechanically raise conditional win rate. V8 therefore requires enough coverage plus a positive, HAC-significant gated-versus-excluded return difference and reports the excluded cohort explicitly.",
+    "No model can ensure that any selected stock, including rank 1-3, will be profitable."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_market_opportunity_v8",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
