@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "perception_xalpha_expected_utility_v4",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Add a separately trained absolute ten-day expected-return head to the frozen relative-rank and downside-tail heads, then test one transparent three-head stock-selection score.",
+  "baseTailConfig": "configs/research/perception_xalpha_winrate_tail_v3.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "Relative rank alone cannot distinguish a strong stock in a falling market from a positive absolute opportunity. A regularized absolute-return forecast should add that missing level information, while the relative-rank and downside-tail heads preserve cross-sectional quality and left-tail awareness.",
+    "primaryPolicy": "integrated_top10_positive_net_edge_gate",
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "countsAsNewResearchTrial": true
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 10,
+    "roundTripCost": 0.003,
+    "tailLossThreshold": -0.03,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open"
+  },
+  "expectedReturnModel": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "trainingWindowTradingDays": 756,
+    "minimumTrainingTradingDays": 504,
+    "refitEveryTradingDays": 21,
+    "purgeTradingDays": 10,
+    "targetWinsorQuantiles": [0.01, 0.99],
+    "missingValuePolicy": "training_median",
+    "standardization": "training_only_standard_scaler",
+    "randomSeed": 20260803,
+    "featureColumns": [
+      "x_factor_volatility_asymmetry",
+      "x_factor_value_minus_momentum",
+      "x_factor_growth_quality_momentum",
+      "x_factor_multi_period_reversal",
+      "x_factor_composite",
+      "x_factor_minimum",
+      "x_factor_dispersion",
+      "x_stock_return_5",
+      "x_stock_return_20",
+      "x_stock_return_60",
+      "x_stock_volatility_20",
+      "x_stock_volatility_60",
+      "x_stock_drawdown_60",
+      "x_stock_amount_ratio_5_20",
+      "x_stock_liquidity_percentile",
+      "x_stock_open_gap",
+      "x_stock_intraday_return",
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ]
+  },
+  "integration": {
+    "formula": "one_third_rank_percentile_plus_one_third_expected_return_percentile_plus_one_third_inverse_tail_probability_percentile",
+    "rankWeight": 0.3333333333333333,
+    "expectedReturnWeight": 0.3333333333333333,
+    "inverseTailRiskWeight": 0.3333333333333333,
+    "primaryGate": "selected_mean_expected_return_strictly_above_round_trip_cost",
+    "minimumSelectedMeanExpectedReturn": 0.003,
+    "tailRiskUsesWithinDatePercentileNotUncalibratedAbsoluteProbability": true,
+    "allowCash": true,
+    "neverForceTenSelections": true
+  },
+  "policies": [
+    "frozen_factor_top10_all_days",
+    "rolling_ridge_rank_top10_all_days",
+    "tail_adjusted_top10_all_days",
+    "expected_return_top10_all_days",
+    "integrated_top10_all_days",
+    "integrated_top10_positive_net_edge_gate"
+  ],
+  "evaluation": {
+    "primaryMetric": "basket_ten_day_mean_return",
+    "secondaryMetrics": [
+      "basket_ten_day_win_rate",
+      "tail_loss_rate",
+      "costed_cumulative_return",
+      "maximum_drawdown",
+      "expected_return_oos_r_squared_vs_training_prior",
+      "expected_return_rank_ic",
+      "coverage",
+      "independent_event_count"
+    ],
+    "hacLagTradingDays": 10,
+    "minimumSignalDaysPerValidationPeriod": 25,
+    "minimumIndependentEventsPerValidationPeriod": 8,
+    "minimumSameDayMeanReturnLiftVsRankTop10": 0.0,
+    "minimumSameDayWinRateLiftVsRankTop10": 0.0,
+    "minimumTailLossRateReductionVsRankTop10": 0.0,
+    "minimumHacTForSameDayReturnDifference": 1.65,
+    "minimumHacTForExpectedReturnRankIc": 1.65,
+    "requirePositiveExpectedReturnOosR2": true,
+    "requirePositiveBasketMeanReturn": true,
+    "requirePositiveCostedCumulativeReturn": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false
+  },
+  "knownLimitations": [
+    "The validation and shadow windows have already been viewed by V1-V3 and are not a pristine final holdout.",
+    "Expected stock returns are extremely noisy; a point forecast is not a guaranteed return and its error distribution must be reported.",
+    "The current security master has incomplete delisted-name and historical-ST coverage.",
+    "The A-share research panel still uses raw unadjusted prices.",
+    "The equal-weight three-head formula is a single preregistered hypothesis, not an optimized allocation of model weights."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_expected_utility_v4",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
