@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "perception_xalpha_pit_adjusted_robustness_override_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Re-run the frozen V8 ranking and market-opportunity policy as a data-quality robustness audit on adjusted prices, point-in-time membership/ST/trading status, and delisted-stock fundamentals. No factor, model, threshold, split or selection parameter may change.",
+  "baseV8Config": "configs/research/perception_xalpha_market_opportunity_v8.json",
+  "baseV8ConfigFileSha256": "821d4588898613f90cd752a45182e0bafce1b0d7021c4d607b6ba6dcfcfdd764",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v5_fundamental.json",
+  "baseResearchConfigFileSha256": "9a86e0ade631dafbba9cc21e9ac69107e6a80075e9237f51276edb3146352b81",
+  "preregisteredRobustnessHypothesis": {
+    "onlyChange": "replace_current_master_raw_price_panel_with_pit_membership_adjusted_price_panel",
+    "factorDefinitionsFrozen": true,
+    "rankModelFrozen": true,
+    "marketOpportunityModelFrozen": true,
+    "probabilityCalibrationFrozen": true,
+    "thresholdsFrozen": true,
+    "walkForwardSplitsFrozen": true,
+    "validationAndShadowMayNotTuneAnything": true,
+    "historicalRunCanPromote": false,
+    "profitGuaranteeClaimAllowed": false
+  },
+  "assetUniverse": {
+    "kind": "all_a_shares_pit_adjusted",
+    "definition": "historical_SH_SZ_A_shares_including_delisted_since_2019_with_pit_ST_and_trading_status",
+    "exchanges": ["SH", "SZ"],
+    "masterPath": "data/market/ashare_research/baostock_pit_adjusted/master/ashare_pit_master_latest.jsonl",
+    "barsRoot": "data/market/ashare_research/baostock_pit_adjusted/bars_1d_backward_adjusted",
+    "pointInTimeMembershipAvailable": true,
+    "requireAdjustedPrices": true,
+    "requirePointInTimeStatus": true,
+    "requirePointInTimeMaster": true,
+    "failClosedUnlessUnbiasedHistoricalValidationEligible": true,
+    "minimumMasterCoverageForHistoricalValidation": 0.98,
+    "minimumEligibleSymbols": 3000,
+    "maximumSuspensionFraction": 0.2,
+    "maximumMissingBarFraction": 0.15,
+    "maximumAbsoluteRawDailyReturn": 0.5,
+    "maximumExtremeReturnFraction": 0.005,
+    "dataOverrides": {
+      "minimumObservationsPerSymbol": 500,
+      "minimumMedianDailyAmountCny": 30000000,
+      "minimumCrossSection": 300
+    },
+    "fundamentalData": {
+      "root": "data/market/ashare_research/fundamentals_pit",
+      "provider": "akshare_eastmoney_financial_analysis_indicator",
+      "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+      "minimumSymbolCoverage": 0.60,
+      "minimumLatestFeatureCoverage": 0.35,
+      "coreFields": ["fund_roe", "fund_book_to_price", "fund_revenue_yoy"],
+      "fields": [
+        "fund_eps_ytd",
+        "fund_book_value_per_share",
+        "fund_revenue_yoy",
+        "fund_net_profit_yoy",
+        "fund_roe",
+        "fund_roic",
+        "fund_gross_margin",
+        "fund_net_margin",
+        "fund_debt_asset_ratio",
+        "fund_current_ratio",
+        "fund_quick_ratio",
+        "fund_cash_to_revenue",
+        "fund_cash_to_profit",
+        "fund_receivable_turnover_days",
+        "fund_inventory_turnover_days",
+        "fund_total_asset_turnover",
+        "fund_book_to_price",
+        "fund_annualized_earnings_yield",
+        "fund_quality_composite",
+        "fund_growth_composite",
+        "fund_balance_sheet_safety",
+        "fund_accrual_quality"
+      ]
+    },
+    "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. BJ is excluded because equivalent PIT status coverage is unavailable."
+  },
+  "qualityGate": {
+    "requiresPriceAuditHistoricalResearchEligible": true,
+    "requiresPanelUnbiasedHistoricalValidationEligible": true,
+    "requiresFundamentalPointInTimeEligible": true,
+    "mustFailBeforeModelFit": true
+  },
+  "interpretation": {
+    "passingCanEstablishNewCleanOos": false,
+    "passingMeaning": "the previously frozen signal is robust to the identified data defects",
+    "failingMeaning": "the old result depended materially on raw prices or current-universe bias",
+    "maySelectNewFactorsFromThisRun": false,
+    "mayChangeTrading": false
+  },
+  "knownLimitations": [
+    "The historical validation and shadow dates were already viewed in V1-V8, so this is a robustness audit rather than pristine OOS evidence.",
+    "Backward-adjusted prices follow BaoStock's percentage-change method and are not a cash-dividend total-return index.",
+    "Historical statement restatement vintages may be incomplete; max(NOTICE_DATE, UPDATE_DATE) is conservative but cannot reconstruct unavailable original vintages.",
+    "BJ stocks are deliberately excluded rather than mixed with lower-quality membership and ST history.",
+    "A robustness pass cannot guarantee any selected stock or Top3 basket will be profitable."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
