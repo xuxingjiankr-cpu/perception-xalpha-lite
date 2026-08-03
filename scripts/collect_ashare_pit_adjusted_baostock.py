@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import tempfile
 import time
 from datetime import date, datetime, timedelta
@@ -74,6 +75,28 @@ def append_jsonl(path: Path, row: dict[str, Any]) -> None:
 
 def digest_file(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+
+
+def select_master_shard(
+    rows: list[dict[str, Any]], shard_count: int, shard_index: int
+) -> list[dict[str, Any]]:
+    """Return one deterministic, disjoint shard of a sorted PIT master."""
+    if shard_count < 1:
+        raise ValueError("shard_count must be at least 1")
+    if shard_index < 0 or shard_index >= shard_count:
+        raise ValueError("shard_index must satisfy 0 <= index < shard_count")
+    return [
+        row for position, row in enumerate(rows) if position % shard_count == shard_index
+    ]
+
+
+def safe_run_id(value: str) -> str:
+    run_id = value.strip()
+    if not run_id:
+        return datetime.now().strftime("%Y%m%dT%H%M%S")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", run_id):
+        raise ValueError("run_id may contain only letters, digits, dot, underscore and dash")
+    return run_id
 
 
 def now_iso() -> str:
@@ -409,10 +432,16 @@ def _login() -> Any:
     return bs
 
 
-def backfill(config: dict[str, Any], args: argparse.Namespace, bs: Any) -> dict[str, Any]:
+def backfill(
+    config: dict[str, Any],
+    args: argparse.Namespace,
+    bs: Any,
+    config_path: Path = DEFAULT_CONFIG,
+) -> dict[str, Any]:
     master = read_jsonl(resolve_path(config, "latestMaster"))
     if not master:
         raise RuntimeError("PIT master missing; run --mode master first")
+    full_master_count = len(master)
     codes = {value.strip().upper() for value in args.codes.split(",") if value.strip()}
     if codes:
         master = [
@@ -420,8 +449,11 @@ def backfill(config: dict[str, Any], args: argparse.Namespace, bs: Any) -> dict[
             for row in master
             if row["securityId"].upper() in codes or row["stockCode"] in codes
         ]
+    filtered_master_count = len(master)
+    master = select_master_shard(master, args.shard_count, args.shard_index)
     if args.max_codes:
         master = master[: args.max_codes]
+    run_id = safe_run_id(args.run_id)
     end_date = args.end_date or date.today().isoformat()
     results: list[dict[str, Any]] = []
     started = now_iso()
@@ -438,6 +470,12 @@ def backfill(config: dict[str, Any], args: argparse.Namespace, bs: Any) -> dict[
         "status": "research_only",
         "startedAt": started,
         "completedAt": now_iso(),
+        "runId": run_id,
+        "configSha256": digest_file(config_path),
+        "fullMasterCount": full_master_count,
+        "filteredMasterCount": filtered_master_count,
+        "shardCount": args.shard_count,
+        "shardIndex": args.shard_index,
         "requested": len(master),
         "endDate": end_date,
         "force": bool(args.force),
@@ -446,8 +484,17 @@ def backfill(config: dict[str, Any], args: argparse.Namespace, bs: Any) -> dict[
         "orders": [],
         "automaticTradingChanges": [],
     }
-    atomic_json(resolve_path(config, "auditRoot") / "latest_collection_summary.json", summary)
-    append_jsonl(resolve_path(config, "manifest"), summary)
+    if args.shard_count == 1:
+        atomic_json(
+            resolve_path(config, "auditRoot") / "latest_collection_summary.json",
+            summary,
+        )
+        append_jsonl(resolve_path(config, "manifest"), summary)
+    else:
+        run_root = resolve_path(config, "auditRoot") / "collection_runs" / run_id
+        shard_name = f"shard_{args.shard_index:02d}_of_{args.shard_count:02d}"
+        atomic_json(run_root / f"{shard_name}_summary.json", summary)
+        append_jsonl(run_root / f"{shard_name}_manifest.jsonl", summary)
     return summary
 
 
@@ -460,6 +507,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--end-date", default="")
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--progress-every", type=int, default=25)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--run-id", default="")
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
 
@@ -483,7 +533,7 @@ def main() -> int:
                 "delisted": sum(int(row["delisted"]) for row in master),
             }, ensure_ascii=False, indent=2))
         if args.mode in {"backfill", "all"}:
-            summary = backfill(config, args, bs)
+            summary = backfill(config, args, bs, config_path=config_path)
             print(json.dumps(summary, ensure_ascii=False, indent=2))
         if args.mode in {"audit", "all"}:
             print(json.dumps(audit(config), ensure_ascii=False, indent=2))

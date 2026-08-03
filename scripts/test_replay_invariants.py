@@ -9645,6 +9645,25 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         and "proxy" in row["vwapSource"]
         and wrong_adjustment is None,
     )
+    synthetic_master = [
+        {"securityId": f"SH.{600000 + index:06d}"} for index in range(17)
+    ]
+    shards = [
+        pit_data.select_master_shard(synthetic_master, 4, shard_index)
+        for shard_index in range(4)
+    ]
+    shard_ids = [
+        {row["securityId"] for row in shard}
+        for shard in shards
+    ]
+    check(
+        "T127 parallel collection shards are deterministic and disjoint",
+        set().union(*shard_ids)
+        == {row["securityId"] for row in synthetic_master}
+        and sum(len(values) for values in shard_ids)
+        == len(set().union(*shard_ids))
+        and shards[0] == pit_data.select_master_shard(synthetic_master, 4, 0),
+    )
     source = (
         ROOT / "scripts" / "collect_ashare_pit_adjusted_baostock.py"
     ).read_text(encoding="utf-8")
@@ -9654,6 +9673,16 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         and "a_share_paper_trading" not in source
         and "build_decision(" not in source
         and "latest_strategy_overlay" not in source,
+    )
+    launcher_source = (
+        ROOT / "scripts" / "run_ashare_pit_adjusted_backfill.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T127 full backfill launcher invokes only the isolated research collector",
+        "collect_ashare_pit_adjusted_baostock.py" in launcher_source
+        and "a_share_paper_trading" not in launcher_source
+        and "latest_strategy_overlay" not in launcher_source
+        and "build_decision" not in launcher_source,
     )
 
 

@@ -58,3 +58,17 @@ least 98% master-file coverage, at least 3,000 symbols with 500 observations, co
 adjustment/status metadata and invalid rows below 0.1%. Until then, existing research
 continues to carry its survivorship/raw-price warning and no trading integration is
 allowed.
+
+## Full backfill
+
+The full history can be collected in deterministic, disjoint shards without two
+processes writing the same symbol:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_ashare_pit_adjusted_backfill.ps1 -ShardCount 4
+```
+
+Each worker has an independent BaoStock session, stdout/stderr log and collection
+summary. The coordinator waits for every worker and runs the fail-closed audit once at
+the end. Parallel collection changes throughput only; it does not change the master,
+eligibility rules or research quality gate.
