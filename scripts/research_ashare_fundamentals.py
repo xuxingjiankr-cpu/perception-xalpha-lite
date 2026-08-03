@@ -140,13 +140,35 @@ def attach_point_in_time_fundamentals(
     close = panel["close"]
     root = ROOT / fundamental_config["root"]
     output = {key: value.copy() for key, value in panel.items()}
-    raw_values: dict[str, dict[str, pd.Series]] = {
-        field: {} for field in RAW_FIELDS
+    # Collect sparse disclosure events first, then pivot each field once. The original
+    # implementation reindexed one Series for every (symbol, field) pair -- ~88,000
+    # reindexes for the current master -- and spent more than 30 minutes before factor
+    # evaluation began. This event-table form is mathematically identical and preserves
+    # the same strict next-session availability rule.
+    event_columns: dict[str, list[Any]] = {
+        "date": [],
+        "securityId": [],
+        **{field: [] for field in RAW_FIELDS},
+        "_annualized_eps": [],
     }
-    annualized_eps: dict[str, pd.Series] = {}
     available_symbols = 0
     valid_statement_rows = 0
     missing_notice_rows = 0
+    date_cache: dict[str, Any] = {}
+
+    def cached_date(value: Any) -> pd.Timestamp | pd.NaT:
+        key = "" if value is None else str(value)
+        if key not in date_cache:
+            date_cache[key] = _safe_date(value)
+        return date_cache[key]
+
+    def finite_float(value: Any) -> float:
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return np.nan
+        return parsed if np.isfinite(parsed) else np.nan
+
     for security_id in close.columns:
         exchange, code = str(security_id).split(".", 1)
         rows = read_jsonl(root / f"{exchange}_{code}.jsonl")
@@ -155,19 +177,58 @@ def attach_point_in_time_fundamentals(
         available_symbols += 1
         valid_statement_rows += sum(bool(row.get("noticeDate")) for row in rows)
         missing_notice_rows += sum(not bool(row.get("noticeDate")) for row in rows)
-        for field, source in RAW_FIELDS.items():
-            raw_values[field][security_id] = _point_in_time_series(
-                rows, source, close.index
+        for row in rows:
+            notice = cached_date(row.get("noticeDate"))
+            update = cached_date(row.get("updateDate"))
+            report = cached_date(row.get("reportDate"))
+            if pd.isna(notice) or pd.isna(report):
+                continue
+            available = notice if pd.isna(update) else max(notice, update)
+            position = close.index.searchsorted(available.normalize(), side="right")
+            if position >= len(close.index):
+                continue
+            market_date = close.index[position]
+            event_columns["date"].append(market_date)
+            event_columns["securityId"].append(str(security_id))
+            for field, source in RAW_FIELDS.items():
+                value = finite_float(row.get(source))
+                event_columns[field].append(value)
+            eps = finite_float(row.get("epsYtd"))
+            event_columns["_annualized_eps"].append(
+                np.nan
+                if np.isnan(eps)
+                else float(eps) * _annualization_multiplier(report)
             )
-        annualized_eps[security_id] = _annualized_eps_series(rows, close.index)
 
-    for field, values in raw_values.items():
-        output[field] = pd.DataFrame(values, index=close.index).reindex(
-            index=close.index, columns=close.columns
-        )
-    annualized_eps_frame = pd.DataFrame(
-        annualized_eps, index=close.index
-    ).reindex(index=close.index, columns=close.columns)
+    event_table = pd.DataFrame(event_columns)
+
+    value_columns = [*RAW_FIELDS, "_annualized_eps"]
+    if event_table.empty:
+        for field in value_columns:
+            output[field] = pd.DataFrame(
+                index=close.index, columns=close.columns, dtype=float
+            )
+    else:
+        # DataFrameGroupBy.last skips nulls per value column. That exactly matches the
+        # reference implementation: the latest non-null API version wins separately
+        # for each field, so a sparse revision cannot erase a previously known value.
+        grouped = event_table.groupby(
+            ["date", "securityId"], sort=False, as_index=False
+        ).last()
+        # Pivot in small batches: one field at a time was CPU-heavy, while one 17-field
+        # wide table roughly doubled peak memory on the full current A-share master.
+        for start in range(0, len(value_columns), 4):
+            batch = value_columns[start : start + 4]
+            wide = grouped.pivot(
+                index="date", columns="securityId", values=batch
+            )
+            for field in batch:
+                output[field] = (
+                    wide[field]
+                    .reindex(index=close.index, columns=close.columns)
+                    .ffill()
+                )
+    annualized_eps_frame = output.pop("_annualized_eps")
     bps = output["fund_book_value_per_share"].where(
         output["fund_book_value_per_share"].gt(0.0)
     )
@@ -244,4 +305,3 @@ def attach_point_in_time_fundamentals(
         "automaticTradingChanges": [],
     }
     return output, audit
-

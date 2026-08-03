@@ -7871,6 +7871,19 @@ def t116_fundamental_factor_discovery_is_point_in_time_and_isolated() -> None:
         "inventoryTurnoverDays": 40.0,
         "totalAssetTurnover": 0.7,
     }
+    revised_same_session = {
+        **row,
+        "epsYtd": None,
+        "roePct": 14.0,
+    }
+    later_row = {
+        **row,
+        "noticeDate": "2026-01-08",
+        "updateDate": "2026-01-08",
+        "epsYtd": 2.0,
+        "roePct": 16.0,
+    }
+    fixture_rows = [row, revised_same_session, later_row]
     previous_root = fundamentals.ROOT
     try:
         with tempfile.TemporaryDirectory() as directory:
@@ -7878,7 +7891,8 @@ def t116_fundamental_factor_discovery_is_point_in_time_and_isolated() -> None:
             data_root = temporary_root / "fundamentals"
             data_root.mkdir()
             (data_root / "SH_600000.jsonl").write_text(
-                json.dumps(row) + "\n", encoding="utf-8"
+                "\n".join(json.dumps(item) for item in fixture_rows) + "\n",
+                encoding="utf-8",
             )
             fundamentals.ROOT = temporary_root
             feature_config = {
@@ -7895,6 +7909,17 @@ def t116_fundamental_factor_discovery_is_point_in_time_and_isolated() -> None:
                 "T116 statement is invisible through update date and visible only next session",
                 eps.loc[: "2026-01-06"].isna().all()
                 and eps.loc[pd.Timestamp("2026-01-07")] == 1.0,
+            )
+            expected_eps = fundamentals._point_in_time_series(
+                fixture_rows, "epsYtd", dates
+            )
+            expected_roe = fundamentals._point_in_time_series(
+                fixture_rows, "roePct", dates
+            )
+            check(
+                "T116 vectorized event table exactly matches the reference PIT series",
+                enriched["fund_eps_ytd"]["SH.600000"].equals(expected_eps)
+                and enriched["fund_roe"]["SH.600000"].equals(expected_roe),
             )
             prefix_dates = dates[:5]
             prefix_panel = {"close": close.loc[prefix_dates]}
