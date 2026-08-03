@@ -56,4 +56,51 @@ models on the same evaluation windows.
 
 ## Result
 
-Not run at preregistration time.
+Historical run completed once as
+`run_20260803_preregistered_market_opportunity_v8` over 2019-10-09 through
+2026-08-03 (57,050 stock-date prediction rows; 55 rolling market-model folds).
+
+Verdict: **rejected for trading; retain diagnostics only**.
+
+Only 3/55 fold audits passed every reliability condition. Individual pass counts were:
+
+| Audit condition | Passing folds |
+|---|---:|
+| minimum audit sample | 55/55 |
+| Brier below frozen prior | 26/55 |
+| LogLoss below frozen prior | 26/55 |
+| AUC >= 0.55 | 24/55 |
+| ECE <= 0.15 | 17/55 |
+| positive calibration slope | 31/55 |
+| >=10 high-probability dates | 27/55 |
+| high-probability hit rate >=60% | 15/55 |
+
+The aggregate calibrated probability degraded sharply outside the earlier training
+walk-forward region:
+
+| Period | Brier / prior | LogLoss / prior | AUC | ECE |
+|---|---:|---:|---:|---:|
+| train walk-forward | 0.2609 / 0.2590 | 0.7550 / 0.7112 | 0.5900 | 0.0970 |
+| validation | 0.3156 / 0.2661 | 0.8341 / 0.7255 | 0.4166 | 0.3525 |
+| shadow | 0.3292 / 0.2465 | 0.8747 / 0.6862 | 0.4136 | 0.3204 |
+
+The reliability-gated primary policy selected zero validation and shadow dates. This
+was not merely an over-strict gate hiding a useful model: bypassing reliability and
+using probability >=60% gave the following ablation.
+
+| Period | Policy | Days | 10d mean | Win | 3% tail | Costed cumulative |
+|---|---|---:|---:|---:|---:|---:|
+| validation | V2 Top3 all dates | 126 | +1.5596% | 57.14% | 12.70% | +15.75% |
+| validation | probability threshold only | 45 | +1.9683% | 55.56% | 11.11% | +6.43% |
+| shadow | V2 Top3 all labelled dates | 115 | -0.1309% | 45.22% | 36.52% | -5.05% |
+| shadow | probability threshold only | 56 | -0.2327% | 44.64% | 32.14% | -4.74% |
+
+The threshold reduced tail frequency, but did not improve win rate in either period
+and made shadow mean return worse. Validation-only mean improvement therefore did not
+transfer. On 2026-08-03 the calibrated market-opportunity probability was 39.61%, the
+fold was reliability-disabled, and the research policy correctly selected zero names.
+
+No parameter, threshold or production path was changed after observing these results.
+The exact V8 branch should not be repaired on these reused windows. A next hypothesis
+must use a different economic mechanism and be separately preregistered; the current
+evidence does not support deploying a market-timing probability gate.
