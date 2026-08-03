@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "perception_xalpha_conformal_top3_v6",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Give every frozen V2 Top10 stock a time-isolated ten-session return interval and select at most three stocks only when the conservative lower bound is strictly above round-trip cost.",
+  "baseReliabilityConfig": "configs/research/perception_xalpha_return_reliability_v5.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "Absolute stock-return forecasts failed when market-level drift and cross-sectional alpha were fitted as one target. Separating the common market return from stock residual alpha and requiring a calibrated lower return bound above costs may identify a small high-confidence subset without claiming certain profit.",
+    "primaryPolicy": "conformal_top3_positive_lower_bound",
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "countsAsNewResearchTrial": true,
+    "validationAndShadowAlreadyViewed": true,
+    "profitGuaranteeClaimAllowed": false
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "contextTopN": 10,
+    "maximumSelectionsPerDay": 3,
+    "roundTripCost": 0.003,
+    "tailLossThreshold": -0.03,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open"
+  },
+  "walkForward": {
+    "trainingWindowTradingDays": 756,
+    "minimumTrainingTradingDays": 504,
+    "refitEveryTradingDays": 21,
+    "outerPurgeTradingDays": 10,
+    "baseToCalibrationPurgeTradingDays": 10,
+    "calibrationTradingDays": 63,
+    "calibrationToAuditPurgeTradingDays": 10,
+    "reliabilityAuditTradingDays": 63,
+    "minimumBaseFitTradingDays": 350
+  },
+  "marketReturnModel": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "target": "benchmark_return_10d",
+    "oneObservationPerTradingDate": true,
+    "featureColumns": [
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ]
+  },
+  "residualAlphaModel": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "target": "target_return_10d_minus_benchmark_return_10d",
+    "featureColumns": [
+      "x_factor_volatility_asymmetry",
+      "x_factor_value_minus_momentum",
+      "x_factor_growth_quality_momentum",
+      "x_factor_multi_period_reversal",
+      "x_factor_composite",
+      "x_factor_minimum",
+      "x_factor_dispersion",
+      "x_stock_return_5",
+      "x_stock_return_20",
+      "x_stock_return_60",
+      "x_stock_volatility_20",
+      "x_stock_volatility_60",
+      "x_stock_drawdown_60",
+      "x_stock_amount_ratio_5_20",
+      "x_stock_liquidity_percentile",
+      "x_stock_open_gap",
+      "x_stock_intraday_return"
+    ]
+  },
+  "modelFitting": {
+    "targetWinsorQuantiles": [0.01, 0.99],
+    "missingValuePolicy": "base_fit_median",
+    "standardization": "base_fit_only_standard_scaler",
+    "predictionClipUsesBaseFitComponentBounds": true,
+    "randomSeed": 20260803
+  },
+  "splitConformalInterval": {
+    "kind": "asymmetric_signed_residual",
+    "nominalCoverage": 0.8,
+    "lowerResidualQuantile": 0.1,
+    "upperResidualQuantile": 0.9,
+    "quantileMethod": "higher",
+    "calibrationPopulation": "all_frozen_top50_rows_with_equal_weight_per_date",
+    "dateEqualWeighted": true,
+    "auditSegmentNeverFitsModelsOrBounds": true,
+    "theoreticalFiniteSampleCoverageClaimed": false
+  },
+  "reliabilityGate": {
+    "minimumAuditIntervalCoverage": 0.75,
+    "maximumAuditLowerBoundViolationRate": 0.15,
+    "maximumAuditMeanIntervalWidth": 0.2,
+    "minimumAuditPointForecastRankIcHacT": 1.65,
+    "minimumAuditPositiveLowerBoundObservations": 10,
+    "minimumAuditPositiveLowerBoundHitRate": 0.6,
+    "allConditionsRequired": true
+  },
+  "selection": {
+    "context": "frozen_v2_predicted_order_top10",
+    "rankingField": "predicted_return_lower_10d",
+    "rankingDirection": "descending",
+    "requiredLowerBoundStrictlyAbove": 0.003,
+    "requiresReliabilityGate": true,
+    "maximumSelectionsPerDay": 3,
+    "allowZeroSelections": true,
+    "neverFillToThree": true
+  },
+  "policies": [
+    "v2_rank_top10_all_days",
+    "v2_rank_top3_all_days",
+    "point_forecast_top3_within_v2_top10",
+    "lower_bound_top3_within_v2_top10",
+    "conformal_top3_positive_lower_bound"
+  ],
+  "evaluation": {
+    "primaryMetric": "selected_top3_ten_day_win_rate",
+    "hacLagTradingDays": 10,
+    "minimumSignalDaysPerValidationPeriod": 20,
+    "minimumIndependentEventsPerValidationPeriod": 8,
+    "minimumAverageSelectionsPerSignalDay": 1.0,
+    "minimumBasketWinRate": 0.6,
+    "minimumPerSlotObservations": 10,
+    "minimumPerSlotWinRate": 0.5,
+    "minimumPerSlotMeanReturn": 0.0,
+    "minimumSameDayMeanReturnLiftVsV2Top3": 0.0,
+    "minimumHacTForSameDayReturnDifference": 1.65,
+    "minimumIntervalCoverage": 0.75,
+    "maximumLowerBoundViolationRate": 0.15,
+    "requirePositiveBasketMeanReturn": true,
+    "requirePositiveCostedCumulativeReturn": true,
+    "requireTailLossRateNoWorseThanV2Top3": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false
+  },
+  "knownLimitations": [
+    "No prediction interval can ensure that any selected stock will be profitable; lower bounds are empirical diagnostics, not guarantees.",
+    "Validation and shadow windows have already been viewed in V1-V5 and are contaminated historical diagnostics rather than pristine final OOS evidence.",
+    "The residual interval uses date-equal-weighted empirical split residuals. Serial and cross-sectional dependence invalidate an exact exchangeable finite-sample coverage claim, so coverage is separately audited on never-fit dates.",
+    "The current security master has incomplete delisted-name and historical-ST coverage.",
+    "The A-share research panel still uses raw unadjusted prices.",
+    "Top10 context is conditional on the existing V2 ranker; V6 does not search a new stock universe or modify any live decision path."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_conformal_top3_v6",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
