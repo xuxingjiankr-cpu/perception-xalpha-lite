@@ -39,7 +39,13 @@ import research_perception_xalpha as perception  # noqa: E402
 DEFAULT_CONFIG = (
     ROOT / "configs" / "research" / "perception_xalpha_autonomous_v2.json"
 )
-CODE_VERSION = "perception_xalpha_autonomous_v2.3"
+CODE_VERSION = "perception_xalpha_autonomous_v2.4"
+
+
+STOCK_UNIVERSE_KINDS = {
+    "all_a_shares",
+    "all_a_shares_pit_adjusted",
+}
 
 
 REJECTION_REASONS = {
@@ -348,18 +354,37 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("human approval must remain mandatory")
     universe = config.get("assetUniverse", {"kind": "etf"})
     universe_kind = universe.get("kind", "etf")
-    registered_cost = 0.003 if universe_kind == "all_a_shares" else 0.00155
+    registered_cost = 0.003 if universe_kind in STOCK_UNIVERSE_KINDS else 0.00155
     if not math.isclose(
         float(full["roundTripCost"]), registered_cost, abs_tol=1e-12
     ):
         raise ValueError(
             "registered round-trip cost differs from the frozen universe cost"
         )
-    if universe_kind == "all_a_shares":
-        if set(universe.get("exchanges", [])) != {"SH", "SZ", "BJ"}:
-            raise ValueError("all-A-share research must include SH, SZ and BJ")
-        if universe.get("pointInTimeMembershipAvailable") is not False:
-            raise ValueError("current-master survivorship limitation must be explicit")
+    if universe_kind in STOCK_UNIVERSE_KINDS:
+        if universe_kind == "all_a_shares":
+            if set(universe.get("exchanges", [])) != {"SH", "SZ", "BJ"}:
+                raise ValueError("current-master all-A-share research must include SH, SZ and BJ")
+            if universe.get("pointInTimeMembershipAvailable") is not False:
+                raise ValueError("current-master survivorship limitation must be explicit")
+        else:
+            if set(universe.get("exchanges", [])) != {"SH", "SZ"}:
+                raise ValueError("clean PIT A-share research must contain exactly SH and SZ")
+            if universe.get("pointInTimeMembershipAvailable") is not True:
+                raise ValueError("clean PIT membership must be explicit")
+            for key in (
+                "requireAdjustedPrices",
+                "requirePointInTimeStatus",
+                "requirePointInTimeMaster",
+                "failClosedUnlessUnbiasedHistoricalValidationEligible",
+            ):
+                if universe.get(key) is not True:
+                    raise ValueError(f"clean PIT A-share research requires {key}=true")
+            clean_root = "data/market/ashare_research/baostock_pit_adjusted/"
+            for key in ("masterPath", "barsRoot"):
+                value = str(universe.get(key, "")).replace("\\", "/").lower()
+                if not value.startswith(clean_root):
+                    raise ValueError("clean PIT inputs must stay in the isolated BaoStock root")
         for key in ("masterPath", "barsRoot"):
             value = str(universe.get(key, "")).replace("\\", "/").lower()
             if not value.startswith("data/market/ashare_research/"):
@@ -381,9 +406,11 @@ def validate_config(config: dict[str, Any]) -> None:
             raise ValueError("all-A-share output root must be independently isolated")
         if int(universe["minimumEligibleSymbols"]) < 1000:
             raise ValueError("all-A-share validation cannot use a small convenience sample")
-        if float(
+        minimum_coverage = float(
             universe["minimumMasterCoverageForHistoricalValidation"]
-        ) < 0.9:
+        )
+        required_coverage = 0.98 if universe_kind == "all_a_shares_pit_adjusted" else 0.9
+        if minimum_coverage < required_coverage:
             raise ValueError("all-A-share research must fail closed on partial coverage")
     elif universe_kind != "etf":
         raise ValueError(f"unsupported asset universe: {universe_kind}")
@@ -424,7 +451,7 @@ def load_base_configs(
     )
     cog_config["data"]["holdForPredictionHorizon"] = True
     universe = config.get("assetUniverse", {})
-    if universe.get("kind") == "all_a_shares":
+    if universe.get("kind") in STOCK_UNIVERSE_KINDS:
         overrides = universe.get("dataOverrides", {})
         for key in (
             "minimumObservationsPerSymbol",
@@ -434,9 +461,12 @@ def load_base_configs(
             if key in overrides:
                 cog_config["data"][key] = overrides[key]
         cog_config["data"]["barsRoot"] = universe["barsRoot"]
-        cog_config["data"]["survivorshipWarning"] = (
-            "Current discoverable SH/SZ/BJ master only; delisted securities and "
-            "historical point-in-time ST membership are incomplete."
+        cog_config["data"]["survivorshipWarning"] = str(
+            universe.get(
+                "survivorshipWarning",
+                "Current discoverable SH/SZ/BJ master only; delisted securities and "
+                "historical point-in-time ST membership are incomplete.",
+            )
         )
         fundamental = universe.get("fundamentalData")
         if fundamental:
@@ -582,6 +612,42 @@ def completed_cycle_count(connection: sqlite3.Connection | None) -> int:
         connection.execute(
             "SELECT COUNT(*) FROM run_index WHERE status='complete'"
         ).fetchone()[0]
+    )
+
+
+def completed_trial_count(connection: sqlite3.Connection | None) -> int:
+    """Count every candidate generated by completed cycles in this isolated registry.
+
+    The preregistered ``priorProjectTrials`` covers experiments performed before this
+    registry existed.  Each subsequent cycle must also pay the multiple-testing penalty
+    for its predecessors; otherwise a continuous loop silently resets DSR every week.
+    Corrupt legacy payloads fail closed by contributing no reusable search memory, while
+    valid non-negative ``generated`` counts are accumulated exactly once.
+    """
+    if connection is None:
+        return 0
+    total = 0
+    for (payload_text,) in connection.execute(
+        "SELECT payload FROM run_index WHERE status='complete'"
+    ):
+        try:
+            generated = int(json.loads(payload_text).get("generated", 0))
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+        total += max(0, generated)
+    return total
+
+
+def project_trial_count(
+    config: dict[str, Any],
+    connection: sqlite3.Connection | None,
+    current_cycle_trials: int,
+) -> int:
+    """Return the immutable pre-registry burden plus all registry/current trials."""
+    return (
+        int(config["fullEvaluation"]["priorProjectTrials"])
+        + completed_trial_count(connection)
+        + max(0, int(current_cycle_trials))
     )
 
 
@@ -2190,6 +2256,7 @@ def run_cycle(
                 "automaticTradingChanges": [],
             }, None
     novelty_epoch = completed_cycle_count(connection)
+    registry_completed_trials = completed_trial_count(connection)
     known_factor_ids = previous_factor_ids(connection)
     # The epoch is derived only from completed historical research cycles. It changes the
     # deterministic grammar path when new market data arrive, so a daily loop does not
@@ -2413,10 +2480,7 @@ def run_cycle(
                     "immutable": True,
                 }
             )
-    total_trials = (
-        int(config["fullEvaluation"]["priorProjectTrials"])
-        + generated_count
-    )
+    total_trials = project_trial_count(config, connection, generated_count)
     selected_metric_group = objective_group(config)
     best_validation = (
         max(
@@ -2600,6 +2664,7 @@ def run_cycle(
             "priorProjectTrials": int(
                 config["fullEvaluation"]["priorProjectTrials"]
             ),
+            "completedRegistryTrials": registry_completed_trials,
             "currentCycleTrials": generated_count,
             "totalTrials": total_trials,
             "sameHistoricalWindowCannotPromote": True,

@@ -9774,6 +9774,126 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
     )
 
 
+def t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials() -> None:
+    import copy
+    import json
+    import sqlite3
+
+    import research_perception_xalpha_autonomous as discovery
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_all_ashares_v10_pit_adjusted.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    validated = True
+    try:
+        discovery.validate_config(config)
+    except Exception:
+        validated = False
+    check(
+        "T128 clean PIT autonomous config is accepted only as research/shadow",
+        validated
+        and config["assetUniverse"]["kind"] == "all_a_shares_pit_adjusted"
+        and config["registry"]["cleanRegistryStartsWithoutLegacyParents"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+    perception_config, cog_config = discovery.load_base_configs(config)
+    check(
+        "T128 clean PIT paths and stock cost reach the shared evaluator",
+        bool(perception_config)
+        and cog_config["data"]["barsRoot"]
+        == config["assetUniverse"]["barsRoot"]
+        and cog_config["data"]["roundTripCost"] == 0.003
+        and cog_config["data"]["holdForPredictionHorizon"] is True,
+    )
+    rejected_mutations = 0
+    for key in (
+        "requireAdjustedPrices",
+        "requirePointInTimeStatus",
+        "requirePointInTimeMaster",
+        "failClosedUnlessUnbiasedHistoricalValidationEligible",
+    ):
+        mutated = copy.deepcopy(config)
+        mutated["assetUniverse"][key] = False
+        try:
+            discovery.validate_config(mutated)
+        except ValueError:
+            rejected_mutations += 1
+    wrong_exchange = copy.deepcopy(config)
+    wrong_exchange["assetUniverse"]["exchanges"].append("BJ")
+    wrong_path = copy.deepcopy(config)
+    wrong_path["assetUniverse"]["barsRoot"] = (
+        "data/market/ashare_research/bars_1d_raw"
+    )
+    for mutated in (wrong_exchange, wrong_path):
+        try:
+            discovery.validate_config(mutated)
+        except ValueError:
+            rejected_mutations += 1
+    check(
+        "T128 clean PIT config fails closed on every data-integrity downgrade",
+        rejected_mutations == 6,
+    )
+    connection = sqlite3.connect(":memory:")
+    discovery.initialize_registry(connection)
+    connection.executemany(
+        "INSERT INTO run_index "
+        "(run_id, created_at, input_hash, status, output_path, payload) "
+        "VALUES (?, '2026-08-03T00:00:00Z', ?, 'complete', ?, ?)",
+        [
+            ("cycle_a", "hash_a", "out_a", json.dumps({"generated": 11})),
+            ("cycle_b", "hash_b", "out_b", json.dumps({"generated": 17})),
+            ("cycle_bad", "hash_c", "out_c", "not-json"),
+        ],
+    )
+    connection.commit()
+    expected = int(config["fullEvaluation"]["priorProjectTrials"]) + 11 + 17 + 23
+    check(
+        "T128 DSR trial burden accumulates completed registry and current candidates",
+        discovery.completed_trial_count(connection) == 28
+        and discovery.project_trial_count(config, connection, 23) == expected,
+    )
+    connection.close()
+    v5 = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_all_ashares_v5_fundamental.json"
+        ).read_text(encoding="utf-8")
+    )
+    check(
+        "T128 clean parent pool and registry cannot inherit contaminated V5 state",
+        config["registry"]["stateDirectory"]
+        != v5["registry"]["stateDirectory"]
+        and config["registry"]["sqlitePath"]
+        != v5["registry"]["sqlitePath"],
+    )
+    runner = (
+        ROOT
+        / "scripts"
+        / "run_perception_xalpha_pit_adjusted_evolution.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T128 unattended evolution is serialized, fail-closed and cannot trade",
+        "historicalResearchEligible" in runner
+        and "PerceptionXAlphaPITAdjustedV10Evolution" in runner
+        and "research_perception_xalpha_autonomous.py" in runner
+        and "--force" not in runner
+        and "submitOrder" not in runner
+        and "a_share_paper_trading" not in runner
+        and "latest_strategy_overlay" not in runner
+        and "build_decision" not in runner,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -9895,6 +10015,7 @@ if __name__ == "__main__":
     t125_conditional_top3_preserves_points_varies_width_and_stays_causal()
     t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed()
     t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed()
+    t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
