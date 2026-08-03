@@ -65,6 +65,7 @@
     "alpha": 10.0,
     "inputScale": 100.0,
     "targetClipUsesBaseFitBounds": true,
+    "predictionClipUsesBaseFitBounds": true,
     "fitUsesCalibrationSegmentOnly": true,
     "auditSegmentNeverFitsModelOrCalibrator": true
   },
