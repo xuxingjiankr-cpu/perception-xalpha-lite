@@ -9685,6 +9685,98 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         and "proxy" in row["vwapSource"]
         and wrong_adjustment is None,
     )
+
+    class FakeQueryResult:
+        def __init__(self, error_code: str, error_msg: str, rows=None):
+            self.error_code = error_code
+            self.error_msg = error_msg
+            self.fields = list(config["provider"]["fields"])
+            self.rows = list(rows or [])
+            self.position = -1
+
+        def next(self):
+            self.position += 1
+            return self.position < len(self.rows)
+
+        def get_row_data(self):
+            item = self.rows[self.position]
+            return [str(item.get(field, "")) for field in self.fields]
+
+    class ExpiringFakeBaoStock:
+        def __init__(self, login_succeeds=True):
+            self.query_count = 0
+            self.login_count = 0
+            self.login_succeeds = login_succeeds
+
+        def query_history_k_data_plus(self, *args, **kwargs):
+            self.query_count += 1
+            if self.query_count == 1:
+                return FakeQueryResult("10001001", "not logged in")
+            return FakeQueryResult(
+                "0",
+                "",
+                [
+                    {
+                        "date": "2026-08-03",
+                        "code": "sh.600000",
+                        "open": "10.0",
+                        "high": "10.2",
+                        "low": "9.8",
+                        "close": "10.1",
+                        "preclose": "9.9",
+                        "volume": "123400",
+                        "amount": "1240000",
+                        "adjustflag": "1",
+                        "tradestatus": "1",
+                        "pctChg": "2.02",
+                        "isST": "0",
+                    }
+                ],
+            )
+
+        def login(self):
+            self.login_count += 1
+            return type(
+                "LoginResult",
+                (),
+                {
+                    "error_code": "0" if self.login_succeeds else "10002001",
+                    "error_msg": "" if self.login_succeeds else "login rejected",
+                },
+            )()
+
+    fake_bs = ExpiringFakeBaoStock()
+    session_stats = {"authRefreshes": 0}
+    refreshed_rows = pit_data._query_history(
+        fake_bs,
+        active,
+        "2026-08-03",
+        "2026-08-03",
+        config,
+        retries=2,
+        session_stats=session_stats,
+    )
+    relogin_failed_closed = False
+    try:
+        pit_data._query_history(
+            ExpiringFakeBaoStock(login_succeeds=False),
+            active,
+            "2026-08-03",
+            "2026-08-03",
+            config,
+            retries=2,
+        )
+    except RuntimeError:
+        relogin_failed_closed = True
+    check(
+        "T127 expired BaoStock session re-authenticates once and resumes causally",
+        len(refreshed_rows) == 1
+        and refreshed_rows[0]["dt"] == "2026-08-03"
+        and fake_bs.query_count == 2
+        and fake_bs.login_count == 1
+        and session_stats["authRefreshes"] == 1
+        and relogin_failed_closed,
+    )
     synthetic_master = [
         {"securityId": f"SH.{600000 + index:06d}"} for index in range(17)
     ]

@@ -23,6 +23,7 @@ DEFAULT_CONFIG = ROOT / "configs" / "research" / "ashare_pit_adjusted_data_v1.js
 SCHEMA_VERSION = "ashare_pit_adjusted_data_v1"
 SH_PREFIXES = ("600", "601", "603", "605", "688", "689")
 SZ_PREFIXES = ("000", "001", "002", "003", "300", "301")
+BAOSTOCK_AUTH_ERROR_CODES = {"10001001"}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -275,6 +276,21 @@ def parse_history_record(
     }
 
 
+def refresh_baostock_session(bs: Any) -> None:
+    """Replace an expired BaoStock session without relaxing collection failures.
+
+    Long backfills can outlive BaoStock's server-side session.  Once that happens every
+    subsequent query returns ``10001001`` even though the process itself is healthy.  A
+    fresh login is safe and idempotent for this read-only collector; failure to re-login
+    still raises and is recorded by the normal fail-closed path.
+    """
+    result = bs.login()
+    if result.error_code != "0":
+        raise RuntimeError(
+            f"BaoStock re-login failed: {result.error_code} {result.error_msg}"
+        )
+
+
 def _query_history(
     bs: Any,
     security: dict[str, Any],
@@ -282,6 +298,7 @@ def _query_history(
     end_date: str,
     config: dict[str, Any],
     retries: int,
+    session_stats: dict[str, int] | None = None,
 ) -> list[dict[str, Any]]:
     fields = ",".join(config["provider"]["fields"])
     last_error = "unknown"
@@ -303,6 +320,13 @@ def _query_history(
                     output.append(parsed)
             return output
         last_error = f"{result.error_code} {result.error_msg}"
+        if str(result.error_code) in BAOSTOCK_AUTH_ERROR_CODES:
+            refresh_baostock_session(bs)
+            if session_stats is not None:
+                session_stats["authRefreshes"] = (
+                    int(session_stats.get("authRefreshes", 0)) + 1
+                )
+            continue
         time.sleep(0.5 * (attempt + 1))
     raise RuntimeError(last_error)
 
@@ -314,6 +338,7 @@ def collect_one(
     end_date: str,
     force: bool,
     retries: int,
+    session_stats: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     path = resolve_path(config, "barsRoot") / f"{security['exchange']}_{security['stockCode']}.jsonl"
     old = [] if force else read_jsonl(path)
@@ -333,7 +358,15 @@ def collect_one(
             "path": str(path),
         }
     try:
-        fresh = _query_history(bs, security, start, stop, config, retries)
+        fresh = _query_history(
+            bs,
+            security,
+            start,
+            stop,
+            config,
+            retries,
+            session_stats=session_stats,
+        )
         merged = {str(row["dt"]): row for row in [*old, *fresh]}
         rows = [merged[key] for key in sorted(merged)]
         if rows:
@@ -456,9 +489,18 @@ def backfill(
     run_id = safe_run_id(args.run_id)
     end_date = args.end_date or date.today().isoformat()
     results: list[dict[str, Any]] = []
+    session_stats = {"authRefreshes": 0}
     started = now_iso()
     for number, security in enumerate(master, start=1):
-        result = collect_one(bs, security, config, end_date, args.force, args.retries)
+        result = collect_one(
+            bs,
+            security,
+            config,
+            end_date,
+            args.force,
+            args.retries,
+            session_stats=session_stats,
+        )
         results.append(result)
         if number == 1 or number % max(1, args.progress_every) == 0 or result["status"] == "failed":
             print(json.dumps({"progress": f"{number}/{len(master)}", **result}, ensure_ascii=False), flush=True)
@@ -479,6 +521,7 @@ def backfill(
         "requested": len(master),
         "endDate": end_date,
         "force": bool(args.force),
+        "authRefreshes": session_stats["authRefreshes"],
         "statusCounts": counts,
         "failedSecurityIds": [row["securityId"] for row in results if row["status"] == "failed"],
         "orders": [],
