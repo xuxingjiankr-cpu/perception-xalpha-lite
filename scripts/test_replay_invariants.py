@@ -8829,6 +8829,207 @@ def t123_return_reliability_gate_is_nested_causal_and_fail_closed() -> None:
     )
 
 
+def t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_conformal_top3_v6 as conformal_v6
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_conformal_top3_v6.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    conformal_v6.validate_config(config)
+    check(
+        "T124 conformal Top3 is research-only and explicitly cannot guarantee profit",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["preregisteredHypothesis"]["profitGuaranteeClaimAllowed"]
+        is False
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2024-01-02", periods=180)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(124)
+    table = pd.DataFrame(index=index).reset_index()
+    market_features = conformal_v6.market_feature_columns(config)
+    residual_features = conformal_v6.residual_feature_columns(config)
+    for number, name in enumerate(market_features):
+        values = np.sin(np.arange(len(dates)) / (7.0 + number))
+        table[name] = np.repeat(values, len(securities))
+    for number, name in enumerate(residual_features):
+        table[name] = rng.normal(0.0, 1.0, len(table)) + number * 0.001
+    market_target = 0.01 * table[market_features[0]]
+    residual_target = (
+        0.008 * table[residual_features[0]]
+        - 0.004 * table[residual_features[1]]
+        + rng.normal(0.0, 0.008, len(table))
+    )
+    table["benchmark_return_10d"] = market_target
+    table["target_return_10d"] = market_target + residual_target
+
+    toy = copy.deepcopy(config)
+    walk = toy["walkForward"]
+    walk["minimumTrainingTradingDays"] = 120
+    walk["trainingWindowTradingDays"] = 160
+    walk["refitEveryTradingDays"] = 20
+    walk["calibrationTradingDays"] = 20
+    walk["reliabilityAuditTradingDays"] = 20
+    walk["minimumBaseFitTradingDays"] = 60
+    fit_dates = dates[:120]
+    base, calibration, audit, segment = conformal_v6.nested_segments(
+        fit_dates, toy
+    )
+    check(
+        "T124 base, interval calibration and reliability audit are chronologically isolated",
+        len(base) == 60
+        and len(calibration) == 20
+        and len(audit) == 20
+        and segment["baseToCalibrationPurgeTradingDays"] >= 10
+        and segment["calibrationToAuditPurgeTradingDays"] >= 10
+        and base[-1] < calibration[0] < calibration[-1] < audit[0],
+    )
+
+    model = conformal_v6.fit_conformal_return_model(table, fit_dates, toy)
+    shocked = table.copy()
+    shocked.loc[shocked["date"].isin(audit), "target_return_10d"] += 5.0
+    shocked_model = conformal_v6.fit_conformal_return_model(
+        shocked, fit_dates, toy
+    )
+    probe = table[table["date"].eq(dates[130])].copy()
+    scored = conformal_v6.score_conformal_rows(model, probe, toy)
+    shocked_scored = conformal_v6.score_conformal_rows(
+        shocked_model, probe, toy
+    )
+    audit_never_fits = True
+    try:
+        for column in (
+            "predicted_market_return_10d",
+            "predicted_residual_alpha_10d",
+            "predicted_total_return_10d",
+            "predicted_return_lower_10d",
+            "predicted_return_upper_10d",
+        ):
+            pdt.assert_series_equal(
+                scored[column].reset_index(drop=True),
+                shocked_scored[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        audit_never_fits = False
+    check(
+        "T124 changing never-fit audit labels cannot refit forecasts or interval bounds",
+        audit_never_fits
+        and np.isclose(model.lower_offset, shocked_model.lower_offset)
+        and np.isclose(model.upper_offset, shocked_model.upper_offset),
+    )
+
+    predictions, audits = conformal_v6.rolling_conformal_predictions(
+        table, dates, toy
+    )
+    future_shocked = table.copy()
+    future_shocked.loc[
+        future_shocked["date"].ge(dates[150]), "target_return_10d"
+    ] += 10.0
+    shocked_predictions, _ = conformal_v6.rolling_conformal_predictions(
+        future_shocked, dates, toy
+    )
+    prefix = predictions[predictions["date"].lt(dates[150])]
+    shocked_prefix = shocked_predictions[
+        shocked_predictions["date"].lt(dates[150])
+    ]
+    future_safe = True
+    try:
+        for column in (
+            "predicted_total_return_10d",
+            "predicted_return_lower_10d",
+            "predicted_return_upper_10d",
+        ):
+            pdt.assert_series_equal(
+                prefix[column].reset_index(drop=True),
+                shocked_prefix[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        future_safe = False
+    check(
+        "T124 future labels cannot change earlier point forecasts or bounds",
+        future_safe
+        and len(predictions) > 0
+        and all(item["outerGapTradingDays"] >= 10 for item in audits)
+        and all(
+            item["model"]["auditDateRange"][1]
+            < item["predictionDateRange"][0]
+            for item in audits
+        ),
+    )
+
+    selection_probe = pd.DataFrame(
+        {
+            "date": np.repeat(pd.Timestamp("2026-08-03"), 12),
+            "securityId": securities,
+            "predicted_order": np.arange(1, 13),
+            "predicted_total_return_10d": np.linspace(0.04, -0.01, 12),
+            "predicted_return_lower_10d": np.linspace(0.02, -0.03, 12),
+            "predicted_return_upper_10d": np.linspace(0.08, 0.03, 12),
+            "interval_model_enabled": True,
+        }
+    )
+    selected = conformal_v6.add_context_and_selection(selection_probe, config)
+    primary = selected[selected["selectedByPrimaryPolicy"]]
+    disabled_probe = selection_probe.copy()
+    disabled_probe["interval_model_enabled"] = False
+    disabled = conformal_v6.add_context_and_selection(disabled_probe, config)
+    check(
+        "T124 confidence book contains zero to three original Top10 names and never fills below cost",
+        0 < len(primary) <= 3
+        and bool(primary["predicted_order"].le(10).all())
+        and bool(primary["predicted_return_lower_10d"].gt(0.003).all())
+        and not bool(disabled["selectedByPrimaryPolicy"].any()),
+    )
+    check(
+        "T124 future outcomes never enter either return component feature set",
+        not {
+            "target_return_10d",
+            "benchmark_return_10d",
+            "target_residual_10d",
+            "target_cross_sectional_rank_10d",
+        }.intersection([*market_features, *residual_features]),
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_conformal_top3_v6.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T124 conformal Top3 research has no production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8946,6 +9147,7 @@ if __name__ == "__main__":
     t119_downside_tail_selector_is_purged_past_only_and_isolated()
     t122_expected_utility_selector_is_purged_past_only_and_isolated()
     t123_return_reliability_gate_is_nested_causal_and_fail_closed()
+    t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
