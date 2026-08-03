@@ -8641,6 +8641,194 @@ def t122_expected_utility_selector_is_purged_past_only_and_isolated() -> None:
     )
 
 
+def t123_return_reliability_gate_is_nested_causal_and_fail_closed() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_return_reliability_v5 as reliability_v5
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_return_reliability_v5.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    reliability_v5.validate_config(config)
+    check(
+        "T123 return-reliability model is research-only and cannot trade",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2024-01-02", periods=270)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(123)
+    table = pd.DataFrame(index=index).reset_index()
+    features = reliability_v5.expected_return_feature_columns(config)
+    for number, name in enumerate(features):
+        if name.startswith("market_"):
+            values = np.sin(np.arange(len(dates)) / (10.0 + number))
+            table[name] = np.repeat(values, len(securities))
+        else:
+            table[name] = rng.normal(0.0, 1.0, len(table))
+    table["target_return_10d"] = (
+        0.008 * table[features[0]]
+        - 0.004 * table[features[1]]
+        + rng.normal(0.0, 0.012, len(table))
+    )
+
+    toy = copy.deepcopy(config)
+    toy_model = toy["expectedReturnModel"]
+    toy_model["minimumTrainingTradingDays"] = 200
+    toy_model["trainingWindowTradingDays"] = 240
+    toy_model["refitEveryTradingDays"] = 20
+    toy_model["calibrationFitTradingDays"] = 30
+    toy_model["reliabilityAuditTradingDays"] = 30
+    toy_model["minimumBaseFitTradingDays"] = 100
+    fit_dates = dates[:200]
+    base, calibration, audit, segment = reliability_v5.nested_segments(
+        fit_dates, toy
+    )
+    check(
+        "T123 nested base, calibration and audit segments are strictly separated",
+        len(base) >= 100
+        and len(calibration) == 30
+        and len(audit) == 30
+        and segment["baseToCalibrationPurgeTradingDays"] >= 10
+        and segment["calibrationToAuditPurgeTradingDays"] >= 10
+        and base[-1] < calibration[0] < calibration[-1] < audit[0],
+    )
+
+    model = reliability_v5.fit_nested_return_model(table, fit_dates, toy)
+    shocked = table.copy()
+    shocked.loc[shocked["date"].isin(audit), "target_return_10d"] = 5.0
+    shocked_model = reliability_v5.fit_nested_return_model(
+        shocked, fit_dates, toy
+    )
+    probe_rows = table[table["date"].eq(dates[210])].copy()
+    scored = reliability_v5.score_nested_return_rows(model, probe_rows, toy)
+    shocked_scored = reliability_v5.score_nested_return_rows(
+        shocked_model, probe_rows, toy
+    )
+    audit_never_fits = True
+    try:
+        pdt.assert_series_equal(
+            scored["predicted_expected_return_10d"].reset_index(drop=True),
+            shocked_scored["predicted_expected_return_10d"].reset_index(drop=True),
+            check_names=False,
+            check_exact=False,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    except AssertionError:
+        audit_never_fits = False
+    check(
+        "T123 changing never-fit audit labels cannot refit forecasts",
+        audit_never_fits,
+    )
+
+    predictions, audits = reliability_v5.rolling_nested_return_predictions(
+        table, dates, toy
+    )
+    check(
+        "T123 outer prediction blocks retain the complete ten-session purge",
+        len(predictions) > 0
+        and len(audits) > 0
+        and all(item["outerGapTradingDays"] >= 10 for item in audits)
+        and all(
+            item["model"]["reliabilityAuditDateRange"][1]
+            < item["predictionDateRange"][0]
+            for item in audits
+        ),
+    )
+    check(
+        "T123 future outcomes never enter return-reliability features",
+        "target_return_10d" not in features
+        and "target_cross_sectional_rank_10d" not in features
+        and "label_tail_loss_10d" not in features,
+    )
+
+    fallback_probe = pd.DataFrame(
+        {
+            "date": np.repeat(pd.Timestamp("2026-08-03"), 12),
+            "securityId": securities,
+            "rank_score_percentile": np.linspace(0.10, 1.00, 12),
+            "predicted_expected_return_10d": np.linspace(0.01, 0.03, 12),
+            "predicted_tail_probability": np.linspace(0.40, 0.10, 12),
+            "expected_head_enabled": False,
+            "market_return_20": -0.01,
+            "market_breadth_20": 0.60,
+        }
+    )
+    fallback = reliability_v5.add_reliability_adaptive_score(
+        fallback_probe, config
+    )
+    check(
+        "T123 failed reliability removes return and tail heads and falls back safely",
+        np.allclose(
+            fallback["reliability_adaptive_score"],
+            fallback["rank_score_percentile"],
+        )
+        and not bool(fallback["reliability_adaptive_trade_gate"].any())
+        and set(fallback["trade_gate_mode"]) == {"v2_risk_on"},
+    )
+
+    primary_metric = {
+        "newSignalDays": 0,
+        "basketTenDayMeanReturn": None,
+        "costedCumulativeReturn": 0.0,
+    }
+    empty_comparison = {
+        "commonSignalDays": 0,
+        "meanReturnDelta": None,
+        "winRateDelta": None,
+        "tailLossRateReduction": None,
+        "returnDeltaTHac": None,
+    }
+    failed_report = {
+        "periods": {
+            period: {
+                "policies": {reliability_v5.PRIMARY_POLICY: primary_metric},
+                "primaryVsRankTop10SameDays": empty_comparison,
+                "enabledSelectionVsRankTop10SameDays": empty_comparison,
+                "primaryIndependentEvents": {"n": 0},
+                "primaryExpectedHeadEnabledSignalDays": 0,
+            }
+            for period in ("validation", "shadow")
+        }
+    }
+    verdict = reliability_v5.build_verdict(failed_report, config)
+    check(
+        "T123 no-selection fallback cannot masquerade as model improvement",
+        verdict["stableHistoricalReliabilityImprovement"] is False
+        and verdict["promotionAllowed"] is False,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_return_reliability_v5.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T123 return reliability research has no production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8757,6 +8945,7 @@ if __name__ == "__main__":
     t118_winrate_rank_selector_is_purged_past_only_and_isolated()
     t119_downside_tail_selector_is_purged_past_only_and_isolated()
     t122_expected_utility_selector_is_purged_past_only_and_isolated()
+    t123_return_reliability_gate_is_nested_causal_and_fail_closed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
