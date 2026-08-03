@@ -23,6 +23,7 @@
     "kind": "LogisticRegression",
     "C": 0.1,
     "penalty": "l2",
+    "solver": "liblinear",
     "classWeight": "balanced",
     "maximumIterations": 1000,
     "trainingWindowTradingDays": 756,
