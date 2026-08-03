@@ -9860,6 +9860,10 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         "historicalResearchEligible" in robustness_runner
         and "research_perception_xalpha_market_opportunity_v8.py"
         in robustness_runner
+        and "Start-Process" in robustness_runner
+        and "RedirectStandardError" in robustness_runner
+        and "ResearchProcess.ExitCode" in robustness_runner
+        and "& py" not in robustness_runner
         and "submitOrder" not in robustness_runner
         and "a_share_paper_trading" not in robustness_runner
         and "latest_strategy_overlay" not in robustness_runner,
@@ -9978,6 +9982,10 @@ def t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials() -> None:
         "historicalResearchEligible" in runner
         and "PerceptionXAlphaPITAdjustedV10Evolution" in runner
         and "research_perception_xalpha_autonomous.py" in runner
+        and "Start-Process" in runner
+        and "RedirectStandardError" in runner
+        and "ResearchProcess.ExitCode" in runner
+        and "& py" not in runner
         and "--force" not in runner
         and "submitOrder" not in runner
         and "a_share_paper_trading" not in runner

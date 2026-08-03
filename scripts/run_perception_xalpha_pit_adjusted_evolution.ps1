@@ -157,8 +157,25 @@ try {
     }
 
     Write-ResearchStatus -Status "running_research_only"
-    & py -3.13 $ResearchScript --config $Config run 1> $Stdout 2> $Stderr
-    $ResearchExitCode = $LASTEXITCODE
+    $ResearchArguments = @(
+        "-3.13",
+        ('"{0}"' -f $ResearchScript),
+        "--config",
+        ('"{0}"' -f $Config),
+        "run"
+    )
+    # Keep native stderr (warnings and diagnostics) in its log. The process
+    # exit code, not the mere presence of stderr, controls the fail-closed gate.
+    $ResearchProcess = Start-Process `
+        -FilePath "py" `
+        -ArgumentList $ResearchArguments `
+        -WorkingDirectory $Root `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $Stdout `
+        -RedirectStandardError $Stderr `
+        -PassThru `
+        -Wait
+    $ResearchExitCode = $ResearchProcess.ExitCode
     if ($ResearchExitCode -ne 0) {
         throw ("research exit code: {0}" -f $ResearchExitCode)
     }

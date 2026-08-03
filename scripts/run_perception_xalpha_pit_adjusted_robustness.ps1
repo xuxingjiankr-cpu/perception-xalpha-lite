@@ -85,11 +85,36 @@ if ($Audit.historicalResearchEligible -ne $true) {
 }
 
 Write-ResearchStatus -Status "running_research_only"
-& py -3.13 $ResearchScript `
-    --research-data-override $Override `
-    --run-id $ResearchRunId `
-    1> $Stdout 2> $Stderr
-$ResearchExitCode = $LASTEXITCODE
+$ResearchArguments = @(
+    "-3.13",
+    ('"{0}"' -f $ResearchScript),
+    "--research-data-override",
+    ('"{0}"' -f $Override),
+    "--run-id",
+    $ResearchRunId
+)
+try {
+    # PowerShell 5.1 can promote a native process' stderr records (including
+    # harmless Python warnings) to terminating NativeCommandError records when
+    # ErrorActionPreference is Stop. Start-Process keeps stderr as data while
+    # preserving the actual process exit code as the fail-closed signal.
+    $ResearchProcess = Start-Process `
+        -FilePath "py" `
+        -ArgumentList $ResearchArguments `
+        -WorkingDirectory $Root `
+        -WindowStyle Hidden `
+        -RedirectStandardOutput $Stdout `
+        -RedirectStandardError $Stderr `
+        -PassThru `
+        -Wait
+    $ResearchExitCode = $ResearchProcess.ExitCode
+}
+catch {
+    Write-ResearchStatus -Status "failed_research_only" -Reason (
+        "research launch failed: {0}" -f $_.Exception.Message
+    )
+    exit 5
+}
 if ($ResearchExitCode -ne 0) {
     Write-ResearchStatus -Status "failed_research_only" -Reason (
         "research exit code: {0}" -f $ResearchExitCode
