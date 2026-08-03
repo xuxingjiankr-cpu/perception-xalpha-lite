@@ -329,10 +329,35 @@ def build_panel(
         bool(metadata["pointInTimeMasterAvailable"])
         for metadata in accepted_metadata.values()
     )
+    basic_historical_eligible = bool(
+        current_coverage >= minimum_coverage
+        and len(accepted_metadata)
+        >= int(universe_config["minimumEligibleSymbols"])
+        and all(
+            exchange_counts.get(exchange, 0) > 0
+            for exchange in allowed_exchanges
+        )
+    )
+    unbiased_historical_eligible = bool(
+        basic_historical_eligible
+        and all_adjusted
+        and all_status
+        and all_pit_master
+    )
+    require_unbiased = any(
+        bool(universe_config.get(key, False))
+        for key in (
+            "requireAdjustedPrices",
+            "requirePointInTimeStatus",
+            "requirePointInTimeMaster",
+        )
+    )
     audit = {
         "schemaVersion": "ashare_research_panel_audit_v1",
         "status": "diagnostic_only_research_only",
-        "universeKind": "current_discoverable_all_a_shares",
+        "universeKind": universe_config.get(
+            "kind", "current_discoverable_all_a_shares"
+        ),
         "masterPath": str(master_path),
         "barsRoot": str(bars_root),
         "masterCount": len(master),
@@ -349,27 +374,21 @@ def build_panel(
         "volumeRowsScaledFromLotsToShares": volume_rows_scaled,
         "historicalStatusRows": historical_status_rows,
         "adjustedPriceRows": adjusted_price_rows,
-        "historicalValidationEligible": bool(
-            current_coverage >= minimum_coverage
-            and len(accepted_metadata)
-            >= int(universe_config["minimumEligibleSymbols"])
-            and all(exchange_counts.get(exchange, 0) > 0 for exchange in allowed_exchanges)
+        "historicalValidationEligible": (
+            unbiased_historical_eligible
+            if require_unbiased
+            else basic_historical_eligible
         ),
         "pointInTimeMembership": all_pit_master,
         "historicalStatusAvailable": all_status,
-        "survivorshipWarning": (
+        "survivorshipWarning": universe_config.get(
+            "survivorshipWarning",
             "The master represents currently discoverable securities. Delisted "
-            "stocks and historical ST membership are incomplete."
+            "stocks and historical ST membership are incomplete.",
         ),
         "noForwardFill": True,
         "rawPricesUnadjusted": not all_adjusted,
-        "unbiasedHistoricalValidationEligible": bool(
-            current_coverage >= minimum_coverage
-            and len(accepted_metadata) >= int(universe_config["minimumEligibleSymbols"])
-            and all_adjusted
-            and all_status
-            and all_pit_master
-        ),
+        "unbiasedHistoricalValidationEligible": unbiased_historical_eligible,
         "orders": [],
         "automaticTradingChanges": [],
     }

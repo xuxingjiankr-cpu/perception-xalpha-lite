@@ -483,6 +483,21 @@ def build_configured_panel(
             audit.get("historicalValidationEligible", False)
             and fundamental_audit.get("historicalValidationEligible", False)
         )
+        audit["unbiasedHistoricalValidationEligible"] = bool(
+            audit.get("unbiasedHistoricalValidationEligible", False)
+            and fundamental_audit.get("historicalValidationEligible", False)
+        )
+        if audit.get("pointInTimeMembership"):
+            fundamental_audit["pointInTimeMembership"] = True
+            fundamental_audit["survivorshipWarning"] = universe.get(
+                "survivorshipWarning"
+            )
+    if universe.get("failClosedUnlessUnbiasedHistoricalValidationEligible") and not audit.get(
+        "unbiasedHistoricalValidationEligible", False
+    ):
+        raise RuntimeError(
+            "clean A-share research panel failed the preregistered unbiased-data gate"
+        )
     return panel, audit
 
 

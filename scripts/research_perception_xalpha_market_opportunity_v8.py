@@ -9,6 +9,7 @@ unchanged.  This module is offline diagnostics and can never place an order.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -63,6 +64,96 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def validate_research_data_override(
+    override: dict[str, Any],
+    base_v8_path: Path,
+    base_research_path: Path,
+) -> None:
+    if override.get("schemaVersion") != (
+        "perception_xalpha_pit_adjusted_robustness_override_v1"
+    ):
+        raise ValueError("unexpected PIT-adjusted robustness override schema")
+    if override.get("status") != "research_only_shadow_only_not_trading":
+        raise ValueError("the data robustness override must remain research-only")
+    safety = override.get("safety", {})
+    if safety.get("outputStatus") != "diagnostic_only" or any(
+        value is not False
+        for key, value in safety.items()
+        if key.startswith("may")
+    ):
+        raise ValueError("the data robustness override received a trading permission")
+    if (ROOT / override["baseV8Config"]).resolve() != base_v8_path.resolve():
+        raise ValueError("the data override points to a different V8 config")
+    if file_sha256(base_v8_path) != override["baseV8ConfigFileSha256"]:
+        raise ValueError("the preregistered V8 config changed after the override")
+    if (ROOT / override["baseResearchConfig"]).resolve() != base_research_path.resolve():
+        raise ValueError("the data override points to a different base research config")
+    if file_sha256(base_research_path) != override["baseResearchConfigFileSha256"]:
+        raise ValueError("the frozen base research config changed after preregistration")
+    hypothesis = override["preregisteredRobustnessHypothesis"]
+    if hypothesis.get("onlyChange") != (
+        "replace_current_master_raw_price_panel_with_pit_membership_adjusted_price_panel"
+    ):
+        raise ValueError("the robustness audit may change only its data panel")
+    for flag in (
+        "factorDefinitionsFrozen",
+        "rankModelFrozen",
+        "marketOpportunityModelFrozen",
+        "probabilityCalibrationFrozen",
+        "thresholdsFrozen",
+        "walkForwardSplitsFrozen",
+        "validationAndShadowMayNotTuneAnything",
+    ):
+        if hypothesis.get(flag) is not True:
+            raise ValueError(f"the robustness preregistration flag changed: {flag}")
+    if (
+        hypothesis.get("historicalRunCanPromote") is not False
+        or hypothesis.get("profitGuaranteeClaimAllowed") is not False
+    ):
+        raise ValueError("the robustness audit cannot promote or guarantee profit")
+    universe = override["assetUniverse"]
+    if (
+        set(universe.get("exchanges", [])) != {"SH", "SZ"}
+        or universe.get("requireAdjustedPrices") is not True
+        or universe.get("requirePointInTimeStatus") is not True
+        or universe.get("requirePointInTimeMaster") is not True
+        or universe.get("failClosedUnlessUnbiasedHistoricalValidationEligible")
+        is not True
+    ):
+        raise ValueError("the robustness universe no longer requires clean PIT data")
+    quality = override["qualityGate"]
+    if any(value is not True for value in quality.values()):
+        raise ValueError("every preregistered robustness data gate must remain enabled")
+
+
+def require_price_data_audit(override: dict[str, Any]) -> dict[str, Any]:
+    data_config = load_json(
+        ROOT / "configs" / "research" / "ashare_pit_adjusted_data_v1.json"
+    )
+    audit_path = ROOT / data_config["paths"]["auditRoot"] / "latest_data_audit.json"
+    if not audit_path.exists():
+        raise RuntimeError("PIT-adjusted price audit is missing")
+    audit = load_json(audit_path)
+    validate_price_data_audit_payload(audit)
+    return audit
+
+
+def validate_price_data_audit_payload(audit: dict[str, Any]) -> None:
+    if audit.get("historicalResearchEligible") is not True:
+        raise RuntimeError(
+            "PIT-adjusted price audit is incomplete; model fitting is forbidden"
+        )
+
+
+def validate_corrected_panel_audit(panel_audit: dict[str, Any]) -> None:
+    if panel_audit.get("unbiasedHistoricalValidationEligible") is not True:
+        raise RuntimeError("the corrected panel failed its unbiased-data gate")
+    if panel_audit.get("fundamentalAudit", {}).get(
+        "historicalValidationEligible"
+    ) is not True:
+        raise RuntimeError("the corrected fundamental panel failed its PIT gate")
 
 
 def validate_config(config: dict[str, Any], base: dict[str, Any]) -> None:
@@ -981,16 +1072,37 @@ def _records(frame: pd.DataFrame) -> list[dict[str, Any]]:
     return json.loads(output.to_json(orient="records"))
 
 
-def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
+def run(
+    config_path: Path,
+    run_id: str | None = None,
+    research_data_override_path: Path | None = None,
+) -> dict[str, Any]:
     config = load_json(config_path)
     base_path = ROOT / config["baseWinrateConfig"]
     base = load_json(base_path)
     validate_config(config, base)
     selector_config = load_json(ROOT / base["baseSelectorConfig"])
     selector_v1.validate_config(selector_config)
-    research_config = load_json(ROOT / selector_config["baseResearchConfig"])
+    base_research_path = ROOT / selector_config["baseResearchConfig"]
+    research_config = load_json(base_research_path)
+    data_override = None
+    price_data_audit = None
+    if research_data_override_path is not None:
+        data_override = load_json(research_data_override_path)
+        validate_research_data_override(
+            data_override,
+            config_path,
+            base_research_path,
+        )
+        price_data_audit = require_price_data_audit(data_override)
+        research_config = copy.deepcopy(research_config)
+        research_config["assetUniverse"] = copy.deepcopy(
+            data_override["assetUniverse"]
+        )
     _, cog_config = perception.load_base_configs(research_config)
     panel, panel_audit = perception.build_configured_panel(research_config, cog_config)
+    if data_override is not None:
+        validate_corrected_panel_audit(panel_audit)
     factor_ranks = selector_v1.build_factor_rank_frames(panel, selector_config)
     features, market_features = selector_v1.build_past_only_feature_frames(panel, factor_ranks)
     target, one_day = autonomous.target_frames(panel, cog_config)
@@ -1064,6 +1176,15 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "codeVersion": CODE_VERSION,
         "configPath": str(config_path),
         "configSha256": selector_v1.digest(config),
+        "researchDataOverridePath": (
+            str(research_data_override_path) if research_data_override_path else None
+        ),
+        "researchDataOverrideSha256": (
+            file_sha256(research_data_override_path)
+            if research_data_override_path
+            else None
+        ),
+        "priceDataAudit": price_data_audit,
         "baseWinrateConfigSha256": file_sha256(base_path),
         "dataRange": [
             panel["close"].index.min().date().isoformat(),
@@ -1082,7 +1203,11 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "latestDate": latest_date.date().isoformat(),
         "latestTop3": _records(latest_top3[latest_columns]),
         "latestSelectedCount": int(latest_top3["selectedByPrimaryPolicy"].sum()),
-        "knownLimitations": config["knownLimitations"],
+        "knownLimitations": (
+            data_override["knownLimitations"]
+            if data_override is not None
+            else config["knownLimitations"]
+        ),
         "orders": [],
         "automaticTradingChanges": [],
     }
@@ -1137,8 +1262,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--run-id", default="")
+    parser.add_argument("--research-data-override", type=Path)
     args = parser.parse_args()
-    run(args.config.resolve(), args.run_id or None)
+    run(
+        args.config.resolve(),
+        args.run_id or None,
+        (
+            args.research_data_override.resolve()
+            if args.research_data_override
+            else None
+        ),
+    )
 
 
 if __name__ == "__main__":

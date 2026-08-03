@@ -9526,6 +9526,7 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
     import numpy as np
     import collect_ashare_fundamentals as fundamental_collector
     import collect_ashare_pit_adjusted_baostock as pit_data
+    import research_perception_xalpha_market_opportunity_v8 as opportunity_v8
 
     config_path = (
         ROOT / "configs" / "research" / "ashare_pit_adjusted_data_v1.json"
@@ -9542,6 +9543,43 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
             for key, value in config["safety"].items()
             if key.startswith("may")
         ),
+    )
+    robustness_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_pit_adjusted_robustness_v9.json"
+    )
+    robustness = json.loads(robustness_path.read_text(encoding="utf-8"))
+    base_v8_path = ROOT / robustness["baseV8Config"]
+    base_research_path = ROOT / robustness["baseResearchConfig"]
+    opportunity_v8.validate_research_data_override(
+        robustness,
+        base_v8_path,
+        base_research_path,
+    )
+    price_gate_failed = False
+    panel_gate_failed = False
+    try:
+        opportunity_v8.validate_price_data_audit_payload(
+            {"historicalResearchEligible": False}
+        )
+    except RuntimeError:
+        price_gate_failed = True
+    try:
+        opportunity_v8.validate_corrected_panel_audit(
+            {
+                "unbiasedHistoricalValidationEligible": True,
+                "fundamentalAudit": {"historicalValidationEligible": False},
+            }
+        )
+    except RuntimeError:
+        panel_gate_failed = True
+    check(
+        "T127 frozen V8 robustness audit fails before fit on incomplete clean data",
+        price_gate_failed
+        and panel_gate_failed
+        and robustness["interpretation"]["mayChangeTrading"] is False,
     )
     active = pit_data.normalize_master_record(
         {
