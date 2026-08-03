@@ -7955,6 +7955,204 @@ def t116_fundamental_factor_discovery_is_point_in_time_and_isolated() -> None:
     )
 
 
+def t117_two_stage_stock_selector_is_causal_calibrated_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_cogalpha_autonomous as autonomous
+    import research_perception_xalpha_two_stage as selector
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_two_stage_selector_v1.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    selector.validate_config(config)
+    check(
+        "T117 two-stage selector stays research-only with no trading permission",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=150)
+    columns = [f"SH.{600000 + number:06d}" for number in range(24)]
+    rng = np.random.default_rng(117)
+    shocks = rng.normal(0.0002, 0.012, size=(len(dates), len(columns)))
+    close = pd.DataFrame(
+        20.0 * np.exp(np.cumsum(shocks, axis=0)), index=dates, columns=columns
+    )
+    previous = close.shift(1).fillna(close.iloc[0])
+    open_price = previous * pd.DataFrame(
+        1.0 + rng.normal(0.0, 0.002, size=close.shape),
+        index=dates,
+        columns=columns,
+    )
+    high = pd.DataFrame(
+        np.maximum(open_price, close) * 1.01, index=dates, columns=columns
+    )
+    low = pd.DataFrame(
+        np.minimum(open_price, close) * 0.99, index=dates, columns=columns
+    )
+    volume = pd.DataFrame(
+        rng.integers(2_000_000, 8_000_000, size=close.shape),
+        index=dates,
+        columns=columns,
+        dtype=float,
+    )
+    amount = volume * close
+    stable_growth = pd.DataFrame(
+        np.broadcast_to(np.linspace(-2.0, 2.0, len(columns)), close.shape),
+        index=dates,
+        columns=columns,
+    )
+    panel = {
+        "open": open_price,
+        "high": high,
+        "low": low,
+        "close": close,
+        "volume": volume,
+        "amount": amount,
+        "returns": close.pct_change(fill_method=None),
+        "eligible": pd.DataFrame(True, index=dates, columns=columns),
+        "fund_book_to_price": 8.0 / close,
+        "fund_growth_composite": stable_growth,
+    }
+    full_ranks = selector.build_factor_rank_frames(panel, config)
+    full_features, full_market = selector.build_past_only_feature_frames(
+        panel, full_ranks
+    )
+    prefix_dates = dates[:140]
+    prefix_panel = {
+        name: frame.loc[prefix_dates].copy() for name, frame in panel.items()
+    }
+    prefix_ranks = selector.build_factor_rank_frames(prefix_panel, config)
+    prefix_features, prefix_market = selector.build_past_only_feature_frames(
+        prefix_panel, prefix_ranks
+    )
+    causal = True
+    try:
+        for name in prefix_features:
+            pdt.assert_frame_equal(
+                full_features[name].loc[prefix_dates],
+                prefix_features[name],
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+        for name in prefix_market:
+            pdt.assert_series_equal(
+                full_market[name].loc[prefix_dates],
+                prefix_market[name],
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        causal = False
+    check("T117 every second-stage feature is prefix-causal", causal)
+
+    toy = copy.deepcopy(config)
+    toy["model"]["minimumBaseFitTradingDays"] = 60
+    toy["model"]["calibrationTradingDays"] = 20
+    toy["model"]["walkForwardFolds"] = 1
+    toy["model"]["classifier"]["maxIter"] = 15
+    toy["model"]["classifier"]["minSamplesLeaf"] = 10
+    toy["model"]["regressor"]["maxIter"] = 15
+    toy["model"]["regressor"]["minSamplesLeaf"] = 10
+    target, _ = autonomous.target_frames(
+        panel,
+        {"data": {"predictionHorizonTradingDays": 10}},
+    )
+    table = selector.build_candidate_table(
+        panel, full_features, full_market, target, 50
+    )
+    available = pd.DatetimeIndex(dates[:125])
+    model = selector.fit_frozen_model(table, available, toy)
+    prediction_rows = table[
+        table["date"].isin(dates[125:135])
+        & table["target_return_10d"].notna()
+    ]
+    predicted = selector.predict(model, prediction_rows)
+    purge = int(toy["model"]["purgeTradingDays"])
+    fit_end = pd.Timestamp(model.audit["fitDateRange"][1])
+    calibration_start = pd.Timestamp(model.audit["calibrationDateRange"][0])
+    positions = pd.Series(np.arange(len(dates)), index=dates)
+    check(
+        "T117 calibration follows a full label-horizon purge",
+        int(positions.loc[calibration_start] - positions.loc[fit_end] - 1) >= purge,
+    )
+    check(
+        "T117 probability and return models run without label leakage",
+        len(predicted) > 0
+        and predicted["calibrated_win_probability"].between(0.0, 1.0).all()
+        and "target_return_10d" not in model.feature_columns
+        and "label_positive_10d" not in model.feature_columns,
+    )
+    verdict_probe = selector.verdict(
+        {
+            "periods": {
+                "validation": {
+                    "secondStagePortfolio": {
+                        "selectedStockObservations": 0,
+                        "basketTenDayMeanReturn": None,
+                        "basketTenDayWinRate": None,
+                    },
+                    "frozenFactorTop10Baseline": {
+                        "basketTenDayMeanReturn": 0.01,
+                        "basketTenDayWinRate": 0.55,
+                    },
+                    "modelProbability": {"brier": 0.26, "auc": 0.49},
+                    "constantPriorProbability": {"brier": 0.25},
+                },
+                "shadow": {
+                    "secondStagePortfolio": {
+                        "selectedStockObservations": 10,
+                        "basketTenDayMeanReturn": -0.04,
+                        "basketTenDayWinRate": 0.20,
+                    },
+                    "frozenFactorTop10Baseline": {
+                        "basketTenDayMeanReturn": -0.02,
+                        "basketTenDayWinRate": 0.30,
+                    },
+                    "modelProbability": {"brier": 0.25, "auc": 0.49},
+                    "constantPriorProbability": {"brier": 0.24},
+                },
+            }
+        }
+    )
+    check(
+        "T117 verdict distinguishes no-selection abstention from negative evidence",
+        verdict_probe["comparisons"]["validation"]["basketMeanReturnDelta"]
+        is None
+        and verdict_probe["comparisons"]["validation"]["basketWinRateDelta"]
+        is None
+        and verdict_probe["comparisons"]["shadow"]["basketMeanReturnDelta"]
+        == -0.02
+        and verdict_probe["comparisons"]["shadow"]["basketWinRateDelta"] == -0.1
+        and verdict_probe["stableHistoricalIncrement"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_perception_xalpha_two_stage.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T117 selector has no broker, order, or production-decision integration",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8067,6 +8265,7 @@ if __name__ == "__main__":
     t115_gross_factor_discovery_keeps_cost_stress_but_does_not_gate_on_it()
     t111_all_ashare_research_universe_is_complete_and_isolated()
     t116_fundamental_factor_discovery_is_point_in_time_and_isolated()
+    t117_two_stage_stock_selector_is_causal_calibrated_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

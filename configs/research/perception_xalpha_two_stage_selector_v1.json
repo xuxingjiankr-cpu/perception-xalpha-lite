@@ -1,0 +1,183 @@
+{
+  "schemaVersion": "perception_xalpha_two_stage_selector_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Use the frozen V5 factor quartet only as a top-50 candidate generator, then estimate absolute 10-day win probability and expected return with a causal nonlinear second stage.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v5_fundamental.json",
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open",
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 10,
+    "roundTripCost": 0.003,
+    "factorLiquidityNeutralisationBins": 5
+  },
+  "frozenFactorDefinitions": [
+    {
+      "factorId": "factor_b9ffc10e400e48d466cd",
+      "name": "volatility_asymmetry",
+      "direction": 1.0,
+      "expression": {
+        "unary": "tanh",
+        "arg": {
+          "binary": "div",
+          "left": {
+            "rolling": "std",
+            "window": 60,
+            "arg": {
+              "binary": "sub",
+              "left": {"field": "returns"},
+              "right": {"unary": "abs", "arg": {"field": "returns"}}
+            }
+          },
+          "right": {"rolling": "std", "window": 60, "arg": {"field": "returns"}}
+        }
+      }
+    },
+    {
+      "factorId": "factor_fa6d186810f5a27848d2",
+      "name": "value_minus_momentum",
+      "direction": 1.0,
+      "expression": {
+        "binary": "sub",
+        "left": {"field": "fund_book_to_price"},
+        "right": {"rolling": "sum", "window": 120, "arg": {"field": "returns"}}
+      }
+    },
+    {
+      "factorId": "factor_6bdcced84ff3cd8ee34e",
+      "name": "growth_quality_momentum",
+      "direction": 1.0,
+      "expression": {
+        "binary": "mul",
+        "left": {"field": "fund_growth_composite"},
+        "right": {"rolling": "sum", "window": 120, "arg": {"field": "returns"}}
+      }
+    },
+    {
+      "factorId": "factor_19985999cae007f3681c",
+      "name": "multi_period_reversal",
+      "direction": 1.0,
+      "expression": {
+        "binary": "add",
+        "left": {
+          "binary": "add",
+          "left": {"unary": "neg", "arg": {"range_position": true, "window": 5, "arg": {"field": "close"}}},
+          "right": {"unary": "tanh", "arg": {"unary": "neg", "arg": {"rolling": "sum", "window": 20, "arg": {"field": "returns"}}}}
+        },
+        "right": {"unary": "neg", "arg": {"rolling": "sum", "window": 30, "arg": {"field": "returns"}}}
+      }
+    }
+  ],
+  "featureSet": {
+    "factorFeatures": [
+      "factor_volatility_asymmetry",
+      "factor_value_minus_momentum",
+      "factor_growth_quality_momentum",
+      "factor_multi_period_reversal",
+      "factor_composite",
+      "factor_minimum",
+      "factor_dispersion"
+    ],
+    "stockFeatures": [
+      "stock_return_5",
+      "stock_return_20",
+      "stock_return_60",
+      "stock_volatility_20",
+      "stock_volatility_60",
+      "stock_drawdown_60",
+      "stock_amount_ratio_5_20",
+      "stock_liquidity_percentile",
+      "stock_open_gap",
+      "stock_intraday_return"
+    ],
+    "marketFeatures": [
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ],
+    "skippedFeatures": {
+      "industry_relative_strength": "Current industry membership is incomplete and not historical point-in-time.",
+      "announcement_event_risk": "No historical point-in-time announcement-risk table is available; current hard-veto research must remain separate.",
+      "analyst_revision": "No point-in-time analyst-consensus history is available."
+    }
+  },
+  "model": {
+    "classifier": {
+      "kind": "HistGradientBoostingClassifier",
+      "learningRate": 0.05,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 200,
+      "l2Regularization": 2.0,
+      "randomState": 20260803
+    },
+    "regressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "squared_error",
+      "learningRate": 0.05,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 200,
+      "l2Regularization": 2.0,
+      "randomState": 20260803
+    },
+    "returnTargetWinsorQuantiles": [0.01, 0.99],
+    "probabilityCalibration": "isotonic_train_tail_only",
+    "returnCalibration": "ridge_train_tail_only",
+    "returnCalibrationAlpha": 10.0,
+    "calibrationTradingDays": 126,
+    "purgeTradingDays": 10,
+    "minimumBaseFitTradingDays": 756,
+    "walkForwardFolds": 3
+  },
+  "selectionPolicy": {
+    "minimumCalibratedWinProbability": 0.55,
+    "minimumCalibratedExpectedReturn": 0.003,
+    "rankingField": "calibrated_expected_return",
+    "allowCash": true,
+    "neverForceTenSelections": true
+  },
+  "evaluation": {
+    "probabilityMetrics": ["brier", "log_loss", "auc", "ece"],
+    "portfolioMetrics": [
+      "ten_day_mean_return",
+      "ten_day_win_rate",
+      "ten_day_excess_return",
+      "calendar_cumulative_return",
+      "annualized_return",
+      "maximum_drawdown",
+      "turnover",
+      "average_exposure"
+    ],
+    "eceBins": 10,
+    "compareAgainst": "frozen_four_factor_top10",
+    "mustReportTradeCountReduction": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_two_stage_selector",
+    "writeLatestRanking": true,
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The validation and shadow dates have already been viewed in earlier factor diagnostics and are no longer pristine final holdouts.",
+    "The security master represents currently discoverable stocks, so delisted-name survivorship remains incomplete.",
+    "Raw unadjusted prices remain in the current A-share research panel.",
+    "This version cannot enforce historical industry neutrality or historical announcement-risk vetoes."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
