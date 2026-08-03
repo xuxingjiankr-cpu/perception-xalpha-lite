@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "perception_xalpha_return_reliability_v5",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Improve win rate and payoff by enabling the absolute expected-return head only after a nested, time-isolated calibration audit; otherwise fall back to the frozen V2 relative rank and market risk-on rule.",
+  "baseExpectedUtilityConfig": "configs/research/perception_xalpha_expected_utility_v4.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "V4 failed because the absolute return level drifted across regimes. A return forecast should influence ranking only when its most recent unseen training-window audit demonstrates positive level skill, positive cross-sectional skill and non-worse direction accuracy. Reliability failure should remove, rather than retune, that head.",
+    "primaryPolicy": "reliability_adaptive_top10_gated",
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "countsAsNewResearchTrial": true,
+    "validationAndShadowAlreadyViewed": true
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 10,
+    "roundTripCost": 0.003,
+    "tailLossThreshold": -0.03,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open"
+  },
+  "expectedReturnModel": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "trainingWindowTradingDays": 756,
+    "minimumTrainingTradingDays": 504,
+    "refitEveryTradingDays": 21,
+    "outerPurgeTradingDays": 10,
+    "baseToCalibrationPurgeTradingDays": 10,
+    "calibrationFitTradingDays": 63,
+    "calibrationToAuditPurgeTradingDays": 10,
+    "reliabilityAuditTradingDays": 63,
+    "minimumBaseFitTradingDays": 350,
+    "targetWinsorQuantiles": [0.01, 0.99],
+    "missingValuePolicy": "base_fit_median",
+    "standardization": "base_fit_only_standard_scaler",
+    "randomSeed": 20260803,
+    "featureColumns": [
+      "x_factor_volatility_asymmetry",
+      "x_factor_value_minus_momentum",
+      "x_factor_growth_quality_momentum",
+      "x_factor_multi_period_reversal",
+      "x_factor_composite",
+      "x_factor_minimum",
+      "x_factor_dispersion",
+      "x_stock_return_5",
+      "x_stock_return_20",
+      "x_stock_return_60",
+      "x_stock_volatility_20",
+      "x_stock_volatility_60",
+      "x_stock_drawdown_60",
+      "x_stock_amount_ratio_5_20",
+      "x_stock_liquidity_percentile",
+      "x_stock_open_gap",
+      "x_stock_intraday_return",
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ]
+  },
+  "returnCalibration": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "inputScale": 100.0,
+    "targetClipUsesBaseFitBounds": true,
+    "fitUsesCalibrationSegmentOnly": true,
+    "auditSegmentNeverFitsModelOrCalibrator": true
+  },
+  "reliabilityGate": {
+    "minimumAuditOosR2Exclusive": 0.0,
+    "minimumAuditRankIcHacT": 1.65,
+    "minimumAuditBasketDirectionAccuracy": 0.5,
+    "requirePositiveCalibrationSlope": true,
+    "allConditionsRequired": true
+  },
+  "integration": {
+    "enabledHeadWeights": {
+      "rank": 0.4,
+      "expectedReturn": 0.4,
+      "inverseTailRisk": 0.2
+    },
+    "disabledHeadWeights": {
+      "rank": 1.0,
+      "expectedReturn": 0.0,
+      "inverseTailRisk": 0.0
+    },
+    "enabledTradeGate": "selected_mean_calibrated_expected_return_strictly_above_round_trip_cost",
+    "disabledTradeGate": "v2_risk_on_market_return20_positive_and_breadth_at_least_half",
+    "minimumSelectedMeanExpectedReturn": 0.003,
+    "marketReturn20MinimumExclusive": 0.0,
+    "marketBreadth20MinimumInclusive": 0.5,
+    "allowCash": true,
+    "neverForceTenSelections": true
+  },
+  "policies": [
+    "frozen_factor_top10_all_days",
+    "rolling_ridge_rank_top10_all_days",
+    "rolling_ridge_rank_top10_risk_on",
+    "v4_equal_weight_integrated_top10_all_days",
+    "reliability_adaptive_top10_all_days",
+    "reliability_adaptive_top10_gated"
+  ],
+  "evaluation": {
+    "primaryMetric": "basket_ten_day_mean_return",
+    "hacLagTradingDays": 10,
+    "minimumSignalDaysPerValidationPeriod": 25,
+    "minimumIndependentEventsPerValidationPeriod": 8,
+    "minimumExpectedHeadEnabledSignalDaysPerPeriod": 10,
+    "minimumSameDayMeanReturnLiftVsRankTop10": 0.0,
+    "minimumSameDayWinRateLiftVsRankTop10": 0.0,
+    "minimumTailLossRateReductionVsRankTop10": 0.0,
+    "minimumHacTForSameDayReturnDifference": 1.65,
+    "requirePositiveBasketMeanReturn": true,
+    "requirePositiveCostedCumulativeReturn": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false
+  },
+  "knownLimitations": [
+    "V5 was designed after observing V4 validation and shadow failures, so those windows are contaminated diagnostics rather than a pristine holdout.",
+    "The reliability audit reduces effective base-fit history and may disable the expected-return head frequently; this is intentional fail-closed behavior.",
+    "Expected stock returns remain noisy and no forecast is a guaranteed return.",
+    "The current security master has incomplete delisted-name and historical-ST coverage.",
+    "The A-share research panel still uses raw unadjusted prices."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_return_reliability_v5",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
