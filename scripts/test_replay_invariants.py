@@ -9260,6 +9260,221 @@ def t125_conditional_top3_preserves_points_varies_width_and_stays_causal() -> No
     )
 
 
+def t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_market_opportunity_v8 as opportunity_v8
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_market_opportunity_v8.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    base_path = ROOT / config["baseWinrateConfig"]
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    opportunity_v8.validate_config(config, base)
+    check(
+        "T126 opportunity gate is one research-only increment and cannot guarantee profit",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["preregisteredHypothesis"]["v2RankPredictionsMustRemainIdentical"]
+        is True
+        and config["preregisteredHypothesis"]["profitGuaranteeClaimAllowed"]
+        is False
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    toy = copy.deepcopy(config)
+    walk = toy["walkForward"]
+    walk["minimumTrainingTradingDays"] = 120
+    walk["trainingWindowTradingDays"] = 160
+    walk["refitEveryTradingDays"] = 20
+    walk["calibrationTradingDays"] = 20
+    walk["reliabilityAuditTradingDays"] = 20
+    walk["minimumBaseFitTradingDays"] = 60
+    toy["reliabilityGate"]["minimumAuditDays"] = 15
+    toy["reliabilityGate"]["minimumAuditHighProbabilityDays"] = 3
+    dates = pd.bdate_range("2024-01-02", periods=180)
+    phase = np.arange(len(dates), dtype=float)
+    feature = np.sin(phase / 5.0)
+    label = feature > 0.0
+    table = pd.DataFrame(
+        {
+            "date": dates,
+            "securityId": "SH.600000",
+            "benchmark_return_10d": np.where(label, 0.02, -0.01),
+            "market_return_20": feature,
+            "market_return_60": np.sin(phase / 11.0),
+            "market_volatility_20": 0.01 + 0.005 * np.abs(np.cos(phase / 7.0)),
+            "market_breadth_20": 0.5 + 0.4 * feature,
+        }
+    )
+    market_table = opportunity_v8.prepare_market_table(table, toy)
+    fit_dates = dates[:120]
+    base_dates, calibration_dates, audit_dates, segment = opportunity_v8.nested_segments(
+        fit_dates, toy
+    )
+    check(
+        "T126 base, calibration and never-fit audit are chronological with full purges",
+        len(base_dates) == 60
+        and len(calibration_dates) == 20
+        and len(audit_dates) == 20
+        and segment["baseToCalibrationPurgeTradingDays"] >= 10
+        and segment["calibrationToAuditPurgeTradingDays"] >= 10
+        and base_dates[-1] < calibration_dates[0] < calibration_dates[-1] < audit_dates[0],
+    )
+
+    model = opportunity_v8.fit_market_opportunity_model(
+        market_table, fit_dates, toy
+    )
+    shocked = market_table.copy()
+    audit_mask = shocked["date"].isin(audit_dates)
+    shocked.loc[audit_mask, "label_market_opportunity_10d"] = (
+        1.0 - shocked.loc[audit_mask, "label_market_opportunity_10d"]
+    )
+    shocked_model = opportunity_v8.fit_market_opportunity_model(
+        shocked, fit_dates, toy
+    )
+    probe = market_table[market_table["date"].eq(dates[130])]
+    scored = opportunity_v8.score_market_rows(model, probe, toy)
+    shocked_scored = opportunity_v8.score_market_rows(
+        shocked_model, probe, toy
+    )
+    audit_never_fits = True
+    try:
+        for column in (
+            "raw_market_opportunity_probability",
+            "calibrated_market_opportunity_probability",
+            "frozen_base_prior_probability",
+        ):
+            pdt.assert_series_equal(
+                scored[column].reset_index(drop=True),
+                shocked_scored[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        audit_never_fits = False
+    check(
+        "T126 audit labels can change reliability but cannot refit probability forecasts",
+        audit_never_fits
+        and np.isclose(model.training_prior, shocked_model.training_prior),
+    )
+
+    predictions, audits = opportunity_v8.rolling_market_opportunity_predictions(
+        market_table, dates, toy
+    )
+    future_shocked = market_table.copy()
+    future_mask = future_shocked["date"].ge(dates[150])
+    future_shocked.loc[future_mask, "label_market_opportunity_10d"] = (
+        1.0 - future_shocked.loc[future_mask, "label_market_opportunity_10d"]
+    )
+    shocked_predictions, _ = opportunity_v8.rolling_market_opportunity_predictions(
+        future_shocked, dates, toy
+    )
+    prefix = predictions[predictions["date"].lt(dates[150])]
+    shocked_prefix = shocked_predictions[
+        shocked_predictions["date"].lt(dates[150])
+    ]
+    prefix_safe = True
+    try:
+        pdt.assert_series_equal(
+            prefix["calibrated_market_opportunity_probability"].reset_index(drop=True),
+            shocked_prefix["calibrated_market_opportunity_probability"].reset_index(drop=True),
+            check_names=False,
+            check_exact=False,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    except AssertionError:
+        prefix_safe = False
+    check(
+        "T126 unseen future labels cannot alter earlier opportunity probabilities",
+        prefix_safe
+        and len(predictions) > 0
+        and all(item["outerGapTradingDays"] >= 10 for item in audits)
+        and all(
+            item["model"]["auditDateRange"][1]
+            < item["predictionDateRange"][0]
+            for item in audits
+        ),
+    )
+
+    selection_date = pd.Timestamp("2026-08-03")
+    rank_probe = pd.DataFrame(
+        {
+            "date": np.repeat(selection_date, 5),
+            "securityId": [f"SH.{600000 + number:06d}" for number in range(5)],
+            "predicted_order": np.arange(1, 6),
+            "predicted_cross_sectional_rank": np.linspace(0.9, 0.5, 5),
+            "market_return_20": 0.01,
+            "market_breadth_20": 0.6,
+        }
+    )
+    market_probe = pd.DataFrame(
+        {
+            "date": [selection_date],
+            "benchmark_return_10d": [np.nan],
+            "label_market_opportunity_10d": [np.nan],
+            "raw_market_opportunity_probability": [0.7],
+            "calibrated_market_opportunity_probability": [0.7],
+            "frozen_base_prior_probability": [0.5],
+            "market_opportunity_model_enabled": [True],
+        }
+    )
+    selected = opportunity_v8.add_market_opportunity_gate(
+        rank_probe, market_probe, config, base
+    )
+    disabled_probe = market_probe.copy()
+    disabled_probe["market_opportunity_model_enabled"] = False
+    disabled = opportunity_v8.add_market_opportunity_gate(
+        rank_probe, disabled_probe, config, base
+    )
+    check(
+        "T126 gate keeps the original V2 Top3 or fails closed without filling",
+        selected.loc[selected["selectedByPrimaryPolicy"], "securityId"].tolist()
+        == rank_probe.loc[rank_probe["predicted_order"].le(3), "securityId"].tolist()
+        and np.allclose(
+            selected["predicted_cross_sectional_rank"],
+            rank_probe["predicted_cross_sectional_rank"],
+        )
+        and not bool(disabled["selectedByPrimaryPolicy"].any()),
+    )
+    check(
+        "T126 future outcomes never enter market-opportunity features",
+        not {
+            "target_return_10d",
+            "benchmark_return_10d",
+            "label_market_opportunity_10d",
+            "target_cross_sectional_rank_10d",
+        }.intersection(opportunity_v8.market_feature_columns(config)),
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_market_opportunity_v8.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T126 market-opportunity research has no production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -9379,6 +9594,7 @@ if __name__ == "__main__":
     t123_return_reliability_gate_is_nested_causal_and_fail_closed()
     t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees()
     t125_conditional_top3_preserves_points_varies_width_and_stays_causal()
+    t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
