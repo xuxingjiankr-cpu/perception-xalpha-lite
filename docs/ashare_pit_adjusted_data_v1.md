@@ -72,3 +72,19 @@ Each worker has an independent BaoStock session, stdout/stderr log and collectio
 summary. The coordinator waits for every worker and runs the fail-closed audit once at
 the end. Parallel collection changes throughput only; it does not change the master,
 eligibility rules or research quality gate.
+
+The same PIT master can also be supplied to the existing disclosure-date-aware
+fundamental collector. In resume mode it requests only master names whose statement
+file is absent, including historical delistings omitted by the old current master:
+
+```powershell
+py -3.13 scripts/collect_ashare_fundamentals.py `
+  --master-path data/market/ashare_research/baostock_pit_adjusted/master/ashare_pit_master_latest.jsonl `
+  --output-root data/market/ashare_research/fundamentals_pit `
+  --summary-name pit_adjusted_sh_sz_collection_summary.json `
+  --workers 4 --resume
+```
+
+Disclosure rows without `NOTICE_DATE` are still rejected; no quarter-end date is
+guessed. Fundamental coverage is measured against the selected PIT master rather than
+against every unrelated file already present in the shared research directory.

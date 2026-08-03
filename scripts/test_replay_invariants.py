@@ -9521,8 +9521,10 @@ def t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed() -> None:
 
 def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> None:
     import json
+    import tempfile
 
     import numpy as np
+    import collect_ashare_fundamentals as fundamental_collector
     import collect_ashare_pit_adjusted_baostock as pit_data
 
     config_path = (
@@ -9664,6 +9666,30 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         == len(set().union(*shard_ids))
         and shards[0] == pit_data.select_master_shard(synthetic_master, 4, 0),
     )
+    with tempfile.TemporaryDirectory() as directory:
+        master_path = Path(directory) / "pit_master.jsonl"
+        master_rows = [
+            {
+                "securityId": "SH.600000",
+                "exchange": "SH",
+                "stockCode": "600000",
+            },
+            {
+                "securityId": "SH.600070",
+                "exchange": "SH",
+                "stockCode": "600070",
+            },
+        ]
+        master_path.write_text(
+            "".join(json.dumps(item) + "\n" for item in master_rows),
+            encoding="utf-8",
+        )
+        loaded = fundamental_collector.load_master(master_path)
+        check(
+            "T127 fundamental collector can target the clean PIT master",
+            [row["securityId"] for row in loaded]
+            == ["SH.600000", "SH.600070"],
+        )
     source = (
         ROOT / "scripts" / "collect_ashare_pit_adjusted_baostock.py"
     ).read_text(encoding="utf-8")
@@ -9683,6 +9709,16 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         and "a_share_paper_trading" not in launcher_source
         and "latest_strategy_overlay" not in launcher_source
         and "build_decision" not in launcher_source,
+    )
+    fundamental_source = (
+        ROOT / "scripts" / "collect_ashare_fundamentals.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T127 PIT fundamental extension remains isolated from trading",
+        "--master-path" in fundamental_source
+        and "submitOrder" not in fundamental_source
+        and "a_share_paper_trading" not in fundamental_source
+        and "latest_strategy_overlay" not in fundamental_source,
     )
 
 

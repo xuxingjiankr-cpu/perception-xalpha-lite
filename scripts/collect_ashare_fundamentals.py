@@ -80,15 +80,15 @@ def atomic_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     )
 
 
-def append_manifest(payload: dict[str, Any]) -> None:
-    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    with MANIFEST.open("a", encoding="utf-8") as handle:
+def append_manifest(payload: dict[str, Any], path: Path = MANIFEST) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def load_master() -> list[dict[str, Any]]:
+def load_master(path: Path = MASTER) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for line in MASTER.read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         try:
             row = json.loads(line)
         except json.JSONDecodeError:
@@ -140,7 +140,11 @@ def normalize_frame(frame: pd.DataFrame, security: dict[str, Any]) -> list[dict[
     return rows
 
 
-def collect_one(security: dict[str, Any], retries: int) -> tuple[str, int, str | None]:
+def collect_one(
+    security: dict[str, Any],
+    retries: int,
+    output_root: Path = OUTPUT_ROOT,
+) -> tuple[str, int, str | None]:
     import akshare as ak
 
     symbol = f"{str(security['stockCode']).zfill(6)}.{security['exchange']}"
@@ -153,7 +157,10 @@ def collect_one(security: dict[str, Any], retries: int) -> tuple[str, int, str |
             rows = normalize_frame(frame, security)
             if not rows:
                 raise RuntimeError("endpoint returned no rows with a disclosure date")
-            path = OUTPUT_ROOT / f"{security['exchange']}_{str(security['stockCode']).zfill(6)}.jsonl"
+            path = output_root / (
+                f"{security['exchange']}_"
+                f"{str(security['stockCode']).zfill(6)}.jsonl"
+            )
             atomic_jsonl(path, rows)
             return str(security["securityId"]), len(rows), None
         except Exception as error:  # isolated public-endpoint failure
@@ -164,7 +171,10 @@ def collect_one(security: dict[str, Any], retries: int) -> tuple[str, int, str |
 
 
 def run_collect(args: argparse.Namespace) -> int:
-    master = load_master()
+    master_path = args.master_path.resolve()
+    output_root = args.output_root.resolve()
+    master = load_master(master_path)
+    full_master = list(master)
     if args.max_symbols:
         master = master[: args.max_symbols]
     if args.resume and not args.force:
@@ -172,7 +182,7 @@ def run_collect(args: argparse.Namespace) -> int:
             row
             for row in master
             if not (
-                OUTPUT_ROOT
+                output_root
                 / f"{row['exchange']}_{str(row['stockCode']).zfill(6)}.jsonl"
             ).exists()
         ]
@@ -181,7 +191,8 @@ def run_collect(args: argparse.Namespace) -> int:
     failures: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
         futures = {
-            executor.submit(collect_one, row, args.retries): row for row in master
+            executor.submit(collect_one, row, args.retries, output_root): row
+            for row in master
         }
         for index, future in enumerate(as_completed(futures), start=1):
             security_id, count, error = future.result()
@@ -202,32 +213,54 @@ def run_collect(args: argparse.Namespace) -> int:
                     ),
                     flush=True,
                 )
-    total_files = len(list(OUTPUT_ROOT.glob("??_*.jsonl")))
+    total_files = len(list(output_root.glob("??_*.jsonl")))
+    master_files = sum(
+        int(
+            (
+                output_root
+                / f"{row['exchange']}_{str(row['stockCode']).zfill(6)}.jsonl"
+            ).exists()
+        )
+        for row in full_master
+    )
     summary = {
         "schemaVersion": "ashare_fundamental_collection_summary_v1",
         "status": "research_only_not_trading",
         "startedAt": started,
         "finishedAt": now_iso(),
-        "masterCount": len(load_master()),
+        "masterPath": str(master_path),
+        "outputRoot": str(output_root),
+        "masterCount": len(full_master),
         "requestedThisRun": len(master),
         "succeededThisRun": len(successes),
         "failedThisRun": len(failures),
         "totalSymbolFiles": total_files,
-        "coverageOfCurrentMaster": round(total_files / max(1, len(load_master())), 8),
+        "totalSelectedMasterFiles": master_files,
+        "coverageOfSelectedMaster": round(
+            master_files / max(1, len(full_master)), 8
+        ),
         "failures": failures,
         "availabilityRule": "first market date strictly after max(noticeDate, updateDate)",
         "orders": [],
         "automaticTradingChanges": [],
     }
-    atomic_json(SUMMARY, summary)
-    append_manifest(summary)
+    atomic_json(output_root / args.summary_name, summary)
+    append_manifest(summary, output_root / "collection_manifest.jsonl")
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0 if not failures else 3
 
 
-def run_audit() -> int:
-    master_count = len(load_master())
-    files = list(OUTPUT_ROOT.glob("??_*.jsonl"))
+def run_audit(args: argparse.Namespace) -> int:
+    master_path = args.master_path.resolve()
+    output_root = args.output_root.resolve()
+    master = load_master(master_path)
+    master_count = len(master)
+    files = [
+        output_root
+        / f"{row['exchange']}_{str(row['stockCode']).zfill(6)}.jsonl"
+        for row in master
+    ]
+    files = [path for path in files if path.exists()]
     statement_rows = 0
     invalid_json = 0
     missing_notice = 0
@@ -243,13 +276,20 @@ def run_audit() -> int:
     audit = {
         "schemaVersion": "ashare_fundamental_collection_audit_v1",
         "status": "research_only_not_trading",
+        "masterPath": str(master_path),
+        "outputRoot": str(output_root),
         "masterCount": master_count,
         "symbolFiles": len(files),
         "coverage": round(len(files) / max(1, master_count), 8),
         "statementRows": statement_rows,
         "invalidJsonRows": invalid_json,
         "missingNoticeDateRows": missing_notice,
-        "pointInTimeEligible": bool(files and invalid_json == 0 and missing_notice == 0),
+        "pointInTimeEligible": bool(
+            master_count > 0
+            and len(files) == master_count
+            and invalid_json == 0
+            and missing_notice == 0
+        ),
         "orders": [],
         "automaticTradingChanges": [],
     }
@@ -263,6 +303,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--retries", type=int, default=2)
     parser.add_argument("--max-symbols", type=int)
+    parser.add_argument("--master-path", type=Path, default=MASTER)
+    parser.add_argument("--output-root", type=Path, default=OUTPUT_ROOT)
+    parser.add_argument("--summary-name", default=SUMMARY.name)
     parser.add_argument("--resume", action="store_true", default=True)
     parser.add_argument("--force", action="store_true")
     return parser.parse_args()
@@ -270,9 +313,13 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if not MASTER.exists():
-        raise FileNotFoundError(MASTER)
-    return run_audit() if args.mode == "audit" else run_collect(args)
+    if Path(args.summary_name).name != args.summary_name or not args.summary_name.endswith(
+        ".json"
+    ):
+        raise ValueError("summary-name must be a plain JSON filename")
+    if not args.master_path.exists():
+        raise FileNotFoundError(args.master_path)
+    return run_audit(args) if args.mode == "audit" else run_collect(args)
 
 
 if __name__ == "__main__":
