@@ -9030,6 +9030,236 @@ def t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees() -> N
     )
 
 
+def t125_conditional_top3_preserves_points_varies_width_and_stays_causal() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_conditional_top3_v7 as conditional_v7
+    import research_perception_xalpha_conformal_top3_v6 as conformal_v6
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_conditional_top3_v7.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    base_path = ROOT / config["baseConformalConfig"]
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    conditional_v7.validate_config(config, base)
+    check(
+        "T125 conditional Top3 is a single research-only uncertainty increment",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["preregisteredHypothesis"]["v6PointForecastMustRemainIdentical"]
+        is True
+        and config["preregisteredHypothesis"]["profitGuaranteeClaimAllowed"]
+        is False
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2024-01-02", periods=180)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(125)
+    table = pd.DataFrame(index=index).reset_index()
+    market_features = conformal_v6.market_feature_columns(base)
+    residual_features = conformal_v6.residual_feature_columns(base)
+    for number, name in enumerate(market_features):
+        values = np.sin(np.arange(len(dates)) / (8.0 + number))
+        table[name] = np.repeat(values, len(securities))
+    for number, name in enumerate(residual_features):
+        table[name] = rng.normal(0.0, 1.0, len(table)) + number * 0.001
+    per_security_volatility = np.linspace(0.008, 0.04, len(securities))
+    table["stock_volatility_20"] = np.tile(
+        per_security_volatility, len(dates)
+    )
+    market_target = 0.008 * table[market_features[0]]
+    residual_noise = rng.normal(0.0, 1.0, len(table)) * table[
+        "stock_volatility_20"
+    ]
+    residual_target = 0.006 * table[residual_features[0]] + residual_noise
+    table["benchmark_return_10d"] = market_target
+    table["target_return_10d"] = market_target + residual_target
+
+    toy_base = copy.deepcopy(base)
+    walk = toy_base["walkForward"]
+    walk["minimumTrainingTradingDays"] = 120
+    walk["trainingWindowTradingDays"] = 160
+    walk["refitEveryTradingDays"] = 20
+    walk["calibrationTradingDays"] = 20
+    walk["reliabilityAuditTradingDays"] = 20
+    walk["minimumBaseFitTradingDays"] = 60
+    fit_dates = dates[:120]
+    v6_model = conformal_v6.fit_conformal_return_model(
+        table, fit_dates, toy_base
+    )
+    v7_model = conditional_v7.fit_conditional_return_model(
+        table, fit_dates, config, toy_base
+    )
+    probe = table[table["date"].eq(dates[130])].copy()
+    v6_scored = conformal_v6.score_conformal_rows(
+        v6_model, probe, toy_base
+    )
+    v7_scored = conditional_v7.score_conditional_rows(
+        v7_model, probe, toy_base
+    )
+    points_identical = True
+    try:
+        for column in (
+            "predicted_market_return_10d",
+            "predicted_residual_alpha_10d",
+            "predicted_total_return_10d",
+        ):
+            pdt.assert_series_equal(
+                v6_scored[column].reset_index(drop=True),
+                v7_scored[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        points_identical = False
+    check(
+        "T125 V7 point forecasts are exactly V6 while widths vary by past volatility",
+        points_identical
+        and v7_scored["predicted_interval_width_10d"].nunique() > 3
+        and v7_scored.loc[
+            v7_scored["predicted_return_scale_10d"].idxmax(),
+            "predicted_interval_width_10d",
+        ]
+        > v7_scored.loc[
+            v7_scored["predicted_return_scale_10d"].idxmin(),
+            "predicted_interval_width_10d",
+        ],
+    )
+
+    _, _, audit_dates, _ = conformal_v6.nested_segments(
+        fit_dates, toy_base
+    )
+    shocked = table.copy()
+    shocked.loc[shocked["date"].isin(audit_dates), "target_return_10d"] += 5.0
+    shocked_model = conditional_v7.fit_conditional_return_model(
+        shocked, fit_dates, config, toy_base
+    )
+    shocked_scored = conditional_v7.score_conditional_rows(
+        shocked_model, probe, toy_base
+    )
+    audit_safe = True
+    try:
+        for column in (
+            "predicted_total_return_10d",
+            "predicted_return_scale_10d",
+            "predicted_return_lower_10d",
+            "predicted_return_upper_10d",
+        ):
+            pdt.assert_series_equal(
+                v7_scored[column].reset_index(drop=True),
+                shocked_scored[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        audit_safe = False
+    check(
+        "T125 never-fit audit labels cannot refit points, scale or bounds",
+        audit_safe
+        and np.isclose(v7_model.scale.floor, shocked_model.scale.floor)
+        and np.isclose(
+            v7_model.lower_standardized_offset,
+            shocked_model.lower_standardized_offset,
+        ),
+    )
+
+    predictions, audits = conditional_v7.rolling_conditional_predictions(
+        table, dates, config, toy_base
+    )
+    future_shocked = table.copy()
+    future_shocked.loc[
+        future_shocked["date"].ge(dates[150]), "target_return_10d"
+    ] += 10.0
+    shocked_predictions, _ = conditional_v7.rolling_conditional_predictions(
+        future_shocked, dates, config, toy_base
+    )
+    prefix = predictions[predictions["date"].lt(dates[150])]
+    shocked_prefix = shocked_predictions[
+        shocked_predictions["date"].lt(dates[150])
+    ]
+    future_safe = True
+    try:
+        for column in (
+            "predicted_total_return_10d",
+            "predicted_return_scale_10d",
+            "predicted_return_lower_10d",
+            "predicted_return_upper_10d",
+        ):
+            pdt.assert_series_equal(
+                prefix[column].reset_index(drop=True),
+                shocked_prefix[column].reset_index(drop=True),
+                check_names=False,
+                check_exact=False,
+                atol=1e-12,
+                rtol=1e-12,
+            )
+    except AssertionError:
+        future_safe = False
+    check(
+        "T125 unseen future labels cannot alter earlier conditional intervals",
+        future_safe
+        and len(predictions) > 0
+        and all(item["outerGapTradingDays"] >= 10 for item in audits),
+    )
+
+    ranking_probe = pd.DataFrame(
+        {
+            "date": np.repeat(pd.Timestamp("2026-08-03"), 12),
+            "securityId": securities,
+            "predicted_order": np.arange(1, 13),
+            "predicted_total_return_10d": np.linspace(0.04, 0.01, 12),
+            "predicted_return_lower_10d": np.array(
+                [0.001, 0.002, 0.020, 0.019, 0.018, 0.010, 0.009, 0.008, 0.007, 0.006, -0.01, -0.02]
+            ),
+            "predicted_return_upper_10d": np.linspace(0.08, 0.04, 12),
+            "interval_model_enabled": True,
+        }
+    )
+    ranked = conformal_v6.add_context_and_selection(ranking_probe, base)
+    primary = ranked[ranked["selectedByPrimaryPolicy"]]
+    disabled_probe = ranking_probe.copy()
+    disabled_probe["interval_model_enabled"] = False
+    disabled = conformal_v6.add_context_and_selection(disabled_probe, base)
+    check(
+        "T125 stock-specific lower bounds can rerank Top10 but still fail closed",
+        set(primary["securityId"])
+        == {securities[2], securities[3], securities[4]}
+        and bool(primary["predicted_return_lower_10d"].gt(0.003).all())
+        and not bool(disabled["selectedByPrimaryPolicy"].any()),
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_conditional_top3_v7.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T125 conditional Top3 research has no production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -9148,6 +9378,7 @@ if __name__ == "__main__":
     t122_expected_utility_selector_is_purged_past_only_and_isolated()
     t123_return_reliability_gate_is_nested_causal_and_fail_closed()
     t124_conformal_top3_is_nested_causal_fail_closed_and_never_guarantees()
+    t125_conditional_top3_preserves_points_varies_width_and_stays_causal()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
