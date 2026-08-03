@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "perception_xalpha_winrate_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether a rolling cross-sectional rank model plus one fixed past-only market-state gate can improve the ten-day basket win rate without hiding behind near-zero coverage.",
+  "baseSelectorConfig": "configs/research/perception_xalpha_two_stage_selector_v1.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "The failed absolute-return classifier mixed stock selection with a large market base-rate shift. A relative-return model should rank stocks, while a separate past-only market gate should decide whether long-only absolute-return risk is acceptable.",
+    "primaryPolicy": "rolling_ridge_rank_top5_risk_on",
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 5,
+    "roundTripCost": 0.003,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open",
+    "targetDefinition": "cross_sectional_percentile_of_open_t_plus_11_div_open_t_plus_1_minus_1_within_the_frozen_top50_pool"
+  },
+  "rankModel": {
+    "kind": "Ridge",
+    "alpha": 10.0,
+    "trainingWindowTradingDays": 756,
+    "minimumTrainingTradingDays": 504,
+    "refitEveryTradingDays": 21,
+    "purgeTradingDays": 10,
+    "missingValuePolicy": "training_median",
+    "standardization": "training_only_standard_scaler",
+    "stockFeatureTransform": "same_date_cross_sectional_percentile",
+    "randomSeed": 20260803,
+    "featureColumns": [
+      "factor_volatility_asymmetry",
+      "factor_value_minus_momentum",
+      "factor_growth_quality_momentum",
+      "factor_multi_period_reversal",
+      "factor_composite",
+      "factor_minimum",
+      "factor_dispersion",
+      "stock_return_5",
+      "stock_return_20",
+      "stock_return_60",
+      "stock_volatility_20",
+      "stock_volatility_60",
+      "stock_drawdown_60",
+      "stock_amount_ratio_5_20",
+      "stock_liquidity_percentile",
+      "stock_open_gap",
+      "stock_intraday_return"
+    ]
+  },
+  "marketGate": {
+    "name": "risk_on_20d_trend_and_breadth",
+    "marketReturn20MinimumExclusive": 0.0,
+    "marketBreadth20MinimumInclusive": 0.5,
+    "usesOnlySignalDayAndEarlierData": true
+  },
+  "policies": [
+    "frozen_factor_top10_all_days",
+    "frozen_factor_top5_all_days",
+    "frozen_factor_top5_risk_on",
+    "rolling_ridge_rank_top5_all_days",
+    "rolling_ridge_rank_top5_risk_on"
+  ],
+  "evaluation": {
+    "primaryMetric": "basket_ten_day_win_rate",
+    "secondaryMetrics": [
+      "basket_ten_day_mean_return",
+      "basket_ten_day_excess_return",
+      "costed_cumulative_return",
+      "maximum_drawdown",
+      "coverage",
+      "independent_event_win_rate",
+      "rank_ic"
+    ],
+    "hacLagTradingDays": 10,
+    "minimumSignalDaysPerValidationPeriod": 25,
+    "minimumIndependentEventsPerValidationPeriod": 8,
+    "minimumWinRateLiftVsTop10": 0.05,
+    "minimumSameDayWinRateLiftVsFactorTop5": 0.0,
+    "minimumHacTForSameDayReturnDifference": 1.65,
+    "requirePositiveBasketMeanReturn": true,
+    "requirePositiveCostedCumulativeReturn": true,
+    "mustPassValidationAndShadow": true,
+    "historicalRunCanPromote": false
+  },
+  "knownLimitations": [
+    "Validation and shadow dates were already viewed in earlier diagnostics, so this is a historical pseudo-OOS test rather than a pristine final holdout.",
+    "The current security master has incomplete delisted-name and historical-ST coverage.",
+    "The A-share panel still uses raw unadjusted prices.",
+    "Sequential walk-forward fitting may use labels from earlier evaluation dates only after their ten-day outcome has matured; it never uses a current or future block label."
+  ],
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_winrate_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
