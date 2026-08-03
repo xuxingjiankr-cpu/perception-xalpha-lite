@@ -1,0 +1,69 @@
+# Perception-XAlpha V3：胜率与左尾联合筛选
+
+## 状态
+
+`research-only / shadow-only / diagnostic_only`。本研究不会读取或写入实盘配置，不会修改 `build_decision()`、BUY/SELL gate、仓位、risk gate、三重执行锁或策略 overlay，且 `orders` 永远为空。
+
+## 为什么做 V3
+
+V2 的滚动截面排序在历史 train/validation 上有增量，但 shadow 的十日胜率虽然高于 50%，平均收益仍为负。这说明主要矛盾可能不是“猜对次数太少”，而是少数较大的亏损吞掉了多数小盈利。V3 不改 V2 排名器，也不重新搜索因子，只增加一个预注册的左尾风险头来检验这个单一假设。
+
+## 冻结设计
+
+- 候选池：每日冻结因子 Top50。
+- 收益排序：完全复用 V2 的三年滚动 Ridge；每 21 个交易日重训，十日 purge。
+- 尾部标签：`open[t+11] / open[t+1] - 1 <= -3%`。标签只存在于离线训练表。
+- 尾部模型：三年滚动 Logistic Regression，`C=0.1`、L2、`liblinear`、balanced class weight；训练期中位数填充和标准化；每 21 个交易日重训，十日 purge。
+- 尾部特征：V2 的 17 个 past-only 转换特征，加 4 个当日及以前市场状态特征。
+- 联合分数：`当日 V2 预测排名百分位 - 0.5 × 预测尾亏概率`。
+- 组合：联合分数 Top10。
+- 自适应空仓闸门：候选 Top10 的平均尾亏概率不得高于该折训练期的自然尾亏基准率；不满足时必须空仓，不强凑十只。
+- 成本压力：往返 30 bps，仍进入组合结果报告与正净收益判定。
+
+这些参数已在查看 V3 历史结果之前提交。validation 或 shadow 结果不得用于修改本版本；任何改变都必须成为新的预注册试验。
+
+## 固定消融
+
+1. 冻结因子 Top10，每天运行。
+2. V2 Ridge 排名 Top10，每天运行。
+3. Ridge + 尾概率惩罚 Top10，每天运行。
+4. Ridge + 尾概率惩罚 Top10 + 自适应尾风险闸门（主策略）。
+
+所有主策略提升均在主策略实际出信号的完全相同日期，与对照策略配对比较，防止“只是少交易”机械抬高胜率。
+
+## 预注册通过条件
+
+validation 与 shadow 必须分别同时满足：
+
+- 至少 25 个信号日、8 个相互间隔至少十日的独立事件；
+- 相对冻结因子 Top10 的同日胜率提升至少 5 个百分点；
+- 相对 V2 Ridge Top10 的同日尾亏率至少下降 5 个百分点；
+- 十日平均收益为正；
+- 扣成本累计收益为正；
+- 相对 V2 Ridge Top10 的同日收益差 Newey-West `t >= 1.65`；
+- 配对日期必须完整，空仓不能被当作胜利。
+
+即使历史条件全部通过，也只能保留为新的前向 shadow 假设，不能自动晋升交易。
+
+## 已知限制
+
+- 这是 V1 后第二个针对胜率问题的假设，旧 validation/shadow 窗口已经被看过，不是干净最终 OOS。
+- 当前股票主表对退市股票和历史 ST 状态覆盖不完整，存在幸存者偏差风险。
+- 股票日线仍是未复权原始价格，企业行动可能污染部分长窗口收益和波动特征。
+- balanced class weight 只影响训练，所有报告都使用自然尾部发生率。
+- Top10 是用户要求的观察规模，不代表十只都必须交易；尾风险闸门允许零只。
+
+## 运行
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+py -3.13 scripts/research_perception_xalpha_winrate_tail_v3.py `
+  --config configs/research/perception_xalpha_winrate_tail_v3.json `
+  --run-id run_20260803_preregistered_tail_v3
+```
+
+输出独立写入：
+
+`outputs/edge_research/perception_xalpha_winrate_tail_v3/<run_id>/`
+
+包含 `summary.json`、`report.md` 和 `latest_ranking.csv`，不会覆盖 V1/V2 或交易 artifact。

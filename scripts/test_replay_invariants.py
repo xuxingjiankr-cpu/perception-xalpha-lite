@@ -8308,6 +8308,171 @@ def t118_winrate_rank_selector_is_purged_past_only_and_isolated() -> None:
     )
 
 
+def t119_downside_tail_selector_is_purged_past_only_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_winrate_tail_v3 as tail_v3
+
+    config_path = (
+        ROOT
+        / "configs"
+        / "research"
+        / "perception_xalpha_winrate_tail_v3.json"
+    )
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    tail_v3.validate_config(config)
+    check(
+        "T119 downside-tail selector is research-only and cannot trade",
+        config["status"] == "research_only_shadow_only_not_trading"
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=180)
+    securities = [f"SH.{600000 + number:06d}" for number in range(12)]
+    index = pd.MultiIndex.from_product(
+        [dates, securities], names=["date", "securityId"]
+    )
+    rng = np.random.default_rng(119)
+    table = pd.DataFrame(index=index).reset_index()
+    feature_names = tail_v3.tail_feature_columns(config)
+    for number, name in enumerate(feature_names):
+        if name.startswith("market_"):
+            values = np.sin(np.arange(len(dates)) / (8.0 + number))
+            table[name] = np.repeat(values, len(securities))
+        else:
+            table[name] = rng.normal(0.0, 1.0, len(table))
+    latent = 0.8 * table[feature_names[0]] - 0.4 * table[feature_names[1]]
+    probability = 1.0 / (1.0 + np.exp(-latent)) * 0.35
+    labels = rng.uniform(size=len(table)) < probability
+    table["label_tail_loss_10d"] = labels.astype(float)
+    table["target_return_10d"] = np.where(
+        labels, -0.04 - rng.uniform(0.0, 0.03, len(table)), 0.01
+    )
+
+    toy = copy.deepcopy(config)
+    toy["tailModel"]["minimumTrainingTradingDays"] = 60
+    toy["tailModel"]["trainingWindowTradingDays"] = 100
+    toy["tailModel"]["refitEveryTradingDays"] = 20
+    predictions, audits = tail_v3.rolling_tail_predictions(table, dates, toy)
+    check(
+        "T119 every tail fit is separated by the complete outcome horizon",
+        len(audits) > 0
+        and all(audit["gapTradingDays"] >= 10 for audit in audits)
+        and all(
+            audit["model"]["fitDateRange"][1]
+            < audit["predictionDateRange"][0]
+            for audit in audits
+        ),
+    )
+    check(
+        "T119 future labels are not tail-model features",
+        "target_return_10d" not in feature_names
+        and "target_cross_sectional_rank_10d" not in feature_names
+        and "label_tail_loss_10d" not in feature_names,
+    )
+
+    shocked = table.copy()
+    shocked.loc[shocked["date"].ge(dates[130]), "label_tail_loss_10d"] = 1.0
+    shocked_predictions, _ = tail_v3.rolling_tail_predictions(shocked, dates, toy)
+    prefix = predictions[predictions["date"].lt(dates[130])].sort_values(
+        ["date", "securityId"]
+    )
+    shocked_prefix = shocked_predictions[
+        shocked_predictions["date"].lt(dates[130])
+    ].sort_values(["date", "securityId"])
+    future_label_isolated = True
+    try:
+        pdt.assert_series_equal(
+            prefix["predicted_tail_probability"].reset_index(drop=True),
+            shocked_prefix["predicted_tail_probability"].reset_index(drop=True),
+            check_names=False,
+            check_exact=False,
+            atol=1e-12,
+            rtol=1e-12,
+        )
+    except AssertionError:
+        future_label_isolated = False
+    check(
+        "T119 an unseen future label suffix cannot change earlier probabilities",
+        future_label_isolated,
+    )
+
+    probe = pd.DataFrame(
+        {
+            "date": np.repeat(pd.Timestamp("2026-08-03"), 12),
+            "securityId": securities,
+            "predicted_cross_sectional_rank": np.linspace(0.2, 0.9, 12),
+            "predicted_tail_probability": np.linspace(0.05, 0.25, 12),
+            "training_tail_base_rate": 0.30,
+        }
+    )
+    adjusted = tail_v3.add_tail_adjustment(probe, config)
+    expected_score = (
+        adjusted["rank_score_percentile"]
+        - 0.5 * adjusted["predicted_tail_probability"]
+    )
+    check(
+        "T119 tail penalty and adaptive gate use the frozen exact formulas",
+        np.allclose(adjusted["risk_adjusted_score"], expected_score)
+        and bool(adjusted["adaptive_tail_gate"].all())
+        and np.allclose(
+            adjusted["adaptive_tail_threshold"],
+            adjusted["training_tail_base_rate"],
+        ),
+    )
+
+    primary_metric = {
+        "newSignalDays": 0,
+        "basketTenDayMeanReturn": None,
+        "costedCumulativeReturn": 0.0,
+    }
+    failed_report = {
+        "periods": {
+            period: {
+                "policies": {tail_v3.PRIMARY_POLICY: primary_metric},
+                "primaryVsFactorTop10SameDays": {
+                    "commonSignalDays": 0,
+                    "winRateDelta": None,
+                },
+                "primaryVsRankTop10SameDays": {
+                    "commonSignalDays": 0,
+                    "tailLossRateReduction": None,
+                    "returnDeltaTHac": None,
+                },
+                "primaryIndependentEvents": {"n": 0},
+            }
+            for period in ("validation", "shadow")
+        }
+    }
+    verdict = tail_v3.build_verdict(failed_report, config)
+    check(
+        "T119 abstention cannot masquerade as downside-tail improvement",
+        verdict["stableHistoricalTailImprovement"] is False
+        and verdict["promotionAllowed"] is False,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_winrate_tail_v3.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T119 tail research has no broker, order, or production path",
+        "submitOrder" not in source
+        and "a_share_paper_trading" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -8422,6 +8587,7 @@ if __name__ == "__main__":
     t116_fundamental_factor_discovery_is_point_in_time_and_isolated()
     t117_two_stage_stock_selector_is_causal_calibrated_and_isolated()
     t118_winrate_rank_selector_is_purged_past_only_and_isolated()
+    t119_downside_tail_selector_is_purged_past_only_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
