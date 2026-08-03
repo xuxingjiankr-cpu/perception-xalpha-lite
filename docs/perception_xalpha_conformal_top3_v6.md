@@ -68,3 +68,41 @@ observations, positive mean return, and win rate above 50%.
 Historical success still cannot promote V6 because the evaluation windows were
 already inspected in earlier versions. A fresh forward shadow cohort would be
 required before any separate paper-trading proposal.
+
+## Frozen historical result (2026-08-03)
+
+Run: `run_20260803_preregistered_conformal_top3_v6`  
+Data: 2019-10-09 through 2026-08-03  
+Prediction rows: 57,050  
+Result: **rejected for trading; zero eligible Top3 names on the latest date.**
+
+None of the 55 rolling folds passed the complete reliability gate. Interval
+coverage passed in 36 folds, the width cap passed in 43, and rank-IC HAC passed
+in only 12. Most importantly, no fold had the preregistered minimum of ten
+audit observations whose lower return bound exceeded cost. The latest fold's
+audit coverage was 57.54%, lower-bound violation rate was 34.26%, rank-IC HAC
+t was -1.0241, and there were zero positive-lower-bound observations.
+
+| Period | Policy | 10d mean | Win rate | Tail-loss rate | Costed cumulative |
+|---|---|---:|---:|---:|---:|
+| Validation | V2 Top3 | 1.5596% | 57.14% | 12.70% | 15.75% |
+| Validation | point/lower-bound-ranked Top3 | 2.0113% | 65.08% | 8.73% | 22.35% |
+| Shadow | V2 Top3 | -0.1309% | 45.22% | 36.52% | -5.05% |
+| Shadow | point/lower-bound-ranked Top3 | 0.1476% | 40.35% | 34.21% | -0.97% |
+| Validation | positive-lower-bound Top3 | no selections | — | — | 0.00% |
+| Shadow | positive-lower-bound Top3 | no selections | — | — | 0.00% |
+
+The attractive validation result did not survive the reused shadow period:
+win rate fell to 40.35% and the costed book remained negative. Top10 interval
+coverage also fell from 82.98% in validation to 46.73% in shadow, while the
+lower-bound violation rate rose from 7.16% to 43.46%. This is a regime/calibration
+failure, not evidence that a stricter threshold would guarantee profit.
+
+For 2026-08-03, point estimates for the Top10 ranged from 3.87% to 5.52%, but
+their conservative lower bounds ranged from -3.83% to -2.18%; all ten therefore
+failed the 0.30% cost hurdle. The interval width was 14.61 percentage points.
+Because V6 applies one fold-level signed-residual offset to every stock, lower-
+bound ordering is identical to point-forecast ordering. A future version would
+need a separately preregistered, past-only conditional scale model to test
+whether stock-specific uncertainty adds ranking information. That experiment
+was not performed here.
