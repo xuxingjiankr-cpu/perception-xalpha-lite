@@ -9758,6 +9758,20 @@ def t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed() -> No
         and "a_share_paper_trading" not in fundamental_source
         and "latest_strategy_overlay" not in fundamental_source,
     )
+    robustness_runner = (
+        ROOT
+        / "scripts"
+        / "run_perception_xalpha_pit_adjusted_robustness.ps1"
+    ).read_text(encoding="utf-8")
+    check(
+        "T127 unattended robustness runner remains fail-closed and research-only",
+        "historicalResearchEligible" in robustness_runner
+        and "research_perception_xalpha_market_opportunity_v8.py"
+        in robustness_runner
+        and "submitOrder" not in robustness_runner
+        and "a_share_paper_trading" not in robustness_runner
+        and "latest_strategy_overlay" not in robustness_runner,
+    )
 
 
 if __name__ == "__main__":

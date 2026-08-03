@@ -29,3 +29,13 @@ A failure rejects robustness. A pass means only that the old frozen hypothesis s
 the corrected data; it does not create pristine OOS evidence because V1-V8 already
 viewed the historical validation and shadow dates. Either result remains
 `diagnostic_only`, writes no orders and cannot alter trading.
+
+The post-backfill runner may wait unattended for the clean-data audit. It starts the
+single frozen robustness run only after that audit passes and otherwise records a
+blocked status:
+
+```powershell
+powershell -ExecutionPolicy Bypass `
+  -File scripts/run_perception_xalpha_pit_adjusted_robustness.ps1 `
+  -BackfillRunId pit_full_20260803T2238
+```
