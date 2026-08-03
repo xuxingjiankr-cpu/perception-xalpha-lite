@@ -99,7 +99,7 @@
     "frozen_factor_top10_all_days",
     "rolling_ridge_rank_top10_all_days",
     "rolling_ridge_rank_top10_risk_on",
-    "v4_equal_weight_integrated_top10_all_days",
+    "fixed_equal_weight_integrated_top10_all_days",
     "reliability_adaptive_top10_all_days",
     "reliability_adaptive_top10_gated"
   ],
