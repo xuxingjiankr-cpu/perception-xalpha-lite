@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "perception_xalpha_absolute_competitiveness_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Produce zero to ten A-share candidates only when a bounded all-seven-factor book has positive absolute evidence in both untouched evaluation blocks and the current past-only market gate is open.",
+  "baseJointConfig": "configs/research/perception_xalpha_joint_factor_weights_v1.json",
+  "sourceJointResult": "outputs/edge_research/perception_xalpha_joint_factor_weights_v1/run_20260805_joint_v2_v10_weights/result.json",
+  "preregisteredHypothesis": {
+    "countsAsNewResearchTrial": true,
+    "validationAndShadowAlreadyViewed": true,
+    "sourceWeightsUseTrainOnly": true,
+    "onlyWeightChange": "euclidean_projection_of_train_only_joint_weights_to_all_factor_floor_and_cap",
+    "validationAndShadowMayNotTuneWeightsOrThresholds": true,
+    "profitGuaranteeClaimAllowed": false,
+    "historicalRunCanPromote": false
+  },
+  "weights": {
+    "minimumEach": 0.05,
+    "maximumEach": 0.20,
+    "sum": 1.0,
+    "projectionObjective": "minimum_squared_distance_from_source_train_only_weights"
+  },
+  "data": {
+    "holdingTradingDays": 10,
+    "maximumSelectionsPerDay": 10,
+    "roundTripCost": 0.003,
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open"
+  },
+  "absoluteEvidenceGate": {
+    "periodsRequired": ["validation", "shadow"],
+    "minimumTop10GrossMeanExclusive": 0.0,
+    "minimumTop10NetMeanExclusive": 0.0,
+    "minimumTop10WinRateInclusive": 0.55,
+    "minimumIndependentEvents": 8,
+    "minimumIndependentEventMeanExclusive": 0.0,
+    "minimumIndependentEventWinRateInclusive": 0.50,
+    "requireEveryRankSlotPositiveMean": true,
+    "requireEveryRankSlotWinRateAboveChance": true
+  },
+  "currentMarketGate": {
+    "marketReturn20MinimumExclusive": 0.0,
+    "marketBreadth20MinimumInclusive": 0.50,
+    "usesOnlySignalDayAndEarlierData": true
+  },
+  "pointInTimeExposureData": {
+    "industryClassificationPath": null,
+    "floatMarketCapPath": null,
+    "requiredForAbsoluteQualification": true,
+    "missingPolicy": "fail_closed_do_not_fake_with_current_classification_or_turnover"
+  },
+  "selection": {
+    "maximumSelectionsPerDay": 10,
+    "allowZeroSelections": true,
+    "neverFillQuota": true,
+    "candidateRanking": "bounded_all_seven_factor_composite_descending",
+    "approvedOnlyWhenAllGatesPass": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_absolute_competitiveness_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

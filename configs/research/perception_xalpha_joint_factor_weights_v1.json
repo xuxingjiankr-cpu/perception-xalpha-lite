@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "perception_xalpha_joint_factor_weights_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Estimate one robust non-negative weight vector for the union of the frozen V2 and V10 factors on the same PIT-adjusted A-share panel without using validation or shadow outcomes for fitting.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "oldFactorConfig": "configs/research/perception_xalpha_two_stage_selector_v1.json",
+  "newFactorArtifact": "outputs/edge_research/v10_four_factor_watchlist/2026-08-05/research_watchlist.json",
+  "data": {
+    "holdingTradingDays": 10,
+    "factorLiquidityNeutralisationBins": 5,
+    "requireAllFactorsFinite": true,
+    "topCount": 10,
+    "roundTripCost": 0.003
+  },
+  "optimization": {
+    "selectionData": "train_only",
+    "method": "expanding_train_max_ic_ir_ledoit_wolf_median",
+    "minimumFitTradingDays": 504,
+    "innerFolds": 5,
+    "purgeTradingDays": 10,
+    "minimumWeight": 0.0,
+    "maximumWeight": 0.35,
+    "covarianceEstimator": "LedoitWolf",
+    "finalAggregation": "coordinate_median_of_expanding_fits_and_full_train_fit_projected_to_bounded_simplex",
+    "validationOrShadowMayFitWeights": false
+  },
+  "comparators": [
+    "old_four_equal",
+    "new_four_equal",
+    "union_seven_equal",
+    "union_seven_optimized"
+  ],
+  "evaluation": {
+    "primaryMetric": "daily_cross_sectional_rank_ic",
+    "portfolioDiagnostic": "daily_top10_equal_weight_ten_day_open_to_open",
+    "hacLagTradingDays": 9,
+    "reportTrainValidationShadowSeparately": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_joint_factor_weights_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
