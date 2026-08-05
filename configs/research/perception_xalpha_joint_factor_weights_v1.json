@@ -27,6 +27,7 @@
   "comparators": [
     "old_four_equal",
     "new_four_equal",
+    "new_four_plus_multi_period_reversal_equal",
     "union_seven_equal",
     "union_seven_optimized"
   ],

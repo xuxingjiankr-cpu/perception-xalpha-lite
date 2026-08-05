@@ -420,6 +420,11 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     }
     old_names = [row["key"] for row in definitions if "old" in row["sources"]]
     new_names = [row["key"] for row in definitions if "new" in row["sources"]]
+    new_plus_reversal_names = [*new_names, "multi_period_reversal"]
+    if len(set(new_plus_reversal_names)) != 5:
+        raise ValueError(
+            "new-four plus multi-period reversal must contain five unique factors"
+        )
 
     def equal(names_in_scheme: list[str]) -> dict[str, float]:
         return {name: (1.0 / len(names_in_scheme) if name in names_in_scheme else 0.0) for name in names}
@@ -427,6 +432,9 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     schemes = {
         "old_four_equal": equal(old_names),
         "new_four_equal": equal(new_names),
+        "new_four_plus_multi_period_reversal_equal": equal(
+            new_plus_reversal_names
+        ),
         "union_seven_equal": equal(names),
         "union_seven_optimized": recommended_weights,
     }
