@@ -292,6 +292,22 @@ def evaluate_scheme(
         gross_slice = basket_gross.reindex(dates).dropna()
         independent = gross_slice.iloc[::horizon]
         individual = selected_return.reindex(dates).stack(future_stack=True).dropna()
+        rank_slots: list[dict[str, Any]] = []
+        for slot in range(1, top_count + 1):
+            slot_return = (
+                target.where(descending_rank.eq(slot))
+                .stack(future_stack=True)
+                .groupby(level=0)
+                .first()
+                .reindex(dates)
+                .dropna()
+            )
+            slot_metrics = series_metrics(slot_return, hac_lag)
+            slot_metrics["rank"] = slot
+            slot_metrics["independent"] = series_metrics(
+                slot_return.iloc[::horizon], 0
+            )
+            rank_slots.append(slot_metrics)
         periods[period] = {
             "rankIc": series_metrics(daily_rank_ic.reindex(dates), hac_lag),
             "top10GrossReturn": series_metrics(basket_gross.reindex(dates), hac_lag),
@@ -304,6 +320,7 @@ def evaluate_scheme(
                 "winRate": round(float((individual > 0.0).mean()), 8) if len(individual) else None,
             },
             "averageRealisedFills": round(float(fills.reindex(dates).replace(0, np.nan).mean()), 4),
+            "rankSlotGrossReturn": rank_slots,
         }
     latest_date = composite.index[-1]
     latest = (
@@ -576,8 +593,38 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
             for row in factor_rows
         ]
     ).to_csv(output / "recommended_weights.csv", index=False, encoding="utf-8-sig")
-    pd.concat(latest_rows, ignore_index=True).to_csv(
-        output / "latest_rankings.csv", index=False, encoding="utf-8-sig"
+    latest_frame = pd.concat(latest_rows, ignore_index=True)
+    latest_frame.to_csv(output / "latest_rankings.csv", index=False, encoding="utf-8-sig")
+    latest_estimates = latest_frame.copy()
+    shadow_slot_lookup = {
+        (scheme, int(row["rank"])): row
+        for scheme, payload in evaluated.items()
+        for row in payload["periods"]["shadow"]["rankSlotGrossReturn"]
+    }
+    latest_estimates["historicalShadowExpectedReturn10d"] = [
+        shadow_slot_lookup[(str(row.scheme), int(row.rank))]["mean"]
+        for row in latest_estimates.itertuples(index=False)
+    ]
+    latest_estimates["historicalShadowNonPositiveProbability10d"] = [
+        (
+            1.0 - float(shadow_slot_lookup[(str(row.scheme), int(row.rank))]["positiveRate"])
+            if shadow_slot_lookup[(str(row.scheme), int(row.rank))].get("positiveRate")
+            is not None
+            else np.nan
+        )
+        for row in latest_estimates.itertuples(index=False)
+    ]
+    latest_estimates["historicalShadowObservations"] = [
+        int(shadow_slot_lookup[(str(row.scheme), int(row.rank))]["n"])
+        for row in latest_estimates.itertuples(index=False)
+    ]
+    latest_estimates["estimateKind"] = (
+        "same_rank_shadow_history_not_stock_specific_probability_model"
+    )
+    latest_estimates.to_csv(
+        output / "latest_rank_return_estimates.csv",
+        index=False,
+        encoding="utf-8-sig",
     )
     pd.DataFrame(
         [
