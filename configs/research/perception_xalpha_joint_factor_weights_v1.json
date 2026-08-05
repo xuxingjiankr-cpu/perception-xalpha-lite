@@ -24,12 +24,70 @@
     "finalAggregation": "coordinate_median_of_expanding_fits_and_full_train_fit_projected_to_bounded_simplex",
     "validationOrShadowMayFitWeights": false
   },
+  "nestedGroupOptimization": {
+    "selectionData": "train_only",
+    "method": "expanding_train_max_ic_ir_ledoit_wolf_median",
+    "minimumFitTradingDays": 504,
+    "innerFolds": 5,
+    "purgeTradingDays": 10,
+    "minimumIncludedWeight": 0.05,
+    "maximumIncludedWeight": 0.35,
+    "validationOrShadowMayFitWeights": false,
+    "groups": [
+      {
+        "name": "new_four_optimized",
+        "factors": [
+          "growth_quality_momentum_shared",
+          "volatility_feedback",
+          "risk_budgeting",
+          "crowding_unwind"
+        ]
+      },
+      {
+        "name": "new_five_plus_reversal_optimized",
+        "factors": [
+          "growth_quality_momentum_shared",
+          "volatility_feedback",
+          "risk_budgeting",
+          "crowding_unwind",
+          "multi_period_reversal"
+        ]
+      },
+      {
+        "name": "new_six_plus_reversal_volatility_asymmetry_optimized",
+        "factors": [
+          "growth_quality_momentum_shared",
+          "volatility_feedback",
+          "risk_budgeting",
+          "crowding_unwind",
+          "multi_period_reversal",
+          "volatility_asymmetry"
+        ]
+      },
+      {
+        "name": "all_seven_nested_optimized",
+        "factors": [
+          "growth_quality_momentum_shared",
+          "volatility_feedback",
+          "risk_budgeting",
+          "crowding_unwind",
+          "multi_period_reversal",
+          "volatility_asymmetry",
+          "value_minus_momentum"
+        ]
+      }
+    ]
+  },
   "comparators": [
     "old_four_equal",
     "new_four_equal",
     "new_four_plus_multi_period_reversal_equal",
     "union_seven_equal",
-    "union_seven_optimized"
+    "union_seven_optimized",
+    "new_four_optimized",
+    "new_five_plus_reversal_optimized",
+    "new_six_plus_reversal_volatility_asymmetry_optimized",
+    "all_seven_nested_optimized"
   ],
   "evaluation": {
     "primaryMetric": "daily_cross_sectional_rank_ic",

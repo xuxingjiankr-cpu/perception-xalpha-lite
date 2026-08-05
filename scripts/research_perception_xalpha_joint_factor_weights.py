@@ -58,6 +58,27 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("invalid bounded-simplex limits")
     if optimization.get("validationOrShadowMayFitWeights") is not False:
         raise ValueError("validation/shadow fitting must remain disabled")
+    nested = config["nestedGroupOptimization"]
+    if nested.get("selectionData") != "train_only":
+        raise ValueError("nested group weights must use train only")
+    if nested.get("validationOrShadowMayFitWeights") is not False:
+        raise ValueError("nested group validation/shadow fitting must remain disabled")
+    nested_lower = float(nested["minimumIncludedWeight"])
+    nested_upper = float(nested["maximumIncludedWeight"])
+    if nested_lower <= 0.0 or not nested_lower < nested_upper < 1.0:
+        raise ValueError("invalid nested group weight limits")
+    groups = list(nested["groups"])
+    if [len(group["factors"]) for group in groups] != [4, 5, 6, 7]:
+        raise ValueError("nested groups must contain four through seven factors")
+    previous: set[str] = set()
+    for group in groups:
+        factors = list(group["factors"])
+        current = set(factors)
+        if len(current) != len(factors) or not previous.issubset(current):
+            raise ValueError("nested groups must add unique factors monotonically")
+        if len(current) * nested_lower > 1.0 or len(current) * nested_upper < 1.0:
+            raise ValueError("nested group bounded simplex is infeasible")
+        previous = current
 
 
 def canonical_expression(expression: dict[str, Any]) -> str:
@@ -438,6 +459,44 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "union_seven_equal": equal(names),
         "union_seven_optimized": recommended_weights,
     }
+    nested_config = config["nestedGroupOptimization"]
+    nested_group_fits: dict[str, Any] = {}
+    for group in nested_config["groups"]:
+        group_name = str(group["name"])
+        group_factors = list(group["factors"])
+        missing = sorted(set(group_factors).difference(names))
+        if missing:
+            raise ValueError(f"nested group {group_name} has unknown factors: {missing}")
+        fold_rows, group_full, group_recommended = expanding_weight_fits(
+            train_ic[group_factors],
+            int(nested_config["minimumFitTradingDays"]),
+            int(nested_config["innerFolds"]),
+            int(nested_config["purgeTradingDays"]),
+            float(nested_config["minimumIncludedWeight"]),
+            float(nested_config["maximumIncludedWeight"]),
+        )
+        group_weights = {name: 0.0 for name in names}
+        for factor, value in zip(
+            group_factors, group_recommended, strict=True
+        ):
+            group_weights[factor] = float(value)
+        schemes[group_name] = group_weights
+        nested_group_fits[group_name] = {
+            "factors": group_factors,
+            "selectionData": "train_only",
+            "innerFolds": fold_rows,
+            "fullTrainWeightsDiagnostic": {
+                factor: float(value)
+                for factor, value in zip(group_factors, group_full, strict=True)
+            },
+            "recommendedWeights": {
+                factor: group_weights[factor] for factor in group_factors
+            },
+            "weightBoundsForIncludedFactors": [
+                float(nested_config["minimumIncludedWeight"]),
+                float(nested_config["maximumIncludedWeight"]),
+            ],
+        }
     evaluated: dict[str, Any] = {}
     latest_rows: list[pd.DataFrame] = []
     for scheme, weights in schemes.items():
@@ -497,6 +556,7 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
             ],
         },
         "recommendedWeights": recommended_weights,
+        "nestedGroupOptimization": nested_group_fits,
         "schemes": evaluated,
         "orders": [],
         "automaticTradingChanges": [],
@@ -519,6 +579,20 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     pd.concat(latest_rows, ignore_index=True).to_csv(
         output / "latest_rankings.csv", index=False, encoding="utf-8-sig"
     )
+    pd.DataFrame(
+        [
+            {
+                "group": group_name,
+                "factor": factor,
+                "included": factor in payload["factors"],
+                "weight": evaluated[group_name]["weights"].get(factor, 0.0),
+                "weightPct": evaluated[group_name]["weights"].get(factor, 0.0)
+                * 100.0,
+            }
+            for group_name, payload in nested_group_fits.items()
+            for factor in names
+        ]
+    ).to_csv(output / "nested_group_weights.csv", index=False, encoding="utf-8-sig")
     print(f"saved={output}", flush=True)
     return result
 
