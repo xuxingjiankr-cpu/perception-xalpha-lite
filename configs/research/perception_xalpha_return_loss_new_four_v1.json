@@ -1,0 +1,263 @@
+{
+  "schemaVersion": "perception_xalpha_two_stage_selector_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Use the train-only optimized new-four factor book as a candidate generator, then select at most ten stocks only when calibrated ten-day expected return is positive and calibrated non-positive-return probability is at most 45 percent.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open",
+    "holdingTradingDays": 10,
+    "candidatePoolSize": 50,
+    "maximumSelectionsPerDay": 10,
+    "roundTripCost": 0.003,
+    "factorLiquidityNeutralisationBins": 5
+  },
+  "frozenFactorDefinitions": [
+    {
+      "factorId": "factor_6bdcced84ff3cd8ee34e",
+      "name": "growth_quality_momentum_shared",
+      "direction": 1.0,
+      "expression": {
+        "binary": "mul",
+        "left": {"field": "fund_growth_composite"},
+        "right": {
+          "rolling": "sum",
+          "window": 120,
+          "arg": {"field": "returns"}
+        }
+      }
+    },
+    {
+      "factorId": "factor_158a724de88abdcf0c6a",
+      "name": "volatility_feedback",
+      "direction": 1.0,
+      "expression": {
+        "unary": "signed_log1p",
+        "arg": {
+          "binary": "div",
+          "left": {
+            "rolling": "std",
+            "window": 252,
+            "arg": {
+              "binary": "sub",
+              "left": {"field": "returns"},
+              "right": {"unary": "abs", "arg": {"field": "returns"}}
+            }
+          },
+          "right": {
+            "rolling": "std",
+            "window": 30,
+            "arg": {"field": "returns"}
+          }
+        }
+      }
+    },
+    {
+      "factorId": "factor_884d57aa8112be102269",
+      "name": "risk_budgeting",
+      "direction": -1.0,
+      "expression": {
+        "binary": "sub",
+        "left": {
+          "unary": "tanh",
+          "arg": {
+            "binary": "div",
+            "left": {
+              "rolling": "std",
+              "window": 10,
+              "arg": {"field": "returns"}
+            },
+            "right": {
+              "rolling": "std",
+              "window": 30,
+              "arg": {"field": "returns"}
+            }
+          }
+        },
+        "right": {"field": "fund_book_to_price"}
+      }
+    },
+    {
+      "factorId": "factor_4e504175ac33ee4db875",
+      "name": "crowding_unwind",
+      "direction": -1.0,
+      "expression": {
+        "binary": "mul",
+        "left": {
+          "binary": "mul",
+          "left": {
+            "binary": "mul",
+            "left": {
+              "corr": true,
+              "left": {"field": "returns"},
+              "right": {"unary": "signed_log1p", "arg": {"field": "volume"}},
+              "window": 20
+            },
+            "right": {
+              "rolling": "sum",
+              "window": 30,
+              "arg": {"field": "returns"}
+            }
+          },
+          "right": {
+            "binary": "mul",
+            "left": {
+              "rolling": "mean",
+              "window": 3,
+              "arg": {
+                "binary": "div",
+                "left": {
+                  "binary": "sub",
+                  "left": {"field": "close"},
+                  "right": {"field": "open"}
+                },
+                "right": {
+                  "binary": "sub",
+                  "left": {"field": "high"},
+                  "right": {"field": "low"}
+                }
+              }
+            },
+            "right": {
+              "zscore": true,
+              "window": 120,
+              "arg": {"unary": "signed_log1p", "arg": {"field": "volume"}}
+            }
+          }
+        },
+        "right": {
+          "binary": "mul",
+          "left": {
+            "corr": true,
+            "left": {"field": "returns"},
+            "right": {"unary": "signed_log1p", "arg": {"field": "volume"}},
+            "window": 60
+          },
+          "right": {
+            "rolling": "sum",
+            "window": 3,
+            "arg": {"field": "returns"}
+          }
+        }
+      }
+    }
+  ],
+  "frozenFactorWeights": {
+    "growth_quality_momentum_shared": 0.2777154887420052,
+    "volatility_feedback": 0.32949482307873923,
+    "risk_budgeting": 0.3427896881792556,
+    "crowding_unwind": 0.05
+  },
+  "featureSet": {
+    "factorFeatures": [
+      "factor_growth_quality_momentum_shared",
+      "factor_volatility_feedback",
+      "factor_risk_budgeting",
+      "factor_crowding_unwind",
+      "factor_composite",
+      "factor_minimum",
+      "factor_dispersion"
+    ],
+    "stockFeatures": [
+      "stock_return_5",
+      "stock_return_20",
+      "stock_return_60",
+      "stock_volatility_20",
+      "stock_volatility_60",
+      "stock_drawdown_60",
+      "stock_amount_ratio_5_20",
+      "stock_liquidity_percentile",
+      "stock_open_gap",
+      "stock_intraday_return"
+    ],
+    "marketFeatures": [
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ],
+    "skippedFeatures": {
+      "industry_relative_strength": "No historical point-in-time industry table is available.",
+      "float_market_cap_neutrality": "No historical point-in-time float-market-cap table is available.",
+      "announcement_event_risk": "No historical point-in-time announcement-risk table is available."
+    }
+  },
+  "model": {
+    "classifier": {
+      "kind": "HistGradientBoostingClassifier",
+      "learningRate": 0.05,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 200,
+      "l2Regularization": 2.0,
+      "randomState": 20260805
+    },
+    "regressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "squared_error",
+      "learningRate": 0.05,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 200,
+      "l2Regularization": 2.0,
+      "randomState": 20260805
+    },
+    "returnTargetWinsorQuantiles": [0.01, 0.99],
+    "probabilityCalibration": "isotonic_train_tail_only",
+    "returnCalibration": "ridge_train_tail_only",
+    "returnCalibrationAlpha": 10.0,
+    "calibrationTradingDays": 126,
+    "purgeTradingDays": 10,
+    "minimumBaseFitTradingDays": 756,
+    "walkForwardFolds": 3
+  },
+  "selectionPolicy": {
+    "maximumCalibratedNonPositiveProbability": 0.45,
+    "minimumCalibratedWinProbability": 0.55,
+    "minimumCalibratedExpectedReturn": 0.0,
+    "rankingField": "calibrated_expected_return",
+    "allowCash": true,
+    "neverForceTenSelections": true
+  },
+  "evaluation": {
+    "probabilityMetrics": ["brier", "log_loss", "auc", "ece"],
+    "portfolioMetrics": [
+      "ten_day_mean_return",
+      "ten_day_win_rate",
+      "ten_day_excess_return",
+      "calendar_cumulative_return",
+      "annualized_return",
+      "maximum_drawdown",
+      "turnover",
+      "average_exposure"
+    ],
+    "eceBins": 10,
+    "compareAgainst": "optimized_new_four_top10",
+    "mustReportTradeCountReduction": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_return_loss_new_four_v1",
+    "writeLatestRanking": true,
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "All four source factors failed at least one V10 robustness guard and remain research hypotheses.",
+    "The validation and shadow windows have already been viewed and are not pristine final holdouts.",
+    "A calibrated probability is an estimate, not a guarantee; zero to ten selections are permitted.",
+    "Historical point-in-time industry and float-market-cap classifications remain unavailable."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

@@ -1,4 +1,4 @@
-"""Causal two-stage A-share selector built on the frozen V5 factor quartet.
+"""Causal two-stage A-share selector built on a frozen factor quartet.
 
 The first stage only creates a daily top-50 candidate pool.  A frozen nonlinear
 classifier/regressor pair then estimates absolute ten-session win probability and
@@ -100,6 +100,14 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ValueError("factor identifiers must be unique")
     if len({row["name"] for row in factors}) != 4:
         raise ValueError("factor names must be unique")
+    frozen_weights = config.get("frozenFactorWeights")
+    if frozen_weights is not None:
+        names = {str(row["name"]) for row in factors}
+        if set(frozen_weights) != names:
+            raise ValueError("frozen factor weights must match factor definitions")
+        values = np.asarray(list(map(float, frozen_weights.values())), dtype=float)
+        if np.any(values <= 0.0) or not np.isclose(values.sum(), 1.0):
+            raise ValueError("frozen factor weights must be positive and sum to one")
     policy = config["selectionPolicy"]
     probability = float(policy["minimumCalibratedWinProbability"])
     if not 0.5 < probability < 1.0:
@@ -131,6 +139,7 @@ def build_factor_rank_frames(
 def build_past_only_feature_frames(
     panel: dict[str, pd.DataFrame],
     factor_ranks: dict[str, pd.DataFrame],
+    factor_weights: dict[str, float] | None = None,
 ) -> tuple[dict[str, pd.DataFrame], dict[str, pd.Series]]:
     """Create features available by the signal-day close; no negative shift is allowed."""
     eligible = panel["eligible"]
@@ -138,7 +147,15 @@ def build_past_only_feature_frames(
     close = panel["close"]
     amount = panel["amount"]
     factor_frames = [factor_ranks[name] for name in factor_ranks]
-    composite = sum(factor_frames) / float(len(factor_frames))
+    if factor_weights is None:
+        composite = sum(factor_frames) / float(len(factor_frames))
+    else:
+        if set(factor_weights) != set(factor_ranks):
+            raise ValueError("factor weights do not match factor-rank frames")
+        composite = sum(
+            factor_ranks[name] * float(factor_weights[name])
+            for name in factor_ranks
+        )
     factor_stack = np.stack([frame.to_numpy(dtype=float) for frame in factor_frames])
     finite = np.isfinite(factor_stack)
     count = finite.sum(axis=0)
@@ -382,6 +399,9 @@ def predict(model: FrozenModel, rows: pd.DataFrame) -> pd.DataFrame:
     output["raw_win_probability"] = raw_probability
     output["calibrated_win_probability"] = model.probability_calibrator.predict(
         raw_probability
+    )
+    output["calibrated_non_positive_probability"] = (
+        1.0 - output["calibrated_win_probability"]
     )
     output["raw_expected_return"] = raw_return
     output["calibrated_expected_return"] = model.return_calibrator.predict(
@@ -790,7 +810,9 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         raise ValueError("base label horizon and selector horizon differ")
     panel, panel_audit = perception.build_configured_panel(base, cog_config)
     factor_ranks = build_factor_rank_frames(panel, config)
-    features, market_features = build_past_only_feature_frames(panel, factor_ranks)
+    features, market_features = build_past_only_feature_frames(
+        panel, factor_ranks, config.get("frozenFactorWeights")
+    )
     target, one_day = autonomous.target_frames(panel, cog_config)
     split = autonomous.make_split(panel["close"].index, cog_config)
     table = build_candidate_table(
@@ -886,6 +908,7 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "candidate_rank",
         "factor_composite",
         "calibrated_win_probability",
+        "calibrated_non_positive_probability",
         "calibrated_expected_return",
     ]
     latest_ranking = latest[latest_output_columns].copy()

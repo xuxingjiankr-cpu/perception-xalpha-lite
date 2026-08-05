@@ -8017,6 +8017,15 @@ def t117_two_stage_stock_selector_is_causal_calibrated_and_isolated() -> None:
     )
     config = json.loads(config_path.read_text(encoding="utf-8"))
     selector.validate_config(config)
+    return_loss_config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_return_loss_new_four_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    selector.validate_config(return_loss_config)
     check(
         "T117 two-stage selector stays research-only with no trading permission",
         config["status"] == "research_only_shadow_only_not_trading"
@@ -8074,6 +8083,26 @@ def t117_two_stage_stock_selector_is_causal_calibrated_and_isolated() -> None:
     full_ranks = selector.build_factor_rank_frames(panel, config)
     full_features, full_market = selector.build_past_only_feature_frames(
         panel, full_ranks
+    )
+    probe_weights = {
+        name: weight
+        for name, weight in zip(
+            full_ranks, [0.1, 0.2, 0.3, 0.4], strict=True
+        )
+    }
+    weighted_features, _ = selector.build_past_only_feature_frames(
+        panel, full_ranks, probe_weights
+    )
+    expected_weighted = sum(
+        full_ranks[name] * probe_weights[name] for name in full_ranks
+    )
+    check(
+        "T117 frozen positive factor weights drive the candidate composite",
+        np.allclose(
+            weighted_features["factor_composite"].to_numpy(dtype=float),
+            expected_weighted.to_numpy(dtype=float),
+            equal_nan=True,
+        ),
     )
     prefix_dates = dates[:140]
     prefix_panel = {
@@ -8139,8 +8168,28 @@ def t117_two_stage_stock_selector_is_causal_calibrated_and_isolated() -> None:
         "T117 probability and return models run without label leakage",
         len(predicted) > 0
         and predicted["calibrated_win_probability"].between(0.0, 1.0).all()
+        and np.allclose(
+            predicted["calibrated_non_positive_probability"],
+            1.0 - predicted["calibrated_win_probability"],
+        )
         and "target_return_10d" not in model.feature_columns
         and "label_positive_10d" not in model.feature_columns,
+    )
+    policy_probe = pd.DataFrame(
+        {
+            "date": [dates[130]] * 3,
+            "securityId": ["SH.600001", "SH.600002", "SH.600003"],
+            "calibrated_win_probability": [0.56, 0.54, 0.60],
+            "calibrated_expected_return": [0.01, 0.02, -0.01],
+        }
+    )
+    selected_probe = selector.select_rows(policy_probe, return_loss_config)
+    check(
+        "T117 return-loss policy requires positive return and at most 45pct non-positive risk",
+        selected_probe["securityId"].tolist() == ["SH.600001"]
+        and return_loss_config["selectionPolicy"]["allowCash"] is True
+        and return_loss_config["selectionPolicy"]["neverForceTenSelections"]
+        is True,
     )
     verdict_probe = selector.verdict(
         {
