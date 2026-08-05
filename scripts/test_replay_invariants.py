@@ -10043,6 +10043,192 @@ def t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials() -> None:
     )
 
 
+def t129_nextday_explosion_is_executable_causal_and_fail_closed() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import pandas.testing as pdt
+    import research_perception_xalpha_nextday_explosion as explosion
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_nextday_explosion_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    factor_config = json.loads(
+        (ROOT / config["baseFactorConfig"]).read_text(encoding="utf-8")
+    )
+    explosion.validate_config(config)
+    limits = explosion.board_limit_series(
+        pd.Index(["SH.600000", "SH.688001", "SZ.000001", "SZ.300001"]),
+        config,
+    )
+    check(
+        "T129 board-specific limit labels distinguish main and STAR-ChiNext",
+        np.allclose(limits.to_numpy(), [0.10, 0.20, 0.10, 0.20]),
+    )
+
+    dates = pd.bdate_range("2024-01-02", periods=320)
+    columns = [
+        "SH.600000",
+        "SH.688001",
+        "SZ.000001",
+        "SZ.300001",
+        "SH.600001",
+        "SH.688002",
+        "SZ.000002",
+        "SZ.300002",
+    ]
+    rng = np.random.default_rng(129)
+    shocks = rng.normal(0.0003, 0.012, size=(len(dates), len(columns)))
+    close = pd.DataFrame(
+        20.0 * np.exp(np.cumsum(shocks, axis=0)), index=dates, columns=columns
+    )
+    previous = close.shift(1).fillna(close.iloc[0])
+    open_price = previous * pd.DataFrame(
+        1.0 + rng.normal(0.0, 0.002, size=close.shape),
+        index=dates,
+        columns=columns,
+    )
+    high = pd.DataFrame(
+        np.maximum(open_price, close) * 1.01, index=dates, columns=columns
+    )
+    low = pd.DataFrame(
+        np.minimum(open_price, close) * 0.99, index=dates, columns=columns
+    )
+    volume = pd.DataFrame(
+        rng.integers(2_000_000, 8_000_000, size=close.shape),
+        index=dates,
+        columns=columns,
+        dtype=float,
+    )
+    stable_growth = pd.DataFrame(
+        np.broadcast_to(np.linspace(-2.0, 2.0, len(columns)), close.shape),
+        index=dates,
+        columns=columns,
+    )
+    panel = {
+        "open": open_price,
+        "high": high,
+        "low": low,
+        "close": close,
+        "volume": volume,
+        "amount": volume * close,
+        "returns": close.pct_change(fill_method=None),
+        "eligible": pd.DataFrame(True, index=dates, columns=columns),
+        "fund_book_to_price": 8.0 / close,
+        "fund_growth_composite": stable_growth,
+    }
+    outcomes = explosion.build_outcome_frames(panel, config)
+    probe_date, probe_symbol = dates[100], columns[0]
+    expected = (
+        panel["open"].at[dates[102], probe_symbol]
+        / panel["open"].at[dates[101], probe_symbol]
+        - 1.0
+    )
+    check(
+        "T129 executable label enters next open and exits the following open",
+        np.isclose(
+            outcomes["target_executable_return"].at[probe_date, probe_symbol],
+            expected,
+        ),
+    )
+
+    locked = {name: frame.copy() for name, frame in panel.items()}
+    signal_date, entry_date = dates[150], dates[151]
+    symbol = "SH.600000"
+    locked_price = locked["close"].at[signal_date, symbol] * 1.10
+    for name in ("open", "high", "low", "close"):
+        locked[name].at[entry_date, symbol] = locked_price
+    locked_outcomes = explosion.build_outcome_frames(locked, config)
+    check(
+        "T129 sealed-up entry is never credited as a profitable label",
+        pd.isna(
+            locked_outcomes["target_executable_return"].at[signal_date, symbol]
+        ),
+    )
+
+    full_features, full_market = explosion.build_past_only_features(
+        panel, factor_config, config
+    )
+    prefix_dates = dates[:300]
+    prefix_panel = {
+        name: frame.loc[prefix_dates].copy() for name, frame in panel.items()
+    }
+    prefix_features, prefix_market = explosion.build_past_only_features(
+        prefix_panel, factor_config, config
+    )
+    causal = True
+    try:
+        for name in config["featureSet"]["columns"]:
+            if name in full_features:
+                pdt.assert_frame_equal(
+                    full_features[name].loc[prefix_dates],
+                    prefix_features[name],
+                    check_exact=False,
+                    atol=1e-12,
+                    rtol=1e-12,
+                )
+            else:
+                pdt.assert_series_equal(
+                    full_market[name].loc[prefix_dates],
+                    prefix_market[name],
+                    check_exact=False,
+                    atol=1e-12,
+                    rtol=1e-12,
+                )
+    except AssertionError:
+        causal = False
+    check("T129 every explosion feature is prefix-causal", causal)
+
+    rows = pd.DataFrame(
+        {
+            "date": [dates[-1]] * 3,
+            "effective_expected_executable_return": [0.02, 0.015, 0.03],
+            "effective_probability_non_positive": [0.20, 0.25, 0.40],
+            "effective_probability_strong_gain": [0.20, 0.18, 0.30],
+            "effective_probability_limit_touch": [0.04, 0.05, 0.10],
+            "effective_probability_severe_loss": [0.05, 0.08, 0.05],
+            "effective_predicted_tenth_percentile_return": [-0.02, -0.03, -0.02],
+        }
+    )
+    check(
+        "T129 a failed reliability audit forces an empty selection",
+        explosion.selection_rows(rows, config, model_ready=False).empty,
+    )
+    selected = explosion.selection_rows(rows, config, model_ready=True)
+    check(
+        "T129 risk gates reject the tempting high-return high-loss row",
+        len(selected) == 2
+        and selected["effective_probability_non_positive"].max() <= 0.30,
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCreateOrders"] = True
+    try:
+        explosion.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    source = (
+        ROOT / "scripts" / "research_perception_xalpha_nextday_explosion.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T129 explosion study is isolated from orders and production decisions",
+        unsafe_rejected
+        and "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10165,6 +10351,7 @@ if __name__ == "__main__":
     t126_market_opportunity_gate_is_calibrated_causal_and_fail_closed()
     t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed()
     t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials()
+    t129_nextday_explosion_is_executable_causal_and_fail_closed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

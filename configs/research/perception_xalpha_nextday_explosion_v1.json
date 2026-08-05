@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "perception_xalpha_nextday_explosion_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Estimate the shortest executable A-share overnight return, next-session strong-gain probability, board-normalized limit-touch probability and downside risk. The study may return zero names and can never place or influence an order.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseFactorConfig": "configs/research/perception_xalpha_return_loss_new_four_v1.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "Short-lived price expansion is more likely when price persistence, closing strength, volume acceleration and sector-wide risk appetite coincide, but a monetisable signal must also survive the next tradable exit and a separately estimated left-tail gate.",
+    "parametersFrozenBeforeHistoricalRun": true,
+    "validationAndShadowMayNotTuneParameters": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrial": true
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "earliestExitTiming": "day_t_plus_2_open_if_sellable",
+    "executableHoldingTradingDays": 1,
+    "maximumLabelLookaheadTradingDays": 2,
+    "candidatePoolSize": 500,
+    "maximumSelectionsPerDay": 3,
+    "roundTripCost": 0.003,
+    "strongGainThreshold": 0.05,
+    "severeLossThreshold": -0.03,
+    "limitTouchTolerance": 0.002,
+    "boardLimits": {
+      "SH_MAIN": 0.10,
+      "SZ_MAIN": 0.10,
+      "STAR": 0.20,
+      "CHINEXT": 0.20
+    },
+    "excludeST": true,
+    "minimumListingObservations": 500
+  },
+  "candidateGenerator": {
+    "kind": "frozen_past_only_rank_composite",
+    "weights": {
+      "burst_return_5": 0.20,
+      "burst_return_20": 0.15,
+      "burst_amount_ratio_3_20": 0.20,
+      "burst_intraday_return": 0.15,
+      "burst_range_position_20": 0.15,
+      "burst_up_fraction_5": 0.10,
+      "factor_composite": 0.05
+    },
+    "minimumStrongEventRecall": 0.25,
+    "minimumLimitTouchRecall": 0.25,
+    "trainingOnlyRecallGate": true
+  },
+  "featureSet": {
+    "columns": [
+      "factor_growth_quality_momentum_shared",
+      "factor_volatility_feedback",
+      "factor_risk_budgeting",
+      "factor_crowding_unwind",
+      "factor_composite",
+      "factor_minimum",
+      "factor_dispersion",
+      "burst_return_1",
+      "burst_return_3",
+      "burst_return_5",
+      "burst_return_10",
+      "burst_return_20",
+      "burst_return_60",
+      "burst_volatility_10",
+      "burst_volatility_20",
+      "burst_amount_ratio_1_20",
+      "burst_amount_ratio_3_20",
+      "burst_intraday_return",
+      "burst_open_gap",
+      "burst_range_position_20",
+      "burst_range_position_60",
+      "burst_up_fraction_5",
+      "stock_liquidity_percentile",
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ],
+    "strictlyPastOnly": true,
+    "futureLabelsNeverEnterFeatures": true
+  },
+  "model": {
+    "probabilityHeads": ["strong_gain", "limit_touch", "non_positive", "severe_loss"],
+    "classifier": {
+      "kind": "HistGradientBoostingClassifier",
+      "learningRate": 0.04,
+      "maxIter": 100,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 500,
+      "l2Regularization": 5.0,
+      "maximumPositiveClassWeight": 10.0,
+      "randomState": 20260806
+    },
+    "returnRegressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "squared_error",
+      "learningRate": 0.04,
+      "maxIter": 100,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 500,
+      "l2Regularization": 5.0,
+      "randomState": 20260806
+    },
+    "tailRegressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "quantile",
+      "quantile": 0.10,
+      "learningRate": 0.04,
+      "maxIter": 100,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 500,
+      "l2Regularization": 5.0,
+      "randomState": 20260806
+    },
+    "targetWinsorQuantiles": [0.005, 0.995],
+    "baseToCalibrationPurgeTradingDays": 2,
+    "calibrationTradingDays": 63,
+    "calibrationToAuditPurgeTradingDays": 2,
+    "reliabilityAuditTradingDays": 63,
+    "minimumBaseFitTradingDays": 756,
+    "probabilityCalibration": "isotonic_increasing_or_constant_prior",
+    "returnCalibration": "positive_slope_ridge_or_constant_prior",
+    "returnCalibrationAlpha": 10.0,
+    "missingValuePolicy": "native_hist_gradient_boosting"
+  },
+  "reliabilityGate": {
+    "minimumProbabilityAuditAuc": 0.52,
+    "requireAuditBrierBetterThanConstantPrior": true,
+    "requireAuditLogLossBetterThanConstantPrior": true,
+    "minimumAuditEvents": {
+      "strong_gain": 100,
+      "limit_touch": 50,
+      "non_positive": 500,
+      "severe_loss": 100
+    },
+    "minimumReturnAuditOosR2Exclusive": 0.0,
+    "minimumReturnAuditRankIcHacT": 1.65,
+    "minimumReturnAuditDirectionAccuracy": 0.50,
+    "requirePositiveReturnCalibrationSlope": true,
+    "tailAuditMinimumCoverage": 0.07,
+    "tailAuditMaximumCoverage": 0.13,
+    "requireTailPinballBetterThanConstantQuantile": true,
+    "allHeadsRequiredForSelection": true
+  },
+  "selectionPolicy": {
+    "minimumExpectedExecutableReturn": 0.01,
+    "maximumNonPositiveProbability": 0.30,
+    "minimumStrongGainProbability": 0.15,
+    "minimumLimitTouchProbability": 0.03,
+    "maximumSevereLossProbability": 0.12,
+    "minimumPredictedTenthPercentileReturn": -0.04,
+    "maximumSelectionsPerDay": 3,
+    "ranking": [
+      "expected_executable_return_desc",
+      "limit_touch_probability_desc",
+      "strong_gain_probability_desc",
+      "non_positive_probability_asc"
+    ],
+    "allowCash": true,
+    "neverForceSelections": true
+  },
+  "evaluation": {
+    "minimumSignalDaysPerPeriod": 20,
+    "minimumSelectedObservationsPerPeriod": 60,
+    "minimumBasketWinRate": 0.55,
+    "minimumGrossMeanExecutableReturn": 0.01,
+    "minimumNetMeanExecutableReturn": 0.007,
+    "maximumObservedNonPositiveRate": 0.40,
+    "minimumStrongGainLiftVsCandidatePool": 0.0,
+    "minimumLimitTouchLiftVsCandidatePool": 0.0,
+    "mustPassValidationAndShadow": true,
+    "validationAndShadowAlreadyViewed": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_nextday_explosion_v1",
+    "writeDiagnosticTop10": true,
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "A daily bar can identify a touched price limit but cannot observe queue position or guarantee a fill.",
+    "The validation and shadow windows have already been viewed in earlier studies and are not pristine final holdouts.",
+    "The four inherited factors failed at least one earlier robustness guard and remain auxiliary research features.",
+    "A probability estimate is not a guarantee of profit or a price limit event.",
+    "Historical point-in-time industry and float-market-cap classifications remain unavailable."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
