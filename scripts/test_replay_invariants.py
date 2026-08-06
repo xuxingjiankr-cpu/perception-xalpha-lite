@@ -10229,6 +10229,192 @@ def t129_nextday_explosion_is_executable_causal_and_fail_closed() -> None:
     )
 
 
+def t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_perception_xalpha_nextday_factor_zoo_v2 as zoo
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_nextday_factor_zoo_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        zoo.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T130 factor-zoo search is preregistered research-only with 456 trials",
+        valid
+        and config["factorDiscovery"]["declaredLibrarySize"] == 456
+        and config["factorDiscovery"]["validationAndShadowCompletelyForbiddenForDiscovery"]
+        and not config["evaluation"]["historicalRunCanPromote"],
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCreateOrders"] = True
+    try:
+        zoo.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T130 any trading permission fails closed", unsafe_rejected)
+
+    adjusted = zoo.benjamini_hochberg({"strong": 1e-8, "noise": 0.50}, 456)
+    check(
+        "T130 Benjamini-Hochberg uses the complete declared search burden",
+        adjusted["strong"] == 4.56e-6 and adjusted["noise"] == 1.0,
+    )
+
+    rng = np.random.default_rng(130)
+    dates = pd.bdate_range("2020-01-02", periods=700)
+    columns = [f"SH.{index:06d}" for index in range(80)]
+    signal = pd.DataFrame(
+        rng.normal(size=(len(dates), len(columns))), index=dates, columns=columns
+    )
+    outcome = 0.003 * signal + pd.DataFrame(
+        rng.normal(scale=0.01, size=signal.shape), index=dates, columns=columns
+    )
+    eligible = pd.DataFrame(True, index=dates, columns=columns)
+    train_dates = dates[:600]
+    first, _ = zoo.screen_one_factor(
+        "toy/causal", signal, outcome, eligible, train_dates, config
+    )
+    shocked = outcome.copy()
+    shocked.loc[dates[600]:] = shocked.loc[dates[600]:] * -100.0
+    second, _ = zoo.screen_one_factor(
+        "toy/causal", signal, shocked, eligible, train_dates, config
+    )
+    check(
+        "T130 unseen validation labels cannot alter train-only factor selection statistics",
+        first is not None and first == second,
+    )
+    check(
+        "T130 train-only screening recovers the planted positive factor direction",
+        first is not None
+        and first.direction == 1.0
+        and first.confirmation_ic_hac_t is not None
+        and first.confirmation_ic_hac_t > 1.65
+        and first.non_positive_improvement > 0.0,
+    )
+
+    # The shared nested calibrator must accept the additional cost-aware label instead
+    # of silently remaining hard-coded to V1's original four heads.
+    import research_perception_xalpha_nextday_explosion as explosion
+
+    fit_config = copy.deepcopy(config)
+    fit_config["featureSet"]["columns"] = ["x"]
+    fit_config["model"]["minimumBaseFitTradingDays"] = 80
+    fit_config["model"]["calibrationTradingDays"] = 20
+    fit_config["model"]["reliabilityAuditTradingDays"] = 20
+    for block in ("classifier", "returnRegressor", "tailRegressor"):
+        fit_config["model"][block]["maxIter"] = 2
+        fit_config["model"][block]["minSamplesLeaf"] = 10
+    for head in fit_config["reliabilityGate"]["minimumAuditEvents"]:
+        fit_config["reliabilityGate"]["minimumAuditEvents"][head] = 1
+    fit_dates = pd.bdate_range("2020-01-02", periods=180)
+    fit_rows = []
+    for date in fit_dates:
+        for _ in range(3):
+            x_value = float(rng.normal())
+            return_value = float(0.002 * x_value + rng.normal(scale=0.01))
+            fit_rows.append(
+                {
+                    "date": date,
+                    "x": x_value,
+                    "target_executable_return": return_value,
+                    "label_strong_gain": return_value >= 0.005,
+                    "label_limit_touch": return_value >= 0.008,
+                    "label_non_positive": return_value <= 0.0,
+                    "label_net_loss": return_value <= 0.003,
+                    "label_severe_loss": return_value <= -0.005,
+                }
+            )
+    five_head_model = explosion.fit_model(
+        pd.DataFrame(fit_rows), fit_dates, fit_config
+    )
+    check(
+        "T130 shared nested calibrator fits the fifth cost-aware loss head",
+        set(five_head_model.probability_heads)
+        == {"strong_gain", "limit_touch", "non_positive", "net_loss", "severe_loss"},
+    )
+
+    rows = pd.DataFrame(
+        {
+            "date": [pd.Timestamp("2026-08-05")] * 2,
+            "effective_expected_executable_return": [0.03, 0.008],
+            "effective_probability_non_positive": [0.70, 0.30],
+            "effective_probability_net_loss": [0.75, 0.35],
+            "effective_probability_strong_gain": [0.30, 0.10],
+            "effective_probability_limit_touch": [0.10, 0.02],
+            "effective_probability_severe_loss": [0.25, 0.05],
+            "effective_predicted_tenth_percentile_return": [-0.08, -0.02],
+        }
+    )
+    selected = zoo.select_rows(rows, config, model_ready=True)
+    check(
+        "T130 tempting high-return row is rejected when loss heads are unsafe",
+        list(selected.index) == [1],
+    )
+
+    qualifying_outcome = {
+        "observations": 100,
+        "signalDays": 30,
+        "meanGrossReturn": 0.006,
+        "meanNetReturn": 0.003,
+        "winRate": 0.60,
+        "nonPositiveRate": 0.40,
+        "severeLossRate": 0.08,
+    }
+    verdict_fixture = {
+        "modelReady": True,
+        "candidateRecall": {"gatePassed": True},
+        "periods": {
+            name: {"policySelectionOutcome": dict(qualifying_outcome)}
+            for name in ("validation", "shadow")
+        },
+        "referenceV1": {
+            "periods": {
+                name: {"meanGrossReturn": 0.001, "nonPositiveRate": 0.55}
+                for name in ("validation", "shadow")
+            }
+        },
+    }
+    reference_verdict = zoo.build_verdict(verdict_fixture, config)
+    check(
+        "T130 V1 return and loss improvements are enforced as hard verdict gates",
+        reference_verdict["stableHistoricalHypothesis"]
+        and all(
+            item["checks"]["grossReturnImprovesVsV1"]
+            and item["checks"]["nonPositiveRateImprovesVsV1"]
+            for item in reference_verdict["periods"].values()
+        ),
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_nextday_factor_zoo_v2.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T130 factor-zoo model has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10352,6 +10538,7 @@ if __name__ == "__main__":
     t127_pit_adjusted_ashare_data_is_isolated_normalized_and_fail_closed()
     t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials()
     t129_nextday_explosion_is_executable_causal_and_fail_closed()
+    t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

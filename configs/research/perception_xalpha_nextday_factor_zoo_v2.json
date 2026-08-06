@@ -1,0 +1,243 @@
+{
+  "schemaVersion": "perception_xalpha_nextday_factor_zoo_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Discover a small, decorrelated set of point-in-time daily factors that jointly improve the shortest executable A-share return and reduce loss probability, then test them as frozen auxiliary features in a nested calibrated shadow model.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseFactorConfig": "configs/research/perception_xalpha_return_loss_new_four_v1.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "Tomorrow's executable open-to-open return can contain weak cross-sectional mean-reversion, liquidity-normalisation and price-volume state effects. A useful factor must improve both gross excess return and the probability of avoiding a loss, not merely correlate with the label.",
+    "parametersFrozenBeforeZooResultsWereRead": true,
+    "externalWindowsMayNotSelectFactorsOrTuneThresholds": true,
+    "countsAsNewResearchTrial": true,
+    "historicalRunCanPromote": false
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "earliestExitTiming": "day_t_plus_2_open_if_sellable",
+    "executableHoldingTradingDays": 1,
+    "maximumLabelLookaheadTradingDays": 2,
+    "roundTripCost": 0.003,
+    "strongGainThreshold": 0.05,
+    "severeLossThreshold": -0.03,
+    "limitTouchTolerance": 0.002,
+    "boardLimits": {
+      "SH_MAIN": 0.10,
+      "SZ_MAIN": 0.10,
+      "STAR": 0.20,
+      "CHINEXT": 0.20
+    },
+    "excludeST": true,
+    "minimumListingObservations": 500
+  },
+  "factorDiscovery": {
+    "libraries": ["alpha101", "gtja191", "qlib158", "academic"],
+    "declaredLibrarySize": 456,
+    "screeningUniverseSize": 1200,
+    "screeningUniverseRule": "sorted_security_id_even_stride",
+    "minimumDailyCrossSection": 50,
+    "topFraction": 0.10,
+    "orientationFractionOfTrain": 0.50,
+    "confirmationFolds": 4,
+    "hacLagTradingDays": 5,
+    "minimumOrientationAbsoluteHacT": 3.0,
+    "minimumConfirmationHacT": 1.65,
+    "minimumPositiveConfirmationFolds": 3,
+    "maximumBenjaminiHochbergQ": 0.10,
+    "minimumConfirmationGrossExcessBps": 0.0,
+    "minimumConfirmationNonPositiveImprovement": 0.0,
+    "minimumConfirmationSevereLossImprovement": 0.0,
+    "maximumDailyTurnover": 0.90,
+    "maximumPairwiseDailyIcCorrelation": 0.75,
+    "maximumSelectedFactors": 12,
+    "selectionScoreWeights": {
+      "confirmation_ic_t_rank": 0.25,
+      "gross_excess_rank": 0.30,
+      "non_positive_improvement_rank": 0.30,
+      "severe_loss_improvement_rank": 0.10,
+      "turnover_efficiency_rank": 0.05
+    },
+    "factorDirectionAndSelectionUseTrainOnly": true,
+    "validationAndShadowCompletelyForbiddenForDiscovery": true
+  },
+  "candidateGenerator": {
+    "candidatePoolSize": 1000,
+    "legacyBurstScoreWeight": 0.35,
+    "discoveredFactorScoreWeight": 0.65,
+    "minimumStrongEventRecall": 0.30,
+    "minimumLimitTouchRecall": 0.40,
+    "trainingOnlyRecallGate": true
+  },
+  "legacyBurstWeights": {
+    "burst_return_5": 0.20,
+    "burst_return_20": 0.15,
+    "burst_amount_ratio_3_20": 0.20,
+    "burst_intraday_return": 0.15,
+    "burst_range_position_20": 0.15,
+    "burst_up_fraction_5": 0.10,
+    "factor_composite": 0.05
+  },
+  "featureSet": {
+    "baseColumns": [
+      "factor_growth_quality_momentum_shared",
+      "factor_volatility_feedback",
+      "factor_risk_budgeting",
+      "factor_crowding_unwind",
+      "factor_composite",
+      "factor_minimum",
+      "factor_dispersion",
+      "burst_return_1",
+      "burst_return_3",
+      "burst_return_5",
+      "burst_return_10",
+      "burst_return_20",
+      "burst_return_60",
+      "burst_volatility_10",
+      "burst_volatility_20",
+      "burst_amount_ratio_1_20",
+      "burst_amount_ratio_3_20",
+      "burst_intraday_return",
+      "burst_open_gap",
+      "burst_range_position_20",
+      "burst_range_position_60",
+      "burst_up_fraction_5",
+      "stock_liquidity_percentile",
+      "market_return_20",
+      "market_return_60",
+      "market_volatility_20",
+      "market_breadth_20"
+    ],
+    "discoveredColumnsPrefix": "zoo_factor_",
+    "strictlyPastOnly": true,
+    "futureLabelsNeverEnterFeatures": true
+  },
+  "model": {
+    "probabilityHeads": [
+      "strong_gain",
+      "limit_touch",
+      "non_positive",
+      "net_loss",
+      "severe_loss"
+    ],
+    "classifier": {
+      "kind": "HistGradientBoostingClassifier",
+      "learningRate": 0.035,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 700,
+      "l2Regularization": 8.0,
+      "maximumPositiveClassWeight": 10.0,
+      "randomState": 20260806
+    },
+    "returnRegressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "squared_error",
+      "learningRate": 0.035,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 700,
+      "l2Regularization": 8.0,
+      "randomState": 20260806
+    },
+    "tailRegressor": {
+      "kind": "HistGradientBoostingRegressor",
+      "loss": "quantile",
+      "quantile": 0.10,
+      "learningRate": 0.035,
+      "maxIter": 120,
+      "maxLeafNodes": 15,
+      "minSamplesLeaf": 700,
+      "l2Regularization": 8.0,
+      "randomState": 20260806
+    },
+    "targetWinsorQuantiles": [0.005, 0.995],
+    "baseToCalibrationPurgeTradingDays": 2,
+    "calibrationTradingDays": 63,
+    "calibrationToAuditPurgeTradingDays": 2,
+    "reliabilityAuditTradingDays": 63,
+    "minimumBaseFitTradingDays": 756,
+    "probabilityCalibration": "isotonic_increasing_or_constant_prior",
+    "returnCalibration": "positive_slope_ridge_or_constant_prior",
+    "returnCalibrationAlpha": 10.0,
+    "missingValuePolicy": "native_hist_gradient_boosting"
+  },
+  "reliabilityGate": {
+    "minimumProbabilityAuditAuc": 0.52,
+    "requireAuditBrierBetterThanConstantPrior": true,
+    "requireAuditLogLossBetterThanConstantPrior": true,
+    "minimumAuditEvents": {
+      "strong_gain": 100,
+      "limit_touch": 50,
+      "non_positive": 500,
+      "net_loss": 500,
+      "severe_loss": 100
+    },
+    "minimumReturnAuditOosR2Exclusive": 0.0,
+    "minimumReturnAuditRankIcHacT": 1.65,
+    "minimumReturnAuditDirectionAccuracy": 0.50,
+    "requirePositiveReturnCalibrationSlope": true,
+    "tailAuditMinimumCoverage": 0.07,
+    "tailAuditMaximumCoverage": 0.13,
+    "requireTailPinballBetterThanConstantQuantile": true,
+    "allHeadsRequiredForSelection": true
+  },
+  "selectionPolicy": {
+    "minimumExpectedExecutableReturn": 0.005,
+    "maximumNonPositiveProbability": 0.40,
+    "maximumNetLossProbability": 0.45,
+    "minimumStrongGainProbability": 0.08,
+    "minimumLimitTouchProbability": 0.015,
+    "maximumSevereLossProbability": 0.10,
+    "minimumPredictedTenthPercentileReturn": -0.03,
+    "maximumSelectionsPerDay": 10,
+    "integratedRankingWeights": {
+      "expected_return": 0.45,
+      "strong_gain_probability": 0.10,
+      "limit_touch_probability": 0.05,
+      "inverse_non_positive_probability": 0.15,
+      "inverse_net_loss_probability": 0.15,
+      "inverse_severe_loss_probability": 0.10
+    },
+    "allowCash": true,
+    "neverForceSelections": true
+  },
+  "evaluation": {
+    "minimumSignalDaysPerPeriod": 20,
+    "minimumSelectedObservationsPerPeriod": 60,
+    "minimumBasketWinRate": 0.58,
+    "minimumGrossMeanExecutableReturn": 0.005,
+    "minimumNetMeanExecutableReturn": 0.002,
+    "maximumObservedNonPositiveRate": 0.42,
+    "maximumObservedSevereLossRate": 0.10,
+    "mustImproveGrossReturnAndNonPositiveRateVsV1Diagnostic": true,
+    "mustPassValidationAndShadow": true,
+    "validationAndShadowAlreadyViewed": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2",
+    "writeDiagnosticTop10": true,
+    "writeFactorScreen": true,
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The 456-factor library creates a substantial multiple-testing burden even after train-only FDR and correlation pruning.",
+    "The validation and shadow windows have already been viewed and cannot be treated as pristine final holdouts.",
+    "Daily bars cannot reconstruct limit-order queue position or guarantee a fill at a touched limit.",
+    "Historical point-in-time industry and float-market-cap classifications remain unavailable, so exact industry and size neutralisation is skipped.",
+    "A model probability or expected return is not a guarantee of profit."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

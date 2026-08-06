@@ -517,15 +517,14 @@ def fit_model(
     x_calibration = calibration[features].replace([np.inf, -np.inf], np.nan)
     x_audit = audit[features].replace([np.inf, -np.inf], np.nan)
     head_to_label = {
-        "strong_gain": "label_strong_gain",
-        "limit_touch": "label_limit_touch",
-        "non_positive": "label_non_positive",
-        "severe_loss": "label_severe_loss",
+        name: f"label_{name}" for name in config["model"]["probabilityHeads"]
     }
     heads: dict[str, ProbabilityHead] = {}
     probability_audits: dict[str, Any] = {}
     for name in config["model"]["probabilityHeads"]:
         label = head_to_label[name]
+        if label not in labelled:
+            raise KeyError(f"probability head {name} is missing its offline label {label}")
         y_base = base[label].astype(int)
         if y_base.nunique() != 2:
             raise RuntimeError(f"probability head {name} requires both classes")
