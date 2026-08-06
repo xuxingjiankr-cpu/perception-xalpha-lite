@@ -10415,6 +10415,143 @@ def t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated() -> None:
     )
 
 
+def t131_horizon_precision_is_causal_clustered_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_perception_xalpha_horizon_precision_v3 as precision
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_horizon_precision_v3.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        precision.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T131 precision study freezes twelve factors and declares all 30 policy trials",
+        valid
+        and len(config["frozenFactors"]) == 12
+        and config["preregisteredHypothesis"]["countsAsAdditionalPolicyTrials"] == 30
+        and not config["preregisteredHypothesis"]["historicalRunCanPromote"],
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayConnectToTrading"] = True
+    try:
+        precision.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T131 any trading permission fails closed", unsafe_rejected)
+
+    dates = pd.bdate_range("2026-01-05", periods=8)
+    columns = ["X"]
+    open_values = pd.DataFrame(
+        [100.0, 100.0, 90.0, 92.0, 93.0, 94.0, 95.0, 96.0],
+        index=dates,
+        columns=columns,
+    )
+    close = open_values.copy()
+    high = open_values + 1.0
+    low = open_values - 1.0
+    # t+2 is a sealed-down intended exit.  t+3 is sellable, so the position must
+    # carry one session and realise 92/100-1 rather than disappearing from the sample.
+    high.iloc[2, 0] = low.iloc[2, 0] = close.iloc[2, 0] = 90.0
+    panel = {
+        "open": open_values,
+        "high": high,
+        "low": low,
+        "close": close,
+        "volume": pd.DataFrame(1000.0, index=dates, columns=columns),
+        "eligible": pd.DataFrame(True, index=dates, columns=columns),
+    }
+    outcome, executable, delay = precision.executable_horizon_return(
+        panel, holding_days=1, maximum_exit_delay=2
+    )
+    check(
+        "T131 a locked intended exit is carried to the first sellable open",
+        executable.iloc[0, 0]
+        and abs(float(outcome.iloc[0, 0]) - (-0.08)) < 1e-12
+        and float(delay.iloc[0, 0]) == 1.0,
+    )
+    contained = precision.contained_signal_dates(dates, holding_days=1, maximum_exit_delay=2)
+    check(
+        "T131 the complete executable outcome is contained inside each period",
+        list(contained) == list(dates[:-4]),
+    )
+
+    score = pd.DataFrame(
+        [[0.9, 0.8, 0.7], [0.7, 0.8, 0.9]],
+        index=dates[:2],
+        columns=["A", "B", "C"],
+    )
+    support = pd.DataFrame(
+        [[7, 5, 8], [4, 7, 8]], index=score.index, columns=score.columns
+    )
+    eligible = pd.DataFrame(True, index=score.index, columns=score.columns)
+    selected = precision.selection_mask(
+        score, support, eligible, minimum_support=6, top_count=2
+    )
+    check(
+        "T131 majority consensus filters before past-only score ranking",
+        list(selected.columns[selected.iloc[0]]) == ["A", "C"]
+        and list(selected.columns[selected.iloc[1]]) == ["B", "C"],
+    )
+
+    def metric(wilson: float, mean_net: float, stock_win: float) -> dict:
+        return {
+            "signalDays": 250,
+            "resolvedFraction": 1.0,
+            "dailyNetWinWilsonLower": wilson,
+            "dailyMeanNetReturn": mean_net,
+            "stockNetWinRate": stock_win,
+        }
+
+    policy_rows = [
+        {"period": "train", "policy": "weighted_composite", "holdingDays": 1,
+         "topCount": 10, "metrics": metric(0.51, 0.001, 0.52)},
+        {"period": "train", "policy": "majority_consensus", "holdingDays": 3,
+         "topCount": 3, "metrics": metric(0.56, 0.002, 0.57)},
+        # An unseen external window is deliberately much better for the other policy;
+        # it must not change the development choice.
+        {"period": "shadow", "policy": "weighted_composite", "holdingDays": 1,
+         "topCount": 10, "metrics": metric(0.99, 0.50, 0.99)},
+    ]
+    choice = precision.choose_development_policy(policy_rows, config)
+    check(
+        "T131 external outcomes cannot select the policy or holding horizon",
+        choice is not None
+        and choice["policy"] == "majority_consensus"
+        and choice["holdingDays"] == 3
+        and choice["topCount"] == 3,
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_horizon_precision_v3.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T131 precision research has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10539,6 +10676,7 @@ if __name__ == "__main__":
     t128_clean_pit_factor_evolution_is_isolated_and_counts_all_trials()
     t129_nextday_explosion_is_executable_causal_and_fail_closed()
     t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated()
+    t131_horizon_precision_is_causal_clustered_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

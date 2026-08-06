@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "perception_xalpha_horizon_precision_v3",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Freeze the twelve V2 train-only factors and measure whether majority agreement and a longer executable holding horizon improve stock-level and day-clustered net-win precision without using validation or shadow outcomes to change the factor book.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "frozenSourceSummary": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "The selected factors mix short reversal, volume normalisation and price-volume state. Requiring a majority of decorrelated factors to agree may reduce noisy top ranks, while modestly longer holds may let slow components realise and spread the fixed round-trip cost over more time.",
+    "factorKeysDirectionsAndWeightsFrozen": true,
+    "validationAndShadowMayOnlyReject": true,
+    "externalWindowsMayNotSelectPolicyOrHorizon": true,
+    "historicalRunCanPromote": false,
+    "countsAsAdditionalPolicyTrials": 30
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "holdingTradingDays": [1, 2, 3, 5, 10],
+    "topCounts": [1, 3, 10],
+    "maximumExitDelayTradingDays": 5,
+    "periodLocalOutcomeContainment": true,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "minimumSignalDaysPerPeriod": 60
+  },
+  "frozenFactors": [
+    {"factorKey": "gtja191/alpha_070", "direction": -1.0, "weight": 0.10972302839665153},
+    {"factorKey": "gtja191/alpha_052", "direction": -1.0, "weight": 0.09754145388582226},
+    {"factorKey": "qlib158/vstd60", "direction": 1.0, "weight": 0.09596236745725856},
+    {"factorKey": "gtja191/alpha_097", "direction": -1.0, "weight": 0.08407276928311685},
+    {"factorKey": "academic/retskew", "direction": 1.0, "weight": 0.0824076063413904},
+    {"factorKey": "gtja191/alpha_145", "direction": -1.0, "weight": 0.08032135398638528},
+    {"factorKey": "qlib158/cord30", "direction": -1.0, "weight": 0.07947576740718569},
+    {"factorKey": "gtja191/alpha_063", "direction": -1.0, "weight": 0.07819515902290122},
+    {"factorKey": "alpha101/alpha_029", "direction": 1.0, "weight": 0.07519241648411835},
+    {"factorKey": "alpha101/alpha_094", "direction": 1.0, "weight": 0.0730773681113405},
+    {"factorKey": "alpha101/alpha_088", "direction": 1.0, "weight": 0.07243180047084757},
+    {"factorKey": "qlib158/min5", "direction": 1.0, "weight": 0.07159890915298193}
+  ],
+  "policies": {
+    "weighted_composite": {
+      "minimumFactorSupport": 0,
+      "supportRankPercentile": 0.80
+    },
+    "majority_consensus": {
+      "minimumFactorSupport": 6,
+      "supportRankPercentile": 0.80
+    }
+  },
+  "selectionRule": {
+    "developmentChoiceUsesTrainOnly": true,
+    "sortKeys": ["daily_net_win_wilson_lower", "daily_mean_net_return", "stock_net_win_rate"],
+    "minimumDevelopmentSignalDays": 200,
+    "externalEvaluationIsRejectOnly": true,
+    "neverForceASelection": true
+  },
+  "evaluation": {
+    "primaryMetric": "daily_net_win_rate",
+    "secondaryMetrics": [
+      "stock_net_win_rate",
+      "daily_mean_net_return",
+      "stock_severe_loss_rate",
+      "daily_cvar10"
+    ],
+    "mustBeatOneDayWeightedCompositeOnBothExternalWindows": true,
+    "mustNotReduceMeanNamesPerSignalDayBelowOne": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_horizon_precision_v3",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The twelve-factor book was discovered on the V2 training window, so development-period comparisons are not independent evidence.",
+    "Validation and shadow windows have already been viewed and can only reject this hypothesis.",
+    "Holding periods longer than one day create overlapping observations; HAC statistics and day-level basket precision are reported, but no capital-overlap portfolio is simulated.",
+    "Daily bars cannot reconstruct limit-order queue priority or guarantee a fill.",
+    "A higher historical precision estimate is not a guarantee of profit."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
