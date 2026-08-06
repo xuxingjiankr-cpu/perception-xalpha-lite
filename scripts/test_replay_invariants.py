@@ -10552,6 +10552,109 @@ def t131_horizon_precision_is_causal_clustered_and_isolated() -> None:
     )
 
 
+def t132_rolling_factor_health_is_lagged_recoverable_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_perception_xalpha_rolling_health_v4 as rolling
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_rolling_health_v4.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        rolling.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T132 rolling health is one frozen research-only rule with a full outcome lag",
+        valid
+        and config["preregisteredHypothesis"]["countsAsNewResearchTrials"] == 1
+        and config["data"]["fullOutcomeAvailabilityLagTradingDays"] == 7
+        and not config["preregisteredHypothesis"]["historicalRunCanPromote"],
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayWriteStrategyOverlay"] = True
+    try:
+        rolling.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T132 any trading permission fails closed", unsafe_rejected)
+
+    rng = np.random.default_rng(132)
+    dates = pd.bdate_range("2025-01-02", periods=120)
+    daily_ic = pd.DataFrame(
+        {
+            "good": 0.05 + rng.normal(scale=0.01, size=len(dates)),
+            "bad": -0.05 + rng.normal(scale=0.01, size=len(dates)),
+        },
+        index=dates,
+    )
+    frozen = {
+        "frozenFactors": [
+            {"factorKey": "good", "weight": 0.5},
+            {"factorKey": "bad", "weight": 0.5},
+        ]
+    }
+    _, multiplier, weight = rolling.rolling_factor_health(daily_ic, frozen, config)
+    check(
+        "T132 positive recent IC activates while negative IC can only attenuate to zero",
+        multiplier.iloc[-1]["good"] > 0.0
+        and multiplier.iloc[-1]["bad"] == 0.0
+        and weight.iloc[-1]["good"] == 1.0
+        and weight.iloc[-1]["bad"] == 0.0,
+    )
+    shocked_ic = daily_ic.copy()
+    shocked_ic.iloc[-7:, :] = shocked_ic.iloc[-7:, :] * -1000.0
+    _, shocked_multiplier, _ = rolling.rolling_factor_health(shocked_ic, frozen, config)
+    check(
+        "T132 not-yet-completed outcome suffix cannot alter today's factor health",
+        np.allclose(
+            multiplier.iloc[-1].to_numpy(dtype=float),
+            shocked_multiplier.iloc[-1].to_numpy(dtype=float),
+        ),
+    )
+
+    active = pd.Series(6, index=dates, dtype=float)
+    counterfactual = pd.Series(0.01, index=dates, dtype=float)
+    gate, audit = rolling.rolling_book_gate(counterfactual, active, config)
+    shocked_counterfactual = counterfactual.copy()
+    shocked_counterfactual.iloc[-7:] = -1.0
+    shocked_gate, _ = rolling.rolling_book_gate(shocked_counterfactual, active, config)
+    check(
+        "T132 book gate waits for completed history and uses a lagged recoverable counterfactual",
+        not bool(gate.iloc[10])
+        and bool(gate.iloc[-1])
+        and bool(shocked_gate.iloc[-1]) == bool(gate.iloc[-1])
+        and audit.iloc[-1]["completedCounterfactualDays"] == 40,
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_rolling_health_v4.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T132 rolling-health research has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10677,6 +10780,7 @@ if __name__ == "__main__":
     t129_nextday_explosion_is_executable_causal_and_fail_closed()
     t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated()
     t131_horizon_precision_is_causal_clustered_and_isolated()
+    t132_rolling_factor_health_is_lagged_recoverable_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

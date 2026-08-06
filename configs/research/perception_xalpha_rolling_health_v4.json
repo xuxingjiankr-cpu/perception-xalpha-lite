@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "perception_xalpha_rolling_health_v4",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Use only fully observed past outcomes to attenuate stale factors and suspend an unhealthy Top10 shadow book without refitting the frozen twelve-factor definitions.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "economicRationale": "The frozen factor book changed sign across regimes. A causal rolling IC health score should reduce exposure to factors whose original mechanism has stopped working, while a lagged counterfactual performance gate can suspend the whole book during broad failure without preventing later recovery.",
+    "singleAdaptiveRule": true,
+    "parametersFrozenBeforeV4Run": true,
+    "factorDefinitionsDirectionsAndBaseWeightsRemainFrozen": true,
+    "negativeHealthCanOnlyZeroNotFlipDirection": true,
+    "validationAndShadowMayOnlyReject": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "fullOutcomeAvailabilityLagTradingDays": 7,
+    "periodLocalOutcomeContainment": true,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "topCount": 10
+  },
+  "factorHealth": {
+    "dailyMetric": "cross_sectional_spearman_ic",
+    "windowTradingDays": 63,
+    "minimumObservations": 40,
+    "activationTStatistic": 0.0,
+    "fullStrengthTStatistic": 2.0,
+    "minimumActiveFactors": 4,
+    "baseWeightMultiplier": "clip(rolling_ic_t/2,0,1)",
+    "renormaliseActiveWeights": true,
+    "mayReverseFactorDirection": false
+  },
+  "bookHealthGate": {
+    "counterfactualBookAlwaysUpdated": true,
+    "windowTradingDays": 40,
+    "minimumCompletedSignalDays": 20,
+    "betaPriorAlpha": 2.0,
+    "betaPriorBeta": 2.0,
+    "minimumPosteriorNetWinProbability": 0.52,
+    "minimumRollingMeanNetReturn": 0.0,
+    "requiresMinimumActiveFactors": true,
+    "closedGateCreatesNoReplacementSelections": true
+  },
+  "evaluation": {
+    "primaryMetric": "daily_net_win_rate",
+    "mustImproveShadowPrecisionAndMeanNetReturnVsStatic": true,
+    "minimumGateCoverage": 0.30,
+    "minimumSignalDaysPerExternalPeriod": 40,
+    "abstentionMustBeReported": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_rolling_health_v4",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The twelve-factor universe was selected using the earlier V2 development window.",
+    "The validation and shadow windows have already been viewed and are reject-only.",
+    "Rolling health can reduce exposure to stale factors but cannot create alpha when every factor is uninformative.",
+    "The gate deliberately uses a seven-session availability lag even when a particular exit resolved earlier.",
+    "Daily bars cannot guarantee opening-auction fills or reconstruct queue priority."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
