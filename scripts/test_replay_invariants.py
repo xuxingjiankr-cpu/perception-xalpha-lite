@@ -10655,6 +10655,132 @@ def t132_rolling_factor_health_is_lagged_recoverable_and_isolated() -> None:
     )
 
 
+def t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated() -> None:
+    import copy
+    import json
+
+    import pandas as pd
+
+    import research_perception_xalpha_pit_fundamental_catalyst_v5 as catalyst
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_pit_fundamental_catalyst_v5.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        catalyst.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T133 catalyst study fixes four policies and remains reject-only",
+        valid
+        and config["preregisteredHypothesis"]["countsAsNewResearchTrials"] == 4
+        and config["preregisteredHypothesis"]["primaryPolicy"]
+        == "catalyst_plus_frozen_timing"
+        and not config["preregisteredHypothesis"]["historicalRunCanPromote"],
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayAlterBuildDecision"] = True
+    try:
+        catalyst.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T133 any production-decision permission fails closed", unsafe_rejected)
+
+    dates = pd.bdate_range("2026-01-02", periods=20)
+
+    def statement(report: str, notice: str, revenue: float) -> dict:
+        return {
+            "reportDate": report,
+            "noticeDate": notice,
+            "updateDate": notice,
+            "reportType": "quarterly",
+            "revenueYoyPct": revenue,
+            "netProfitYoyPct": revenue * 1.5,
+            "roePct": 10.0 + revenue / 20.0,
+            "grossMarginPct": 25.0,
+            "netMarginPct": 10.0,
+            "operatingCashToNetProfit": 1.0,
+            "debtAssetRatioPct": 40.0,
+        }
+
+    prefix = [
+        statement("2025-06-30", "2026-01-02", 5.0),
+        statement("2025-09-30", "2026-01-05", 20.0),
+    ]
+    first, _ = catalyst.causal_event_records_for_symbol(
+        prefix, dates, "SH.600000", config["fundamentalEvents"]
+    )
+    extended, _ = catalyst.causal_event_records_for_symbol(
+        prefix + [statement("2025-12-31", "2026-01-16", -20.0)],
+        dates,
+        "SH.600000",
+        config["fundamentalEvents"],
+    )
+    check(
+        "T133 appending a future filing cannot alter an earlier catalyst row",
+        len(first) == 1 and extended[: len(first)] == first,
+    )
+    check(
+        "T133 notice-day data waits until the first strictly later market session",
+        first[0]["eventDate"] == pd.Timestamp("2026-01-06"),
+    )
+
+    same_day = [
+        statement("2025-03-31", "2026-01-02", 1.0),
+        statement("2025-06-30", "2026-01-05", 2.0),
+        statement("2025-09-30", "2026-01-05", 30.0),
+    ]
+    collapsed, collapse_audit = catalyst.causal_event_records_for_symbol(
+        same_day, dates, "SH.600001", config["fundamentalEvents"]
+    )
+    check(
+        "T133 same-day history dumps collapse to the latest report period",
+        len(collapsed) == 1
+        and collapsed[0]["reportDate"] == pd.Timestamp("2025-09-30")
+        and collapse_audit.get("same_day_older_report_collapsed") == 1,
+    )
+
+    score = pd.DataFrame(
+        [[0.9, 0.8, 0.7], [0.6, 0.8, 0.7]],
+        index=dates[:2],
+        columns=["A", "B", "C"],
+    )
+    candidate = pd.DataFrame(
+        [[True, True, False], [True, True, True]],
+        index=score.index,
+        columns=score.columns,
+    )
+    selected = catalyst.select_top(score, candidate, 2)
+    check(
+        "T133 Top10 logic ranks only the common past-only candidate pool",
+        list(selected.columns[selected.iloc[0]]) == ["A", "B"]
+        and list(selected.columns[selected.iloc[1]]) == ["B", "C"],
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_pit_fundamental_catalyst_v5.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T133 catalyst research has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10781,6 +10907,7 @@ if __name__ == "__main__":
     t130_nextday_factor_zoo_is_train_only_multitarget_and_isolated()
     t131_horizon_precision_is_causal_clustered_and_isolated()
     t132_rolling_factor_health_is_lagged_recoverable_and_isolated()
+    t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

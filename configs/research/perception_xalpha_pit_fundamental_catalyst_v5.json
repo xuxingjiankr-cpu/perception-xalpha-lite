@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "perception_xalpha_pit_fundamental_catalyst_v5",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether newly disclosed point-in-time fundamental improvement adds stock-selection precision beyond a frozen price-volume timing book. Historical outcomes may reject but can never promote or connect to trading.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseResearchConfigFileSha256": "2af84c0ff3b26a02abe6cb1db34a76a17e096b12dd1cbdfc19f652f3e8b76b1c",
+  "frozenTimingConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "frozenTimingConfigFileSha256": "887f2b0dddf25500c67caf764ef086cb65bedd68e0b858d4834e310ecaafcb2e",
+  "frozenSplitSummary": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "frozenSplitSummaryFileSha256": "58bb449915cbcb8b61eb06fdd6d25abdad9d4e07d733269a14709b1a29834492",
+  "preregisteredHypothesis": {
+    "economicRationale": "A newly disclosed improvement relative to the issuer's own previously available statement is information that a price-only factor cannot contain before disclosure. Ranking positive catalysts and using a small frozen price-volume component only for entry timing may improve five-session net-win precision.",
+    "primaryPolicy": "catalyst_plus_frozen_timing",
+    "ablationPolicy": "catalyst_change_only",
+    "counterPolicies": ["fundamental_level_counter", "frozen_timing_counter"],
+    "policyDefinitionsFrozenBeforeOutcomes": true,
+    "validationAndShadowMayOnlyReject": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 4
+  },
+  "fundamentalEvents": {
+    "root": "data/market/ashare_research/fundamentals_pit",
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "sameAvailabilityDateRule": "latest_report_date_only",
+    "lateRestatementRule": "skip_non_advancing_report_date",
+    "requiresPriorDisclosedReport": true,
+    "requiresGrowthComponent": true,
+    "minimumAvailableGroups": 2,
+    "positiveCatalystThreshold": 0.0,
+    "liquidityNeutraliseBins": 3,
+    "groupWeights": {
+      "growth": 0.45,
+      "quality": 0.30,
+      "cash": 0.15,
+      "safety": 0.10
+    },
+    "changeScales": {
+      "revenueYoyPct": 30.0,
+      "netProfitYoyPct": 50.0,
+      "roePct": 3.0,
+      "grossMarginPct": 5.0,
+      "netMarginPct": 3.0,
+      "operatingCashToNetProfit": 0.5,
+      "debtAssetRatioPct": 5.0
+    },
+    "levelScales": {
+      "revenueYoyPct": 30.0,
+      "netProfitYoyPct": 50.0,
+      "roePct": 15.0,
+      "grossMarginPct": 30.0,
+      "netMarginPct": 10.0,
+      "operatingCashToNetProfit": 1.0,
+      "debtAssetRatioPct": 50.0
+    }
+  },
+  "selection": {
+    "topCount": 10,
+    "catalystWeight": 0.75,
+    "frozenTimingWeight": 0.25,
+    "allowCash": true,
+    "neverForceSelections": true,
+    "permutationPlacebos": 200,
+    "permutationSeed": 20260807
+  },
+  "data": {
+    "signalTiming": "first_safe_session_after_disclosure_close",
+    "hypotheticalEntryTiming": "next_buyable_open",
+    "holdingTradingDays": 5,
+    "maximumExitDelayTradingDays": 5,
+    "periodLocalOutcomeContainment": true,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03
+  },
+  "evaluation": {
+    "minimumExternalSignalDays": 20,
+    "minimumResolvedFraction": 0.98,
+    "minimumDailyNetWinRate": 0.50,
+    "minimumDailyMeanNetReturn": 0.0,
+    "maximumPermutationPValue": 0.10,
+    "mustBeatBothCountersOnDailyMeanNetReturn": true,
+    "mustNotIncreaseSevereLossVsFrozenTiming": true,
+    "mustPassValidationAndShadow": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_pit_fundamental_catalyst_v5",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The public endpoint exposes currently retrievable statement versions, not a complete archive of original restatement vintages.",
+    "NOTICE_DATE and UPDATE_DATE have day but not intraday timestamps, so the signal deliberately waits through the first safe session and enters at the following open.",
+    "True historical industry classifications are unavailable; causal trailing-liquidity buckets reduce size exposure but do not provide full industry neutralisation.",
+    "The validation and shadow dates have appeared in earlier research and can only reject; they are not pristine final OOS evidence.",
+    "Backward-adjusted BaoStock prices are not a cash-dividend total-return index, and daily bars cannot reconstruct opening-auction queue priority."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
