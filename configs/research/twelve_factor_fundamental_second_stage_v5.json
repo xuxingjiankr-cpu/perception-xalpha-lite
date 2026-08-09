@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "twelve_factor_fundamental_second_stage_v5",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether point-in-time fundamental mechanism families improve next-session Top10 discrimination after the frozen thirteen-price-factor Top100 screen.",
+  "preregisteredAt": "2026-08-09T22:15:00+09:00",
+  "frozenPriceModelConfig": "configs/research/twelve_factor_alpha070_131_individual_discrimination_v4.json",
+  "frozenPriceModelConfigSha256": "84bdd1ecc0d6e5ed68154d95ed135375952bafaff86f1e853a73ba65d8c6ba8a",
+  "frozenPriceModelResult": "outputs/edge_research/twelve_factor_alpha070_131_individual_discrimination_v4/run_20260809_individual_discrimination_v4/result.json",
+  "frozenPriceModelResultSha256": "d7f264f5dc3a8d4a7ab17186d02a2f51fd91b7cecabc22247c491d6cd262417b",
+  "frozenFundamentalConfig": "configs/research/fundamental_mechanism_families_v1.json",
+  "frozenFundamentalConfigSha256": "324a6d979cf5d4c23e37a7c9cc25c77691b127cdb604a617033599e1badf2670",
+  "frozenFundamentalResult": "outputs/edge_research/fundamental_mechanism_families_v1/run_20260809_preregistered_v1/result.json",
+  "frozenFundamentalResultSha256": "84586c13266235266eae0bcc22955d3450f553adddc6eb1e0390939bb793b718",
+  "firstStage": {
+    "definition": "frozen_thirteen_price_factor_score",
+    "alpha070Weight": 0.15,
+    "alpha131Weight": 0.15,
+    "remainingElevenWeights": "frozen_v6_weights_proportionally_scaled_to_70pct",
+    "candidateCount": 100,
+    "candidateSelectionTimestamp": "market_close_t",
+    "outcomesMayAffectCandidatePool": false
+  },
+  "fundamentalFeatures": {
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateMayDetermineAvailability": false,
+    "maximumSignalAgeTradingDays": 130,
+    "requireAllFourFamilies": true,
+    "familyCount": 4,
+    "families": [
+      "earnings_innovation",
+      "growth_acceleration",
+      "quality",
+      "cash_flow_quality"
+    ],
+    "withinFamilyWeights": "equal_across_four_preregistered_candidates",
+    "sizeNeutralisation": "five_trailing_liquidity_bins",
+    "pastOnly": true
+  },
+  "ablations": {
+    "priceBaseline": "frozen_price_score_rank_within_same_complete_support_top100",
+    "fundamentalOnly": "equal_rank_across_four_families_within_same_top100",
+    "fixedBlend": {
+      "priceWeight": 0.5,
+      "fundamentalWeight": 0.5
+    },
+    "regularizedFiveFeature": {
+      "features": [
+        "price_score_rank",
+        "earnings_innovation_rank",
+        "growth_acceleration_rank",
+        "quality_rank",
+        "cash_flow_quality_rank"
+      ],
+      "count": 5
+    },
+    "totalPreregisteredPolicies": 4,
+    "postOutcomePolicySelectionAllowed": false
+  },
+  "outcomes": {
+    "signalTimestamp": "market_close_t",
+    "entryTimestamp": "next_buyable_open_t_plus_1",
+    "exitTimestamp": "next_sellable_open_t_plus_2_with_maximum_delay_5",
+    "roundTripCost": 0.003,
+    "grossUp": "executable_gross_return_gt_0",
+    "netPositive": "executable_gross_return_gt_0.003",
+    "severeLoss": "executable_gross_return_le_minus_0.03"
+  },
+  "timeIsolation": {
+    "baseFit": ["2019-01-02", "2024-11-27"],
+    "calibration": ["2024-12-06", "2025-03-13"],
+    "audit": ["2025-03-24", "2025-06-25"],
+    "validation": ["2025-07-10", "2026-01-13"],
+    "shadow": ["2026-01-28", "latest_available"],
+    "purgeTradingDays": 10,
+    "auditValidationShadowAreRejectOnly": true
+  },
+  "training": {
+    "deterministicSeed": 20260809,
+    "maximumBaseFitRowsPerDay": 100,
+    "equalWeightPerTradingDay": true,
+    "returnEstimator": {"type": "Ridge", "alpha": 10.0},
+    "probabilityEstimator": {"type": "LogisticRegression", "penalty": "l2", "C": 0.1, "solver": "lbfgs", "maxIter": 1000},
+    "returnCalibration": {"type": "Ridge", "alpha": 10.0},
+    "probabilityCalibration": {"type": "PlattLogisticRegression", "C": 1.0},
+    "hyperparameterSearchAllowed": false,
+    "classWeight": null
+  },
+  "ranking": {
+    "topCount": 10,
+    "utility": "expected_return_minus_0.01_times_net_loss_probability_minus_0.02_times_severe_loss_probability",
+    "mechanicalScoreStretchingForbidden": true
+  },
+  "acceptance": {
+    "comparisonPeriod": "audit",
+    "comparisonSupport": "identical_price_top100_and_complete_four_family_support",
+    "candidate": "regularizedFiveFeature",
+    "grossUpAucMustImprove": true,
+    "grossUpBrierMustImprove": true,
+    "grossUpLogLossMustImprove": true,
+    "netPositiveAucMustImprove": true,
+    "netPositiveBrierMustImprove": true,
+    "netPositiveLogLossMustImprove": true,
+    "top10MeanNetReturnMustImprove": true,
+    "top10NetWinRateMustImprove": true,
+    "top10ProbabilitySpreadMustIncrease": true,
+    "decileMonotonicityMustNotDecrease": true,
+    "completeSupportCoverageMustExceed": 0.5,
+    "allGatesMustPass": true,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_fundamental_second_stage_v5",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
