@@ -21,11 +21,26 @@ def main() -> int:
     config = json.loads(args.config.read_text(encoding="utf-8"))
     result = run_discovery(pd.read_csv(args.prices), pd.read_csv(args.fundamentals), config)
     write_result(result, args.output)
-    print(json.dumps({key: result[key] for key in ("status", "candidate_count", "stage2_count", "historically_validated_count", "pbo")}, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                key: result[key]
+                for key in (
+                    "status",
+                    "candidate_count",
+                    "stage2_count",
+                    "validation_survivor_count",
+                    "project_validation_pbo",
+                    "hard_stop",
+                )
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
     print(f"saved: {args.output.resolve()}")
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

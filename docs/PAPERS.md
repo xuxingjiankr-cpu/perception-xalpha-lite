@@ -18,6 +18,9 @@ the parent research project. Inclusion means “available for falsification”, 
 | Triple Barrier | `triple_barrier_labels()` | Offline profit/loss/time labels; explicitly forbidden as features | López de Prado (2018) |
 | Stop-loss conditionality | Triple-barrier diagnostics | Test whether exits help only under serial dependence | Kaminski & Lo (2008), *When Do Stop-Loss Rules Stop Losses?* |
 | Hoeffding bound | `hoeffding_lower_bound()` | Conservative finite-sample hit-rate bound | Hoeffding (1963), *Probability Inequalities for Sums of Bounded Random Variables* |
+| Decision-focused ranking | `fit_pairwise_topk_weights()` | Align a frozen factor book with the Top-K decision boundary | Elmachtoub & Grigas (2020), *Smart Predict, then Optimize* |
+| Weight stability | `fit_pairwise_weight_ensemble()` | Complete-block subsample sensitivity, without validation refitting | Politis & Romano (1994), *The Stationary Bootstrap* (block-resampling motivation) |
+| Probability calibration | `fit_logistic_probability_model()` and `probability_metrics()` | Separate ranking from Brier/LogLoss/AUC/ECE reliability | Gneiting & Raftery (2007), *Strictly Proper Scoring Rules, Prediction, and Estimation* |
 
 ## Important boundaries
 
@@ -30,4 +33,20 @@ the parent research project. Inclusion means “available for falsification”, 
 - Black–Litterman improves the treatment of views; it does not create predictive
   information by itself.
 - PBO/DSR reduce false discoveries but cannot repair survivorship bias or bad data.
+- Decision-focused loss changes the training objective; it cannot manufacture predictive
+  information when the factor ranks have no stable relationship with future outcomes.
+- Weight replicas are an instability diagnostic, not permission to average repeatedly
+  viewed validation windows.
 
+## Related research not claimed as implemented
+
+The following papers inform extension boundaries, but their full models are not presented
+as features of the public package:
+
+| Research direction | Public-package boundary | Reference |
+|---|---|---|
+| Characteristics as time-varying factor loadings | PIT characteristics and neutral books are available; full IPCA estimation is not included | Kelly, Pruitt & Su, *Characteristics Are Covariances: A Unified Model of Risk and Return* |
+| Conditional factor timing | Frozen block-replica weights are available; validation-driven or online timing is forbidden | *Factor Timing with Portfolio Characteristics* |
+| Formulaic alpha generation | The package has a bounded auditable DSL generator; it does not claim to reproduce a neural AlphaForge search | Shi et al., *AlphaForge: A Framework to Mine and Dynamically Combine Formulaic Alpha Factors* |
+| Predict-then-optimise systems | The pairwise Top-K loss is a small transparent decision-focused primitive, not a full SPO portfolio optimiser | Elmachtoub & Grigas, *Smart Predict, then Optimize* |
+| Gaussian-process ensembles | Probability calibration is included; ensemble Gaussian-process forecasting is not | *Ensemble Gaussian Process Regression for Time Series Forecasting* |

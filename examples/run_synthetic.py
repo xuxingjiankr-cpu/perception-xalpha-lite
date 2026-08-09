@@ -38,6 +38,15 @@ def make_data(days: int = 900, symbols: int = 40) -> tuple[pd.DataFrame, pd.Data
                     "close": close[date_position, symbol_position],
                     "volume": volume[date_position, symbol_position],
                     "amount": amount[date_position, symbol_position],
+                    "industry": f"industry_{symbol_position % 5}",
+                    "market_cap": (5e9 + symbol_position * 2e8)
+                    * close[date_position, symbol_position]
+                    / close[0, symbol_position],
+                    "is_st": False,
+                    "is_suspended": False,
+                    "is_delisted": False,
+                    "limit_up": False,
+                    "limit_down": False,
                 }
             )
     statements = []
@@ -76,10 +85,22 @@ def main() -> None:
     result = run_discovery(prices, fundamentals, config)
     output = root / "outputs/synthetic_result.json"
     write_result(result, output)
-    print(json.dumps({key: result[key] for key in ("status", "candidate_count", "historically_validated_count", "pbo")}, indent=2))
+    print(
+        json.dumps(
+            {
+                key: result[key]
+                for key in (
+                    "status",
+                    "candidate_count",
+                    "validation_survivor_count",
+                    "project_validation_pbo",
+                )
+            },
+            indent=2,
+        )
+    )
     print(f"saved: {output}")
 
 
 if __name__ == "__main__":
     main()
-

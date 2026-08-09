@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from itertools import product
 from statistics import NormalDist
-from typing import Iterable
-
 import numpy as np
 import pandas as pd
 
@@ -254,4 +252,3 @@ def triple_barrier_labels(
 
 def normal_quantile(probability: float) -> float:
     return NormalDist().inv_cdf(probability)
-

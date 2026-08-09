@@ -25,7 +25,8 @@
     <span class="node">PIT 数据</span><span class="arrow">→</span><span class="node">安全 DSL</span><span class="arrow">→</span><span class="node">Train-only 搜索</span><span class="arrow">→</span><span class="node">Purged WF</span><span class="arrow">→</span><span class="node">Counter / Placebo</span><span class="arrow">→</span><span class="node">PBO / DSR</span><span class="arrow">→</span><span class="node">Forward Shadow</span>
   </div>
 
-  <h2>论文机制</h2>
+  <h2>论文机制 primitives（默认未接入搜索流水线）</h2>
+  <div class="warning">这些模块是可审计的研究原语，不等于已进入默认因子流水线，更不等于已验证 alpha。默认流水线只接入 PIT、DSL、训练期受限生成、中性组合、purged validation、置换检验、PBO 与 DSR。</div>
   <div class="grid">
     <div class="card"><b>Regime</b><h3>Causal HMM</h3><p>只做前向过滤的状态概率；避免使用完整路径 Viterbi 造成在线前视。</p></div>
     <div class="card"><b>Transition</b><h3>EWS + BOCPD</h3><p>方差、自相关、偏度与贝叶斯在线变点概率，用于状态转换风险而非直接预测涨跌。</p></div>
@@ -48,13 +49,13 @@
   <h2>结果契约</h2>
   <pre>{
   "status": "diagnostic_only_research_only_not_trading",
-  "candidate_count": 20,
-  "historically_validated_count": 0,
-  "pbo": {"pbo": 0.57, "splits": 70},
+  "candidate_count": 64,
+  "validation_survivor_count": 0,
+  "project_validation_pbo": {"pbo": 0.57, "splits": 70},
+  "shadow_commitment_sha256": "...",
   "orders": [],
   "automatic_trading_changes": []
 }</pre>
   <div class="warning">历史验证通过也只会生成 forward-shadow 假设。系统没有券商接口、下单函数、策略覆盖层或自动晋级路径。</div>
   <footer>MIT · Research and education only · No investment advice</footer>
 </main></body></html>
-
