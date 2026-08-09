@@ -57,6 +57,9 @@ SERIES = DATA / "rotation.jsonl"
 FIELDS = "date,open,high,low,close,volume,amount,isST,tradestatus"
 EMPTY_STATEMENTS = pd.DataFrame(columns=["symbol", "report_date", "notice_date", "update_date"])
 INDEX_CODES = {"sh.000016": "SSE50 (onshore A50 proxy)", "sh.000300": "CSI300"}
+# Two gates against publishing a name chosen from whichever symbols happened to answer.
+MINIMUM_COVERAGE = 0.98          # symbols returning any bars
+MINIMUM_SESSION_COVERAGE = 0.95  # of those, symbols quoting on the session being ranked
 
 
 def _login():
@@ -96,23 +99,44 @@ def universe_codes(day: date, boards: tuple[str, ...], lookback: int = 12) -> tu
         bs.logout()
 
 
-def _fetch_chunk(payload: tuple[list[str], str, str, str]) -> list[dict]:
+def _query_one(bs, code: str, start: str, end: str, adjust: str, attempts: int = 4) -> list[dict]:
+    """Bars for one symbol, retried on an empty answer.
+
+    Under parallel load this source returns an empty result set with ``error_code == "0"``:
+    a throttle that looks exactly like a stock with no history. Trusting it silently drops
+    symbols, and the drop is not reproducible — two runs over the same 5,202 codes differed by
+    143,028 bars, which moved the eligible universe by 487 names. An empty answer for a listed
+    symbol is therefore retried with a widening pause before it is believed.
+    """
+    for attempt in range(attempts):
+        result = bs.query_history_k_data_plus(
+            code, FIELDS, start_date=start, end_date=end, frequency="d", adjustflag=adjust
+        )
+        rows = []
+        while result.error_code == "0" and result.next():
+            v = result.get_row_data()
+            rows.append({"date": v[0], "symbol": code.replace("sh.", "SH_").replace("sz.", "SZ_"),
+                         "open": v[1], "high": v[2], "low": v[3], "close": v[4],
+                         "volume": v[5], "amount": v[6], "is_st": v[7], "trade_status": v[8]})
+        if rows:
+            return rows
+        time.sleep(0.4 * (attempt + 1))
+    return []
+
+
+def _fetch_chunk(payload: tuple[list[str], str, str, str]) -> tuple[list[dict], list[str]]:
     codes, start, end, adjust = payload
     bs = _login()
-    rows = []
+    rows, empty = [], []
     try:
         for code in codes:
-            result = bs.query_history_k_data_plus(
-                code, FIELDS, start_date=start, end_date=end, frequency="d", adjustflag=adjust
-            )
-            while result.error_code == "0" and result.next():
-                v = result.get_row_data()
-                rows.append({"date": v[0], "symbol": code.replace("sh.", "SH_").replace("sz.", "SZ_"),
-                             "open": v[1], "high": v[2], "low": v[3], "close": v[4],
-                             "volume": v[5], "amount": v[6], "is_st": v[7], "trade_status": v[8]})
+            found = _query_one(bs, code, start, end, adjust)
+            rows.extend(found)
+            if not found:
+                empty.append(code)
     finally:
         bs.logout()
-    return rows
+    return rows, empty
 
 
 def fetch_prices(codes: list[str], start: str, end: str, adjust: str, workers: int) -> pd.DataFrame:
@@ -124,9 +148,21 @@ def fetch_prices(codes: list[str], start: str, end: str, adjust: str, workers: i
     began = time.time()
     with Pool(processes=min(workers, len(chunks))) as pool:
         collected = pool.map(_fetch_chunk, chunks)
-    rows = [row for chunk in collected for row in chunk]
-    print(f"fetched {len(rows)} bars for {len(codes)} symbols in {time.time()-began:.0f}s "
-          f"across {len(chunks)} workers")
+    rows = [row for chunk, _ in collected for row in chunk]
+    empty = [code for _, missing in collected for code in missing]
+    covered = len(codes) - len(empty)
+    print(f"fetched {len(rows)} bars for {covered}/{len(codes)} symbols in "
+          f"{time.time()-began:.0f}s across {len(chunks)} workers")
+    if empty:
+        print(f"no bars after retries for {len(empty)} symbols, e.g. {empty[:8]}")
+    coverage = covered / float(len(codes))
+    if coverage < MINIMUM_COVERAGE:
+        # Publishing from a partial universe would publish a name selected from whichever
+        # symbols happened to answer. Refusing is the only honest option.
+        raise SystemExit(
+            f"symbol coverage {coverage:.3%} is below the {MINIMUM_COVERAGE:.1%} floor; "
+            f"refusing to select a name from an incomplete universe"
+        )
     frame = pd.DataFrame(rows)
     for column in ("open", "high", "low", "close", "volume", "amount", "trade_status"):
         frame[column] = pd.to_numeric(frame[column], errors="coerce")
@@ -201,7 +237,14 @@ def build_state(spec: dict, workers: int) -> tuple[dict, pd.DataFrame, pd.DataFr
     eligible = point_in_time_eligibility(panel, **spec["universe"])
     signal = composite_signal(spec, panel, eligible)
     as_of = signal.index.max()
-    print(f"eligibility funnel on {as_of.date()}: {eligibility_funnel(panel, spec['universe'], as_of)}")
+    funnel = eligibility_funnel(panel, spec["universe"], as_of)
+    print(f"eligibility funnel on {as_of.date()}: {funnel}")
+    quoting = funnel["listed_in_panel"] / float(len(codes))
+    if quoting < MINIMUM_SESSION_COVERAGE:
+        raise SystemExit(
+            f"only {funnel['listed_in_panel']}/{len(codes)} listed symbols quote on "
+            f"{as_of.date()} ({quoting:.1%}); the panel is incomplete, refusing to rank"
+        )
     return panel, eligible, signal
 
 
@@ -320,7 +363,7 @@ def append_records(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.D
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
