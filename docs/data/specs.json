@@ -1,0 +1,45 @@
+{
+  "note": "Lifecycle metadata about the frozen specifications. A frozen spec file cannot carry its own status: editing one changes its digest, which is the entire point of freezing it. This registry is therefore separate and deliberately mutable, and it records only what is true about a specification from the outside — where it runs and whether it is still running.",
+  "specs": [
+    {
+      "sha256": "b19bbc74139765dd6a38609b322c4e1c820dbed2b9cdbf9fc02ed12c984d906c",
+      "name": "published_library_net_positive_v1",
+      "book_size": 10,
+      "holding_days": 10,
+      "status": "live",
+      "runs_on": "author's machine",
+      "file": null,
+      "note": "Factors as names into a vendored library, so the spec is not reproducible without it and is not published here."
+    },
+    {
+      "sha256": "c076844940606f897eb18389590381401361a29f69c3bcfa5274a495dd495099",
+      "name": "published_library_net_positive_v2",
+      "book_size": 10,
+      "holding_days": 10,
+      "status": "live",
+      "runs_on": "author's machine",
+      "file": null,
+      "note": "The same four factors as portable DSL. Runs alongside v1 rather than replacing it, because re-expressing the factors changes the digest."
+    },
+    {
+      "sha256": "224a02ea9bb7b17bf0dbf6b4e5e00dd62a87c1fb9eb21d424239157b0abc87d2",
+      "name": "single_name_rotation_v3",
+      "book_size": 1,
+      "holding_days": 1,
+      "status": "retired",
+      "runs_on": null,
+      "file": "docs/data/single_name_rotation_v3.spec.json",
+      "note": "Named a universe rule without naming where the universe came from. Two faithful implementations disagreed on 614 of ~4,700 eligible names while agreeing on the pick. Retired with the single pick it published rather than edited; the backtested span of the chart was computed under it."
+    },
+    {
+      "sha256": "dea0e60855645c2e17bec001fd103cadfae027c1cbd9e3fdeb8ed66cdbe3de44",
+      "name": "single_name_rotation_v4",
+      "book_size": 1,
+      "holding_days": 1,
+      "status": "live",
+      "runs_on": "GitHub Actions",
+      "file": "docs/data/single_name_rotation_v4.spec.json",
+      "note": "Pins the provider, adjustment convention, board scope, window length and listing filter. Publishes the daily record."
+    }
+  ]
+}
