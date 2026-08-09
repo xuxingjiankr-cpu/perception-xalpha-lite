@@ -11355,6 +11355,37 @@ def t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated() -> None:
     )
 
 
+def t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades() -> None:
+    import pandas as pd
+
+    import generate_alpha070_131_shadow_top10 as shadow
+
+    dates = pd.bdate_range("2025-01-02", periods=8)
+    mask = pd.Series([True, True, False, True, False, False, False, False], index=dates)
+    extracted = shadow.training_dates_from_mask(mask)
+    try:
+        shadow.training_dates_from_mask(pd.Series([1, 0], index=dates[:2]))
+    except TypeError:
+        invalid_rejected = True
+    else:
+        invalid_rejected = False
+    check(
+        "T139 probability calibration receives trading dates rather than boolean mask values",
+        extracted.equals(pd.DatetimeIndex([dates[0], dates[1], dates[3]]))
+        and invalid_rejected,
+    )
+    source = (
+        ROOT / "scripts" / "generate_alpha070_131_shadow_top10.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T139 individualized Top10 artifact is isolated from trading and orders",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11487,6 +11518,7 @@ if __name__ == "__main__":
     t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only()
     t137_fixed_top10_discrimination_is_executable_clustered_and_isolated()
     t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated()
+    t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

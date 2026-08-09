@@ -16,13 +16,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import pandas as pd
+from sklearn.isotonic import IsotonicRegression
+
 ROOT = Path(__file__).resolve().parents[1]
 
 import sys
 
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import research_cogalpha_autonomous as autonomous  # noqa: E402
 import research_perception_xalpha_autonomous as perception  # noqa: E402
+import research_perception_xalpha_horizon_precision_v3 as precision  # noqa: E402
 import research_perception_xalpha_twelve_factor_utility_weights_v6 as v6  # noqa: E402
 import research_twelve_factor_alpha070_131_ablation as ablation  # noqa: E402
 
@@ -34,14 +40,6 @@ OUTPUT_ROOT = (
     ROOT / "outputs" / "edge_research" / "twelve_factor_alpha070_131_shadow_top10"
 )
 POLICY_NAME = "alpha070_alpha131_each_15pct"
-HISTORICAL_RESULT = (
-    ROOT
-    / "outputs"
-    / "edge_research"
-    / "twelve_factor_alpha070_131_ablation_v3"
-    / "run_20260809_alpha070_131_weight_ladder_v3"
-    / "result.json"
-)
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -64,6 +62,30 @@ def atomic_text(path: Path, value: str) -> None:
             os.unlink(temporary)
 
 
+def training_dates_from_mask(mask: pd.Series) -> pd.DatetimeIndex:
+    if not isinstance(mask.index, pd.DatetimeIndex) or mask.dtype != bool:
+        raise TypeError("training split must be a boolean Series on a DatetimeIndex")
+    dates = pd.DatetimeIndex(mask[mask].index)
+    if dates.empty:
+        raise ValueError("training split has no dates")
+    return dates
+
+
+def fit_up_probability(
+    score: pd.DataFrame,
+    returns: pd.DataFrame,
+    dates: pd.DatetimeIndex,
+) -> IsotonicRegression:
+    rows = v6.stack_score_outcome(score, returns, dates)
+    model = IsotonicRegression(increasing=True, out_of_bounds="clip")
+    model.fit(
+        rows["score"].to_numpy(float),
+        rows["return"].gt(0.0).to_numpy(float),
+        sample_weight=rows["sampleWeight"].to_numpy(float),
+    )
+    return model
+
+
 def render_report(result: dict[str, Any]) -> str:
     lines = [
         "# Alpha070/Alpha131 exploratory shadow Top10",
@@ -74,22 +96,22 @@ def render_report(result: dict[str, Any]) -> str:
         f"- intended entry: `{result['intendedEntryDate']}` open",
         f"- intended exit: `{result['intendedExitDate']}` open, subject to sellability",
         "- policy: Alpha070 15%, Alpha131 15%, remaining eleven factors 70% proportional",
-        "- estimates: historical Top10 group rates; individual probabilities unavailable",
+        "- estimates: frozen historical calibration block only",
         "",
-        "| rank | security | name | close | group expected gross return | group probability up | group probability net positive |",
-        "|---:|---|---|---:|---:|---:|---:|",
+        "| rank | security | name | close | expected gross return | probability up | probability net positive | severe loss probability |",
+        "|---:|---|---|---:|---:|---:|---:|---:|",
     ]
     for row in result["top10"]:
         lines.append(
             f"| {row['rank']} | {row['securityId']} | {row['name']} | "
             f"{row['close']:.3f} | {row['expectedGrossReturn']:.3%} | "
-            f"{row['probabilityUp']:.2%} | {row['probabilityNetPositive']:.2%} |"
+            f"{row['probabilityUp']:.2%} | {row['probabilityNetPositive']:.2%} | "
+            f"{row['probabilitySevereLoss']:.2%} |"
         )
     lines.extend(
         [
             "",
-            "Every row shares the same Top10 group estimate because the fixed individual probability "
-            "calibration block had insufficient common 13-factor support and failed closed. The selected "
+            "The estimates are conditional model outputs, not guaranteed returns. The selected "
             "15% policy missed its preregistered historical significance threshold and remains exploratory.",
             "",
         ]
@@ -128,13 +150,29 @@ def run(config_path: Path, entry_date: str, exit_date: str) -> dict[str, Any]:
     for rank in ranks.values():
         common &= rank.notna()
     score = ablation.weighted_score(ranks, weights, common)
-    historical = load_json(HISTORICAL_RESULT)
-    group_metrics = historical["policies"][POLICY_NAME]["metrics"]
+    returns, execution_eligible, _exit_delay = precision.executable_horizon_return(
+        panel,
+        int(v6_config["data"]["holdingTradingDays"]),
+        int(v6_config["data"]["maximumExitDelayTradingDays"]),
+    )
+    returns = returns.where(execution_eligible)
+    split = autonomous.make_split(panel["close"].index, cog_config)
+    train_dates = training_dates_from_mask(split.train)
+    partitions = v6.training_partitions(train_dates, v6_config)
+    calibrators = v6.fit_calibrators(
+        score, returns, partitions["calibration"], v6_config
+    )
+    predictions = v6.predict_frames(score, calibrators, v6_config)
+    up_model = fit_up_probability(score, returns, partitions["calibration"])
     signal_date = score.index.max()
     current = score.loc[signal_date].dropna().sort_values(ascending=False).head(10)
     names = v6.name_map(base)
     output: list[dict[str, Any]] = []
     for position, (security_id, factor_score) in enumerate(current.items(), start=1):
+        expected = float(predictions["expectedReturn"].loc[signal_date, security_id])
+        net_loss = float(predictions["netLossProbability"].loc[signal_date, security_id])
+        severe = float(predictions["severeLossProbability"].loc[signal_date, security_id])
+        probability_up = float(up_model.predict([float(factor_score)])[0])
         output.append(
             {
                 "rank": position,
@@ -142,10 +180,11 @@ def run(config_path: Path, entry_date: str, exit_date: str) -> dict[str, Any]:
                 "name": names.get(str(security_id), ""),
                 "close": round(float(panel["close"].loc[signal_date, security_id]), 4),
                 "factorScore": round(float(factor_score), 8),
-                "expectedGrossReturn": group_metrics["top10MeanGrossReturn"],
-                "probabilityUp": group_metrics["top10GrossUpProbability"],
-                "probabilityNetPositive": group_metrics["top10NetPositiveProbability"],
-                "probabilityScope": "historical_top10_group_not_individual",
+                "expectedGrossReturn": round(expected, 8),
+                "probabilityUp": round(probability_up, 8),
+                "probabilityNetPositive": round(1.0 - net_loss, 8),
+                "probabilitySevereLoss": round(severe, 8),
+                "probabilityScope": "individual_from_frozen_calibration_score",
             }
         )
     result = {
@@ -157,12 +196,11 @@ def run(config_path: Path, entry_date: str, exit_date: str) -> dict[str, Any]:
         "intendedExitDate": exit_date,
         "policy": POLICY_NAME,
         "weights": weights,
-        "estimateSource": {
-            "kind": "historical_top10_group_not_individual",
-            "source": str(HISTORICAL_RESULT),
-            "tradingDays": group_metrics["tradingDays"],
-            "individualCalibrationStatus": "failed_closed_insufficient_common_rows",
-        },
+        "calibrationDates": [
+            str(partitions["calibration"].min().date()),
+            str(partitions["calibration"].max().date()),
+        ],
+        "calibrationRows": calibrators["rows"],
         "candidateCount": int(common.loc[signal_date].sum()),
         "top10": output,
         "panelAudit": panel_audit,
