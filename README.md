@@ -10,6 +10,8 @@
 [![Safe DSL](https://img.shields.io/badge/factor%20language-audited%20DSL-059669)](src/xalpha_lite/dsl.py)
 [![License](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
 
+**English** | [简体中文](docs/README_CN.md)
+
 > **Quantitative discovery is a multiple-comparisons problem disguised as an optimization
 > problem.** Finds fewer factors, on purpose.
 
