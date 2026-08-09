@@ -10,6 +10,9 @@
 
 [English](../README.md) | **简体中文**
 
+[检验你的回测](#检验你自己的回测) &middot; [实时记录](#预测在它对应的那个交易日之前公布) &middot; [实测偏差](#为什么门槛设得这么严) &middot; [目前活下来的](#目前活下来的) &middot; [快速开始](#快速开始) &middot; [Wiki](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/wiki)
+
+
 > **量化挖因子表面上是个优化问题,实际上是个多重比较问题。** 这个框架**故意**找到更少的因子。
 
 一个会先试图推翻自己结论的研究框架:生成公式化因子,在 point-in-time 数据上按真实成本回测,

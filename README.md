@@ -12,6 +12,9 @@
 
 **English** | [简体中文](docs/README_CN.md)
 
+[Audit your backtest](#audit-your-own-backtest) &middot; [Live record](#the-pick-is-published-before-the-session-it-applies-to) &middot; [Measured biases](#why-the-gates-are-this-strict) &middot; [What survives](#what-survives-so-far) &middot; [Quick start](#quick-start) &middot; [Wiki](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/wiki)
+
+
 > **Quantitative discovery is a multiple-comparisons problem disguised as an optimization
 > problem.** Finds fewer factors, on purpose.
 
