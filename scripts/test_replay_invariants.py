@@ -11241,6 +11241,110 @@ def t137_fixed_top10_discrimination_is_executable_clustered_and_isolated() -> No
     )
 
 
+def t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_twelve_factor_alpha070_131_ablation as study
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_alpha070_131_ablation_v3.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        study.validate_config(config)
+        factors, frozen_weights, _v6_config = study.frozen_factors_and_weights(config)
+    except Exception:
+        valid = False
+        factors = []
+        frozen_weights = np.asarray([], dtype=float)
+    else:
+        valid = True
+    keys = [str(item["factorKey"]) for item in factors]
+    alpha070 = "gtja191/alpha_070"
+    alpha131 = "gtja191/alpha_131"
+    check(
+        "T138 frozen baseline is exactly twelve factors with Alpha070 once and Alpha131 absent",
+        valid
+        and len(keys) == 12
+        and keys.count(alpha070) == 1
+        and alpha131 not in keys
+        and abs(float(frozen_weights.sum()) - 1.0) < 1e-8,
+    )
+
+    policies = study.policy_weights(keys, frozen_weights, alpha070, alpha131)
+    exact_ladder = all(
+        abs(policies[name][alpha070] - level) < 1e-12
+        and abs(policies[name][alpha131] - level) < 1e-12
+        for level, name in (
+            (0.05, "alpha070_alpha131_each_05pct"),
+            (0.10, "alpha070_alpha131_each_10pct"),
+            (0.15, "alpha070_alpha131_each_15pct"),
+        )
+    )
+    check(
+        "T138 five policies are normalized and the Alpha070/131 ladder is exact without duplication",
+        len(policies) == 5
+        and exact_ladder
+        and all(abs(sum(weights.values()) - 1.0) < 1e-8 for weights in policies.values())
+        and len(policies["frozen_weighted_12_baseline"]) == 12
+        and len(policies["weighted_12_plus_alpha131_equal_insertion"]) == 13,
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=120)
+    baseline = pd.DataFrame(
+        {
+            "topNetMean": np.zeros(len(dates)),
+            "topGrossUpProbability": np.full(len(dates), 0.45),
+            "topNetPositiveProbability": np.full(len(dates), 0.35),
+            "topNetLossProbability": np.full(len(dates), 0.65),
+            "returnLiftVsMatched": np.zeros(len(dates)),
+        },
+        index=dates,
+    )
+    candidate = baseline.copy()
+    candidate["topNetMean"] += 0.001
+    candidate["topGrossUpProbability"] += 0.03
+    candidate["topNetPositiveProbability"] += 0.03
+    candidate["topNetLossProbability"] -= 0.03
+    candidate["returnLiftVsMatched"] += 0.001
+    increment = study.paired_increment(candidate, baseline, config)
+    check(
+        "T138 only an all-metric improvement with day-clustered significance can pass",
+        increment["pairedDays"] == len(dates)
+        and increment["inferenceUnit"] == "trading_day"
+        and increment["allIncrementalChecksPassed"] is True
+        and increment["meanNetReturnDeltaHacT"] >= 2.0,
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["forward"]["historicalWinnerMayBeForwardSelected"] = True
+    try:
+        study.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    source = (
+        ROOT / "scripts" / "research_twelve_factor_alpha070_131_ablation.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T138 historical winner cannot select forward weights or reach trading",
+        unsafe_rejected
+        and "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11372,6 +11476,7 @@ if __name__ == "__main__":
     t135_decision_focused_weights_are_causal_stable_and_isolated()
     t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only()
     t137_fixed_top10_discrimination_is_executable_clustered_and_isolated()
+    t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
