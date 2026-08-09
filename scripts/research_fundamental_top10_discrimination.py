@@ -202,20 +202,31 @@ def select_fixed_top10(
     return ranks.le(top_count).fillna(False)
 
 
+def infer_board(security_id: str) -> str:
+    exchange, code = str(security_id).split(".", 1)
+    if exchange == "SH" and code.startswith(("688", "689")):
+        return "STAR"
+    if exchange == "SZ" and code.startswith(("300", "301")):
+        return "ChiNext"
+    if exchange in {"SH", "SZ"}:
+        return "Main"
+    return "unknown"
+
+
 def board_map(config: dict[str, Any]) -> pd.Series:
     mechanism_config = load_json(ROOT / str(config["frozenMechanismConfig"]))
     base = load_json(ROOT / str(mechanism_config["baseResearchConfig"]))
     rows = mechanism.ashare.read_jsonl(
         ROOT / str(base["assetUniverse"]["masterPath"])
     )
-    return pd.Series(
-        {
-            str(row.get("securityId")): str(row.get("board") or "unknown")
-            for row in rows
-            if row.get("securityId")
-        },
-        dtype="object",
-    )
+    values: dict[str, str] = {}
+    for row in rows:
+        security_id = str(row.get("securityId") or "")
+        if not security_id:
+            continue
+        raw = str(row.get("board") or "").strip()
+        values[security_id] = raw if raw and raw.lower() != "none" else infer_board(security_id)
+    return pd.Series(values, dtype="object")
 
 
 def trailing_liquidity_deciles(
@@ -435,6 +446,7 @@ def evaluate_daily_top10(
             "netReturnLiftVsMatchedControl": hac("returnLiftVsMatched"),
         },
         "inferenceUnit": "trading_day",
+        "matchedControlBoardDefinition": "master_board_else_exchange_code_STAR_ChiNext_Main",
         "unfilledSelectionsCountAsCashAndAreNeverReplaced": True,
     }
     return daily, summary

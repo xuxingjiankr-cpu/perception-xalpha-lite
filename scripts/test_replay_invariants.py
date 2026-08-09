@@ -11193,6 +11193,13 @@ def t137_fixed_top10_discrimination_is_executable_clustered_and_isolated() -> No
         and selected.equals(unchanged)
         and changed_future.iloc[-1].eq(-999.0).all(),
     )
+    check(
+        "T137 missing master board is causally recovered from immutable exchange code",
+        top10.infer_board("SH.688001") == "STAR"
+        and top10.infer_board("SZ.300001") == "ChiNext"
+        and top10.infer_board("SH.600000") == "Main"
+        and top10.infer_board("SZ.000001") == "Main",
+    )
 
     panel = {
         "open": open_frame,
