@@ -65,4 +65,4 @@ __all__ = [
     "validate_spec",
     "white_reality_check",
 ]
-__version__ = "0.4.0"
+__version__ = "0.5.0"
