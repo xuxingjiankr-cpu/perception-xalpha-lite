@@ -9,15 +9,19 @@ Adding another copy would silently double-count the same signal and is forbidden
 
 `gtja191/alpha_131` is the only new factor. It combines the cross-sectional rank of the
 one-day VWAP change with the time-series rank of the correlation between close and
-50-day average volume. It is evaluated with positive orientation and the same causal
-liquidity neutralisation as the baseline. No industry-neutral claim is made.
+50-day average volume. It is evaluated with positive orientation and the same direct
+cross-sectional rank treatment as the frozen baseline. No industry-neutral claim is made.
 
-Three policies are fixed before their Top10 outcomes are read:
+Five policies are fixed before their Top10 outcomes are read:
 
 1. the exact frozen weighted twelve-factor baseline;
 2. the baseline scaled by 12/13 plus Alpha131 at 1/13; and
-3. a symmetric Alpha070/Alpha131 pair at 1/14 each, with the other eleven weights
-   proportionally scaled to 12/14.
+3. Alpha070 and Alpha131 at 5% each, with the other eleven weights scaled to 90%;
+4. Alpha070 and Alpha131 at 10% each, with the other eleven weights scaled to 80%; and
+5. Alpha070 and Alpha131 at 15% each, with the other eleven weights scaled to 70%.
+
+The 5%/10%/15% ladder is declared before outcomes are read. All levels are reported;
+the historically best level cannot be selected for forward use.
 
 Every policy selects exactly ten names on the same date and eligible universe. Outcomes
 use close `t` scoring, buyable open `t+1`, sellable open `t+2`, A-share T+1 constraints

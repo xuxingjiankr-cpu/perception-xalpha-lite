@@ -23,6 +23,7 @@
     "alpha131Key": "gtja191/alpha_131",
     "alpha131Direction": 1.0,
     "industryNeutralisationClaimedForAlpha131": false,
+    "alpha131CrossSectionTreatment": "same_direct_oriented_rank_as_frozen_twelve_factor_baseline",
     "duplicateAlpha070Forbidden": true
   },
   "policies": {
@@ -32,12 +33,19 @@
     "weighted_12_plus_alpha131_equal_insertion": {
       "definition": "scale every frozen V6 weight by 12/13 and give oriented Alpha131 exactly 1/13"
     },
-    "weighted_12_alpha070_alpha131_symmetric_pair": {
-      "definition": "give oriented Alpha070 and Alpha131 exactly 1/14 each; rescale the other eleven frozen factors to sum to 12/14"
+    "alpha070_alpha131_each_05pct": {
+      "definition": "give oriented Alpha070 and Alpha131 exactly 5% each; proportionally rescale the other eleven frozen weights to 90%"
+    },
+    "alpha070_alpha131_each_10pct": {
+      "definition": "give oriented Alpha070 and Alpha131 exactly 10% each; proportionally rescale the other eleven frozen weights to 80%"
+    },
+    "alpha070_alpha131_each_15pct": {
+      "definition": "give oriented Alpha070 and Alpha131 exactly 15% each; proportionally rescale the other eleven frozen weights to 70%"
     }
   },
   "trialAccounting": {
-    "newPolicies": 3,
+    "declaredPoliciesIncludingBaseline": 5,
+    "newPoliciesBeyondBaseline": 4,
     "poolWithPriorPriceVolumeTrials": false,
     "historicalWinnerMaySetForwardPolicy": false,
     "zeroImprovingPoliciesIsValid": true
@@ -50,6 +58,7 @@
     "holdingTradingDays": 1,
     "roundTripCost": 0.003,
     "sameDatesAndCandidateUniverseForEveryPolicy": true,
+    "weightLadderWasFixedBeforeOutcomes": [0.05, 0.10, 0.15],
     "primaryMetrics": [
       "top10_gross_up_probability",
       "top10_net_positive_probability",
@@ -84,7 +93,7 @@
     "Alpha070 is already part of the twelve-factor baseline and cannot be counted twice.",
     "The frozen twelve-factor source and its V6 weights failed their original trading-readiness verdict and are controls, not validated factors.",
     "The historical window has already been viewed; it can reject the Alpha131 increment but cannot validate or select it for forward use.",
-    "Alpha131 is not an industry-neutral implementation and is neutralised only through the existing causal liquidity-bucket procedure."
+    "Alpha131 is not an industry-neutral implementation; it receives the same direct oriented cross-sectional rank treatment as the frozen twelve-factor baseline."
   ],
   "safety": {
     "mayReadTradingConfig": false,
