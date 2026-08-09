@@ -11386,6 +11386,82 @@ def t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades()
     )
 
 
+def t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_twelve_factor_alpha070_131_individual_discrimination as study
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_alpha070_131_individual_discrimination_v4.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        study.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T140 multivariate discrimination freezes thirteen past-only inputs without search",
+        valid
+        and config["features"]["count"] == 13
+        and config["training"]["hyperparameterSearchAllowed"] is False
+        and config["ranking"]["temperatureScalingForbidden"] is True
+        and config["acceptance"]["allGatesMustPass"] is True,
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=4)
+    first = study.deterministic_indices(1000, 100, 20260809, dates[0])
+    repeated = study.deterministic_indices(1000, 100, 20260809, dates[0])
+    other_day = study.deterministic_indices(1000, 100, 20260809, dates[1])
+    check(
+        "T140 bounded base sampling is deterministic, date-varying and outcome independent",
+        np.array_equal(first, repeated)
+        and len(first) == 100
+        and len(np.unique(first)) == 100
+        and not np.array_equal(first, other_day),
+    )
+
+    index = pd.bdate_range("2019-01-02", "2026-08-07")
+    partitions = study.fixed_partitions(index, config)
+    check(
+        "T140 fit calibration audit validation and shadow blocks are strictly ordered",
+        partitions["baseFit"].max() < partitions["calibration"].min()
+        < partitions["audit"].min() < partitions["validation"].min()
+        < partitions["shadow"].min(),
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCreateOrders"] = True
+    try:
+        study.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    source = (
+        ROOT
+        / "scripts"
+        / "research_twelve_factor_alpha070_131_individual_discrimination.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T140 dispersion research cannot trade or mutate production decisions",
+        unsafe_rejected
+        and "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11519,6 +11595,7 @@ if __name__ == "__main__":
     t137_fixed_top10_discrimination_is_executable_clustered_and_isolated()
     t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated()
     t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades()
+    t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
