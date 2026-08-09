@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "perception_xalpha_decision_focused_weights_v7",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Challenge the rejected V6 stock-wise loss with a bounded pairwise decision loss that directly learns which same-day names belong above the Top10 boundary, while independently estimating ordinary-loss, severe-loss and weight uncertainty.",
+  "baseV6Config": "configs/research/perception_xalpha_twelve_factor_utility_weights_v6.json",
+  "baseV6Result": "outputs/edge_research/perception_xalpha_twelve_factor_utility_weights_v6/run_20260809_twelve_factor_utility_weights_v6/summary.json",
+  "preregisteredHypothesis": {
+    "frozenTwelveFactorsAndDirections": true,
+    "decisionLossFitsBaseDatesOnly": true,
+    "calibrationDatesAreIndependent": true,
+    "auditValidationShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsAdditionalModelTrials": 1
+  },
+  "decisionTraining": {
+    "method": "bounded_daily_equal_pairwise_top10_logistic",
+    "trueTopCount": 10,
+    "nearBoundaryNegativeCount": 20,
+    "realizedUtilityPenaltyNetLoss": 0.01,
+    "realizedUtilityPenaltySevereLoss": 0.02,
+    "minimumFactorWeight": 0.01,
+    "maximumFactorWeight": 0.25,
+    "l2ShrinkageToV6": 0.05,
+    "minimumCrossSectionRows": 100,
+    "blockSubsampleReplicas": 5,
+    "blockLengthTradingDays": 21,
+    "blockSubsampleFraction": 0.8,
+    "randomSeed": 70701,
+    "validationOrShadowMayTuneWeights": false
+  },
+  "calibration": {
+    "expectedReturn": "ridge_per_weight_replica_on_independent_calibration_block",
+    "expectedReturnRidgeAlpha": 10.0,
+    "netLossProbability": "l2_logistic_on_all_twelve_ranks_independent_calibration_block",
+    "severeLossProbability": "l2_logistic_on_all_twelve_ranks_independent_calibration_block",
+    "logisticC": 0.05,
+    "minimumCalibrationRows": 10000,
+    "uncertaintyPenalty": 1.0,
+    "utilityPenaltyNetLoss": 0.01,
+    "utilityPenaltySevereLoss": 0.02
+  },
+  "evaluation": {
+    "primaryTopCount": 10,
+    "minimumAuditNetLossAuc": 0.52,
+    "requireAuditBrierBetterThanPrior": true,
+    "requireValidationAndShadowGrossReturnPositive": true,
+    "requireValidationAndShadowTop10ImprovesV6Gross": true,
+    "requireValidationAndShadowTop10NonPositiveNotWorse": true,
+    "requireValidationAndShadowNetLossAucAboveRandom": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_decision_focused_weights_v7",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The twelve factors were previously selected and are not fresh hypotheses.",
+    "Pairwise decision loss improves ranking alignment but cannot create signal if the inputs contain no stable next-session information.",
+    "The five block-subsample replicas estimate weight instability, not the complete posterior predictive distribution.",
+    "Validation and shadow have already been viewed and can only reject this version.",
+    "Daily bars cannot reproduce opening queue priority at locked price limits."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

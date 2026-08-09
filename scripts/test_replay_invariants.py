@@ -10887,6 +10887,117 @@ def t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated() -> None
     )
 
 
+def t135_decision_focused_weights_are_causal_stable_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_perception_xalpha_decision_focused_weights_v7 as focused
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_decision_focused_weights_v7.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        focused.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T135 decision-focused weights are bounded and permanently research-only",
+        valid
+        and config["decisionTraining"]["minimumFactorWeight"] > 0.0
+        and not config["preregisteredHypothesis"]["historicalRunCanPromote"]
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCallBroker"] = True
+    try:
+        focused.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T135 broker permission fails closed", unsafe_rejected)
+
+    rng = np.random.default_rng(135)
+    dates = pd.bdate_range("2023-01-02", periods=100)
+    fit_dates = dates[:80]
+    columns = [f"S{index:03d}" for index in range(120)]
+    useful = pd.DataFrame(
+        rng.uniform(size=(len(dates), len(columns))), index=dates, columns=columns
+    )
+    ranks = {"useful": useful}
+    for index in range(11):
+        ranks[f"noise_{index}"] = pd.DataFrame(
+            rng.uniform(size=useful.shape), index=dates, columns=columns
+        )
+    returns = useful * 0.05 + pd.DataFrame(
+        rng.normal(scale=0.002, size=useful.shape), index=dates, columns=columns
+    )
+    prior = np.full(12, 1.0 / 12.0)
+    weights, audit = focused.fit_pairwise_weights(
+        ranks, returns, fit_dates, prior, config
+    )
+    future_changed = returns.copy()
+    future_changed.loc[dates[80:]] = rng.normal(
+        scale=100.0, size=future_changed.loc[dates[80:]].shape
+    )
+    unchanged_weights, _ = focused.fit_pairwise_weights(
+        ranks, future_changed, fit_dates, prior, config
+    )
+    lower = float(config["decisionTraining"]["minimumFactorWeight"])
+    upper = float(config["decisionTraining"]["maximumFactorWeight"])
+    check(
+        "T135 pairwise Top10 fit rewards useful evidence within the simplex",
+        audit["usedTradingDays"] == len(fit_dates)
+        and audit["pairCount"] == len(fit_dates) * 200
+        and abs(float(weights.sum()) - 1.0) < 1e-8
+        and bool(np.all(weights >= lower - 1e-9))
+        and bool(np.all(weights <= upper + 1e-9))
+        and weights[0] > float(np.median(weights[1:])),
+    )
+    check(
+        "T135 outcomes after the frozen fit block cannot rewrite weights",
+        bool(np.allclose(weights, unchanged_weights, atol=1e-12, rtol=0.0)),
+    )
+
+    replica_a = focused.block_subsample_dates(dates, config, 0)
+    replica_b = focused.block_subsample_dates(dates, config, 0)
+    check(
+        "T135 block replicas are deterministic unique training-only subsamples",
+        replica_a.equals(replica_b)
+        and replica_a.is_unique
+        and set(replica_a).issubset(set(dates))
+        and len(replica_a) < len(dates),
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_decision_focused_weights_v7.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T135 decision-focused research has no broker order or production path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11015,6 +11126,7 @@ if __name__ == "__main__":
     t132_rolling_factor_health_is_lagged_recoverable_and_isolated()
     t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated()
     t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated()
+    t135_decision_focused_weights_are_causal_stable_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
