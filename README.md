@@ -1,4 +1,7 @@
-# Perception-XAlpha Lite
+<h1>
+  <img src="docs/logo.svg" alt="" height="76" align="left" />
+  Perception-XAlpha Lite
+</h1>
 
 [![ci](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)

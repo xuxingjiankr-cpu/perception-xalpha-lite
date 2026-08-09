@@ -1,7 +1,18 @@
-# Logo drop-in spec
+# Logo and branding
 
-The README header is already wired for a logo. Save the artwork as `docs/logo.svg` (or
-`docs/logo.png`) and it appears immediately — no other edit needed.
+The mark now shipping is `docs/logo.svg`: two candidates stopped short of a threshold and one
+passing through it, which is the repository's thesis rather than a decoration. The gate is
+drawn as an open portal specifically so the crossing does not read as a plus sign, and only
+the surviving candidate is allowed the accent colour.
+
+It was checked by rendering at 220, 84, 48, 32 and 20 px against both `#ffffff` and
+`#0d1117` before being committed; earlier drafts with five candidate bars were rejected for
+turning into an unreadable blur below about 48 px.
+
+`docs/social-preview.png` (1280x640) is the share card — set it under
+**Settings → General → Social preview**, which cannot be done from the README.
+
+The spec below is kept for anyone replacing the mark.
 
 ## What to hand the designer
 

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Perception-XAlpha Lite">
+  <title>Perception-XAlpha Lite</title>
+  <desc>Three candidates meet a threshold. Two are stopped short of it; one passes through and continues.</desc>
+  <g fill="none" stroke-linecap="round">
+    <!-- candidates that do not survive the gate: stopped short, never reaching it -->
+    <g stroke="#64748b" stroke-width="54">
+      <path d="M72 128H250"/>
+      <path d="M72 384H278"/>
+    </g>
+    <!-- the threshold itself: a portal, drawn open so the mark cannot read as a plus sign -->
+    <path d="M392 64H330V448H392" stroke="#64748b" stroke-width="48" stroke-linejoin="round"/>
+    <!-- the one candidate that survives, and the only element allowed the accent colour -->
+    <path d="M72 256H464" stroke="#7c3aed" stroke-width="64"/>
+  </g>
+</svg>
