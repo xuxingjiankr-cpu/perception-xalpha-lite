@@ -145,20 +145,32 @@ def test_decision_module_has_no_execution_path() -> None:
     assert all(token not in source for token in forbidden)
 
 
-def test_public_research_content_is_english_only() -> None:
+def test_chinese_appears_only_in_declared_translations() -> None:
+    """Guard against private research notes leaking into the public repository.
+
+    The notes behind this project are written in Chinese, so a stray paragraph of it in a
+    public file is the visible symptom of a leak. Deliberate translations are a different
+    thing and are declared here by path. Everywhere else keeps a small budget \u2014 enough for a
+    language-switcher label, nowhere near enough for a sentence of research.
+    """
     root = Path(__file__).resolve().parents[1]
     cjk = re.compile(r"[\u3400-\u9fff]")
+    translations = {Path("docs/README_CN.md")}
+    label_budget = 8
     included = {".md", ".html", ".py", ".json", ".toml"}
     violations = []
     for path in root.rglob("*"):
+        relative = path.relative_to(root) if path.is_file() else None
         if (
-            not path.is_file()
+            relative is None
             or path.suffix not in included
-            or any(part.startswith(".") for part in path.relative_to(root).parts)
+            or any(part.startswith(".") for part in relative.parts)
             or "outputs" in path.parts
             or "data" in path.parts
+            or relative in translations
         ):
             continue
-        if cjk.search(path.read_text(encoding="utf-8")):
-            violations.append(str(path.relative_to(root)))
+        found = cjk.findall(path.read_text(encoding="utf-8"))
+        if len(found) > label_budget:
+            violations.append(f"{relative} ({len(found)} CJK characters)")
     assert violations == []
