@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Searches published factor libraries, backtests them point-in-time with real costs, and reports what actually survived. 456 searched, 4 survived costs, 4 under forward observation. Research-only; no profitability claim.">
+  <meta name="description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Perception-XAlpha Lite">
   <meta property="og:title" content="Perception-XAlpha Lite — falsification-first factor research">
-  <meta property="og:description" content="Searches published factor libraries, backtests them point-in-time with real costs, and reports what actually survived. 456 searched, 4 survived costs, 4 under forward observation. Research-only; no profitability claim.">
+  <meta property="og:description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
   <meta property="og:url" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/">
   <meta property="og:image" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/social-preview.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Perception-XAlpha Lite — falsification-first factor research">
-  <meta name="twitter:description" content="Searches published factor libraries, backtests them point-in-time with real costs, and reports what actually survived. 456 searched, 4 survived costs, 4 under forward observation. Research-only; no profitability claim.">
+  <meta name="twitter:description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
   <meta name="twitter:image" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/social-preview.png">
   <link rel="canonical" href="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/">
   <link rel="icon" type="image/svg+xml" href="logo.svg">
@@ -138,37 +138,65 @@
 
   <section id="survives">
     <h2>What the search actually produced</h2>
-    <p>A worked run, end to end: 456 published formulaic factors (Kakushadze&nbsp;101,
-      GTJA&nbsp;191, Qlib&nbsp;158, academic) over a point-in-time A-share panel, ranked
-      <strong>only on the training window</strong> by the net-of-cost excess of a ten-name
-      book, then reported on the untouched test window. Ten-session hold, 30&nbsp;bps
-      round-trip cost, limit-locked legs dropped rather than priced.</p>
+    <p>Every factor in four published libraries (Kakushadze&nbsp;101, GTJA&nbsp;191,
+      Qlib&nbsp;158, academic) over a point-in-time A-share panel, ranked
+      <strong>only on the training window</strong> by the mean excess of a ten-name book, then
+      reported on the untouched test window. 900 sessions split at 2024-12-31, rebalanced every
+      session, ten sessions held, entry and exit at the open after the signal, limit-locked legs
+      dropped rather than priced. Excess is against the equal-weight eligible universe, which
+      returned <strong>+0.85%</strong> per hold on the test window.</p>
     <table>
-      <thead><tr><th>#</th><th>factor</th><th>formula</th><th>test net</th><th>&gt;10% odds</th><th>max DD</th></tr></thead>
+      <thead><tr><th>#</th><th>factor</th><th>train excess</th><th>test excess</th><th>&gt;10% odds</th><th>worst hold</th><th>hit</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td><code>qlib158/rsqr60</code></td><td><code>ts_corr(close, t, 60)&sup2;</code></td><td><b>+0.36%</b></td><td>1.13&times;</td><td>&minus;17.9%</td></tr>
-        <tr><td>2</td><td><code>gtja191/alpha_120</code></td><td><code>rank(vwap&minus;close)/rank(vwap+close)</code></td><td>&minus;0.33%</td><td>0.42&times;</td><td>&minus;21.1%</td></tr>
-        <tr><td>3</td><td><code>alpha101/alpha_042</code></td><td><em>identical formula to #2</em></td><td>&minus;0.33%</td><td>0.42&times;</td><td>&minus;21.1%</td></tr>
-        <tr><td>4</td><td><code>qlib158/ma60</code></td><td><code>ts_mean(close, 60)/close</code></td><td>&minus;0.44%</td><td>1.31&times;</td><td>&minus;23.5%</td></tr>
-        <tr><td>5</td><td><code>qlib158/sumn60</code></td><td><code>&sum;max(&minus;&Delta;close,0)/&sum;|&Delta;close|</code></td><td>&minus;0.50%</td><td>1.31&times;</td><td>&minus;28.1%</td></tr>
+        <tr><td>1</td><td><code>academic/hml</code></td><td>+2.20%</td><td>&minus;0.04%</td><td>1.01&times;</td><td>&minus;17.5%</td><td>49.2%</td></tr>
+        <tr><td>2</td><td><code>qlib158/imin60</code></td><td>+0.81%</td><td>&minus;0.73%</td><td>0.53&times;</td><td>&minus;11.6%</td><td>36.7%</td></tr>
+        <tr><td>3</td><td><code>gtja191/alpha_144</code></td><td>+0.73%</td><td><strong>+0.17%</strong></td><td>1.16&times;</td><td>&minus;7.5%</td><td>46.5%</td></tr>
+        <tr><td>4</td><td><code>academic/cma</code></td><td>+0.67%</td><td><strong>+0.26%</strong></td><td>0.72&times;</td><td>&minus;9.4%</td><td>48.9%</td></tr>
+        <tr><td>5</td><td><code>qlib158/vsumn20</code></td><td>+0.66%</td><td><strong>+0.40%</strong></td><td>0.86&times;</td><td>&minus;6.4%</td><td>50.5%</td></tr>
       </tbody>
     </table>
-    <p><strong>One of five survives costs</strong>, against an eligible universe returning
-      +0.82% per hold. Three details matter more than the ranking. <strong>Rows 2 and 3 are
-      the same factor</strong> &mdash; GTJA-191 #120 and Kakushadze #42 are identical formulas
-      published under different names, so merging libraries and counting the total as
-      independent trials overstates the search's breadth. <strong>Row 4 has a rank-IC
-      t-statistic of 9.95 and still loses money</strong>, because it turns the book over fast
-      enough for costs to consume the edge: significance and tradability are different
-      questions. <strong>Row 1 is not a direction signal at all</strong> &mdash;
-      <code>rsqr60</code> measures how cleanly a price has trended, not which way.</p>
-    <p>Across the full top ten, four are net-positive; the best is <code>academic/illiq</code>
-      at +0.76% per hold with a &minus;10.5% drawdown, and the low-turnover names dominate.</p>
-    <p><strong>None of it is counted as evidence.</strong> Selected from 456 candidates, a
-      deflated Sharpe test at that trial count returns <code>consistent_with_luck</code>, and
-      ranking by a different but equally defensible train-side criterion produces a different
-      top five &mdash; which is exactly the instability this framework exists to expose. What
-      settles it is forward data, not more history.</p>
+    <p>Costs are excluded, and said to be. On an overlapping series three defensible turnover
+      conventions give three different answers, and a gross figure anyone can recompute is worth
+      more than a net one nobody can; at 30&nbsp;bps a round trip, a book that fully rotates each
+      hold gives back 0.30% of every number above. All 456 rows are published in
+      <a href="data/library_ranking.json">library_ranking.json</a>.</p>
+
+    <h2>Selection works, and it is not enough</h2>
+    <p>The number that matters is not in the table. Across all 456 factors, training-window
+      excess predicts test-window excess at Spearman <strong>&rho;&nbsp;=&nbsp;+0.48</strong>
+      (p&nbsp;&lt;&nbsp;0.001). Training-side ranking carries real information; anyone calling
+      this pure noise is contradicted by that number. Then look at what it buys.</p>
+    <table>
+      <thead><tr><th></th><th>mean test excess per hold</th><th>share beating the universe</th></tr></thead>
+      <tbody>
+        <tr><td>all 456 factors</td><td>&minus;0.71%</td><td>21.3%</td></tr>
+        <tr><td>the training-window top ten</td><td><strong>&minus;0.24%</strong></td><td>30.0%</td></tr>
+      </tbody>
+    </table>
+    <p>Choosing cleanly on the training window is worth <strong>+0.47 percentage points per
+      hold</strong> over choosing at random, and is <strong>still negative</strong>. The best ten
+      of 456, selected without a glance at the test window, went on to underperform the universe
+      they were drawn from &mdash; before a single basis point of cost. That is neither of the two
+      stories usually told: the signal is real, and it is smaller than what decay and
+      concentration take away.</p>
+    <p><strong>Row 1 is the problem in one line.</strong> <code>hml</code> leads the training
+      window by a mile and lands at zero out of sample, while the fifth-placed factor, at a third
+      of its training excess, is the best of the five on test. Ranks are correlated across the
+      full 456 and nearly unrelated at the top &mdash; which is exactly where everyone selects.
+      <strong>The libraries also contain duplicates:</strong> <code>gtja191/alpha_120</code> and
+      <code>alpha101/alpha_042</code> are identical formulas published under different names, and
+      this run reproduces them to the digit, so a deflated-Sharpe denominator should count
+      distinct behaviours rather than files.</p>
+    <p><strong>The table this replaces could not be reproduced.</strong> An earlier version
+      reported a different top five and nothing on disk could regenerate it. Rebuilding from its
+      description recovered the universe benchmark exactly, and matched no individual factor under
+      any of three rebalancing and cost conventions &mdash; one came out with the opposite sign.
+      Varying the convention until the numbers agreed would have been fitting the method to the
+      answer, so the table was replaced rather than reconciled. The four factors under forward
+      observation were chosen by that ranking; under this one they place 4th, 30th, 57th and
+      234th of 456. That does not weaken the forward record, which is tested by what happens after
+      the freeze rather than by how it was picked &mdash; but the account of why those four were
+      chosen cannot be checked.</p>
   </section>
 
   <section id="measured">
