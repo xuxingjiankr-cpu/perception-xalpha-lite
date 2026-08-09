@@ -43,6 +43,12 @@ chronological isolation, counterfactual controls, permutation tests, and multipl
 corrections. Historical evidence can produce a forward-shadow hypothesis; it can never
 produce an order. It is deliberately **not** a trading engine.
 
+## Research notes
+
+- **[Wiki](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/wiki)** — the measurements behind each design decision, including the rejected hypotheses
+- **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
+- **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
+
 ## What it actually does
 
 It is a full research loop, not only a critic:
