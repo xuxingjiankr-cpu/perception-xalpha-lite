@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "twelve_factor_alpha070_131_ablation_v3",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether GTJA Alpha 131 adds fixed incremental daily Top10 discrimination to the existing twelve-factor model, which already contains GTJA Alpha 070, without reopening factor search or refitting weights.",
+  "preregisteredAt": "2026-08-09T16:03:24+09:00",
+  "frozenTwelveFactorConfig": "configs/research/perception_xalpha_twelve_factor_utility_weights_v6.json",
+  "frozenTwelveFactorConfigFileSha256": "27f67b48fc91a288fdd6cf09ed428524d55762dff40a9294e2358a9b757c08ee",
+  "frozenTwelveFactorSource": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "frozenTwelveFactorSourceFileSha256": "58bb449915cbcb8b61eb06fdd6d25abdad9d4e07d733269a14709b1a29834492",
+  "frozenTwelveFactorWeights": "outputs/edge_research/perception_xalpha_twelve_factor_utility_weights_v6/run_20260809_twelve_factor_utility_weights_v6/summary.json",
+  "frozenTwelveFactorWeightsFileSha256": "6934b736180b20436ce38e4fd8bfd15df011fc57190396e47ff227cae5f4ef36",
+  "alpha070Module": "scripts/vendor/vibe_factors/src/factors/zoo/gtja191/alpha_070.py",
+  "alpha070ModuleFileSha256": "5bc0ad21bffe27bf24a716492111763be882cb0d6a721e5ad38275ad5a360f06",
+  "alpha131Module": "scripts/vendor/vibe_factors/src/factors/zoo/gtja191/alpha_131.py",
+  "alpha131ModuleFileSha256": "caf9f8a2cee6b7704239f75a81135bd78ec6e9722007b19af1bf370e408b52bc",
+  "top10EvaluationCode": "scripts/research_fundamental_top10_discrimination.py",
+  "top10EvaluationCodeFileSha256": "902c002a0d8671a474ea5cf32b0b1e94145b58ac5908bc9b391191bd19ca4ed2",
+  "factorContract": {
+    "baselineCount": 12,
+    "alpha070AlreadyInBaseline": true,
+    "alpha070Key": "gtja191/alpha_070",
+    "alpha070Direction": -1.0,
+    "alpha131Key": "gtja191/alpha_131",
+    "alpha131Direction": 1.0,
+    "industryNeutralisationClaimedForAlpha131": false,
+    "duplicateAlpha070Forbidden": true
+  },
+  "policies": {
+    "frozen_weighted_12_baseline": {
+      "definition": "exact frozen V6 twelve-factor directions and final weights"
+    },
+    "weighted_12_plus_alpha131_equal_insertion": {
+      "definition": "scale every frozen V6 weight by 12/13 and give oriented Alpha131 exactly 1/13"
+    },
+    "weighted_12_alpha070_alpha131_symmetric_pair": {
+      "definition": "give oriented Alpha070 and Alpha131 exactly 1/14 each; rescale the other eleven frozen factors to sum to 12/14"
+    }
+  },
+  "trialAccounting": {
+    "newPolicies": 3,
+    "poolWithPriorPriceVolumeTrials": false,
+    "historicalWinnerMaySetForwardPolicy": false,
+    "zeroImprovingPoliciesIsValid": true
+  },
+  "evaluation": {
+    "topCount": 10,
+    "signalTimestamp": "market_close_t",
+    "entryTimestamp": "next_buyable_open_t_plus_1",
+    "exitTimestamp": "next_sellable_open_t_plus_2",
+    "holdingTradingDays": 1,
+    "roundTripCost": 0.003,
+    "sameDatesAndCandidateUniverseForEveryPolicy": true,
+    "primaryMetrics": [
+      "top10_gross_up_probability",
+      "top10_net_positive_probability",
+      "top10_net_loss_probability",
+      "top10_mean_net_return",
+      "top10_median_net_return",
+      "net_return_lift_vs_rest",
+      "day_clustered_HAC"
+    ]
+  },
+  "incrementalAcceptance": {
+    "mustImproveGrossUpProbabilityVsBaseline": true,
+    "mustImproveNetPositiveProbabilityVsBaseline": true,
+    "mustReduceNetLossProbabilityVsBaseline": true,
+    "mustImproveMeanNetReturnVsBaseline": true,
+    "mustImproveMatchedControlReturnLiftVsBaseline": true,
+    "minimumPairedHacTForMeanNetImprovement": 2.0,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60
+  },
+  "forward": {
+    "cleanEvidenceStartsStrictlyAfter": "2026-08-07",
+    "historicalWinnerMayBeDeployed": false,
+    "historicalWinnerMayBeForwardSelected": false,
+    "requiresSeparatePreregistrationAfterHistoricalAudit": true
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_alpha070_131_ablation_v3",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "Alpha070 is already part of the twelve-factor baseline and cannot be counted twice.",
+    "The frozen twelve-factor source and its V6 weights failed their original trading-readiness verdict and are controls, not validated factors.",
+    "The historical window has already been viewed; it can reject the Alpha131 increment but cannot validate or select it for forward use.",
+    "Alpha131 is not an industry-neutral implementation and is neutralised only through the existing causal liquidity-bucket procedure."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
