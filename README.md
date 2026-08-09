@@ -69,8 +69,14 @@ turnover, not by signal strength.
 **None of this is counted as evidence yet.** These were selected from 456 candidates, and a
 deflated Sharpe test at that trial count returns `consistent_with_luck`. Ranking by a
 different but equally defensible train-side criterion produces a *different* top five, which
-is precisely the instability this framework exists to expose. What settles it is forward
-data, not more history.
+is precisely the instability this framework exists to expose.
+
+So the four net-positive factors are now **under forward observation against a frozen spec**
+— factor set, book size, holding period, cost and universe rules hashed on **2026-08-06**
+(`b19bbc74…`), predictions appended daily before outcomes exist, and scoring restricted to
+entries whose holding window has fully matured. The freeze step refuses to overwrite an
+existing spec, so a changed rule has to become a new record with a new hash rather than a
+quiet revision. Whatever that record says is the answer; nothing in the table above is.
 
 ## What it actually does
 
