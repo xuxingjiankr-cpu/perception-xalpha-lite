@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "fundamental_mechanism_families_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Evaluate four economically distinct point-in-time fundamental mechanism families without price-volume timing, historical factor selection, or fitted family weights; freeze an equal-family forward shadow record.",
+  "preregisteredAt": "2026-08-09T17:30:00+09:00",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseResearchConfigFileSha256": "2af84c0ff3b26a02abe6cb1db34a76a17e096b12dd1cbdfc19f652f3e8b76b1c",
+  "handoff": "docs/handoff_to_codex_factor_research.md",
+  "handoffFileSha256": "483f1cbb49b1a5e2a4f5c7b3c0a912b46787b028f637b31a2c2979594d3f728d",
+  "hypothesis": {
+    "primaryPolicy": "equal_weight_within_family_then_equal_weight_across_four_families",
+    "historicalFactorSelectionAllowedInPrimary": false,
+    "historicalWeightFittingAllowed": false,
+    "priceVolumeInputsAllowed": false,
+    "historicalRunCanPromote": false,
+    "freshForwardCanOnlySupportSeparateReview": true
+  },
+  "fundamentals": {
+    "root": "data/market/ashare_research/fundamentals_pit",
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateUsage": "fiscal_chronology_and_same_period_comparison_only_never_availability",
+    "sameAvailabilityDateRule": "latest_report_date_only",
+    "lateRestatementRule": "skip_non_advancing_report_date",
+    "maximumSignalAgeTradingDays": 130,
+    "requireAllCandidatesWithinFamily": true,
+    "requireAllFamiliesInPrimary": true,
+    "liquidityNeutraliseBins": 5
+  },
+  "families": {
+    "earnings_innovation": {
+      "economicMechanism": "Unexpected or accelerating profitability disclosed by the issuer can update cash-flow expectations before slow-moving portfolios fully rebalance.",
+      "candidates": [
+        {"id": "reported_net_profit_growth", "transform": "level", "field": "netProfitYoyPct", "scale": 50.0, "orientation": 1.0},
+        {"id": "net_profit_growth_acceleration", "transform": "change_from_prior_disclosed_report", "field": "netProfitYoyPct", "scale": 30.0, "orientation": 1.0},
+        {"id": "eps_yoy_innovation", "transform": "same_fiscal_period_symmetric_yoy", "field": "epsYtd", "scale": 1.0, "orientation": 1.0},
+        {"id": "parent_profit_yoy_innovation", "transform": "same_fiscal_period_symmetric_yoy", "field": "parentNetProfitYtd", "scale": 1.0, "orientation": 1.0}
+      ]
+    },
+    "growth_acceleration": {
+      "economicMechanism": "Revenue and operating-efficiency acceleration can reveal demand inflections that are not reducible to recent price action.",
+      "candidates": [
+        {"id": "reported_revenue_growth", "transform": "level", "field": "revenueYoyPct", "scale": 30.0, "orientation": 1.0},
+        {"id": "revenue_growth_acceleration", "transform": "change_from_prior_disclosed_report", "field": "revenueYoyPct", "scale": 20.0, "orientation": 1.0},
+        {"id": "revenue_ytd_yoy_innovation", "transform": "same_fiscal_period_symmetric_yoy", "field": "revenueYtd", "scale": 1.0, "orientation": 1.0},
+        {"id": "asset_turnover_acceleration", "transform": "change_from_prior_disclosed_report", "field": "totalAssetTurnover", "scale": 50.0, "orientation": 1.0}
+      ]
+    },
+    "quality": {
+      "economicMechanism": "Persistent profitability and capital efficiency can proxy for durable competitive advantage and lower fundamental fragility.",
+      "candidates": [
+        {"id": "return_on_equity", "transform": "level", "field": "roePct", "scale": 15.0, "orientation": 1.0},
+        {"id": "return_on_invested_capital", "transform": "level", "field": "roicPct", "scale": 20.0, "orientation": 1.0},
+        {"id": "gross_margin", "transform": "level", "field": "grossMarginPct", "scale": 30.0, "orientation": 1.0},
+        {"id": "net_margin", "transform": "level", "field": "netMarginPct", "scale": 10.0, "orientation": 1.0}
+      ]
+    },
+    "cash_flow_quality": {
+      "economicMechanism": "Cash conversion distinguishes reported accounting profit from earnings supported by operating cash generation.",
+      "candidates": [
+        {"id": "operating_cash_to_profit", "transform": "level", "field": "operatingCashToNetProfit", "scale": 1.0, "orientation": 1.0},
+        {"id": "operating_cash_to_revenue", "transform": "level", "field": "operatingCashToRevenue", "scale": 0.15, "orientation": 1.0},
+        {"id": "cash_to_profit_improvement", "transform": "change_from_prior_disclosed_report", "field": "operatingCashToNetProfit", "scale": 0.5, "orientation": 1.0},
+        {"id": "cash_margin_gap", "transform": "cash_margin_minus_net_margin", "field": "operatingCashToRevenue", "otherField": "netMarginPct", "otherScale": 0.01, "scale": 0.10, "orientation": 1.0}
+      ]
+    }
+  },
+  "evaluation": {
+    "signalTimestamp": "safe_disclosure_session_close",
+    "entryTimestamp": "next_buyable_open",
+    "holdingTradingDays": 20,
+    "roundTripCost": 0.003,
+    "topFraction": 0.10,
+    "minimumCrossSection": 50,
+    "firstTrailingSelectionYear": 2021,
+    "minimumTrailingDays": 250,
+    "trailingSelector": "highest_prior_net_information_ratio_top1",
+    "hindsightSelector": "highest_full_sample_net_information_ratio_top1",
+    "selectionExposureComparison": "same_trailing_oos_dates",
+    "trialAccounting": "separate_within_each_mechanism_family_never_pooled_with_price_volume_trials"
+  },
+  "forward": {
+    "frozenModelVersion": "fundamental_mechanism_families_v1_20260809",
+    "cleanEvidenceStartsStrictlyAfter": "2026-08-07",
+    "minimumIndependentForwardTradingDays": 60,
+    "topCount": 10,
+    "useOutcomesForRefit": false,
+    "allowParameterChangesInPlace": false,
+    "outputRoot": "outputs/edge_research/fundamental_mechanism_families_v1/forward"
+  },
+  "output": {
+    "root": "outputs/edge_research/fundamental_mechanism_families_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The source exposes currently retrievable statement versions, not a complete archive of every historical restatement vintage.",
+    "Historical industry membership is unavailable; causal trailing-liquidity neutralisation controls size only approximately.",
+    "Historical windows have already been viewed and are diagnostic, not pristine final out-of-sample evidence.",
+    "Daily bars cannot reconstruct opening-auction queue priority, and backward-adjusted prices are not a cash-dividend total-return index."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
