@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "Perception-XAlpha Lite: falsification-first formulaic factor research"
+message: "If you use this framework or its measurements, please cite it."
+type: software
+authors:
+  - alias: xuxingjiankr-cpu
+    website: "https://github.com/xuxingjiankr-cpu"
+repository-code: "https://github.com/xuxingjiankr-cpu/perception-xalpha-lite"
+url: "https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/"
+abstract: >-
+  A research framework that synthesises bounded symbolic factors, backtests them on
+  point-in-time data with explicit costs and tradability constraints, and subjects every
+  candidate to counterfactual controls, purged walk-forward validation, probability of
+  backtest overfitting, and deflated Sharpe correction before it may be believed. It
+  deliberately contains no execution path and makes no profitability claim. Includes measured
+  estimates of four common backtest biases, and a reproducible demonstration that hindsight
+  factor selection manufactures an information ratio of 4.53 from data with zero true edge.
+keywords:
+  - quantitative finance
+  - backtest overfitting
+  - factor investing
+  - deflated Sharpe ratio
+  - point-in-time data
+  - reproducible research
+  - multiple testing
+license: MIT
