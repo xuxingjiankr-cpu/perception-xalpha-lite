@@ -37,6 +37,25 @@ jobs:
         run: |
           python examples/selection_artifact.py
           python examples/run_synthetic.py
+          python examples/run_forward_record_synthetic.py
+
+      # The forward record's value is entirely in what it refuses. If a refusal ever
+      # stops firing the record silently becomes an ordinary backtest.
+      - name: Forward record still refuses
+        run: |
+          python - <<'PY'
+          import io, contextlib, sys
+          import examples.run_forward_record_synthetic as demo
+          buffer = io.StringIO()
+          with contextlib.redirect_stdout(buffer):
+              demo.main()
+          output = buffer.getvalue()
+          if "NOT REFUSED" in output or output.count("refused:") != 2:
+              sys.exit(f"forward-record refusals did not fire:\n{output}")
+          if '"orders": []' not in output:
+              sys.exit("scorecard did not report an empty order list")
+          print("ok: freeze, digest, duplicate and maturity guards all fired")
+          PY
 
       - name: No order path exists
         run: |
