@@ -18,6 +18,10 @@ No empirical research result is included.
 | Purged chronological validation | Overlapping outcome horizons can leak information across adjacent train/test samples | `make_split()` and purged walk-forward folds | Purge length must cover the maximum label horizon |
 | Counterfactual and placebo controls | A candidate should outperform mechanism-specific alternatives and a permutation distribution | Primary/Counter/Placebo evaluation | One lucky placebo draw is insufficient; the empirical distribution is required |
 | Proper probability scoring | Strictly proper scores incentivize honest probabilistic forecasts | `probability_metrics()` | AUC alone is insufficient; Brier, LogLoss, and calibration error are reported separately |
+| Stationary bootstrap | Geometrically distributed circular blocks preserve weak time dependence under resampling | `stationary_bootstrap_indices()` and mean intervals | Block length must be frozen and weak stationarity must be defensible |
+| Reality Check | The best member of a searched family must be tested against the joint data-snooping null | `white_reality_check()` | Global rejection does not identify an executable strategy |
+| Step-down max-t | Joint resampling and studentized step-down tests control family-wise error more powerfully than single-step correction | `romano_wolf_stepdown()` | Candidate family and benchmark must be frozen before testing |
+| False discovery rate | BH controls FDR under its dependence conditions; BY adds a conservative arbitrary-dependence correction | `benjamini_hochberg_qvalues()` and `benjamini_yekutieli_qvalues()` | FDR is complementary to, not a replacement for, family-wise inference |
 
 ### Primary references
 
@@ -33,6 +37,24 @@ No empirical research result is included.
 - Gneiting, T., & Raftery, A. E. (2007). *Strictly Proper Scoring Rules,
   Prediction, and Estimation*. Journal of the American Statistical Association,
   102(477), 359–378. [DOI](https://doi.org/10.1198/016214506000001437)
+- Politis, D. N., & Romano, J. P. (1994). *The Stationary Bootstrap*.
+  Journal of the American Statistical Association, 89(428), 1303–1313.
+  [DOI](https://doi.org/10.1080/01621459.1994.10476870)
+- White, H. (2000). *A Reality Check for Data Snooping*. Econometrica, 68(5),
+  1097–1126. [DOI](https://doi.org/10.1111/1468-0262.00152)
+- Romano, J. P., & Wolf, M. (2005). *Stepwise Multiple Testing as Formalized
+  Data Snooping*. Econometrica, 73(4), 1237–1282.
+  [DOI](https://doi.org/10.1111/j.1468-0262.2005.00615.x)
+- Benjamini, Y., & Hochberg, Y. (1995). *Controlling the False Discovery Rate:
+  A Practical and Powerful Approach to Multiple Testing*. Journal of the Royal
+  Statistical Society: Series B, 57(1), 289–300.
+  [DOI](https://doi.org/10.1111/j.2517-6161.1995.tb02031.x)
+- Benjamini, Y., & Yekutieli, D. (2001). *The Control of the False Discovery
+  Rate in Multiple Testing under Dependency*. Annals of Statistics, 29(4),
+  1165–1188. [DOI](https://doi.org/10.1214/aos/1013699998)
+
+The complete method contract and command-line workflow are documented in
+[EVIDENCE_LAB.md](EVIDENCE_LAB.md).
 
 ## Autonomous formulaic factor discovery
 

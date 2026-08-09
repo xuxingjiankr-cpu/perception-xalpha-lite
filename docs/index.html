@@ -64,7 +64,7 @@
 <body>
 <nav><div><div class="brand">Perception-<span>XAlpha</span></div><div class="links">
   <a href="#architecture">Architecture</a><a href="#primitives">Primitives</a>
-  <a href="#evidence">Research Basis</a><a href="#contract">Integrity Contract</a>
+  <a href="#lab">Evidence Lab</a><a href="#evidence">Research Basis</a><a href="#contract">Integrity Contract</a>
   <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">GitHub</a>
 </div></div></nav>
 <main>
@@ -80,7 +80,7 @@
   <div class="stats">
     <div class="stat"><b>PIT</b><span>Disclosure alignment</span></div>
     <div class="stat"><b>CSCV</b><span>Backtest-overfitting audit</span></div>
-    <div class="stat"><b>DSR</b><span>Selection-bias correction</span></div>
+    <div class="stat"><b>max-t</b><span>Joint family inference</span></div>
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
 
@@ -95,6 +95,7 @@
       <span class="node">Purged walk-forward</span><span class="arrow">→</span>
       <span class="node">Counter / Placebo</span><span class="arrow">→</span>
       <span class="node">PBO / DSR</span><span class="arrow">→</span>
+      <span class="node">Reality Check / Romano–Wolf</span><span class="arrow">→</span>
       <span class="node">Sealed forward shadow</span>
     </div>
   </section>
@@ -115,6 +116,20 @@
     </div>
   </section>
 
+  <section id="lab">
+    <h2>Dependence-aware Evidence Lab</h2>
+    <p>A standalone falsification workbench for a searched family of factors, forecasts, or
+      policies. One shared resampling design preserves serial and cross-candidate dependence,
+      then tests both the global winner and individual survivors.</p>
+    <div class="grid">
+      <div class="card"><b>Time dependence</b><h3>Stationary Bootstrap</h3><p>Geometrically distributed circular blocks preserve weak serial dependence and drive confidence intervals and every joint test from one frozen design.</p></div>
+      <div class="card"><b>Search-wide null</b><h3>White Reality Check</h3><p>Tests whether any member of the full searched family outperforms a frozen benchmark after recentering the joint bootstrap distribution.</p></div>
+      <div class="card"><b>Candidate attribution</b><h3>Romano–Wolf Step-down</h3><p>Studentized max-t inference controls family-wise error while retaining the measured dependence between competing candidates.</p></div>
+      <div class="card"><b>Discovery control</b><h3>BH / BY q-values</h3><p>Reports both standard false-discovery control and the conservative arbitrary-dependence correction—without treating either as deployment authority.</p></div>
+    </div>
+    <div class="actions"><a class="button secondary" href="EVIDENCE_LAB.md">Open the method contract</a></div>
+  </section>
+
   <section id="evidence">
     <h2>Research basis</h2>
     <p>The code follows published methods while retaining explicit implementation boundaries.</p>
@@ -125,6 +140,8 @@
       <div class="paper"><small>Calibration</small><h3>Strictly Proper Scoring Rules</h3><p>Proper scores incentivize honest probability forecasts and separate confidence from ranking. <a href="https://doi.org/10.1198/016214506000001437">Gneiting &amp; Raftery</a></p></div>
       <div class="paper"><small>Regime structure</small><h3>Markov-Switching Models</h3><p>Latent discrete states provide a tractable representation of regime-dependent dynamics. <a href="https://doi.org/10.2307/1912559">Hamilton</a></p></div>
       <div class="paper"><small>Symbolic discovery</small><h3>Formulaic Alpha Synthesis</h3><p>Modern research combines formula generation with dynamic factor selection; this repository uses a smaller audited DSL. <a href="https://arxiv.org/abs/2406.18394">AlphaForge</a></p></div>
+      <div class="paper"><small>Data snooping</small><h3>Reality Check</h3><p>The winner of a specification search must be tested against the joint null, not as a solitary preregistered strategy. <a href="https://doi.org/10.1111/1468-0262.00152">White</a></p></div>
+      <div class="paper"><small>Family-wise inference</small><h3>Step-down max-t</h3><p>Studentized joint resampling can control family-wise error while exploiting dependence to improve power. <a href="https://doi.org/10.1111/j.1468-0262.2005.00615.x">Romano &amp; Wolf</a></p></div>
     </div>
   </section>
 

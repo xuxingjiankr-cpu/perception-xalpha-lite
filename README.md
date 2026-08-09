@@ -33,6 +33,9 @@ problem. Three ideas anchor the design:
 3. **Prediction quality and decision quality are different objectives.** Decision-focused
    learning evaluates the downstream decision induced by a prediction rather than relying
    only on point-prediction error ([PMLR](https://proceedings.mlr.press/v119/elmachtoub20a.html)).
+4. **The winning candidate inherits the full search history.** The Evidence Lab combines
+   dependence-preserving resampling, White's Reality Check, and Romano–Wolf step-down
+   inference so a searched winner is never tested as if it had been specified in advance.
 
 The framework therefore optimizes only inside a preregistered research envelope and treats
 validation/shadow windows as reject-only evidence.
@@ -55,6 +58,7 @@ flowchart LR
         G --> H["Purged walk-forward"]
         H --> I["Primary / Counter / Placebo"]
         I --> J["PBO + Deflated Sharpe"]
+        J --> Q["Reality Check + step-down max-t"]
     end
     subgraph DECISION["Optional Decision Research"]
         G --> K["Top-K pairwise objective"]
@@ -85,6 +89,7 @@ distinguished. Availability in the library means **testable**, not **validated a
 | Finite-sample risk | Hoeffding lower bound | Distribution-free concentration | Dependence and effective sample size still require audit |
 | Validation | purge + walk-forward + controls | Temporal isolation and falsification | Validation/shadow never select parents or directions |
 | Search correction | CSCV/PBO + DSR | Backtest-overfitting and selection-bias control | Every attempted candidate counts, including failures |
+| Family evidence | stationary bootstrap + Reality Check + Romano–Wolf + BH/BY | Dependence-aware data-snooping and multiple-testing inference | A historical rejection is not a deployment decision |
 | Decision ranking | bounded Top-K pairwise loss | Decision-focused learning | Fit block only; cannot create absent signal |
 | Forecast reliability | Brier, LogLoss, AUC, ECE | Strictly proper scoring-rule framework | Calibration block is independent and frozen |
 
@@ -179,6 +184,7 @@ python -m venv .venv
 .venv/Scripts/pip install -e .
 python examples/run_synthetic.py
 python examples/run_decision_tools_synthetic.py
+python examples/run_evidence_lab_synthetic.py
 ```
 
 Run the factor-discovery CLI on local data:
@@ -191,6 +197,19 @@ xalpha-lite \
   --output outputs/result.json
 ```
 
+Stress-test a searched candidate family against a frozen benchmark:
+
+```bash
+xalpha-evidence \
+  --performance candidate_performance.csv \
+  --benchmark benchmark \
+  --date-column date \
+  --output outputs/evidence.json
+```
+
+See the [Dependence-aware Evidence Lab](docs/EVIDENCE_LAB.md) for its input contract,
+equations, preregistration requirements, and paper-to-code boundaries.
+
 ## Repository map
 
 ```text
@@ -199,11 +218,14 @@ src/xalpha_lite/
 ├── dsl.py                 # allowlisted causal expression language
 ├── discovery.py           # generation, neutral books, controls, PBO/DSR
 ├── decision.py            # Top-K weights, block replicas, calibration
+├── evidence.py            # stationary bootstrap, Reality Check, step-down inference
+├── evidence_cli.py        # searched-family evidence command line interface
 ├── paper_mechanisms.py    # auditable research primitives
 └── cli.py                 # research-only command line interface
 
 docs/
 ├── PAPERS.md              # literature-to-code traceability
+├── EVIDENCE_LAB.md        # dependence-aware family-level inference
 └── DECISION_TOOLKIT.md    # decision-research API and constraints
 ```
 
@@ -253,6 +275,8 @@ No empirical research artifact is committed to this repository.
   borrow availability, market impact, or venue-specific capacity.
 - HMM, EWS, BOCPD, DMD, LPPLS, Black–Litterman, and Triple Barrier are minimal auditable
   primitives, not production solvers and not claims of predictive power.
+- Stationary-bootstrap inference relies on a defensible weak-stationarity approximation;
+  no resampling procedure repairs contaminated data or an incomplete trial ledger.
 
 ## License
 
