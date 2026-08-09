@@ -1,0 +1,39 @@
+name: probe-throughput
+on: workflow_dispatch
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: How fast can a runner pull per-symbol bars?
+        run: |
+          python -m pip install -q baostock pandas
+          python - <<'PY'
+          import time
+          import baostock as bs
+          bs.login()
+          try:
+              rs = bs.query_all_stock(day="2026-08-07")
+              codes = []
+              while rs.error_code == "0" and rs.next():
+                  codes.append(rs.get_row_data()[0])
+              print(f"universe on 2026-08-07: {len(codes)} codes")
+
+              sample = [c for c in codes if c.startswith(("sh.6", "sz.0", "sz.3"))][:60]
+              start = time.time()
+              bars = 0
+              for code in sample:
+                  r = bs.query_history_k_data_plus(
+                      code, "date,open,high,low,close,volume,amount,isST,tradestatus",
+                      start_date="2026-01-01", end_date="2026-08-07", frequency="d", adjustflag="1")
+                  while r.error_code == "0" and r.next():
+                      r.get_row_data(); bars += 1
+              elapsed = time.time() - start
+              per = elapsed / len(sample)
+              print(f"{len(sample)} symbols, {bars} bars, {elapsed:.1f}s -> {per:.3f}s/symbol")
+              print(f"extrapolated for 5200 symbols: {per*5200/60:.1f} min")
+          finally:
+              bs.logout()
+          PY
