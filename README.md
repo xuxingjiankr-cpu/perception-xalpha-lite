@@ -13,15 +13,19 @@
 Here is the problem it exists to solve. Four hundred factors, every one of them pure noise
 with a true edge of exactly zero, evaluated on the same 500-day window:
 
-| how the top 10 were chosen | mean bps/day | annualised IR |
-|---|--:|--:|
-| on the outcome window | **+3.89** | **4.53** |
-| on trailing data only | −0.21 | −0.26 |
+![Two equity curves from 400 pure-noise factors: choosing the top ten on the outcome window compounds to 1.21x, choosing them on trailing data only ends at 0.99x](docs/selection_artifact.svg)
 
-An information ratio of 4.53 out of provably nothing. Reproduce it in about ten seconds:
+| how the top 10 were chosen | mean bps/day | annualised IR | 500-day compound |
+|---|--:|--:|--:|
+| on the outcome window | **+3.89** | **4.53** | **×1.21** |
+| on trailing data only | −0.21 | −0.26 | ×0.99 |
+
+An information ratio of 4.53 out of provably nothing. Reproduce both the numbers and the
+figure in about ten seconds:
 
 ```bash
 python examples/selection_artifact.py
+python examples/make_selection_artifact_figure.py   # regenerates the chart above
 ```
 
 That gap is not a bug in the data — it is what a backtest reports whenever the factor set is
