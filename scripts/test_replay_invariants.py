@@ -11094,6 +11094,29 @@ def t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only() -> None:
         and first[1]["eventDate"] > pd.Timestamp("2026-01-05"),
     )
 
+    same_day_context = [
+        statement("2025-03-31", "2026-04-24", 5.0),
+        statement("2026-03-31", "2026-04-24", 10.0),
+    ]
+    context_dates = pd.bdate_range("2026-04-20", periods=10)
+    contextual, contextual_audit = study.causal_fundamental_records_for_symbol(
+        same_day_context,
+        context_dates,
+        "SH.600000",
+        config["families"],
+    )
+    check(
+        "T136 same-day older report is causal context but only the latest report emits a signal",
+        len(contextual) == 1
+        and contextual[0]["reportDate"] == pd.Timestamp("2026-03-31")
+        and contextual[0]["eps_yoy_innovation"] is not None
+        and contextual[0]["revenue_ytd_yoy_innovation"] is not None
+        and contextual_audit.get(
+            "same_day_older_report_used_as_causal_context", 0
+        )
+        == 1,
+    )
+
     index = dates[:2]
     columns = ["A", "B"]
     eligible = pd.DataFrame(True, index=index, columns=columns)
@@ -11462,6 +11485,93 @@ def t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated() -> No
     )
 
 
+def t141_fundamental_second_stage_is_pit_fixed_support_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_twelve_factor_fundamental_second_stage_v5 as study
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_fundamental_second_stage_v5.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        study.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T141 fundamental reranking freezes a Top100, four families and five features",
+        valid
+        and config["firstStage"]["candidateCount"] == 100
+        and config["fundamentalFeatures"]["familyCount"] == 4
+        and config["fundamentalFeatures"]["reportDateMayDetermineAvailability"] is False
+        and config["ablations"]["regularizedFiveFeature"]["count"] == 5
+        and config["training"]["hyperparameterSearchAllowed"] is False,
+    )
+
+    dates = pd.bdate_range("2025-01-02", periods=3)
+    columns = pd.Index([f"SZ.{index:06d}" for index in range(120)])
+    score = pd.DataFrame(
+        np.tile(np.arange(120, dtype=float), (len(dates), 1)),
+        index=dates,
+        columns=columns,
+    )
+    family_scores = {
+        family: pd.DataFrame(
+            np.tile(np.linspace(0.0, 1.0, 120), (len(dates), 1)),
+            index=dates,
+            columns=columns,
+        )
+        for family in config["fundamentalFeatures"]["families"]
+    }
+    complete = pd.DataFrame(True, index=dates, columns=columns)
+    complete.loc[dates[0], columns[-1]] = False
+    features, support, _fundamental_score, _blend = study.make_stage2_features(
+        score, family_scores, complete, 100
+    )
+    check(
+        "T141 missing fundamentals fail closed inside the outcome-independent Top100",
+        len(features) == 5
+        and int(support.loc[dates[0]].sum()) == 99
+        and int(support.loc[dates[1]].sum()) == 100
+        and all(frame.where(~support).isna().all().all() for frame in features.values()),
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayAlterBuildDecision"] = True
+    try:
+        study.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    source = (
+        ROOT
+        / "scripts"
+        / "research_twelve_factor_fundamental_second_stage_v5.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T141 PIT fundamental study cannot trade or mutate production decisions",
+        unsafe_rejected
+        and "fundamental.build_event_table(" in source
+        and config["fundamentalFeatures"]["availabilityRule"]
+        == "first_market_date_strictly_after_max_notice_update"
+        and "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11596,6 +11706,7 @@ if __name__ == "__main__":
     t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated()
     t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades()
     t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated()
+    t141_fundamental_second_stage_is_pit_fixed_support_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

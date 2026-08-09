@@ -280,7 +280,7 @@ def causal_fundamental_records_for_symbol(
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Build PIT feature events; reportDate never controls availability."""
     audit: Counter[str] = Counter()
-    by_market_date: dict[pd.Timestamp, dict[str, Any]] = {}
+    by_market_date: dict[pd.Timestamp, dict[pd.Timestamp, dict[str, Any]]] = {}
     for raw in rows:
         notice = _date(raw.get("noticeDate"))
         update = _date(raw.get("updateDate"))
@@ -297,13 +297,10 @@ def causal_fundamental_records_for_symbol(
         candidate = dict(raw)
         candidate["_reportDate"] = report
         candidate["_availableRaw"] = available
-        incumbent = by_market_date.get(market_date)
-        if incumbent is None or report > incumbent["_reportDate"]:
-            if incumbent is not None:
-                audit["same_day_older_report_collapsed"] += 1
-            by_market_date[market_date] = candidate
-        else:
-            audit["same_day_older_report_collapsed"] += 1
+        bucket = by_market_date.setdefault(market_date, {})
+        if report in bucket:
+            audit["same_day_same_report_collapsed"] += 1
+        bucket[report] = candidate
 
     definitions = [
         (family, candidate)
@@ -313,13 +310,23 @@ def causal_fundamental_records_for_symbol(
     history: dict[pd.Timestamp, dict[str, Any]] = {}
     previous: dict[str, Any] | None = None
     records: list[dict[str, Any]] = []
-    for market_date, current in sorted(by_market_date.items()):
+    for market_date, bucket in sorted(by_market_date.items()):
+        ordered = sorted(bucket.items())
+        for contextual_report, contextual in ordered[:-1]:
+            history[contextual_report] = contextual
+            audit["same_day_older_report_used_as_causal_context"] += 1
+        report, current = ordered[-1]
         report = current["_reportDate"]
         if previous is not None and report <= previous["_reportDate"]:
+            history[report] = current
             audit["non_advancing_report_date_skipped"] += 1
             continue
         prior_key = report - pd.DateOffset(years=1)
         prior_year = history.get(pd.Timestamp(prior_key).normalize())
+        prior_reports = [known for known in history if known < report]
+        prior_disclosed = (
+            history[max(prior_reports)] if prior_reports else previous
+        )
         record: dict[str, Any] = {
             "eventDate": market_date,
             "securityId": security_id,
@@ -330,7 +337,9 @@ def causal_fundamental_records_for_symbol(
         }
         available_count = 0
         for family, definition in definitions:
-            value = candidate_value(definition, current, previous, prior_year)
+            value = candidate_value(
+                definition, current, prior_disclosed, prior_year
+            )
             record[str(definition["id"])] = value
             if value is not None:
                 available_count += 1
