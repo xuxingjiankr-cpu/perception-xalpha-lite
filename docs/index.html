@@ -85,30 +85,38 @@
   </div>
 
   <section id="survives">
-    <h2>What survives so far</h2>
-    <p>The pipeline's best candidate to date &mdash; ten-session hold, 30&nbsp;bps round-trip
-      cost, selected on the training window and reported on the untouched test window.</p>
+    <h2>What the search actually produced</h2>
+    <p>A worked run, end to end: 456 published formulaic factors (Kakushadze&nbsp;101,
+      GTJA&nbsp;191, Qlib&nbsp;158, academic) over a point-in-time A-share panel, ranked
+      <strong>only on the training window</strong> by the net-of-cost excess of a ten-name
+      book, then reported on the untouched test window. Ten-session hold, 30&nbsp;bps
+      round-trip cost, limit-locked legs dropped rather than priced.</p>
     <table>
-      <thead><tr><th></th><th>candidate</th><th>eligible universe</th></tr></thead>
+      <thead><tr><th>#</th><th>factor</th><th>formula</th><th>test net</th><th>&gt;10% odds</th><th>max DD</th></tr></thead>
       <tbody>
-        <tr><td>mean return per 10-session hold</td><td><b>+1.72%</b></td><td>+0.41%</td></tr>
-        <tr><td>net of 30&nbsp;bps round-trip cost</td><td><b>+0.58%</b></td><td>&mdash;</td></tr>
-        <tr><td>probability of a &gt;10% move</td><td><b>23.9%</b></td><td>11.7%</td></tr>
-        <tr><td>probability of rising at all</td><td>50.0%</td><td>47.5%</td></tr>
-        <tr><td>maximum drawdown, test window</td><td>&minus;19.5%</td><td>&mdash;</td></tr>
+        <tr><td>1</td><td><code>qlib158/rsqr60</code></td><td><code>ts_corr(close, t, 60)&sup2;</code></td><td><b>+0.36%</b></td><td>1.13&times;</td><td>&minus;17.9%</td></tr>
+        <tr><td>2</td><td><code>gtja191/alpha_120</code></td><td><code>rank(vwap&minus;close)/rank(vwap+close)</code></td><td>&minus;0.33%</td><td>0.42&times;</td><td>&minus;21.1%</td></tr>
+        <tr><td>3</td><td><code>alpha101/alpha_042</code></td><td><em>identical formula to #2</em></td><td>&minus;0.33%</td><td>0.42&times;</td><td>&minus;21.1%</td></tr>
+        <tr><td>4</td><td><code>qlib158/ma60</code></td><td><code>ts_mean(close, 60)/close</code></td><td>&minus;0.44%</td><td>1.31&times;</td><td>&minus;23.5%</td></tr>
+        <tr><td>5</td><td><code>qlib158/sumn60</code></td><td><code>&sum;max(&minus;&Delta;close,0)/&sum;|&Delta;close|</code></td><td>&minus;0.50%</td><td>1.31&times;</td><td>&minus;28.1%</td></tr>
       </tbody>
     </table>
-    <p>It roughly doubles the chance of a large gain while barely changing the chance of any
-      gain at all: the search finds right-tail skew, not a higher win rate. For a concentrated
-      book that is the more useful property, and it is the first candidate here to stay
-      positive after costs.</p>
-    <p><strong>It is not counted as evidence, and the reasons are specific.</strong> It was
-      selected from 456 candidates, and a deflated Sharpe test at that trial count returns
-      <code>consistent_with_luck</code>. A 50% win rate means the return lives in a thin right
-      tail, the least stable part of a distribution to estimate. The &minus;19.5% drawdown
-      already happened inside the test window. No unseen historical window remains to appeal
-      to. What settles it is forward data, not more history &mdash; the candidate is frozen and
-      under forward observation, and that record is what decides it.</p>
+    <p><strong>One of five survives costs</strong>, against an eligible universe returning
+      +0.82% per hold. Three details matter more than the ranking. <strong>Rows 2 and 3 are
+      the same factor</strong> &mdash; GTJA-191 #120 and Kakushadze #42 are identical formulas
+      published under different names, so merging libraries and counting the total as
+      independent trials overstates the search's breadth. <strong>Row 4 has a rank-IC
+      t-statistic of 9.95 and still loses money</strong>, because it turns the book over fast
+      enough for costs to consume the edge: significance and tradability are different
+      questions. <strong>Row 1 is not a direction signal at all</strong> &mdash;
+      <code>rsqr60</code> measures how cleanly a price has trended, not which way.</p>
+    <p>Across the full top ten, four are net-positive; the best is <code>academic/illiq</code>
+      at +0.76% per hold with a &minus;10.5% drawdown, and the low-turnover names dominate.</p>
+    <p><strong>None of it is counted as evidence.</strong> Selected from 456 candidates, a
+      deflated Sharpe test at that trial count returns <code>consistent_with_luck</code>, and
+      ranking by a different but equally defensible train-side criterion produces a different
+      top five &mdash; which is exactly the instability this framework exists to expose. What
+      settles it is forward data, not more history.</p>
   </section>
 
   <section id="measured">

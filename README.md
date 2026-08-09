@@ -30,32 +30,47 @@ produce an order. It is deliberately **not** a trading engine.
 
 ## What survives so far
 
-The pipeline's best candidate to date, held ten sessions, costed at 30 bps round trip,
-selected on the training window and reported on the untouched test window:
+A worked run, end to end: 456 published formulaic factors (Kakushadze 101, GTJA 191, Qlib 158,
+academic) searched over a point-in-time A-share panel, ranked **only on the training window**
+by the net-of-cost excess of a ten-name book, then reported on the untouched test window.
+Ten-session hold, 30 bps round-trip cost on realised turnover, limit-locked legs dropped
+rather than priced.
 
-| | candidate | eligible universe |
-|---|--:|--:|
-| mean return per 10-session hold | **+1.72%** | +0.41% |
-| net of 30 bps round-trip cost | **+0.58%** | — |
-| probability of a >10% move | **23.9%** | 11.7% |
-| probability of rising at all | 50.0% | 47.5% |
-| maximum drawdown, test window | −19.5% | — |
+| # | factor | formula | reads as | TEST net | >10% odds | max DD |
+|---|---|---|---|--:|--:|--:|
+| 1 | `qlib158/rsqr60` | `ts_corr(close, t, 60)²` | how *linear* the last 60 days were — trend quality, not direction | **+0.36%** | 1.13× | −17.9% |
+| 2 | `gtja191/alpha_120` | `rank(vwap−close) / rank(vwap+close)` | where the close sits against the day's average price | −0.33% | 0.42× | −21.1% |
+| 3 | `alpha101/alpha_042` | `rank(vwap−close) / rank(vwap+close)` | *identical formula to #2* | −0.33% | 0.42× | −21.1% |
+| 4 | `qlib158/ma60` | `ts_mean(close, 60) / close` | distance below the 60-day average | −0.44% | 1.31× | −23.5% |
+| 5 | `qlib158/sumn60` | `Σ max(−Δclose,0) / Σ \|Δclose\|` | share of the last 60 days' movement that was downward | −0.50% | 1.31× | −28.1% |
 
-It roughly **doubles the chance of a large gain** while barely changing the chance of any
-gain at all — the search finds right-tail skew, not a higher win rate. For a concentrated
-book that is the more useful property, and it is the first candidate here to stay positive
-after costs.
+Net is per ten-session hold after costs, against an eligible universe returning +0.82%.
+">10% odds" is the probability of a >10% move relative to that universe.
 
-**We do not count it yet, and the reasons are specific.** It was selected from 456
-candidates, and a deflated Sharpe test at that trial count returns
-`consistent_with_luck`. A 50% win rate means the return lives in a thin right tail, which is
-the least stable part of any distribution to estimate. The −19.5% drawdown already happened
-inside the test window, so a live one can be worse. And no unseen historical window remains
-to appeal to.
+**One of the five survives costs.** That is the honest yield of a clean train-side ranking,
+and it is the number most factor libraries never report.
 
-What settles it is forward data, not more history. The candidate is frozen and under forward
-observation; that record, not this table, is what will decide it. Until then this is the
-honest description: **the best thing the pipeline has produced, and not yet evidence.**
+Three things in this table are worth more than the ranking itself:
+
+- **Rows 2 and 3 are the same factor.** GTJA-191 #120 and Kakushadze #42 are character-for-
+  character identical formulas published under different names. Merging factor libraries and
+  counting the total as independent trials therefore overstates the search's breadth — the
+  deflated-Sharpe denominator should count *behaviours*, not files.
+- **Row 4 has a rank-IC t-statistic of 9.95 and still loses money.** The signal is real and
+  strongly significant; it turns the book over fast enough that costs consume it. Statistical
+  significance and tradability are different questions, and only one of them pays.
+- **Row 1 is not a direction signal at all.** `rsqr60` measures how cleanly a price has been
+  trending, not which way. The surviving candidate is a *quality-of-trend* filter.
+
+Across the full top ten, four are net-positive; the best is `academic/illiq` at **+0.76%** per
+hold with a **−10.5%** drawdown, and the low-turnover names dominate — outcomes here order by
+turnover, not by signal strength.
+
+**None of this is counted as evidence yet.** These were selected from 456 candidates, and a
+deflated Sharpe test at that trial count returns `consistent_with_luck`. Ranking by a
+different but equally defensible train-side criterion produces a *different* top five, which
+is precisely the instability this framework exists to expose. What settles it is forward
+data, not more history.
 
 ## What it actually does
 
