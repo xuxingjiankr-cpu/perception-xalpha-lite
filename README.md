@@ -1,22 +1,42 @@
 # Perception-XAlpha Lite
 
+[![ci](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Research Status](https://img.shields.io/badge/status-research--only-7C3AED)](#research-integrity-contract)
 [![Point-in-Time](https://img.shields.io/badge/data-point--in--time-0891B2)](#point-in-time-data-contract)
 [![Safe DSL](https://img.shields.io/badge/factor%20language-audited%20DSL-059669)](src/xalpha_lite/dsl.py)
 [![License](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
 
-> An auditable, point-in-time research framework for autonomous formulaic factor
-> discovery, causal validation, and decision-focused ranking. It is deliberately
-> **not** a trading engine.
+> **Quantitative discovery is a multiple-comparisons problem disguised as an optimization
+> problem.** This framework is built to find fewer factors, on purpose.
 
-Perception-XAlpha Lite separates **hypothesis generation** from **evidence acceptance**.
-It can synthesize bounded symbolic factors, but every candidate must survive chronological
-isolation, counterfactual controls, permutation tests, and multiple-testing corrections.
-Historical evidence can produce a forward-shadow hypothesis; it can never produce an order.
+Here is the problem it exists to solve. Four hundred factors, every one of them pure noise
+with a true edge of exactly zero, evaluated on the same 500-day window:
 
-This public repository contains **methods only**. It includes no proprietary data, empirical
-factor weights, securities, performance tables, or private research conclusions.
+| how the top 10 were chosen | mean bps/day | annualised IR |
+|---|--:|--:|
+| on the outcome window | **+3.89** | **4.53** |
+| on trailing data only | −0.21 | −0.26 |
+
+An information ratio of 4.53 out of provably nothing. Reproduce it in about ten seconds:
+
+```bash
+python examples/selection_artifact.py
+```
+
+That gap is not a bug in the data — it is what a backtest reports whenever the factor set is
+chosen after the fact. It is also larger than most published equity-factor results, which is
+why a framework that cannot audit its own selection step cannot tell discovery from noise.
+
+Perception-XAlpha Lite therefore separates **hypothesis generation** from **evidence
+acceptance**. It can synthesize bounded symbolic factors, but every candidate must survive
+chronological isolation, counterfactual controls, permutation tests, and multiple-testing
+corrections. Historical evidence can produce a forward-shadow hypothesis; it can never
+produce an order. It is deliberately **not** a trading engine.
+
+This public repository contains **methods only** — no proprietary data, empirical factor
+weights, securities, performance tables, or private research conclusions. **It makes no
+profitability claim, and it never will.** The examples are synthetic.
 
 ## Why this architecture exists
 
@@ -182,6 +202,7 @@ imputed.
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -e .
+python examples/selection_artifact.py          # why this framework exists, in ~10s
 python examples/run_synthetic.py
 python examples/run_decision_tools_synthetic.py
 python examples/run_evidence_lab_synthetic.py
