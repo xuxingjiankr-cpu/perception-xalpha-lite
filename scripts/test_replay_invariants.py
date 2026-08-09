@@ -10998,6 +10998,139 @@ def t135_decision_focused_weights_are_causal_stable_and_isolated() -> None:
     )
 
 
+def t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_fundamental_mechanism_families as study
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "fundamental_mechanism_families_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        study.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    family_trials = {
+        family: len(definition["candidates"])
+        for family, definition in config["families"].items()
+    }
+    check(
+        "T136 four PIT fundamental trial ledgers are separate and primary weights are frozen equal",
+        valid
+        and set(family_trials)
+        == {"earnings_innovation", "growth_acceleration", "quality", "cash_flow_quality"}
+        and all(count == 4 for count in family_trials.values())
+        and config["evaluation"]["trialAccounting"].startswith("separate_within_each")
+        and not config["hypothesis"]["historicalFactorSelectionAllowedInPrimary"]
+        and not config["hypothesis"]["historicalWeightFittingAllowed"],
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayConnectToTrading"] = True
+    try:
+        study.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T136 any trading permission fails closed", unsafe_rejected)
+
+    dates = pd.bdate_range("2026-01-02", periods=20)
+
+    def statement(report: str, notice: str, value: float) -> dict:
+        return {
+            "reportDate": report,
+            "noticeDate": notice,
+            "updateDate": notice,
+            "netProfitYoyPct": value,
+            "revenueYoyPct": value,
+            "epsYtd": value,
+            "parentNetProfitYtd": value,
+            "revenueYtd": value,
+            "totalAssetTurnover": value,
+            "roePct": value,
+            "roicPct": value,
+            "grossMarginPct": value,
+            "netMarginPct": value,
+            "operatingCashToNetProfit": value,
+            "operatingCashToRevenue": value / 100.0,
+        }
+
+    prefix = [
+        statement("2024-09-30", "2026-01-02", 5.0),
+        statement("2025-09-30", "2026-01-05", 10.0),
+    ]
+    first, _ = study.causal_fundamental_records_for_symbol(
+        prefix, dates, "SH.600000", config["families"]
+    )
+    extended, _ = study.causal_fundamental_records_for_symbol(
+        prefix + [statement("2025-12-31", "2026-01-16", -20.0)],
+        dates,
+        "SH.600000",
+        config["families"],
+    )
+    check(
+        "T136 future filing cannot alter an earlier fundamental feature record",
+        len(first) == 2 and extended[: len(first)] == first,
+    )
+    check(
+        "T136 notice-day filing is invisible until the first strictly later market session",
+        first[1]["eventDate"] == pd.Timestamp("2026-01-06"),
+    )
+    check(
+        "T136 reportDate is fiscal chronology only and never an availability timestamp",
+        first[1]["reportDate"] == pd.Timestamp("2025-09-30")
+        and first[1]["eventDate"] > pd.Timestamp("2026-01-05"),
+    )
+
+    index = dates[:2]
+    columns = ["A", "B"]
+    eligible = pd.DataFrame(True, index=index, columns=columns)
+    a = pd.DataFrame([[0.2, 0.6], [0.4, np.nan]], index=index, columns=columns)
+    b = pd.DataFrame([[0.8, 0.4], [0.6, 0.2]], index=index, columns=columns)
+    composite, common = study.equal_rank_composite({"a": a, "b": b}, eligible)
+    check(
+        "T136 equal composite uses exact weights and never reweights a missing component",
+        abs(float(composite.loc[index[0], "A"]) - 0.5) < 1e-12
+        and abs(float(composite.loc[index[0], "B"]) - 0.5) < 1e-12
+        and pd.isna(composite.loc[index[1], "B"])
+        and not bool(common.loc[index[1], "B"]),
+    )
+
+    exposure_dates = pd.bdate_range("2019-01-02", periods=900)
+    useful = pd.Series(np.linspace(-0.001, 0.002, len(exposure_dates)), index=exposure_dates)
+    weak = pd.Series(np.linspace(0.001, -0.001, len(exposure_dates)), index=exposure_dates)
+    exposure = study.selection_exposure({"useful": useful, "weak": weak}, config)
+    check(
+        "T136 hindsight and trailing selectors disclose net results on identical dates",
+        exposure.get("sameEvaluationDates") is True
+        and exposure.get("evaluationDays", 0) > 0
+        and exposure.get("selectionOverfitExposureBpsPerDay") is not None,
+    )
+
+    source = (
+        ROOT / "scripts" / "research_fundamental_mechanism_families.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T136 fundamental-family study has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11127,6 +11260,7 @@ if __name__ == "__main__":
     t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated()
     t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated()
     t135_decision_focused_weights_are_causal_stable_and_isolated()
+    t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
