@@ -1,0 +1,36 @@
+name: probe-data
+on: workflow_dispatch
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Can a GitHub runner reach Chinese market data?
+        run: |
+          python -m pip install -q baostock akshare 2>&1 | tail -1
+          python - <<'PY'
+          import socket
+          socket.setdefaulttimeout(45)
+          try:
+              import baostock as bs
+              lg = bs.login()
+              print("baostock login:", lg.error_code, lg.error_msg)
+              rs = bs.query_history_k_data_plus("sh.000016", "date,open,close",
+                                                start_date="2026-07-01", end_date="2026-08-10", frequency="d")
+              rows = []
+              while rs.error_code == "0" and rs.next():
+                  rows.append(rs.get_row_data())
+              print("baostock rows:", len(rows), rows[-1] if rows else None)
+              bs.logout()
+          except Exception as e:
+              print("baostock FAILED:", type(e).__name__, str(e)[:120])
+          try:
+              import akshare as ak
+              d = ak.index_zh_a_hist(symbol="000016", period="daily",
+                                     start_date="20260701", end_date="20260810")
+              print("akshare rows:", len(d))
+          except Exception as e:
+              print("akshare FAILED:", type(e).__name__, str(e)[:120])
+          PY
