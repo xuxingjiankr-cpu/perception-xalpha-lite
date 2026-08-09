@@ -84,6 +84,33 @@
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
 
+  <section id="survives">
+    <h2>What survives so far</h2>
+    <p>The pipeline's best candidate to date &mdash; ten-session hold, 30&nbsp;bps round-trip
+      cost, selected on the training window and reported on the untouched test window.</p>
+    <table>
+      <thead><tr><th></th><th>candidate</th><th>eligible universe</th></tr></thead>
+      <tbody>
+        <tr><td>mean return per 10-session hold</td><td><b>+1.72%</b></td><td>+0.41%</td></tr>
+        <tr><td>net of 30&nbsp;bps round-trip cost</td><td><b>+0.58%</b></td><td>&mdash;</td></tr>
+        <tr><td>probability of a &gt;10% move</td><td><b>23.9%</b></td><td>11.7%</td></tr>
+        <tr><td>probability of rising at all</td><td>50.0%</td><td>47.5%</td></tr>
+        <tr><td>maximum drawdown, test window</td><td>&minus;19.5%</td><td>&mdash;</td></tr>
+      </tbody>
+    </table>
+    <p>It roughly doubles the chance of a large gain while barely changing the chance of any
+      gain at all: the search finds right-tail skew, not a higher win rate. For a concentrated
+      book that is the more useful property, and it is the first candidate here to stay
+      positive after costs.</p>
+    <p><strong>It is not counted as evidence, and the reasons are specific.</strong> It was
+      selected from 456 candidates, and a deflated Sharpe test at that trial count returns
+      <code>consistent_with_luck</code>. A 50% win rate means the return lives in a thin right
+      tail, the least stable part of a distribution to estimate. The &minus;19.5% drawdown
+      already happened inside the test window. No unseen historical window remains to appeal
+      to. What settles it is forward data, not more history &mdash; the candidate is frozen and
+      under forward observation, and that record is what decides it.</p>
+  </section>
+
   <section id="measured">
     <h2>Four biases, measured and removed</h2>
     <p>Each was quantified on a real equity panel while building this pipeline, and each is
