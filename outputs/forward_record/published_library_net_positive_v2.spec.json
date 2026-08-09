@@ -1,0 +1,128 @@
+{
+  "name": "published_library_net_positive_v2",
+  "predecessor": {
+    "name": "published_library_net_positive_v1",
+    "spec_sha256": "b19bbc74139765dd6a38609b322c4e1c820dbed2b9cdbf9fc02ed12c984d906c",
+    "relationship": "same four factors, expressed portably; v1 continues unmodified"
+  },
+  "rationale": "Four factors from a 456-candidate published-library search whose ten-name book remained net-positive after 30bps costs on the untouched test window. A deflated Sharpe test at that trial count returns consistent_with_luck, so this record exists to settle the question with data that did not exist when the rules were written.",
+  "factors": {
+    "qlib158/rsqr60": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      }
+    },
+    "qlib158/rsqr30": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      }
+    },
+    "academic/illiq": {
+      "rolling": "mean",
+      "arg": {
+        "binary": "div",
+        "left": {
+          "unary": "abs",
+          "arg": {
+            "field": "returns"
+          }
+        },
+        "right": {
+          "binary": "mul",
+          "left": {
+            "field": "close"
+          },
+          "right": {
+            "field": "volume"
+          }
+        }
+      },
+      "window": 21
+    },
+    "academic/cma": {
+      "unary": "neg",
+      "arg": {
+        "binary": "sub",
+        "left": {
+          "unary": "signed_log1p",
+          "arg": {
+            "rolling": "mean",
+            "arg": {
+              "field": "volume"
+            },
+            "window": 60
+          }
+        },
+        "right": {
+          "lag": 60,
+          "arg": {
+            "unary": "signed_log1p",
+            "arg": {
+              "rolling": "mean",
+              "arg": {
+                "field": "volume"
+              },
+              "window": 60
+            }
+          }
+        }
+      }
+    }
+  },
+  "windows": [
+    21,
+    30,
+    60
+  ],
+  "combination": "equal_weight_rank_average",
+  "book_size": 10,
+  "holding_days": 10,
+  "round_trip_cost": 0.003,
+  "universe": {
+    "trailing_amount_window": 60,
+    "minimum_trailing_median_amount": 30000000.0,
+    "minimum_prior_observations": 120,
+    "exclude_st": true,
+    "require_normal_trade_status": true
+  },
+  "scoring_rule": "Book return from the open after the signal to the open ten sessions later, minus the eligible-universe mean over the same bars, minus one round trip at the frozen rate. Legs sealed at the limit on the entry session are dropped; a leg sealed limit-down at exit is carried to the first session it could be sold on.",
+  "status": "research_only_forward_record_not_trading",
+  "frozen_at": "2026-08-09T10:25:11.192325+00:00",
+  "spec_sha256": "c076844940606f897eb18389590381401361a29f69c3bcfa5274a495dd495099"
+}

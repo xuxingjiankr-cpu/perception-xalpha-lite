@@ -1,0 +1,26 @@
+{
+  "specName": "published_library_net_positive_v1",
+  "status": "research_only_forward_record_not_trading",
+  "frozenAt": "2026-08-09T07:50:38.214154+00:00",
+  "rationale": "Four factors from a 456-candidate published-library search whose ten-name book remained net-positive after 30bps costs on the untouched test window. A deflated Sharpe test at that trial count returns consistent_with_luck, so this record exists to settle the question with data that did not exist when the rules were written.",
+  "factors": [
+    "qlib158/rsqr60",
+    "qlib158/rsqr30",
+    "academic/illiq",
+    "academic/cma"
+  ],
+  "combination": "equal_weight_rank_average",
+  "bookSize": 10,
+  "holdingTradingDays": 10,
+  "roundTripCost": 0.003,
+  "universe": {
+    "trailingAmountWindow": 60,
+    "minimumTrailingMedianAmountCny": 30000000,
+    "minimumPriorObservations": 120,
+    "excludeSt": true,
+    "requireNormalTradeStatus": true,
+    "dropSealedLimitLegs": true
+  },
+  "scoringRule": "Book return over the holding period, minus the eligible-universe mean over the same period. Cost is charged on realised turnover at the frozen rate.",
+  "specSha256": "b19bbc74139765dd6a38609b322c4e1c820dbed2b9cdbf9fc02ed12c984d906c"
+}
