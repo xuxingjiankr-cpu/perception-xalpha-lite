@@ -11131,6 +11131,109 @@ def t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only() -> None:
     )
 
 
+def t137_fixed_top10_discrimination_is_executable_clustered_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_fundamental_top10_discrimination as top10
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "fundamental_top10_discrimination_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        top10.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    check(
+        "T137 direct objective is exactly Top10 with T+1 execution and all gates required",
+        valid
+        and config["objective"]["topCount"] == 10
+        and config["execution"]["holdingTradingDays"] == 1
+        and config["execution"]["roundTripCost"] == 0.003
+        and config["preregisteredAcceptanceGates"]["allGatesMustPass"]
+        and config["metrics"]["inference"] == "day_clustered_HAC",
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCreateOrders"] = True
+    try:
+        top10.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T137 any order permission fails closed", unsafe_rejected)
+
+    dates = pd.bdate_range("2025-01-02", periods=90)
+    columns = [f"S{index:03d}" for index in range(600)]
+    rng = np.random.default_rng(137)
+    daily_returns = rng.normal(0.0005, 0.012, size=(len(dates), len(columns)))
+    open_values = 10.0 * np.cumprod(1.0 + daily_returns, axis=0)
+    open_frame = pd.DataFrame(open_values, index=dates, columns=columns)
+    future = open_frame.shift(-2) / open_frame.shift(-1) - 1.0
+    score = future.rank(axis=1, pct=True)
+    eligible = pd.DataFrame(True, index=dates, columns=columns)
+    selected = top10.select_fixed_top10(score, eligible, 10)
+    changed_future = future.copy()
+    changed_future.iloc[-20:] = -999.0
+    unchanged = top10.select_fixed_top10(score, eligible, 10)
+    check(
+        "T137 selection is fixed at ten before outcomes and future outcomes cannot rewrite it",
+        bool(selected.sum(axis=1).iloc[:-2].eq(10).all())
+        and selected.equals(unchanged)
+        and changed_future.iloc[-1].eq(-999.0).all(),
+    )
+
+    panel = {
+        "open": open_frame,
+        "high": open_frame * 1.01,
+        "low": open_frame * 0.99,
+        "close": open_frame,
+        "volume": pd.DataFrame(1_000_000.0, index=dates, columns=columns),
+        "amount": pd.DataFrame(
+            rng.uniform(5e7, 5e8, size=open_frame.shape),
+            index=dates,
+            columns=columns,
+        ),
+        "eligible": eligible,
+    }
+    daily, summary = top10.evaluate_daily_top10(panel, score, config)
+    check(
+        "T137 Top10 evaluation reports probability and return lift with trading-day inference",
+        len(daily) >= 60
+        and summary["selectedSlots"] == len(daily) * 10
+        and summary["grossUpProbabilityLift"] > 0.0
+        and summary["meanNetReturnLiftVsRest"] > 0.0
+        and summary["inferenceUnit"] == "trading_day",
+    )
+    check(
+        "T137 an unfilled name is never replaced and outcome coverage is a hard audit field",
+        summary["unfilledSelectionsCountAsCashAndAreNeverReplaced"] is True
+        and 0.0 <= summary["resolvedSelectionFraction"] <= 1.0,
+    )
+
+    source = (
+        ROOT / "scripts" / "research_fundamental_top10_discrimination.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T137 Top10 study has no broker, order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11261,6 +11364,7 @@ if __name__ == "__main__":
     t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated()
     t135_decision_focused_weights_are_causal_stable_and_isolated()
     t136_fundamental_mechanism_families_are_pit_equal_and_shadow_only()
+    t137_fixed_top10_discrimination_is_executable_clustered_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
