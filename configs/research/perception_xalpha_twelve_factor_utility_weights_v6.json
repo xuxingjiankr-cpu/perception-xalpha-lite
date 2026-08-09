@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "perception_xalpha_twelve_factor_utility_weights_v6",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Train non-equal, bounded weights for the frozen twelve-factor A-share book against next-session executable return, net-loss avoidance and severe-loss avoidance. Validation and shadow outcomes can reject but can never alter weights or thresholds.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "frozenSourceSummary": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsAndDirectionsFrozen": true,
+    "onlyTrainDatesMayFitWeights": true,
+    "calibrationDatesIndependentOfWeightFit": true,
+    "auditValidationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsAdditionalWeightTrials": 4
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "topCounts": [1, 3, 10],
+    "primaryTopCount": 10,
+    "minimumCrossSectionRows": 100
+  },
+  "weightTraining": {
+    "method": "bounded_daily_equal_weight_quadratic_multitask",
+    "objectiveHeads": {
+      "returnPercentile": 0.55,
+      "netNonLoss": 0.30,
+      "severeNonLoss": 0.15
+    },
+    "minimumFactorWeight": 0.02,
+    "maximumFactorWeight": 0.20,
+    "sumFactorWeights": 1.0,
+    "l2ShrinkageToEqualWeight": 0.02,
+    "minimumBaseFitTradingDays": 756,
+    "calibrationTradingDays": 63,
+    "reliabilityAuditTradingDays": 63,
+    "purgeTradingDays": 6,
+    "expandingInnerFolds": 4,
+    "foldTestTradingDays": 126,
+    "finalWeightRule": "fit_once_on_base_fit_only",
+    "validationOrShadowMayTuneWeights": false
+  },
+  "calibration": {
+    "expectedReturn": "ridge_on_independent_calibration_block",
+    "expectedReturnRidgeAlpha": 10.0,
+    "netLossProbability": "isotonic_decreasing_on_independent_calibration_block",
+    "severeLossProbability": "isotonic_decreasing_on_independent_calibration_block",
+    "minimumCalibrationRows": 10000,
+    "utilityPenaltyNetLoss": 0.01,
+    "utilityPenaltySevereLoss": 0.02
+  },
+  "evaluation": {
+    "probabilityMetrics": ["brier", "log_loss", "auc", "ece"],
+    "portfolioMetrics": [
+      "mean_gross_return",
+      "mean_net_return",
+      "net_win_rate",
+      "non_positive_rate",
+      "severe_loss_rate",
+      "cvar10"
+    ],
+    "minimumAuditAuc": 0.52,
+    "requireAuditBrierBetterThanPrior": true,
+    "requireAuditTop10MeanNetReturnPositive": true,
+    "requireAuditTop10NetWinRate": 0.55,
+    "validationAndShadowAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/perception_xalpha_twelve_factor_utility_weights_v6",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The twelve factors were selected on the earlier V2 development window and are not twelve fresh hypotheses.",
+    "The calibration, audit, validation and shadow blocks cannot be used to change objective weights, factor bounds, thresholds or factor definitions.",
+    "Daily bars cannot reconstruct queue priority at a locked price limit.",
+    "The latest clean PIT-adjusted panel can lag the raw daily collector by one session.",
+    "Predicted return and loss probability are estimates, not guarantees."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

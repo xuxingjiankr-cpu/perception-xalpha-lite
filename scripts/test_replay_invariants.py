@@ -10781,6 +10781,112 @@ def t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated() -> None:
     )
 
 
+def t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated() -> None:
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_perception_xalpha_twelve_factor_utility_weights_v6 as utility
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "perception_xalpha_twelve_factor_utility_weights_v6.json"
+        ).read_text(encoding="utf-8")
+    )
+    try:
+        utility.validate_config(config)
+    except Exception:
+        valid = False
+    else:
+        valid = True
+    lower = float(config["weightTraining"]["minimumFactorWeight"])
+    upper = float(config["weightTraining"]["maximumFactorWeight"])
+    check(
+        "T134 twelve-factor weights are nonzero bounded and research-only",
+        valid
+        and lower > 0.0
+        and upper <= 0.20
+        and not config["preregisteredHypothesis"]["historicalRunCanPromote"]
+        and all(
+            value is False
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        ),
+    )
+
+    unsafe = copy.deepcopy(config)
+    unsafe["safety"]["mayCreateOrders"] = True
+    try:
+        utility.validate_config(unsafe)
+    except ValueError:
+        unsafe_rejected = True
+    else:
+        unsafe_rejected = False
+    check("T134 any order permission fails closed", unsafe_rejected)
+
+    dates = pd.bdate_range("2020-01-02", periods=950)
+    partitions = utility.training_partitions(dates, config)
+    purge = int(config["weightTraining"]["purgeTradingDays"])
+    base_end = dates.get_loc(partitions["baseFit"].max())
+    calibration_start = dates.get_loc(partitions["calibration"].min())
+    calibration_end = dates.get_loc(partitions["calibration"].max())
+    audit_start = dates.get_loc(partitions["audit"].min())
+    check(
+        "T134 weight fit calibration and audit blocks are disjoint with full purges",
+        set(partitions["baseFit"]).isdisjoint(partitions["calibration"])
+        and set(partitions["calibration"]).isdisjoint(partitions["audit"])
+        and calibration_start - base_end - 1 >= purge
+        and audit_start - calibration_end - 1 >= purge,
+    )
+
+    rng = np.random.default_rng(134)
+    fit_dates = pd.bdate_range("2023-01-02", periods=80)
+    columns = [f"S{index:03d}" for index in range(120)]
+    useful = pd.DataFrame(
+        rng.uniform(size=(len(fit_dates), len(columns))),
+        index=fit_dates,
+        columns=columns,
+    )
+    ranks = {"useful": useful}
+    for index in range(11):
+        ranks[f"noise_{index}"] = pd.DataFrame(
+            rng.uniform(size=useful.shape), index=fit_dates, columns=columns
+        )
+    target = useful + pd.DataFrame(
+        rng.normal(scale=0.03, size=useful.shape),
+        index=fit_dates,
+        columns=columns,
+    )
+    weights, _ = utility.fit_bounded_head_weights(
+        ranks, target, fit_dates, lower, upper, 0.02, 100
+    )
+    check(
+        "T134 supervised non-equal fit respects the simplex and rewards useful evidence",
+        abs(float(weights.sum()) - 1.0) < 1e-8
+        and bool(np.all(weights >= lower - 1e-9))
+        and bool(np.all(weights <= upper + 1e-9))
+        and weights[0] > float(np.median(weights[1:])),
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_perception_xalpha_twelve_factor_utility_weights_v6.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T134 utility-weight research has no broker order or production-decision path",
+        "submitOrder" not in source
+        and "run_t0_intraday_agent" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -10908,6 +11014,7 @@ if __name__ == "__main__":
     t131_horizon_precision_is_causal_clustered_and_isolated()
     t132_rolling_factor_health_is_lagged_recoverable_and_isolated()
     t133_pit_fundamental_catalyst_is_causal_controlled_and_isolated()
+    t134_twelve_factor_utility_weights_are_bounded_purged_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
