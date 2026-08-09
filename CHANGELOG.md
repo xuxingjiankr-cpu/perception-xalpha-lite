@@ -1,48 +1,44 @@
 # Changelog
 
-## 0.3.0
+## 0.5.0 — The record publishes itself
 
-Added a dependence-aware Evidence Lab for searched candidate families. The release
-contains methods and synthetic tests only; it publishes no empirical factor result.
+The daily record now runs on GitHub Actions from public data, and publishes the name **before**
+the session it applies to.
 
-### Added
+- `tools/daily_record.py` — selects the name, scores every published pick whose holding window
+  has elapsed, and redraws. Only picks that were actually published are scored; recomputing
+  what the rule would say today would quietly turn the forward record back into a backtest.
+- `tools/audit_returns.py` — audit somebody else's backtest in their own fork: CSCV probability
+  of backtest overfitting, deflated Sharpe against the declared trial count, and White's Reality
+  Check across the family. The example that ships with it is 24 variants of pure noise whose
+  best has an annualised Sharpe of 1.11 — against 1.18 expected from noise at that trial count.
+- Specification v4 (`dea0e608`) pins the data provider, adjustment convention, board scope,
+  window and listing filter. v3 named a universe rule without saying where the universe came
+  from, and two faithful implementations disagreed on 614 of ~4,700 eligible names; v3 keeps the
+  one pick it published and is retired rather than edited.
+- Coverage gates. Under parallel load the data source answers a throttled query with an empty
+  result set and `error_code "0"`, indistinguishable from a symbol with no history — two runs
+  over the same 5,202 codes differed by 143,028 bars. Empty answers are retried on a rebuilt
+  session and swept serially; below 98% symbol coverage or 95% quoting on the ranked session the
+  run aborts rather than selecting a name from whichever symbols replied.
+- Chinese README, anchor navigation, and the first tagged releases.
 
-- Politis–Romano stationary-bootstrap paths and mean intervals;
-- White Reality Check for the searched-family global null;
-- Romano–Wolf studentized step-down max-t family-wise adjustment;
-- Benjamini–Hochberg and dependence-robust Benjamini–Yekutieli q-values;
-- a standalone `xalpha-evidence` CLI, synthetic example, atomic artifact writer,
-  runtime/data/configuration hashes, and missing-data audit;
-- paper-to-code documentation with assumptions, equations, and non-claim boundaries.
+## 0.4.0 — Forward records
 
-### Unchanged safety boundary
+- `forward.py` — frozen specifications with four refusals: no overwrite, digest verified on
+  load, one entry per session, and scoring only fully elapsed holding windows. Factors travel
+  inside the specification as portable DSL so a published record is reproducible by its reader.
+- `universe.py` — `sealed_bar_limits` infers limit-locked sessions from the bars. `build_panel`
+  previously defaulted the flags to `False`, so a panel built from plain OHLCV backtested fills
+  on locked boards; those legs carry +6.05% against +0.38% for legs that could be traded.
+  `point_in_time_eligibility` decides membership only from prior sessions.
+- `book.py` — long-only top-N construction sharing the tranche and turnover accounting with the
+  neutral book, so a difference between them is construction and never charging.
+- `session_index` in the panel, making trend-quality factors (`ts_corr(close, t, w)²`)
+  expressible in the DSL at all.
 
-- no empirical research results;
-- no broker, account, order, position, or strategy-gate integration;
-- no automatic promotion from historical evidence.
+## 0.3.0 and earlier
 
-## 0.2.0
-
-Method-only public update. No private data, empirical factor weights, securities,
-performance figures, or research conclusions are included.
-
-### Added
-
-- an English-only scholarly README and GitHub Pages research landing page;
-- a literature-to-code traceability matrix with primary-paper links and non-claim boundaries;
-- five-block chronological research partitions with a purge between every block;
-- bounded-simplex Top-K pairwise decision-weight fitting;
-- complete-block weight replicas and stability diagnostics;
-- independent ridge expected-outcome calibration;
-- independent logistic event-probability calibration;
-- Brier, LogLoss, AUC, ECE, and probability-bucket diagnostics;
-- synthetic-only example and causal/safety regression tests;
-- decision-focused learning and recent factor-research boundaries in the literature map.
-
-### Unchanged safety boundary
-
-- no broker or account integration;
-- no order creation;
-- no strategy overlay or production BUY/SELL gate;
-- no automatic promotion of historical research;
-- validation and shadow data remain forbidden as fitting inputs.
+Point-in-time alignment, the audited factor DSL, bounded synthesis with purged walk-forward,
+counterfactual and placebo controls, PBO and deflated Sharpe, the evidence lab (stationary
+bootstrap, Reality Check, Romano–Wolf step-down), and the decision toolkit.
