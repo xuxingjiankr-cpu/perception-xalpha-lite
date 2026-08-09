@@ -272,6 +272,15 @@ def paired_increment(
     return output
 
 
+def incrementally_passed_policy_names(outputs: dict[str, Any]) -> list[str]:
+    passed: list[str] = []
+    for name, row in outputs.items():
+        increment = row.get("incrementVsBaseline")
+        if isinstance(increment, dict) and increment.get("allIncrementalChecksPassed"):
+            passed.append(name)
+    return passed
+
+
 def render_report(result: dict[str, Any]) -> str:
     pct = lambda value: "n/a" if value is None else f"{100 * float(value):.3f}%"
     lines = [
@@ -400,11 +409,7 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         outputs[name]["incrementVsBaseline"] = paired_increment(
             daily_by_policy[name], daily_by_policy[baseline_name], config
         )
-    passed = [
-        name
-        for name, row in outputs.items()
-        if row.get("incrementVsBaseline", {}).get("allIncrementalChecksPassed")
-    ]
+    passed = incrementally_passed_policy_names(outputs)
     result = {
         "schemaVersion": SCHEMA_VERSION,
         "codeVersion": CODE_VERSION,

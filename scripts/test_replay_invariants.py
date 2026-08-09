@@ -11323,6 +11323,16 @@ def t138_alpha070_131_weight_ladder_is_fixed_incremental_and_isolated() -> None:
         and increment["allIncrementalChecksPassed"] is True
         and increment["meanNetReturnDeltaHacT"] >= 2.0,
     )
+    passed_names = study.incrementally_passed_policy_names(
+        {
+            "baseline": {"incrementVsBaseline": None},
+            "candidate": {"incrementVsBaseline": increment},
+        }
+    )
+    check(
+        "T138 baseline null increment is excluded without crashing the report summary",
+        passed_names == ["candidate"],
+    )
 
     unsafe = copy.deepcopy(config)
     unsafe["forward"]["historicalWinnerMayBeForwardSelected"] = True
