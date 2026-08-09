@@ -1,0 +1,90 @@
+# Daily rebuild of the forward-record dashboard.
+#
+# The strategy rows are pushed here from the machine that holds the 5,169-symbol panel; a
+# runner cannot compute them. What the runner can do, and does every day, is independently
+# re-fetch the index series and check the committed numbers against it, then redraw the
+# chart. That check is the point: a benchmark nobody re-verifies is a benchmark that can
+# drift to flatter the strategy sitting next to it.
+name: daily-rotation
+
+on:
+  schedule:
+    - cron: "30 10 * * 1-5"   # 18:30 Asia/Shanghai, after the local record has been appended
+  workflow_dispatch:
+  push:
+    paths:
+      - "docs/data/rotation.jsonl"
+      - "examples/render_rotation_dashboard.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-rotation
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Re-verify the benchmark against its source
+        run: |
+          python -m pip install -q baostock
+          python - <<'PY'
+          import json, pathlib, sys
+          rows = [json.loads(line) for line in
+                  pathlib.Path("docs/data/rotation.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+          if not rows:
+              sys.exit("series is empty")
+          import baostock as bs
+          bs.login()
+          try:
+              closes = {}
+              for code in ("sh.000016", "sh.000300"):
+                  result = bs.query_history_k_data_plus(
+                      code, "date,open", start_date=rows[0]["date"], end_date=rows[-1]["date"], frequency="d")
+                  series = {}
+                  while result.error_code == "0" and result.next():
+                      date, value = result.get_row_data()
+                      series[date] = float(value)
+                  closes[code] = series
+                  print(f"{code}: {len(series)} sessions fetched")
+          finally:
+              bs.logout()
+
+          # An index return committed here must still match the index the source reports today.
+          worst, checked = 0.0, 0
+          for code, series in closes.items():
+              key, dates = code.replace(".", "_"), sorted(series)
+              position = {date: index for index, date in enumerate(dates)}
+              for row in rows:
+                  committed, index = row.get(key), position.get(row["date"])
+                  if committed is None or not index:
+                      continue
+                  actual = series[dates[index]] / series[dates[index - 1]] - 1.0
+                  worst = max(worst, abs(actual - float(committed)))
+                  checked += 1
+          print(f"checked {checked} committed index returns, worst disagreement {worst:.2e}")
+          if worst > 5e-4:
+              sys.exit(f"benchmark disagrees with its source by {worst:.4f}; refusing to redraw")
+          PY
+
+      - name: Redraw
+        run: python examples/render_rotation_dashboard.py
+
+      - name: Commit if the picture changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- docs/daily-rotation.svg; then
+            echo "chart unchanged"
+          else
+            git add docs/daily-rotation.svg
+            git commit -m "chore: redraw the rotation dashboard [skip ci]"
+            git push
+          fi

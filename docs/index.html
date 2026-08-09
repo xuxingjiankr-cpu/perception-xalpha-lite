@@ -99,6 +99,38 @@
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
 
+  <section id="live">
+    <h2>The live record, redrawn every day</h2>
+    <p>A frozen specification holds the single best-ranked eligible name and rotates every
+      session. The chart is rebuilt daily by a scheduled job that re-fetches the index series
+      from its source and refuses to redraw if the committed benchmark no longer matches.</p>
+    <p style="margin:1.4rem 0"><img src="daily-rotation.svg" alt="Cumulative return of a
+      one-name daily rotation against onshore A-share indices" style="width:100%;height:auto"></p>
+    <p><strong>The dashed, shaded span on the left proves nothing</strong>, and it is drawn that
+      way on purpose. Those four factors were chosen from a 456-candidate search whose data
+      overlaps that window, and on this panel the selection step alone is worth about 3&nbsp;bps
+      per day &mdash; more than most published equity-factor results. An in-sample curve that
+      beats every index is what a selected strategy always looks like.</p>
+    <p>Only the solid span to the right of the divider is evidence, it begins the day the
+      specification was frozen, and at the start there is almost none of it. The strategy line is
+      a raw return net of realised cost so that it is comparable to an index; the excess line
+      answers a different question and is labelled separately, because plotting an excess against
+      a raw index is the oldest trick in the genre.</p>
+    <p><strong>The name is published before the session it applies to.</strong> Each evening the
+      frozen specification selects one name from roughly 4,700 eligible, and it is committed here
+      with a timestamp, at the top-right of the chart, before that market opens. A record scored
+      afterwards always invites the question of whether the rule moved once the outcome was
+      visible. One committed in advance cannot: it can be shown to be wrong, but never edited.
+      The file is append-only &mdash;
+      <a href="data/next_pick.json">next_pick.json</a>,
+      <a href="data/published_picks.jsonl">published_picks.jsonl</a>,
+      <a href="data/rotation.jsonl">rotation.jsonl</a>.</p>
+    <p style="font-size:.92rem;opacity:.75">Research only. This is a record of what a frozen rule
+      selected, published to test that rule in public. It is not advice, not a recommendation, and
+      no order-placement path exists anywhere in the codebase &mdash; CI asserts that on every
+      commit.</p>
+  </section>
+
   <section id="survives">
     <h2>What the search actually produced</h2>
     <p>A worked run, end to end: 456 published formulaic factors (Kakushadze&nbsp;101,
