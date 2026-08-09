@@ -175,11 +175,19 @@ def main() -> None:
         parts.append(f'<text class="pick-symbol" x="{box_x+12}" y="{box_y+44}">{pick["symbol"]}</text>')
         parts.append(f'<text class="pick-meta" x="{box_x+12}" y="{box_y+62}">published {pick["as_of"]} · buy at open</text>')
 
+    # The two spans can carry different specifications — the backtest was computed under the
+    # predecessor, which pinned the same factors, book and cost but not the data source. Saying
+    # so on the chart is cheaper than letting a reader discover it in the data file.
     live_count = count - live_start
+    def spec_of(phase: str) -> str:
+        found = {row.get("spec_sha256", "") for row in rows if row.get("phase") == phase}
+        return "/".join(sorted(s for s in found if s)) or "—"
+    back_spec, live_spec = spec_of("backtest"), spec_of("live")
     footer = (
         f"{live_count} live session{'s' if live_count != 1 else ''} of a frozen one-name book"
-        f" · {count - live_start if live_count else count} backtested"
-        f" · spec {rows[-1].get('spec_sha256', '')}"
+        f" · {live_start} backtested"
+        + (f" · live spec {live_spec}" if live_count else "")
+        + (f" · backtest spec {back_spec}" if live_start else "")
     )
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="100%" role="img"

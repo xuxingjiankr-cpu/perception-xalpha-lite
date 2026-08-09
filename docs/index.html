@@ -101,9 +101,15 @@
 
   <section id="live">
     <h2>The live record, redrawn every day</h2>
-    <p>A frozen specification holds the single best-ranked eligible name and rotates every
-      session. The chart is rebuilt daily by a scheduled job that re-fetches the index series
-      from its source and refuses to redraw if the committed benchmark no longer matches.</p>
+    <p>A frozen specification (<code>dea0e608</code>) holds the single best-ranked eligible name
+      and rotates every session. Fetching, selection, scoring and redrawing all run on a GitHub
+      runner from public data, so a reader can rerun it and reach the same name. A separate job
+      re-fetches the index series and fails if any committed benchmark return no longer matches
+      its source; it writes nothing, because a verifier that can rewrite the file it verifies is
+      not a verifier.</p>
+    <p>Two records run and answer different questions: this one-name, one-session rotation
+      published in advance, and a ten-name, ten-session record (<code>b19bbc74</code>,
+      <code>c0768449</code>) carrying the four factors that survived the 456-candidate search.</p>
     <p style="margin:1.4rem 0"><img src="daily-rotation.svg" alt="Cumulative return of a
       one-name daily rotation against onshore A-share indices" style="width:100%;height:auto"></p>
     <p><strong>The dashed, shaded span on the left proves nothing</strong>, and it is drawn that
