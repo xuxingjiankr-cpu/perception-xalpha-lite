@@ -13,27 +13,29 @@
 > **Quantitative discovery is a multiple-comparisons problem disguised as an optimization
 > problem.** Finds fewer factors, on purpose.
 
-Four hundred factors. Every one pure noise, true edge exactly zero. Same 500-day window,
-scored twice:
+Four biases, each measured on a real equity panel while building this pipeline, and each one
+large enough to invent a strategy on its own:
 
-![Two equity curves from 400 pure-noise factors: choosing the top ten on the outcome window compounds to 1.21x, choosing them on trailing data only ends at 0.99x](docs/selection_artifact.svg)
+![Four measured biases. Factors chosen with hindsight report +2.00 bps/day against -1.24 when chosen on trailing data. Limit-locked legs priced as fillable carry +6.05% forward return against +0.38% for tradeable ones. A universe filtered on whole history admits 391 names in the first year against 77. Overlapping labels scored as independent give a t-statistic of -5.79 on pure noise against -2.25.](docs/measured-corrections.png)
 
-| how the top 10 were chosen | mean bps/day | annualised IR | 500-day compound |
-|---|--:|--:|--:|
-| on the outcome window | **+3.89** | **4.53** | **×1.21** |
-| on trailing data only | −0.21 | −0.26 | ×0.99 |
+| flaw | what it reports | what survives | unit |
+|---|--:|--:|---|
+| factors chosen with hindsight | **+2.00** | −1.24 | bps/day, same panel and cost |
+| limit-locked legs priced as fillable | **+6.05** | +0.38 | % forward return of those legs |
+| universe filtered on whole history | **391** | 77 | eligible names, first year |
+| overlapping labels scored as independent | **−5.79** | −2.25 | t-statistic on pure noise |
 
-An information ratio of 4.53 out of provably nothing. So can your backtest — that is the
-problem this framework exists to catch. Reproduce the numbers and the figure in ten seconds:
+The first row is the one worth sitting with. Same data, same cost model, same construction —
+only the rule for choosing factors differs, and the gap is about 3 bps/day. That is larger
+than most published equity-factor results, which means a pipeline that cannot audit its own
+selection step cannot tell a discovery from an artifact of choosing.
+
+The mechanism is reproducible on synthetic data with no signal in it at all, in ten seconds:
 
 ```bash
-python examples/selection_artifact.py
-python examples/make_selection_artifact_figure.py   # regenerates the chart above
+python examples/selection_artifact.py          # IR 4.53 manufactured from pure noise
+python examples/make_corrections_figure.py     # regenerates the chart above
 ```
-
-That gap is not a bug in the data — it is what a backtest reports whenever the factor set is
-chosen after the fact. It is also larger than most published equity-factor results, which is
-why a framework that cannot audit its own selection step cannot tell discovery from noise.
 
 Perception-XAlpha Lite therefore separates **hypothesis generation** from **evidence
 acceptance**. It can synthesize bounded symbolic factors, but every candidate must survive

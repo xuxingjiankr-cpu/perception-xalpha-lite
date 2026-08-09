@@ -84,6 +84,25 @@
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
 
+  <section id="measured">
+    <h2>Four biases, measured and removed</h2>
+    <p>Each was quantified on a real equity panel while building this pipeline, and each is
+      large enough to invent a strategy on its own. Red is what the flaw reports; violet is
+      what survives once it is removed. Neither column is a return claim.</p>
+    <p><img src="measured-corrections.png" alt="Factors chosen with hindsight report +2.00 bps/day against -1.24 when chosen on trailing data. Limit-locked legs priced as fillable carry +6.05% forward return against +0.38%. A universe filtered on whole history admits 391 names in the first year against 77. Overlapping labels scored as independent give t = -5.79 on pure noise against -2.25." style="width:100%;border-radius:12px;border:1px solid rgba(148,163,184,.2)"></p>
+    <p>The first row is the one worth sitting with. Same panel, same cost model, same
+      portfolio construction &mdash; only the rule for choosing factors differs, and the gap
+      is about 3&nbsp;bps/day. That exceeds most published equity-factor results, which is
+      why a pipeline unable to audit its own selection step cannot separate a discovery from
+      an artifact of choosing. The mechanism reproduces on synthetic data containing no
+      signal at all: an information ratio of 4.53, manufactured in ten seconds by
+      <code>examples/selection_artifact.py</code>.</p>
+    <p><strong>Status, stated plainly:</strong> candidates are generated and fully evaluated;
+      none has yet cleared the counterfactual, walk-forward and multiple-testing gates
+      together. That is the gates working on a price-and-volume library, not the engine
+      failing to run &mdash; and unlike most backtests, this one reports the count.</p>
+  </section>
+
   <section id="architecture">
     <h2>Research architecture</h2>
     <p>Discovery is separated from acceptance. Candidate generation receives training data;
