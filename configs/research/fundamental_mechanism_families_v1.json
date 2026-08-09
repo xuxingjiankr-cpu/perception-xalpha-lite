@@ -2,7 +2,7 @@
   "schemaVersion": "fundamental_mechanism_families_v1",
   "status": "research_only_shadow_only_not_trading",
   "purpose": "Evaluate four economically distinct point-in-time fundamental mechanism families without price-volume timing, historical factor selection, or fitted family weights; freeze an equal-family forward shadow record.",
-  "preregisteredAt": "2026-08-09T17:30:00+09:00",
+  "preregisteredAt": "2026-08-09T14:44:57+09:00",
   "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
   "baseResearchConfigFileSha256": "2af84c0ff3b26a02abe6cb1db34a76a17e096b12dd1cbdfc19f652f3e8b76b1c",
   "handoff": "docs/handoff_to_codex_factor_research.md",
