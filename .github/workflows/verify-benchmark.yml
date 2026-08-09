@@ -1,40 +1,31 @@
-# Daily rebuild of the forward-record dashboard.
+# Independently re-check the benchmark the dashboard is drawn against.
 #
-# The strategy rows are pushed here from the machine that holds the 5,169-symbol panel; a
-# runner cannot compute them. What the runner can do, and does every day, is independently
-# re-fetch the index series and check the committed numbers against it, then redraw the
-# chart. That check is the point: a benchmark nobody re-verifies is a benchmark that can
-# drift to flatter the strategy sitting next to it.
-name: daily-rotation
+# This job writes nothing. It runs separately from the one that produces the record, fetches
+# the index series again, and fails if any already-committed benchmark return no longer
+# matches its source. A benchmark nobody re-verifies is one that can drift to flatter the
+# strategy sitting next to it, and a verifier that can also rewrite the file is not a verifier.
+name: verify-benchmark
 
 on:
   schedule:
-    - cron: "30 10 * * 1-5"   # 18:30 Asia/Shanghai, after the local record has been appended
+    - cron: "30 10 * * 1-5"   # 18:30 Asia/Shanghai, after the record has been written
   workflow_dispatch:
-  push:
-    paths:
-      - "docs/data/rotation.jsonl"
-      - "examples/render_rotation_dashboard.py"
 
 permissions:
-  contents: write
-
-concurrency:
-  group: daily-rotation
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  rebuild:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: python -m pip install -q baostock
 
-      - name: Re-verify the benchmark against its source
+      - name: Re-fetch the index and compare
         run: |
-          python -m pip install -q baostock
           python - <<'PY'
           import json, pathlib, sys
           rows = [json.loads(line) for line in
@@ -57,7 +48,6 @@ jobs:
           finally:
               bs.logout()
 
-          # An index return committed here must still match the index the source reports today.
           worst, checked = 0.0, 0
           for code, series in closes.items():
               key, dates = code.replace(".", "_"), sorted(series)
@@ -70,21 +60,8 @@ jobs:
                   worst = max(worst, abs(actual - float(committed)))
                   checked += 1
           print(f"checked {checked} committed index returns, worst disagreement {worst:.2e}")
+          if not checked:
+              sys.exit("nothing was checked; the comparison is vacuous")
           if worst > 5e-4:
-              sys.exit(f"benchmark disagrees with its source by {worst:.4f}; refusing to redraw")
+              sys.exit(f"benchmark disagrees with its source by {worst:.4f}")
           PY
-
-      - name: Redraw
-        run: python examples/render_rotation_dashboard.py
-
-      - name: Commit if the picture changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- docs/daily-rotation.svg; then
-            echo "chart unchanged"
-          else
-            git add docs/daily-rotation.svg
-            git commit -m "chore: redraw the rotation dashboard [skip ci]"
-            git push
-          fi

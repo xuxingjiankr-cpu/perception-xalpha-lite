@@ -68,8 +68,17 @@ fail, and the tool says so when the two numbers match.
 
 [![Daily rotation record](docs/daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
 
-Each evening a frozen specification (`224a02ea`) picks one name out of ~4,700 eligible and
-commits it here, timestamped, **before that market opens**. The file is append-only.
+Each evening a frozen specification (`dea0e608`) picks one name out of ~4,700 eligible and
+commits it here, timestamped, **before that market opens**. The file is append-only, and the
+whole thing — fetch, select, score, redraw — runs on a GitHub runner from public data, so a
+reader can rerun it and get the same name.
+
+Two separate records run, and they answer different questions:
+
+| record | book | held | where it runs |
+|---|---|---|---|
+| `dea0e608` — the chart above | 1 name | 1 session | GitHub Actions, published in advance |
+| `b19bbc74` / `c0768449` | 10 names | 10 sessions | the author's machine, from the 456-candidate search |
 
 That ordering is the entire claim. A record scored afterwards always invites the question of
 whether the rule moved once the outcome was visible. One committed in advance cannot — it can
@@ -97,9 +106,10 @@ than 5 bps.
 
 ## It runs the record it describes
 
-This is not a methods library sitting next to the research. The frozen forward record for the
-A-share project it was built for runs on this package — `build_panel`, `point_in_time_eligibility`,
-`long_only_book`, `score_log` — appended daily by a scheduled job.
+This is not a methods library sitting next to the research. The frozen forward records for the
+A-share project it was built for run on this package — `build_panel`, `point_in_time_eligibility`,
+`long_only_book`, `score_log` — the one-name rotation on a GitHub runner, the ten-name record on
+the author's machine, both appended daily.
 
 Pointing it at real work is what found the gaps. Four, in one sitting:
 

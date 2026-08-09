@@ -61,8 +61,16 @@ python tools/audit_returns.py
 
 [![每日轮动记录](daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
 
-每天收盘后,一个冻结的规则从约 4700 只合格股票里选出一只,带时间戳提交到这里,
-**在那个市场开盘之前**。文件是 append-only 的。
+每天收盘后,一个冻结的规则(`dea0e608`)从约 4700 只合格股票里选出一只,带时间戳提交到这里,
+**在那个市场开盘之前**。文件是 append-only 的。整条链路——取数、选股、打分、重绘——都在
+GitHub runner 上用公开数据跑,所以任何人都能自己重跑一遍,得到同一只票。
+
+同时在跑的是两条不同的记录,回答不同的问题:
+
+| 记录 | 持仓 | 持有 | 在哪跑 |
+|---|---|---|---|
+| `dea0e608` — 上图 | 1 只 | 1 个交易日 | GitHub Actions,事前公布 |
+| `b19bbc74` / `c0768449` | 10 只 | 10 个交易日 | 作者本机,来自 456 候选搜索 |
 
 这个先后顺序就是全部主张。事后打分的记录永远会被问"结果出来之后你有没有偷偷改规则";
 事前公开的不会 —— 它可以被证明是错的,但不能被修改。
@@ -141,7 +149,8 @@ python examples/make_corrections_figure.py     # 重新生成上面那张图
 ## 它跑的就是它描述的那套东西
 
 这不是一个摆在研究旁边的方法库。它所服务的 A股项目的冻结前瞻记录,就跑在这个包上 ——
-`build_panel`、`point_in_time_eligibility`、`long_only_book`、`score_log`,由定时任务每天追加。
+`build_panel`、`point_in_time_eligibility`、`long_only_book`、`score_log`——单票轮动跑在
+GitHub runner 上,十票记录跑在作者本机,两条都每天追加。
 
 把它对准真实工作,才发现了那些缺口。一次就四个:
 

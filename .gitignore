@@ -12,3 +12,4 @@ outputs/
 .env
 *.log
 
+audit/verdict.json
