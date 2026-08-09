@@ -140,53 +140,79 @@ framework says so instead of printing it as a result.
 
 ## What survives so far
 
-A worked run, end to end: 456 published formulaic factors (Kakushadze 101, GTJA 191, Qlib 158,
-academic) searched over a point-in-time A-share panel, ranked **only on the training window**
-by the net-of-cost excess of a ten-name book, then reported on the untouched test window.
-Ten-session hold, 30 bps round-trip cost on realised turnover, limit-locked legs dropped
-rather than priced.
+Every factor in four published libraries (Kakushadze 101, GTJA 191, Qlib 158, academic) over a
+point-in-time A-share panel, ranked **only on the training window** by the mean excess of a
+ten-name book, then reported on the untouched test window. 900 sessions, split at 2024-12-31,
+rebalanced every session, ten sessions held, entry and exit at the open after the signal,
+limit-locked legs dropped rather than priced. Excess is against the equal-weight eligible
+universe over the same bars, which returned **+0.85%** per hold on the test window.
 
-| # | factor | formula | reads as | TEST net | >10% odds | max DD |
-|---|---|---|---|--:|--:|--:|
-| 1 | `qlib158/rsqr60` | `ts_corr(close, t, 60)²` | how *linear* the last 60 days were — trend quality, not direction | **+0.36%** | 1.13× | −17.9% |
-| 2 | `gtja191/alpha_120` | `rank(vwap−close) / rank(vwap+close)` | where the close sits against the day's average price | −0.33% | 0.42× | −21.1% |
-| 3 | `alpha101/alpha_042` | `rank(vwap−close) / rank(vwap+close)` | *identical formula to #2* | −0.33% | 0.42× | −21.1% |
-| 4 | `qlib158/ma60` | `ts_mean(close, 60) / close` | distance below the 60-day average | −0.44% | 1.31× | −23.5% |
-| 5 | `qlib158/sumn60` | `Σ max(−Δclose,0) / Σ \|Δclose\|` | share of the last 60 days' movement that was downward | −0.50% | 1.31× | −28.1% |
+| # | factor | TRAIN excess | TEST excess | >10% odds | worst hold | hit |
+|---|---|--:|--:|--:|--:|--:|
+| 1 | `academic/hml` | +2.20% | −0.04% | 1.01× | −17.5% | 49.2% |
+| 2 | `qlib158/imin60` | +0.81% | −0.73% | 0.53× | −11.6% | 36.7% |
+| 3 | `gtja191/alpha_144` | +0.73% | **+0.17%** | 1.16× | −7.5% | 46.5% |
+| 4 | `academic/cma` | +0.67% | **+0.26%** | 0.72× | −9.4% | 48.9% |
+| 5 | `qlib158/vsumn20` | +0.66% | **+0.40%** | 0.86× | −6.4% | 50.5% |
 
-Net is per ten-session hold after costs, against an eligible universe returning +0.82%.
-">10% odds" is the probability of a >10% move relative to that universe.
+Costs are excluded, deliberately and visibly. On an overlapping series three defensible
+turnover conventions give three different answers; a gross figure anyone can recompute is worth
+more than a net one nobody can. At 30 bps a round trip, a book that fully rotates each hold
+gives back 0.30% of the numbers above. The full ranking of all 456 is in
+[`docs/data/library_ranking.json`](docs/data/library_ranking.json).
 
-**One of the five survives costs.** That is the honest yield of a clean train-side ranking,
-and it is the number most factor libraries never report.
+### Selection works, and it is not enough
 
-Three things in this table are worth more than the ranking itself:
+The interesting number is not in the table. Across all 456 factors, training-window excess
+predicts test-window excess with a Spearman **ρ = +0.48** (p < 0.001) — training-side ranking
+carries real information, and anyone claiming this is all noise is wrong.
 
-- **Rows 2 and 3 are the same factor.** GTJA-191 #120 and Kakushadze #42 are character-for-
-  character identical formulas published under different names. Merging factor libraries and
-  counting the total as independent trials therefore overstates the search's breadth — the
-  deflated-Sharpe denominator should count *behaviours*, not files.
-- **Row 4 has a rank-IC t-statistic of 9.95 and still loses money.** The signal is real and
-  strongly significant; it turns the book over fast enough that costs consume it. Statistical
-  significance and tradability are different questions, and only one of them pays.
-- **Row 1 is not a direction signal at all.** `rsqr60` measures how cleanly a price has been
-  trending, not which way. The surviving candidate is a *quality-of-trend* filter.
+Then look at what the information buys:
 
-Across the full top ten, four are net-positive; the best is `academic/illiq` at **+0.76%** per
-hold with a **−10.5%** drawdown, and the low-turnover names dominate — outcomes here order by
-turnover, not by signal strength.
+| | mean TEST excess per hold | share beating the universe |
+|---|--:|--:|
+| all 456 factors | −0.71% | 21.3% |
+| the training-window top 10 | **−0.24%** | 30.0% |
 
-**None of this is counted as evidence yet.** These were selected from 456 candidates, and a
-deflated Sharpe test at that trial count returns `consistent_with_luck`. Ranking by a
-different but equally defensible train-side criterion produces a *different* top five, which
-is precisely the instability this framework exists to expose.
+Choosing cleanly on the training window is worth **+0.47 percentage points per hold** against
+picking at random. It is also still **negative**. The best ten of 456, selected without a
+glance at the test window, went on to underperform the universe they were drawn from.
 
-So the four net-positive factors are now **under forward observation against a frozen spec**
-— factor set, book size, holding period, cost and universe rules hashed on **2026-08-06**
-(`b19bbc74…`), predictions appended daily before outcomes exist, and scoring restricted to
-entries whose holding window has fully matured. The freeze step refuses to overwrite an
-existing spec, so a changed rule has to become a new record with a new hash rather than a
-quiet revision. Whatever that record says is the answer; nothing in the table above is.
+That is the honest shape of the result, and it is neither of the two stories usually told. The
+signal is real. It is smaller than what decay and concentration take away, before a single
+basis point of cost is charged.
+
+Two more things in the table are worth more than the ranking:
+
+- **Row 1 is the whole problem in one line.** `hml` leads the training window by a mile at
+  +2.20% and lands at −0.04% out of sample. The fifth-placed factor, at a third of its training
+  excess, is the best of the five on test. Training rank and test rank are correlated across the
+  full 456 and nearly unrelated at the top, which is exactly where everyone selects.
+- **The libraries contain duplicates, and counting them twice inflates the trial ledger.**
+  `gtja191/alpha_120` and `alpha101/alpha_042` are character-for-character identical formulas
+  published under different names, and this run reproduces them to the digit — TRAIN +0.358%,
+  TEST −0.338%, worst hold −9.5%, both. A deflated-Sharpe denominator should count distinct
+  *behaviours*, not files.
+
+### The table this replaces could not be reproduced
+
+An earlier version of this section reported a different top five, with different numbers, and
+nothing on disk could regenerate it. Rebuilding it from the description recovered the universe
+benchmark exactly (+0.820% against the published +0.82%, which pins the panel, window and
+split) and matched no individual factor under any of three rebalancing and cost conventions —
+one factor came out with the opposite sign.
+
+Continuing to vary the convention until the numbers agreed would have been fitting the method
+to the answer, which is the failure this repository exists to name. So the table was replaced
+by one a committed script regenerates.
+
+The four factors under forward observation were chosen by that unreproducible ranking. Under
+this one they rank **4th, 30th, 57th and 234th of 456** — `academic/cma`, `academic/illiq`,
+`qlib158/rsqr60` and `qlib158/rsqr30`, the last below the median. That does not weaken the
+[forward record](#the-pick-is-published-before-the-session-it-applies-to): a rule frozen before
+the data existed is tested by what happens next, not by how it was picked. It does mean the
+story about *why* those four were chosen cannot be checked, and it is a third independent
+demonstration that this ranking is not stable across defensible choices.
 
 ## What it actually does
 
