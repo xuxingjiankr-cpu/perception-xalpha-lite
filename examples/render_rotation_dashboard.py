@@ -33,10 +33,10 @@ PAD = {"l": 62, "r": 168, "t": 64, "b": 58}
 PLOT_W, PLOT_H = W - PAD["l"] - PAD["r"], H - PAD["t"] - PAD["b"]
 
 LINES = [
-    ("strategy", "One name, rotated daily", "var(--accent)", 2.6),
-    ("universe", "Eligible universe, equal weight", "var(--muted)", 1.6),
-    ("sh_000300", "CSI300", "var(--line-a)", 1.6),
-    ("sh_000016", "SSE50 (onshore A50 proxy)", "var(--line-b)", 1.6),
+    ("strategy", "One name, rotated daily", "var(--accent, #7c3aed)", 2.6),
+    ("universe", "Eligible universe, equal weight", "var(--muted, #8b949e)", 1.6),
+    ("sh_000300", "CSI300", "var(--line-a, #0969da)", 1.6),
+    ("sh_000016", "SSE50 (onshore A50 proxy)", "var(--line-b, #bf8700)", 1.6),
 ]
 
 
@@ -146,7 +146,7 @@ def main() -> None:
 
     d = path_for(series["excess"], xs, lo, hi, range(count))
     if d:
-        parts.append(f'<path d="{d}" fill="none" stroke="var(--excess)" stroke-width="1.4" stroke-dasharray="1 3"/>')
+        parts.append(f'<path d="{d}" fill="none" stroke="var(--excess, #57606a)" stroke-width="1.4" stroke-dasharray="1 3"/>')
 
     legend_y = PAD["t"] + 6
     for key, label, colour, _ in LINES:
@@ -156,7 +156,7 @@ def main() -> None:
         parts.append(f'<text class="legend value" x="{PAD["l"]+PLOT_W+42}" y="{legend_y+16}">{final*100:+.1f}%</text>')
         legend_y += 44
     final_excess = next((value for value in reversed(series["excess"]) if value is not None), 0.0)
-    parts.append(f'<line x1="{PAD["l"]+PLOT_W+16}" y1="{legend_y-4}" x2="{PAD["l"]+PLOT_W+36}" y2="{legend_y-4}" stroke="var(--excess)" stroke-width="1.4" stroke-dasharray="1 3"/>')
+    parts.append(f'<line x1="{PAD["l"]+PLOT_W+16}" y1="{legend_y-4}" x2="{PAD["l"]+PLOT_W+36}" y2="{legend_y-4}" stroke="var(--excess, #57606a)" stroke-width="1.4" stroke-dasharray="1 3"/>')
     parts.append(f'<text class="legend" x="{PAD["l"]+PLOT_W+42}" y="{legend_y}">excess over universe</text>')
     parts.append(f'<text class="legend value" x="{PAD["l"]+PLOT_W+42}" y="{legend_y+16}">{final_excess*100:+.1f}%</text>')
 
@@ -216,7 +216,7 @@ def main() -> None:
                     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }}
     .pick-meta {{ font-size: 10px; fill: var(--dim); }}
   </style>
-  <rect width="{W}" height="{H}" fill="var(--bg)"/>
+  <rect width="{W}" height="{H}" fill="var(--bg, #ffffff)"/>
   <text class="title" x="{PAD['l']}" y="30">Hold one name, rotate every session</text>
   <text class="subtitle" x="{PAD['l']}" y="49">Cumulative return after 30 bps per rotation, against the indices it is competing with</text>
   {chr(10) + '  '.join(parts)}

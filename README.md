@@ -28,6 +28,37 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
 
+## The pick is published before the session it applies to
+
+[![Daily rotation record](docs/daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
+
+Each evening a frozen specification (`224a02ea`) picks one name out of ~4,700 eligible and
+commits it here, timestamped, **before that market opens**. The file is append-only.
+
+That ordering is the entire claim. A record scored afterwards always invites the question of
+whether the rule moved once the outcome was visible. One committed in advance cannot — it can
+be shown to be wrong, but it cannot be edited.
+
+**The dashed span on the left proves nothing, and is drawn that way deliberately.** Those
+factors were chosen from a 456-candidate search on data that overlaps it, and on this panel the
+selection step alone is worth ~3 bps/day. An in-sample curve that beats every index is what a
+selected strategy always looks like. Only the solid span is evidence, and today it is empty.
+
+Two numbers people routinely conflate, over the backtested span:
+
+| | cumulative |
+|---|--:|
+| Strategy, **raw** net of cost — comparable to an index | ≈ +60% |
+| Eligible universe, equal weight | +24.7% |
+| CSI300 | +20.3% |
+| SSE50 (onshore A50 proxy) | +8.6% |
+| Strategy, **excess over universe** — the research metric | +18.5% |
+
+Plotting an excess against a raw index is the oldest trick in the genre, so the chart draws
+them as separate lines and says which question each answers. A GitHub Action re-fetches the
+index series daily and refuses to redraw if any committed benchmark return has drifted by more
+than 5 bps.
+
 ## It runs the record it describes
 
 This is not a methods library sitting next to the research. The frozen forward record for the
