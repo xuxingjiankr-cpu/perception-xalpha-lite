@@ -119,7 +119,12 @@ def render_report(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def run(config_path: Path, entry_date: str, exit_date: str) -> dict[str, Any]:
+def run(
+    config_path: Path,
+    entry_date: str,
+    exit_date: str,
+    expected_signal_date: str | None = None,
+) -> dict[str, Any]:
     config = load_json(config_path)
     ablation.validate_config(config)
     factors, frozen_weights, v6_config = ablation.frozen_factors_and_weights(config)
@@ -165,6 +170,11 @@ def run(config_path: Path, entry_date: str, exit_date: str) -> dict[str, Any]:
     predictions = v6.predict_frames(score, calibrators, v6_config)
     up_model = fit_up_probability(score, returns, partitions["calibration"])
     signal_date = score.index.max()
+    if expected_signal_date is not None and str(signal_date.date()) != expected_signal_date:
+        raise RuntimeError(
+            "latest research panel is stale: "
+            f"expected signalDate={expected_signal_date}, observed={signal_date.date()}"
+        )
     current = score.loc[signal_date].dropna().sort_values(ascending=False).head(10)
     names = v6.name_map(base)
     output: list[dict[str, Any]] = []
@@ -222,8 +232,14 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--entry-date", required=True)
     parser.add_argument("--exit-date", required=True)
+    parser.add_argument("--expected-signal-date")
     args = parser.parse_args()
-    result = run(args.config.resolve(), args.entry_date, args.exit_date)
+    result = run(
+        args.config.resolve(),
+        args.entry_date,
+        args.exit_date,
+        args.expected_signal_date,
+    )
     print(json.dumps({"signalDate": result["signalDate"], "top10": result["top10"]}, ensure_ascii=False, indent=2))
     return 0
 

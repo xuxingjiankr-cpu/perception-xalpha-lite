@@ -11572,6 +11572,117 @@ def t141_fundamental_second_stage_is_pit_fixed_support_and_isolated() -> None:
     )
 
 
+def t142_choice_top10_export_is_strict_atomic_and_watchlist_only() -> None:
+    import copy
+    import json
+    import tempfile
+
+    import export_eastmoney_choice_top10 as exporter
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "eastmoney_choice_top10_watchlist.json"
+        ).read_text(encoding="utf-8")
+    )
+    rows = [
+        {
+            "rank": rank,
+            "securityId": ("SH" if rank % 2 else "SZ") + f".{600000 + rank:06d}",
+            "name": f"stock-{rank}",
+            "close": 10.0 + rank,
+            "factorScore": 1.0 - rank / 100.0,
+            "expectedGrossReturn": 0.001,
+            "probabilityUp": 0.52,
+            "probabilityNetPositive": 0.48,
+            "probabilitySevereLoss": 0.04,
+        }
+        for rank in range(1, 11)
+    ]
+    payload = {
+        "schemaVersion": config["sourceSchemaVersion"],
+        "status": config["acceptedSourceStatuses"][0],
+        "signalDate": "2026-08-07",
+        "intendedEntryDate": "2026-08-10",
+        "eligibleForTrading": False,
+        "top10": rows,
+        "orders": [],
+        "automaticTradingChanges": [],
+    }
+    try:
+        valid = len(exporter.validate_source(payload, config)) == 10
+    except Exception:
+        valid = False
+
+    duplicate = copy.deepcopy(payload)
+    duplicate["top10"][1]["securityId"] = duplicate["top10"][0]["securityId"]
+    unsafe = copy.deepcopy(payload)
+    unsafe["orders"] = [{"side": "BUY"}]
+    try:
+        exporter.validate_source(duplicate, config)
+    except exporter.ValidationError:
+        duplicate_rejected = True
+    else:
+        duplicate_rejected = False
+    try:
+        exporter.validate_source(unsafe, config)
+    except exporter.ValidationError:
+        order_rejected = True
+    else:
+        order_rejected = False
+    check(
+        "T142 Choice Top10 accepts only ten unique research-only non-order rows",
+        valid and duplicate_rejected and order_rejected,
+    )
+
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        source_path = root / "shadow_top10.json"
+        source_path.write_text(json.dumps(payload), encoding="utf-8")
+        isolated_config = copy.deepcopy(config)
+        isolated_config["stableImportFile"] = str(root / "Top10.txt")
+        isolated_config["auditCsv"] = str(root / "Top10.csv")
+        isolated_config["manifest"] = str(root / "manifest.json")
+        config_path = root / "config.json"
+        config_path.write_text(json.dumps(isolated_config), encoding="utf-8")
+        exporter.export(config_path, source_path, dry_run=True)
+        dry_run_clean = not (root / "Top10.txt").exists()
+        result = exporter.export(config_path, source_path, dry_run=False)
+        codes = (root / "Top10.txt").read_text(encoding="ascii").splitlines()
+        manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    check(
+        "T142 Choice export is dry-run clean, atomically verifiable and watchlist-only",
+        dry_run_clean
+        and len(codes) == 10
+        and codes == result["codes"] == manifest["codes"]
+        and manifest["orders"] == []
+        and manifest["automaticTradingChanges"] == [],
+    )
+
+    source = (ROOT / "scripts" / "export_eastmoney_choice_top10.py").read_text(
+        encoding="utf-8"
+    )
+    generator_source = (
+        ROOT / "scripts" / "generate_alpha070_131_shadow_top10.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T142 Choice integration never edits private blocks or submits trades",
+        config["choice"]["directPrivateFileMutationAllowed"] is False
+        and config["choice"]["cloudPrivateApiAllowed"] is False
+        and "UserBlocks.dat" not in source
+        and "submitOrder" not in source
+        and "build_decision(" not in source
+        and "latest_strategy_overlay.json" not in source,
+    )
+    check(
+        "T142 scheduled refresh fails closed when the daily panel is stale",
+        "--expected-signal-date" in source
+        and "latest research panel is stale" in generator_source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11707,6 +11818,7 @@ if __name__ == "__main__":
     t139_alpha070_131_shadow_top10_uses_actual_training_dates_and_never_trades()
     t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated()
     t141_fundamental_second_stage_is_pit_fixed_support_and_isolated()
+    t142_choice_top10_export_is_strict_atomic_and_watchlist_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
