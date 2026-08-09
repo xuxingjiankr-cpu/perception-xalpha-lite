@@ -58,17 +58,27 @@ def _login():
     return bs
 
 
-def universe_codes(day: str) -> list[str]:
+def universe_codes(day: date, lookback: int = 12) -> tuple[list[str], date]:
+    """Membership as of the most recent session on or before ``day``.
+
+    The listing endpoint answers for a trading date; asked about a weekend or a holiday it
+    returns an empty set rather than an error, which silently becomes an empty universe. Walk
+    back until a real session answers, and say which one did.
+    """
     bs = _login()
     try:
-        result = bs.query_all_stock(day=day)
-        codes = []
-        while result.error_code == "0" and result.next():
-            code, status = result.get_row_data()[:2]
-            # Indices and funds share the namespace; only the three equity boards are wanted.
-            if str(status) == "1" and code[:5] in ("sh.60", "sh.68", "sz.00", "sz.30"):
-                codes.append(code)
-        return sorted(codes)
+        for offset in range(lookback):
+            probe = day - timedelta(days=offset)
+            result = bs.query_all_stock(day=str(probe))
+            codes = []
+            while result.error_code == "0" and result.next():
+                code, status = result.get_row_data()[:2]
+                # Indices and funds share the namespace; only the equity boards are wanted.
+                if str(status) == "1" and code[:5] in ("sh.60", "sh.68", "sz.00", "sz.30"):
+                    codes.append(code)
+            if codes:
+                return sorted(codes), probe
+        raise RuntimeError(f"no trading session with listings in the {lookback} days to {day}")
     finally:
         bs.logout()
 
@@ -99,7 +109,10 @@ def _fetch_chunk(payload: tuple[list[str], str, str]) -> list[dict]:
 
 
 def fetch_prices(codes: list[str], start: str, end: str, workers: int) -> pd.DataFrame:
-    size = max(1, len(codes) // max(1, workers))
+    if not codes:
+        raise ValueError("no symbols to fetch")
+    workers = max(1, int(workers))
+    size = max(1, len(codes) // workers)
     chunks = [(codes[i:i + size], start, end) for i in range(0, len(codes), size)]
     began = time.time()
     with Pool(processes=min(workers, len(chunks))) as pool:
@@ -124,8 +137,11 @@ def main() -> int:
     spec = load_spec(SPEC_PATH)
     end = date.today()
     start = end - timedelta(days=int(args.sessions * 1.55))
-    codes = universe_codes(str(end - timedelta(days=7)))
-    print(f"universe: {len(codes)} equity codes; window {start} .. {end}")
+    codes, listing_day = universe_codes(end)
+    if not codes:
+        print("empty universe; refusing to publish")
+        return 1
+    print(f"universe: {len(codes)} equity codes as of {listing_day}; window {start} .. {end}")
 
     prices = fetch_prices(codes, str(start), str(end), args.workers)
     panel = apply_sealed_bar_limits(
