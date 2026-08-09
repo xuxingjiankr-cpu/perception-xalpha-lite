@@ -161,6 +161,51 @@ more than a net one nobody can. At 30 bps a round trip, a book that fully rotate
 gives back 0.30% of the numbers above. The full ranking of all 456 is in
 [`docs/data/library_ranking.json`](docs/data/library_ranking.json).
 
+### What came through both gates
+
+The table above ranks on training data alone, which is the honest experiment. A fair question
+is what happened to those names afterwards. Of the **thirty** highest-ranked on the training
+window, **two** cleared both out-of-sample tests — a positive excess *and* a better-than-even
+chance of a large gain:
+
+| training rank | factor | what it measures | TEST excess | >10% odds | worst hold | hit |
+|--:|---|---|--:|--:|--:|--:|
+| 3 | `gtja191/alpha_144` | mean \|return\| per unit turnover over 20 days, **counted only on down days** — downside price impact | **+0.17%** | **1.16×** | −7.5% | 46.5% |
+| 30 | `academic/illiq` | Amihud (2002): mean \|return\| per unit turnover over 21 days — price impact, all days | **+0.14%** | **1.18×** | −7.8% | 47.9% |
+
+**Two out of thirty is the yield**, and it is stated that way rather than as a top five, because
+there is no third. Filling the row count would have meant ranking all 456 by what happened on
+the test window — which is the hindsight bias this project [measured at +2.00 against −1.24
+bps/day](#why-the-gates-are-this-strict). A table assembled that way tells you nothing you could
+have acted on.
+
+**The two survivors are the same idea.** Both are mean absolute return per unit of turnover:
+Amihud's illiquidity, and the same quantity restricted to down days. That coherence is worth
+something — the survivors are not two unrelated flukes but one economic mechanism, the
+illiquidity premium, appearing twice. It also means they are **not two independent pieces of
+evidence**, and a trial ledger that counted them as two would be overstating its own breadth in
+exactly the way the duplicate pair above does.
+
+Across all 456, 79 factors (17.3%) clear both conditions against roughly 10.7% expected if the
+two were independent and unrelated to skill. Real enrichment — and selecting those 79 by their
+test outcome would still be hindsight, which is why the count appears here and the names do not.
+
+### Stated as a portfolio rather than as an excess
+
+Excess over the eligible universe is the research metric because it strips out the market. It is
+also not what a holder experiences, and the universe is not something anyone can actually buy —
+equal-weighting four thousand A-shares is not a portfolio. So, in raw terms, on the test window:
+
+| | per ten-session hold | probability of rising |
+|---|--:|--:|
+| the training-window top ten, equal weight | **+0.61%** | **61.4%** |
+| eligible universe, equal weight | +0.85% | 62.2% |
+
+The book makes money and rises three holds in five. It also trails the universe it was drawn
+from on both counts, which is the whole finding: **the return is real and the skill is not
+demonstrated.** Reporting only the first line would be the same move as plotting an excess
+against a raw index, run in the opposite direction.
+
 ### Selection works, and it is not enough
 
 The interesting number is not in the table. Across all 456 factors, training-window excess
