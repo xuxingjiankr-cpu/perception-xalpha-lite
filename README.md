@@ -11,10 +11,10 @@
 [![License](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
 
 > **Quantitative discovery is a multiple-comparisons problem disguised as an optimization
-> problem.** This framework is built to find fewer factors, on purpose.
+> problem.** Finds fewer factors, on purpose.
 
-Here is the problem it exists to solve. Four hundred factors, every one of them pure noise
-with a true edge of exactly zero, evaluated on the same 500-day window:
+Four hundred factors. Every one pure noise, true edge exactly zero. Same 500-day window,
+scored twice:
 
 ![Two equity curves from 400 pure-noise factors: choosing the top ten on the outcome window compounds to 1.21x, choosing them on trailing data only ends at 0.99x](docs/selection_artifact.svg)
 
@@ -23,8 +23,8 @@ with a true edge of exactly zero, evaluated on the same 500-day window:
 | on the outcome window | **+3.89** | **4.53** | **×1.21** |
 | on trailing data only | −0.21 | −0.26 | ×0.99 |
 
-An information ratio of 4.53 out of provably nothing. Reproduce both the numbers and the
-figure in about ten seconds:
+An information ratio of 4.53 out of provably nothing. So can your backtest — that is the
+problem this framework exists to catch. Reproduce the numbers and the figure in ten seconds:
 
 ```bash
 python examples/selection_artifact.py
