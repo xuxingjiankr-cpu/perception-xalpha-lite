@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "twelve_factor_alpha070_131_individual_discrimination_v4",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether a regularized multivariate model using all thirteen oriented factor ranks improves real individual-stock discrimination over the scalar composite calibrator without mechanically stretching scores.",
+  "preregisteredAt": "2026-08-09T19:05:00+09:00",
+  "frozenAblationConfig": "configs/research/twelve_factor_alpha070_131_ablation_v3.json",
+  "frozenAblationConfigSha256": "8447941dd5f4caeff548ef2af002c99412b438a76df036edacd8b261ba7a4e06",
+  "frozenAblationResult": "outputs/edge_research/twelve_factor_alpha070_131_ablation_v3/run_20260809_alpha070_131_weight_ladder_v3/result.json",
+  "frozenAblationResultSha256": "285ba1555e9d883a01055ba1e0f783d2afa0e76ee417c7688f4e92ca7e32aba8",
+  "policy": {
+    "name": "alpha070_alpha131_each_15pct",
+    "selectedAfterHistoricalOutcomes": true,
+    "cleanForwardEvidence": false,
+    "alpha070Weight": 0.15,
+    "alpha131Weight": 0.15,
+    "remainingElevenWeights": "frozen_v6_weights_proportionally_scaled_to_70pct"
+  },
+  "features": {
+    "definition": "thirteen_oriented_cross_sectional_factor_ranks",
+    "count": 13,
+    "pastOnly": true,
+    "standardization": "already_bounded_zero_one_cross_sectional_ranks",
+    "scalarBaseline": "fixed_15pct_weighted_composite_score",
+    "multivariateModelMayUseFutureRows": false
+  },
+  "outcomes": {
+    "signalTimestamp": "market_close_t",
+    "entryTimestamp": "next_buyable_open_t_plus_1",
+    "exitTimestamp": "next_sellable_open_t_plus_2_with_maximum_delay_5",
+    "roundTripCost": 0.003,
+    "grossUp": "executable_gross_return_gt_0",
+    "netPositive": "executable_gross_return_gt_0.003",
+    "severeLoss": "executable_gross_return_le_minus_0.03"
+  },
+  "timeIsolation": {
+    "reuseFrozenV6Partitions": true,
+    "baseFit": ["2019-01-02", "2024-11-27"],
+    "calibration": ["2024-12-06", "2025-03-13"],
+    "audit": ["2025-03-24", "2025-06-25"],
+    "validation": ["2025-07-10", "2026-01-13"],
+    "shadow": ["2026-01-28", "latest_available"],
+    "purgeTradingDays": 10,
+    "auditValidationShadowAreRejectOnly": true
+  },
+  "training": {
+    "deterministicSeed": 20260809,
+    "maximumBaseFitRowsPerDay": 600,
+    "equalWeightPerTradingDay": true,
+    "returnEstimator": {
+      "type": "Ridge",
+      "alpha": 10.0
+    },
+    "probabilityEstimator": {
+      "type": "LogisticRegression",
+      "penalty": "l2",
+      "C": 0.1,
+      "solver": "lbfgs",
+      "maxIter": 1000
+    },
+    "returnCalibration": {
+      "type": "Ridge",
+      "alpha": 10.0,
+      "input": "base_return_prediction"
+    },
+    "probabilityCalibration": {
+      "type": "PlattLogisticRegression",
+      "C": 1.0,
+      "input": "base_logit"
+    },
+    "hyperparameterSearchAllowed": false,
+    "classWeight": null
+  },
+  "ranking": {
+    "utility": "expected_return_minus_0.01_times_net_loss_probability_minus_0.02_times_severe_loss_probability",
+    "topCount": 10,
+    "temperatureScalingForbidden": true,
+    "mechanicalScoreStretchingForbidden": true
+  },
+  "acceptance": {
+    "comparisonPeriod": "audit",
+    "grossUpAucMustImprove": true,
+    "grossUpBrierMustImprove": true,
+    "grossUpLogLossMustImprove": true,
+    "netPositiveAucMustImprove": true,
+    "netPositiveBrierMustImprove": true,
+    "netPositiveLogLossMustImprove": true,
+    "top10MeanNetReturnMustImprove": true,
+    "top10NetWinRateMustImprove": true,
+    "top10ProbabilitySpreadMustIncrease": true,
+    "decileMonotonicityMustNotDecrease": true,
+    "allGatesMustPass": true,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_alpha070_131_individual_discrimination_v4",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
