@@ -99,29 +99,40 @@ def universe_codes(day: date, boards: tuple[str, ...], lookback: int = 12) -> tu
         bs.logout()
 
 
-def _query_one(bs, code: str, start: str, end: str, adjust: str, attempts: int = 4) -> list[dict]:
-    """Bars for one symbol, retried on an empty answer.
+def _query_one(bs, code: str, start: str, end: str, adjust: str, attempts: int = 3):
+    """Bars for one symbol, retried on an empty answer; may hand back a fresh session.
 
     Under parallel load this source returns an empty result set with ``error_code == "0"``:
-    a throttle that looks exactly like a stock with no history. Trusting it silently drops
-    symbols, and the drop is not reproducible — two runs over the same 5,202 codes differed by
-    143,028 bars, which moved the eligible universe by 487 names. An empty answer for a listed
-    symbol is therefore retried with a widening pause before it is believed.
+    a throttle indistinguishable from a stock with no history. Worse, a worker's session can
+    die outright, after which every remaining symbol in its contiguous slice returns empty —
+    the failures come back as runs of consecutive codes, which is what gave this away. Retrying
+    inside the dead session cannot help, so the session is rebuilt before the last attempt.
+
+    Returns ``(rows, bs)``; the caller must keep the session handed back.
     """
     for attempt in range(attempts):
-        result = bs.query_history_k_data_plus(
-            code, FIELDS, start_date=start, end_date=end, frequency="d", adjustflag=adjust
-        )
-        rows = []
-        while result.error_code == "0" and result.next():
-            v = result.get_row_data()
-            rows.append({"date": v[0], "symbol": code.replace("sh.", "SH_").replace("sz.", "SZ_"),
-                         "open": v[1], "high": v[2], "low": v[3], "close": v[4],
-                         "volume": v[5], "amount": v[6], "is_st": v[7], "trade_status": v[8]})
-        if rows:
-            return rows
-        time.sleep(0.4 * (attempt + 1))
-    return []
+        try:
+            result = bs.query_history_k_data_plus(
+                code, FIELDS, start_date=start, end_date=end, frequency="d", adjustflag=adjust
+            )
+            rows = []
+            while result.error_code == "0" and result.next():
+                v = result.get_row_data()
+                rows.append({"date": v[0], "symbol": code.replace("sh.", "SH_").replace("sz.", "SZ_"),
+                             "open": v[1], "high": v[2], "low": v[3], "close": v[4],
+                             "volume": v[5], "amount": v[6], "is_st": v[7], "trade_status": v[8]})
+            if rows:
+                return rows, bs
+        except Exception:
+            pass
+        time.sleep(0.5 * (attempt + 1))
+        if attempt == attempts - 2:
+            try:
+                bs.logout()
+            except Exception:
+                pass
+            bs = _login()
+    return [], bs
 
 
 def _fetch_chunk(payload: tuple[list[str], str, str, str]) -> tuple[list[dict], list[str]]:
@@ -130,7 +141,7 @@ def _fetch_chunk(payload: tuple[list[str], str, str, str]) -> tuple[list[dict], 
     rows, empty = [], []
     try:
         for code in codes:
-            found = _query_one(bs, code, start, end, adjust)
+            found, bs = _query_one(bs, code, start, end, adjust)
             rows.extend(found)
             if not found:
                 empty.append(code)
@@ -154,7 +165,22 @@ def fetch_prices(codes: list[str], start: str, end: str, adjust: str, workers: i
     print(f"fetched {len(rows)} bars for {covered}/{len(codes)} symbols in "
           f"{time.time()-began:.0f}s across {len(chunks)} workers")
     if empty:
-        print(f"no bars after retries for {len(empty)} symbols, e.g. {empty[:8]}")
+        # Stragglers are almost always one worker's dead tail. A serial sweep on a fresh
+        # session recovers them for the price of a few minutes.
+        print(f"{len(empty)} symbols empty after the parallel pass; sweeping serially")
+        bs, recovered = _login(), []
+        try:
+            for code in list(empty):
+                found, bs = _query_one(bs, code, start, end, adjust, attempts=4)
+                if found:
+                    rows.extend(found)
+                    recovered.append(code)
+        finally:
+            bs.logout()
+        empty = [code for code in empty if code not in set(recovered)]
+        covered = len(codes) - len(empty)
+        print(f"swept: recovered {len(recovered)}, still empty {len(empty)}"
+              + (f", e.g. {empty[:8]}" if empty else ""))
     coverage = covered / float(len(codes))
     if coverage < MINIMUM_COVERAGE:
         # Publishing from a partial universe would publish a name selected from whichever
