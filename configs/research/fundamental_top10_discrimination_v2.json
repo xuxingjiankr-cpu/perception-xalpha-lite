@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "fundamental_top10_discrimination_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test the user's final objective directly: whether the fixed daily Top10 has a higher probability of rising and a higher executable net return than all other eligible A-shares and matched controls.",
+  "preregisteredAt": "2026-08-09T15:24:14+09:00",
+  "frozenMechanismConfig": "configs/research/fundamental_mechanism_families_v1.json",
+  "frozenMechanismConfigFileSha256": "324a6d979cf5d4c23e37a7c9cc25c77691b127cdb604a617033599e1badf2670",
+  "frozenMechanismCode": "scripts/research_fundamental_mechanism_families.py",
+  "frozenMechanismCodeFileSha256": "7ac3e309da7051ee9e632ca60740bdd2b49f1fd7273e5a236bf3d419dbc9028f",
+  "objective": {
+    "score": "unchanged_equal_component_equal_family_PIT_fundamental_score",
+    "topCount": 10,
+    "comparisonPools": ["all_other_eligible", "same_board_and_trailing_liquidity_decile"],
+    "neverReplaceUnexecutableSelections": true,
+    "historicalOutcomesMayChangeScore": false,
+    "historicalRunCanPromote": false
+  },
+  "execution": {
+    "signalTimestamp": "market_close_t",
+    "entryTimestamp": "next_buyable_open_t_plus_1",
+    "exitTimestamp": "next_sellable_open_t_plus_2",
+    "holdingTradingDays": 1,
+    "roundTripCost": 0.003,
+    "minimumResolvedSelectionFraction": 0.95,
+    "minimumDailyEligibleUniverse": 500,
+    "matchedControlLiquidityLookback": 20,
+    "matchedControlLiquidityDeciles": 10
+  },
+  "metrics": {
+    "probability": [
+      "top10_gross_up_probability",
+      "rest_gross_up_probability",
+      "gross_up_probability_lift",
+      "top10_net_positive_probability",
+      "rest_net_positive_probability",
+      "net_positive_probability_lift",
+      "top10_net_loss_probability",
+      "rest_net_loss_probability"
+    ],
+    "return": [
+      "top10_mean_gross_return",
+      "top10_mean_net_return",
+      "top10_median_net_return",
+      "rest_mean_net_return",
+      "matched_control_mean_net_return",
+      "top10_net_return_lift_vs_rest",
+      "top10_net_return_lift_vs_matched_control"
+    ],
+    "inference": "day_clustered_HAC",
+    "hacLagTradingDays": 5
+  },
+  "preregisteredAcceptanceGates": {
+    "minimumIndependentForwardTradingDays": 60,
+    "minimumResolvedSelectionFraction": 0.95,
+    "minimumGrossUpProbabilityLift": 0.0,
+    "minimumNetPositiveProbabilityLift": 0.0,
+    "maximumNetLossProbabilityLift": 0.0,
+    "minimumTop10MeanNetReturn": 0.0,
+    "minimumTop10MedianNetReturn": 0.0,
+    "minimumNetReturnLiftVsRest": 0.0,
+    "minimumNetReturnLiftVsMatchedControl": 0.0,
+    "minimumDailyOutperformanceRate": 0.50,
+    "minimumHacTForProbabilityLift": 2.0,
+    "minimumHacTForTop10NetReturn": 2.0,
+    "minimumHacTForReturnLift": 2.0,
+    "allGatesMustPass": true
+  },
+  "calibration": {
+    "trainingDataEndsAt": "2026-08-06",
+    "betaPriorAlpha": 1.0,
+    "betaPriorBeta": 1.0,
+    "expectedReturnPriorMean": 0.0,
+    "expectedReturnPriorEffectiveObservations": 100,
+    "historicalCalibrationIsDiagnosticPriorOnly": true,
+    "forwardOutcomesMayRefitFrozenVersion": false
+  },
+  "forward": {
+    "modelVersion": "fundamental_top10_discrimination_v2_20260809",
+    "cleanEvidenceStartsStrictlyAfter": "2026-08-07",
+    "minimumIndependentForwardTradingDays": 60,
+    "outputRoot": "outputs/edge_research/fundamental_top10_discrimination_v2/forward",
+    "allowParameterChangesInPlace": false,
+    "allowAutomaticPromotion": false
+  },
+  "output": {
+    "root": "outputs/edge_research/fundamental_top10_discrimination_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "interpretation": {
+    "everyTop10StockMustRiseEveryDay": false,
+    "requiredMeaning": "Across independent forward days, Top10 must have statistically higher rise probability and higher executable net return than alternatives.",
+    "validatedFactorCountAtPreregistration": 0
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
