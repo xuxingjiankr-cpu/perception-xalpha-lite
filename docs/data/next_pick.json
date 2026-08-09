@@ -1,0 +1,12 @@
+{
+  "as_of": "2026-08-07",
+  "buy_at": "open of the next trading session",
+  "symbol": "SZ_301203",
+  "composite_rank": 0.964107,
+  "close_on_as_of": 38.2505,
+  "eligible_names": 4696,
+  "spec_sha256": "224a02ea9bb7b17bf0dbf6b4e5e00dd62a87c1fb9eb21d424239157b0abc87d2",
+  "published_at": "2026-08-09T11:43:34.147311+00:00",
+  "status": "research_only_forward_record_not_trading",
+  "orders": []
+}

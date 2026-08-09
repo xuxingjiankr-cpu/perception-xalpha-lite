@@ -6,7 +6,8 @@ __pycache__/
 dist/
 build/
 *.egg-info/
-data/
+# Anchored to the root: docs/data/ is the published forward record and must ship.
+/data/
 outputs/
 .env
 *.log
