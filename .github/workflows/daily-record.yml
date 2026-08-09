@@ -1,0 +1,57 @@
+# The daily record, computed here rather than pushed here.
+#
+# Selecting the name, scoring the sessions that have matured and redrawing all happen on the
+# runner from the frozen specification and a public source, so the record does not depend on
+# any one machine being awake and a reader can rerun it and get the same name.
+name: daily-record
+
+on:
+  schedule:
+    - cron: "0 9 * * 1-5"    # 17:00 Asia/Shanghai, after the close
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute and print without writing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-record
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -q -e . baostock
+
+      - name: Select, score and record
+        run: |
+          python tools/daily_record.py --workers 9 \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+
+      - name: Redraw
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        run: python examples/render_rotation_dashboard.py
+
+      - name: Commit
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- docs/; then
+            echo "nothing changed"
+          else
+            git add docs/
+            git commit -m "data: daily record [skip ci]"
+            git pull --rebase --autostash
+            git push
+          fi

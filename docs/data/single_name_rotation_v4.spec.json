@@ -1,0 +1,144 @@
+{
+  "rationale": "The most concentrated, fastest-rotating form of the same four factors: hold the single best-ranked eligible name, rotate every session. Frozen so that the live curve published on the dashboard is a forward record rather than another unregistered variant.",
+  "factors": {
+    "qlib158/rsqr60": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      }
+    },
+    "qlib158/rsqr30": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      }
+    },
+    "academic/illiq": {
+      "rolling": "mean",
+      "arg": {
+        "binary": "div",
+        "left": {
+          "unary": "abs",
+          "arg": {
+            "field": "returns"
+          }
+        },
+        "right": {
+          "binary": "mul",
+          "left": {
+            "field": "close"
+          },
+          "right": {
+            "field": "volume"
+          }
+        }
+      },
+      "window": 21
+    },
+    "academic/cma": {
+      "unary": "neg",
+      "arg": {
+        "binary": "sub",
+        "left": {
+          "unary": "signed_log1p",
+          "arg": {
+            "rolling": "mean",
+            "arg": {
+              "field": "volume"
+            },
+            "window": 60
+          }
+        },
+        "right": {
+          "lag": 60,
+          "arg": {
+            "unary": "signed_log1p",
+            "arg": {
+              "rolling": "mean",
+              "arg": {
+                "field": "volume"
+              },
+              "window": 60
+            }
+          }
+        }
+      }
+    }
+  },
+  "windows": [
+    21,
+    30,
+    60
+  ],
+  "combination": "equal_weight_rank_average",
+  "book_size": 1,
+  "holding_days": 1,
+  "round_trip_cost": 0.003,
+  "universe": {
+    "trailing_amount_window": 60,
+    "minimum_trailing_median_amount": 30000000.0,
+    "minimum_prior_observations": 120,
+    "exclude_st": true,
+    "require_normal_trade_status": true
+  },
+  "scoring_rule": "Open-to-open return of the single held name, minus the equal-weight eligible-universe return over the same two bars, minus 30 bps whenever the name changes. A name sealed at the limit on the entry session is not bought and the session is skipped.",
+  "status": "research_only_forward_record_not_trading",
+  "name": "single_name_rotation_v4",
+  "predecessor": {
+    "name": "single_name_rotation_v3",
+    "spec_sha256": "224a02ea9bb7b17bf0dbf6b4e5e00dd62a87c1fb9eb21d424239157b0abc87d2",
+    "relationship": "Identical factors, book and cost. v3 named a universe rule but never said where the universe came from, so two faithful implementations disagreed on 614 of ~4,700 eligible names. A digest that does not determine the answer is not doing its job. v3 keeps the single pick it published and is retired; v4 pins the source."
+  },
+  "data_source": {
+    "provider": "baostock",
+    "listing_endpoint": "query_all_stock, most recent session on or before the run date",
+    "bars_endpoint": "query_history_k_data_plus, frequency=d",
+    "adjust_flag": "1",
+    "adjust_meaning": "backward-adjusted",
+    "boards": [
+      "sh.60",
+      "sh.68",
+      "sz.00",
+      "sz.30"
+    ],
+    "boards_meaning": "SSE main, STAR, SZSE main, ChiNext; B-shares and BSE excluded",
+    "sessions": 260,
+    "listing_filter": "trade status 1 on the listing session"
+  },
+  "frozen_at": "2026-08-09T12:30:03.242301+00:00",
+  "spec_sha256": "dea0e60855645c2e17bec001fd103cadfae027c1cbd9e3fdeb8ed66cdbe3de44"
+}
