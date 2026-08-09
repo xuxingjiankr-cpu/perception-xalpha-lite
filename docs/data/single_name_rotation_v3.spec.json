@@ -1,0 +1,123 @@
+{
+  "name": "single_name_rotation_v3",
+  "rationale": "The most concentrated, fastest-rotating form of the same four factors: hold the single best-ranked eligible name, rotate every session. Frozen so that the live curve published on the dashboard is a forward record rather than another unregistered variant.",
+  "factors": {
+    "qlib158/rsqr60": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 60
+      }
+    },
+    "qlib158/rsqr30": {
+      "binary": "mul",
+      "left": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      },
+      "right": {
+        "corr": true,
+        "left": {
+          "field": "close"
+        },
+        "right": {
+          "field": "session_index"
+        },
+        "window": 30
+      }
+    },
+    "academic/illiq": {
+      "rolling": "mean",
+      "arg": {
+        "binary": "div",
+        "left": {
+          "unary": "abs",
+          "arg": {
+            "field": "returns"
+          }
+        },
+        "right": {
+          "binary": "mul",
+          "left": {
+            "field": "close"
+          },
+          "right": {
+            "field": "volume"
+          }
+        }
+      },
+      "window": 21
+    },
+    "academic/cma": {
+      "unary": "neg",
+      "arg": {
+        "binary": "sub",
+        "left": {
+          "unary": "signed_log1p",
+          "arg": {
+            "rolling": "mean",
+            "arg": {
+              "field": "volume"
+            },
+            "window": 60
+          }
+        },
+        "right": {
+          "lag": 60,
+          "arg": {
+            "unary": "signed_log1p",
+            "arg": {
+              "rolling": "mean",
+              "arg": {
+                "field": "volume"
+              },
+              "window": 60
+            }
+          }
+        }
+      }
+    }
+  },
+  "windows": [
+    21,
+    30,
+    60
+  ],
+  "combination": "equal_weight_rank_average",
+  "book_size": 1,
+  "holding_days": 1,
+  "round_trip_cost": 0.003,
+  "universe": {
+    "trailing_amount_window": 60,
+    "minimum_trailing_median_amount": 30000000.0,
+    "minimum_prior_observations": 120,
+    "exclude_st": true,
+    "require_normal_trade_status": true
+  },
+  "scoring_rule": "Open-to-open return of the single held name, minus the equal-weight eligible-universe return over the same two bars, minus 30 bps whenever the name changes. A name sealed at the limit on the entry session is not bought and the session is skipped.",
+  "status": "research_only_forward_record_not_trading",
+  "frozen_at": "2026-08-09T11:28:29.833842+00:00",
+  "spec_sha256": "224a02ea9bb7b17bf0dbf6b4e5e00dd62a87c1fb9eb21d424239157b0abc87d2"
+}

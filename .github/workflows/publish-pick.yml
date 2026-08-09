@@ -1,0 +1,55 @@
+# Recompute the next session's pick from the frozen specification and a public data source.
+#
+# The point is reproducibility, not redundancy. If a runner starting from nothing but the
+# published spec arrives at the same name the record already carries, the record is something
+# a reader can check. If it arrives at a different one, the job fails loudly rather than
+# overwriting history — a pick that cannot be reproduced is a finding, not a glitch.
+name: publish-pick
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Compute and print without writing"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 9 * * 1-5"   # 17:00 Asia/Shanghai, after close
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-pick
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -q -e . baostock
+
+      - name: Recompute the pick from source
+        id: pick
+        run: |
+          python tools/publish_from_source.py --workers 8 --sessions 260 \
+            ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+
+      - name: Redraw and commit
+        if: github.event_name == 'schedule'
+        run: |
+          python examples/render_rotation_dashboard.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- docs/; then
+            echo "nothing changed"
+          else
+            git add docs/
+            git commit -m "data: publish the next session's pick [skip ci]"
+            git push
+          fi
