@@ -1,0 +1,5 @@
+{
+  "declared_trials": 24,
+  "cscv_blocks": 8,
+  "notes": "Replace returns.csv with your own daily returns, net of cost. Set declared_trials to the number of variants you TRIED, including every one you discarded."
+}

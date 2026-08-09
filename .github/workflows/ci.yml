@@ -38,6 +38,7 @@ jobs:
           python examples/selection_artifact.py
           python examples/run_synthetic.py
           python examples/run_forward_record_synthetic.py
+          python tools/audit_returns.py
 
       # The forward record's value is entirely in what it refuses. If a refusal ever
       # stops firing the record silently becomes an ordinary backtest.

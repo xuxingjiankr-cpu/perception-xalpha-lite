@@ -1,0 +1,29 @@
+# Audit a backtest for overfitting, in the fork that owns it.
+#
+# Runs in the user's own fork against their own returns. Nothing is uploaded and this
+# repository never sees the data — which is the only arrangement under which anyone would
+# put a real strategy through it.
+name: audit
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "audit/returns.csv"
+      - "audit/audit.json"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -q -e .
+      - name: Audit
+        run: python tools/audit_returns.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verdict
+          path: audit/verdict.json

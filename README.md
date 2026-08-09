@@ -28,6 +28,32 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
 
+## Audit your own backtest
+
+Fork this, drop your daily returns into `audit/returns.csv`, say how many variants you actually
+tried in `audit/audit.json`, and push. The audit runs **in your fork** and writes the verdict to
+the run summary. Your returns never leave your repository — this one never sees them.
+
+```bash
+python tools/audit_returns.py
+```
+
+It asks three questions that are not the same question:
+
+| | |
+|---|---|
+| **Was the winner picked by luck?** | CSCV splits the sample many ways, takes the best variant in-sample, and checks where it lands out of sample. Above 0.5 and selection is doing the work. |
+| **Is the Sharpe big enough to survive the search that found it?** | The deflated Sharpe discounts what you observed by the best you'd expect from that many trials on noise. |
+| **Does anything beat zero once the whole family is counted?** | White's Reality Check, with a stationary bootstrap that keeps the serial dependence. |
+
+The example that ships with it is **24 variants of pure random noise**. The best has a Sharpe of
+**1.11 annualised** — a number most people would trade. At 24 trials, noise is expected to
+produce **1.18**. Verdict: `SELECTION IS DOING THE WORK`.
+
+The trial count is the number of variants you *tried*, including every one you deleted. Not the
+number in the file. Understating it is the most common way a backtest passes a test it should
+fail, and the tool says so when the two numbers match.
+
 ## The pick is published before the session it applies to
 
 [![Daily rotation record](docs/daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
