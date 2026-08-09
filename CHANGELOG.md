@@ -7,6 +7,8 @@ performance figures, or research conclusions are included.
 
 ### Added
 
+- an English-only scholarly README and GitHub Pages research landing page;
+- a literature-to-code traceability matrix with primary-paper links and non-claim boundaries;
 - five-block chronological research partitions with a purge between every block;
 - bounded-simplex Top-K pairwise decision-weight fitting;
 - complete-block weight replicas and stability diagnostics;

@@ -1,78 +1,176 @@
 # Perception-XAlpha Lite
 
-> 一个面向研究的、点时点（point-in-time）自主因子发现最小系统。它不是交易机器人，
-> 不连接券商，不自动下单，也不会把历史回测结果自动升级为交易策略。
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Research Status](https://img.shields.io/badge/status-research--only-7C3AED)](#research-integrity-contract)
+[![Point-in-Time](https://img.shields.io/badge/data-point--in--time-0891B2)](#point-in-time-data-contract)
+[![Safe DSL](https://img.shields.io/badge/factor%20language-audited%20DSL-059669)](src/xalpha_lite/dsl.py)
+[![License](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
 
-Perception-XAlpha Lite 保留了大型研究系统最重要、也最容易被忽略的机制：
+> An auditable, point-in-time research framework for autonomous formulaic factor
+> discovery, causal validation, and decision-focused ranking. It is deliberately
+> **not** a trading engine.
 
-- 财报只在真实披露/更新日之后可见，避免把报告期末当作可知日期；
-- 因子由受限 DSL 表达，生成器不能执行任意 Python；
-- 训练期负责选择方向，validation 与 shadow 不反馈给生成器；
-- label horizon 对应的 purge、walk-forward、Primary/Counter/Placebo；
-- PBO 与 Deflated Sharpe Ratio 记录多重尝试造成的选择偏差；
-- 量价、价值、质量、成长、财务安全及基本面×行情组合因子；
-- HMM、EWS、BOCPD、Koopman/DMD、LPPLS、Black–Litterman、Triple Barrier、
-  Chernoff–Hoeffding 等论文机制的精简 primitives 库。
+Perception-XAlpha Lite separates **hypothesis generation** from **evidence acceptance**.
+It can synthesize bounded symbolic factors, but every candidate must survive chronological
+isolation, counterfactual controls, permutation tests, and multiple-testing corrections.
+Historical evidence can produce a forward-shadow hypothesis; it can never produce an order.
 
-**包含这些模块不代表已经发现 alpha。** 它们只是进入严格证伪流程的研究工具。
+This public repository contains **methods only**. It includes no proprietary data, empirical
+factor weights, securities, performance tables, or private research conclusions.
 
-## Architecture
+## Why this architecture exists
+
+Quantitative discovery is a multiple-comparisons problem disguised as an optimization
+problem. Three ideas anchor the design:
+
+1. **Backtest selection requires an explicit false-discovery model.** Bailey et al. propose
+   Combinatorially Symmetric Cross-Validation to estimate the Probability of Backtest
+   Overfitting (PBO), because a conventional holdout can be unreliable after extensive
+   strategy selection ([paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253)).
+2. **A Sharpe ratio is not evidence without a trial ledger.** The Deflated Sharpe Ratio
+   corrects for selection bias, non-normal returns, and the number of attempted variants
+   ([paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551)).
+3. **Prediction quality and decision quality are different objectives.** Decision-focused
+   learning evaluates the downstream decision induced by a prediction rather than relying
+   only on point-prediction error ([PMLR](https://proceedings.mlr.press/v119/elmachtoub20a.html)).
+
+The framework therefore optimizes only inside a preregistered research envelope and treats
+validation/shadow windows as reject-only evidence.
+
+## System architecture
 
 ```mermaid
 flowchart LR
-    A["OHLCV + statements"] --> B["Point-in-time alignment"]
-    B --> C["Safe factor DSL"]
-    C --> D["Technical / fundamental / hybrid candidates"]
-    D --> E["Train-only bounded generation"]
-    E --> F["Purged walk-forward"]
-    F --> G["Primary / Counter / Placebo"]
-    G --> H["PBO + DSR"]
-    H --> I["Research artifact only"]
-    I -. "never automatic" .-> J["Fresh forward shadow"]
+    subgraph DATA["Causal Data Plane"]
+        A["OHLCV + disclosures"] --> B["Point-in-time alignment"]
+        B --> C["Tradability + neutralization controls"]
+    end
+    subgraph DISCOVERY["Autonomous Discovery Plane"]
+        C --> D["Audited factor DSL"]
+        D --> E["Economic seeds"]
+        E --> F["Bounded mutation + crossover"]
+        F --> G["Immutable birth certificates"]
+    end
+    subgraph VALIDATION["Falsification Plane"]
+        G --> H["Purged walk-forward"]
+        H --> I["Primary / Counter / Placebo"]
+        I --> J["PBO + Deflated Sharpe"]
+    end
+    subgraph DECISION["Optional Decision Research"]
+        G --> K["Top-K pairwise objective"]
+        K --> L["Block-replica stability"]
+        L --> M["Independent probability calibration"]
+    end
+    J --> N["Sealed research artifact"]
+    M --> N
+    N -. "never automatic" .-> O["Fresh forward shadow"]
 ```
 
-## Professional primitives map
+## Scientific method map
 
-> **Honesty boundary:** the mechanisms below are an audited primitives library. They
-> are not all wired into the default factor-search pipeline. The default pipeline uses
-> PIT fundamentals, the safe DSL, train-only generation, neutral factor portfolios,
-> purged validation, permutation tests, PBO and DSR. HMM/EWS/BOCPD/DMD/LPPLS/BL and
-> Triple Barrier must be explicitly preregistered before being added as features or labels.
+The default discovery pipeline and the optional primitives library are intentionally
+distinguished. Availability in the library means **testable**, not **validated alpha**.
 
-| Layer | Mechanism | What it contributes | What it cannot do |
+| Research layer | Implementation | Scientific basis | Enforced boundary |
 |---|---|---|---|
-| Data | PIT disclosure alignment | Prevents financial-statement look-ahead | Does not remove delisting/survivorship bias |
-| Regime primitive | causal HMM | Forward-filtered state probabilities | Not wired by default; Viterbi full-path labels are not online-safe |
-| Transition primitives | EWS + BOCPD | Critical-slowing and change-risk diagnostics | Not wired by default; a change point is not directional alpha |
-| Dynamics primitive | DMD/Koopman residual | Detects deviations from local linear dynamics | Not wired by default; linear DMD is not a universal predictor |
-| Bubble feasibility | simplified LPPLS | Fit residual and critical-time stability | Does not promise a precise top or crash date |
-| View shrinkage | Black–Litterman | Shrinks noisy forecasts toward priors | Cannot manufacture information |
-| Labels/exits | Triple Barrier | Standardises TP/SL/time outcomes offline | Future labels must never enter features |
-| Tail evidence | Hoeffding bound | Conservative finite-sample hit-rate lower bound | Independence assumptions still require audit |
-| Validation | purge/WF + Counter/Placebo | Tests temporal stability and mechanism specificity | Reused historical windows are not fresh OOS |
-| Multiple testing | PBO + DSR | Penalises repeated candidate search | Cannot repair bad labels or contaminated data |
-| Decision research | bounded Top-K pairwise loss | Aligns a frozen factor book with a ranking boundary | Cannot create information absent from the inputs |
-| Weight stability | chronological block replicas | Exposes sensitivity of fitted weights | Is not a posterior and cannot authorise trading |
-| Calibration | ridge + logistic probability models | Maps frozen scores to expected outcomes and loss probabilities | Must use an independent block and remain reject-only |
+| Disclosure timing | `align_point_in_time_fundamentals()` | Information must not exist before publication | Missing disclosure dates fail closed |
+| Symbolic search | audited JSON DSL + bounded generator | Interpretable formulaic alpha search; related to AlphaForge | No `eval`, subprocess, network, or arbitrary Python |
+| Neutral portfolios | industry/size residualization | Cross-sectional factor research | Zero-investment research proxy; not an executable short book |
+| Regime inference | causal two-state HMM | Hamilton regime switching | Forward filtering only; full-path Viterbi is not online-safe |
+| Transition risk | EWS + BOCPD | Critical slowing and Bayesian run-length inference | Risk diagnostic, not directional alpha |
+| Local dynamics | DMD/Koopman residual | Linear operator approximation of nonlinear dynamics | Past-window residual; not a universal price predictor |
+| Bubble feasibility | simplified LPPLS | Stable reduced-parameter calibration | Fixed grid and stability distribution; no “exact crash date” claim |
+| View shrinkage | Black–Litterman posterior | Equilibrium prior plus uncertain views | Shrinkage cannot manufacture information |
+| Offline outcomes | Triple Barrier | Profit/loss/time labeling | Future-dependent labels are forbidden as features |
+| Finite-sample risk | Hoeffding lower bound | Distribution-free concentration | Dependence and effective sample size still require audit |
+| Validation | purge + walk-forward + controls | Temporal isolation and falsification | Validation/shadow never select parents or directions |
+| Search correction | CSCV/PBO + DSR | Backtest-overfitting and selection-bias control | Every attempted candidate counts, including failures |
+| Decision ranking | bounded Top-K pairwise loss | Decision-focused learning | Fit block only; cannot create absent signal |
+| Forecast reliability | Brier, LogLoss, AUC, ECE | Strictly proper scoring-rule framework | Calibration block is independent and frozen |
 
-See [the literature map](docs/PAPERS.md) for references and implementation boundaries.
+See the full [literature and implementation map](docs/PAPERS.md).
 
-## Optional decision research toolkit
+## Mathematical core
 
-Version 0.2 adds reusable tools for a frozen factor book:
+### 1. Industry- and size-neutral factor book
 
-- five chronological fit/calibration/audit/validation/shadow blocks with full purges;
-- daily-equal Top-K versus near-boundary pairwise fitting;
-- non-negative factor weights with preregistered lower/upper bounds and prior shrinkage;
-- complete-block subsample replicas for weight-stability diagnostics;
-- independent expected-outcome and ordinary/severe-loss calibration;
-- Brier, LogLoss, AUC, ECE, and probability-bucket diagnostics.
+For a cross-sectional factor rank vector `r_t` and control matrix `X_t`, the research
+portfolio is the normalized residual of the cross-sectional projection:
 
-The module is optional and is not wired into the default discovery pipeline or any
-execution path. The public repository contains no real factor weights, security lists,
-performance tables, or private research conclusions. See the
-[decision toolkit guide](docs/DECISION_TOOLKIT.md) and its
-[synthetic-only example](examples/run_decision_tools_synthetic.py).
+```math
+\tilde r_t = (I - X_t(X_t^\top X_t)^{-1}X_t^\top)r_t,
+\qquad
+w_t = \frac{\tilde r_t}{\lVert \tilde r_t \rVert_1}.
+```
+
+This removes the constant, point-in-time log market capitalization, and industry dummy
+exposures before evaluating the factor. It does not imply that the short leg is executable.
+
+### 2. Decision-focused Top-K weighting
+
+For each fit date, positive names are compared with names immediately below the Top-K
+boundary. The bounded simplex solves:
+
+```math
+\min_{w \in \Delta_{[l,u]}}
+\frac{1}{T}\sum_t\frac{1}{|P_t|}
+\sum_{(i,j)\in P_t}\log\!\left(1+e^{-w^\top(x_{ti}-x_{tj})}\right)
++ \lambda\lVert w-w_0\rVert_2^2.
+```
+
+Each date receives equal mass. Lower/upper bounds and the prior `w_0` are preregistered;
+complete chronological block replicas expose weight instability.
+
+### 3. Independent probability calibration
+
+Composite scores and loss events are calibrated only after weight fitting. Reliability is
+reported with Brier score, LogLoss, ROC AUC, expected calibration error, and probability
+bucket hit rates. Proper scoring rules are used because they reward honest probabilistic
+forecasts rather than arbitrary confidence ([Gneiting & Raftery, 2007](https://doi.org/10.1198/016214506000001437)).
+
+## Research lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> StaticValidated: DSL + causality + safety checks
+    StaticValidated --> HistoricalValidated: purged WF + controls
+    HistoricalValidated --> ForwardShadow: preregistered survivor
+    Draft --> Rejected
+    StaticValidated --> Rejected
+    HistoricalValidated --> Rejected
+    ForwardShadow --> Retired
+    ForwardShadow --> ResearchCandidate: independent forward evidence
+    ResearchCandidate --> [*]
+```
+
+`ResearchCandidate` is still not an execution state. This package defines no state that can
+submit a trade.
+
+## Point-in-time data contract
+
+### Prices
+
+```text
+date,symbol,open,high,low,close,volume,amount,industry,market_cap,
+is_st,is_suspended,is_delisted,limit_up,limit_down
+```
+
+Signals are formed at close `t` and evaluated from the next session's open. Industry and
+market capitalization are point-in-time controls. Feasibility flags describe the execution
+session, not information observed later in that session.
+
+### Fundamentals
+
+```text
+symbol,report_date,notice_date,update_date,eps_ytd,bps,roe,roic,
+gross_margin,cash_to_profit,revenue_yoy,profit_yoy,debt_ratio,
+current_ratio,quick_ratio
+```
+
+`notice_date` is mandatory. A statement becomes visible on the first market session strictly
+after `max(notice_date, update_date)`. Missing disclosure timestamps are rejected rather than
+imputed.
 
 ## Quick start
 
@@ -80,9 +178,10 @@ performance tables, or private research conclusions. See the
 python -m venv .venv
 .venv/Scripts/pip install -e .
 python examples/run_synthetic.py
+python examples/run_decision_tools_synthetic.py
 ```
 
-Or use your own files:
+Run the factor-discovery CLI on local data:
 
 ```bash
 xalpha-lite \
@@ -92,73 +191,71 @@ xalpha-lite \
   --output outputs/result.json
 ```
 
-### Price schema
+## Repository map
 
 ```text
-date,symbol,open,high,low,close,volume,amount,industry,market_cap,
-is_st,is_suspended,is_delisted,limit_up,limit_down
+src/xalpha_lite/
+├── pit.py                 # disclosure-aware point-in-time alignment
+├── dsl.py                 # allowlisted causal expression language
+├── discovery.py           # generation, neutral books, controls, PBO/DSR
+├── decision.py            # Top-K weights, block replicas, calibration
+├── paper_mechanisms.py    # auditable research primitives
+└── cli.py                 # research-only command line interface
+
+docs/
+├── PAPERS.md              # literature-to-code traceability
+└── DECISION_TOOLKIT.md    # decision-research API and constraints
 ```
 
-`industry` and point-in-time `market_cap` are required by default. The four feasibility
-flags are optional and default to false; `limit_up`/`limit_down` must describe whether the
-**next-session execution price** was locked, not whether the security touched a limit later
-in the day. Signals are formed at close and evaluated from the next open.
+## Reproducibility contract
 
-### Fundamental schema
+Every discovery run records:
 
-```text
-symbol,report_date,notice_date,update_date,eps_ytd,bps,roe,roic,
-gross_margin,cash_to_profit,revenue_yoy,profit_yoy,debt_ratio,
-current_ratio,quick_ratio
+- source commit;
+- configuration hash;
+- price and fundamental data hashes;
+- Python, NumPy, pandas, and platform versions;
+- immutable factor IDs, parent IDs, operators, and expression hashes;
+- the complete attempted-candidate count, including rejected candidates;
+- a SHA-256 commitment for undisclosed shadow metrics.
+
+The output contract always includes:
+
+```json
+{
+  "status": "diagnostic_only_research_only_not_trading",
+  "orders": [],
+  "automatic_trading_changes": []
+}
 ```
 
-`notice_date` is mandatory. Values first become visible on the market session strictly
-after `max(notice_date, update_date)`. A row without a disclosure date fails closed.
+No empirical research artifact is committed to this repository.
 
-## Result artifact fields
+## Research integrity contract
 
-Discovery artifacts contain status, attempted-candidate counts, validation diagnostics,
-PBO/DSR evidence, a sealed shadow commitment, an immutable mechanism tree, and run/data/
-config hashes. This repository does not publish a real research result artifact. Every
-artifact always contains empty `orders` and `automatic_trading_changes` arrays.
-
-Zero validated factors is a valid result. The software never forces a target count.
-
-The candidate count includes economic seed hypotheses and bounded train-only DSL mutations.
-Each expression has immutable parent IDs, generation/operator metadata and an expression hash
-in `mechanism_tree`; validation and shadow never select parents.
-
-## Research workflow
-
-1. Write an economic mechanism before evaluating data.
-2. Freeze windows, horizon, costs, splits and trial count.
-3. Generate bounded DSL candidates and prune train-only behavioural duplicates.
-4. Choose factor direction from train only.
-5. Quarantine validation and shadow from the generator.
-6. Require temporal walk-forward consistency and Primary superiority over Counter/Placebo.
-7. Report PBO and DSR after all attempted candidates, including failures.
-8. Treat any historical survivor as a forward-shadow hypothesis—not a trade signal.
-
-## Safety boundary
-
-The result schema always contains empty `orders` and `automatic_trading_changes` arrays.
-This repository has no broker client, account access, order submission, strategy overlay or
-production BUY/SELL gate. Connecting research output to execution is deliberately outside
-the project.
+- No broker client, account credentials, order submission, strategy overlay, or production
+  BUY/SELL gate exists in this package.
+- Validation and shadow outcomes may reject a model but may not refit it.
+- Future-dependent labels remain in offline label tables and never enter features.
+- Candidate direction and parent selection use training data only.
+- Failed candidates remain part of the multiple-testing trial count.
+- A statistically empty result is valid; the framework never forces a survivor.
+- Historical evidence alone cannot authorize deployment.
 
 ## Limitations
 
-- The demo uses synthetic data and makes no profitability claim.
-- Public financial endpoints may lack historical restatement vintages.
-- A current security master introduces survivorship bias unless replaced with a true PIT master.
-- The research book is industry/size neutral and zero-investment, but A-share shorting is
-  represented only as a research proxy; it is not an executable cash-equity portfolio.
-- Horizon holding is represented by equal overlapping tranches; real fills, borrow, impact and
-  capacity still require venue-specific execution data.
-- The included paper mechanisms are minimal reference implementations, not production solvers.
+- The examples are synthetic and make no profitability claim.
+- Public financial endpoints may not preserve every historical restatement vintage.
+- A contemporary security master creates survivorship bias unless replaced by a genuine
+  point-in-time membership history.
+- A zero-investment research portfolio is not directly executable in a long-only cash market.
+- Equal overlapping tranches approximate a holding horizon; they do not model queue priority,
+  borrow availability, market impact, or venue-specific capacity.
+- HMM, EWS, BOCPD, DMD, LPPLS, Black–Litterman, and Triple Barrier are minimal auditable
+  primitives, not production solvers and not claims of predictive power.
 
 ## License
 
-MIT. Research and educational use; no investment advice.
+MIT. Research and educational use only. No investment advice.
 
-See [CHANGELOG.md](CHANGELOG.md) for method-only public updates.
+See [CHANGELOG.md](CHANGELOG.md) for method-only releases.

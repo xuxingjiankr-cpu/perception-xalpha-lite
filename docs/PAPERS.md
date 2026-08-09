@@ -1,52 +1,159 @@
-# Research mechanisms and literature map
+# Literature-to-code traceability
 
-This repository contains small, auditable implementations of mechanisms used in
-the parent research project. Inclusion means “available for falsification”, not
-“proven alpha”.
+Perception-XAlpha Lite treats academic literature as a source of **testable mechanisms and
+research constraints**, not as proof that an implementation has alpha. This document records:
 
-| Mechanism | Lite implementation | Research role | Reference |
+1. the claim supported by each reference;
+2. the corresponding public implementation;
+3. the boundary the implementation must not cross.
+
+No empirical research result is included.
+
+## Statistical validation and research integrity
+
+| Method | Evidence from the literature | Public implementation | Explicit boundary |
 |---|---|---|---|
-| Probability of Backtest Overfitting | CSCV-style `pbo()` | Penalise selection from many candidates | Bailey et al., *The Probability of Backtest Overfitting* |
-| Deflated Sharpe Ratio | `deflated_sharpe_ratio()` | Adjust Sharpe evidence for many trials and non-normal returns | Bailey & López de Prado, *The Deflated Sharpe Ratio* |
-| Purged chronological validation | `make_split()` and walk-forward folds | Keep overlapping label windows out of adjacent samples | López de Prado, *Advances in Financial Machine Learning* |
-| Hidden Markov Model | `causal_two_state_hmm_filter()` | Forward-filtered regime probabilities; no Viterbi look-ahead | Hamilton (1989), *A New Approach to the Economic Analysis of Nonstationary Time Series* |
-| Early-warning statistics | `early_warning_features()` | Variance/autocorrelation/skew changes before transitions | Scheffer et al. (2009), *Early-warning signals for critical transitions* |
-| Bayesian online change point detection | `bocpd_change_probability()` | Online transition-risk gate | Adams & MacKay (2007), *Bayesian Online Changepoint Detection* |
-| Dynamic Mode Decomposition / Koopman | `causal_dmd_residual()` | Past-window linear dynamics and unexpected residual | Tu et al. (2014), *On Dynamic Mode Decomposition* |
-| LPPLS | `simplified_lppls_features()` | Fixed-grid bubble-fit residual and tc stability, never a single magic crash date | Filimonov & Sornette (2013), *A Stable and Robust Calibration Scheme of the LPPLS Model* |
-| Black–Litterman | `black_litterman_posterior()` | Shrink noisy views toward a prior before allocation research | Black & Litterman (1992), *Global Portfolio Optimization* |
-| Triple Barrier | `triple_barrier_labels()` | Offline profit/loss/time labels; explicitly forbidden as features | López de Prado (2018) |
-| Stop-loss conditionality | Triple-barrier diagnostics | Test whether exits help only under serial dependence | Kaminski & Lo (2008), *When Do Stop-Loss Rules Stop Losses?* |
-| Hoeffding bound | `hoeffding_lower_bound()` | Conservative finite-sample hit-rate bound | Hoeffding (1963), *Probability Inequalities for Sums of Bounded Random Variables* |
-| Decision-focused ranking | `fit_pairwise_topk_weights()` | Align a frozen factor book with the Top-K decision boundary | Elmachtoub & Grigas (2020), *Smart Predict, then Optimize* |
-| Weight stability | `fit_pairwise_weight_ensemble()` | Complete-block subsample sensitivity, without validation refitting | Politis & Romano (1994), *The Stationary Bootstrap* (block-resampling motivation) |
-| Probability calibration | `fit_logistic_probability_model()` and `probability_metrics()` | Separate ranking from Brier/LogLoss/AUC/ECE reliability | Gneiting & Raftery (2007), *Strictly Proper Scoring Rules, Prediction, and Estimation* |
+| Probability of Backtest Overfitting | CSCV estimates the probability that selection among many backtests produces an in-sample winner that underperforms out of sample | `pbo()` | PBO cannot repair contaminated data, invalid labels, or an understated trial count |
+| Deflated Sharpe Ratio | DSR corrects apparent Sharpe evidence for multiple testing and non-normal returns | `deflated_sharpe_ratio()` | All attempted candidates, including failures, must enter the trial ledger |
+| Purged chronological validation | Overlapping outcome horizons can leak information across adjacent train/test samples | `make_split()` and purged walk-forward folds | Purge length must cover the maximum label horizon |
+| Counterfactual and placebo controls | A candidate should outperform mechanism-specific alternatives and a permutation distribution | Primary/Counter/Placebo evaluation | One lucky placebo draw is insufficient; the empirical distribution is required |
+| Proper probability scoring | Strictly proper scores incentivize honest probabilistic forecasts | `probability_metrics()` | AUC alone is insufficient; Brier, LogLoss, and calibration error are reported separately |
 
-## Important boundaries
+### Primary references
 
-- HMM parameters must be estimated on training data and frozen before validation.
-- EWS, BOCPD, DMD and LPPLS features use only the prefix ending at time t.
-- LPPLS grids and windows must be preregistered; the implementation reports fit
-  stability rather than cherry-picking a visually attractive critical time.
-- Triple-barrier output uses the future by design and belongs only in an offline
-  label table.
-- Black–Litterman improves the treatment of views; it does not create predictive
-  information by itself.
-- PBO/DSR reduce false discoveries but cannot repair survivorship bias or bad data.
-- Decision-focused loss changes the training objective; it cannot manufacture predictive
-  information when the factor ranks have no stable relationship with future outcomes.
-- Weight replicas are an instability diagnostic, not permission to average repeatedly
-  viewed validation windows.
+- Bailey, D. H., Borwein, J. M., López de Prado, M., & Zhu, Q. J. (2015).
+  *The Probability of Backtest Overfitting*. Journal of Computational Finance.
+  [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253) ·
+  [DOI](https://doi.org/10.2139/ssrn.2326253)
+- Bailey, D. H., & López de Prado, M. (2014). *The Deflated Sharpe Ratio:
+  Correcting for Selection Bias, Backtest Overfitting and Non-Normality*.
+  Journal of Portfolio Management, 40(5), 94–107.
+  [SSRN](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551) ·
+  [DOI](https://doi.org/10.2139/ssrn.2460551)
+- Gneiting, T., & Raftery, A. E. (2007). *Strictly Proper Scoring Rules,
+  Prediction, and Estimation*. Journal of the American Statistical Association,
+  102(477), 359–378. [DOI](https://doi.org/10.1198/016214506000001437)
 
-## Related research not claimed as implemented
+## Autonomous formulaic factor discovery
 
-The following papers inform extension boundaries, but their full models are not presented
-as features of the public package:
+| Research question | Literature contribution | Public implementation | Deliberate simplification |
+|---|---|---|---|
+| How can a system explore formulaic factors while retaining interpretability? | AlphaForge uses a generative-predictive architecture for formulaic factor generation and combination | allowlisted JSON DSL, economic seeds, bounded mutation/crossover | No neural generator; every expression is statically inspectable |
+| How can factor lineage remain reproducible? | Evolutionary and grammar-guided research motivates explicit generation histories | immutable factor ID, parent IDs, operator, generation, expression hash | No claim that lineage quality implies predictive quality |
+| How should redundant candidates be handled? | Diverse factor sets reduce repeated variants of the same behavior | train-only behavioral-correlation pruning | Validation/shadow correlations never select the parent pool |
 
-| Research direction | Public-package boundary | Reference |
+### Primary references
+
+- Shi, H., Song, W., Zhang, X., Shi, J., Luo, C., Ao, X., Arian, H., & Seco, L.
+  (2024). *AlphaForge: A Framework to Mine and Dynamically Combine Formulaic Alpha
+  Factors*. [arXiv:2406.18394](https://arxiv.org/abs/2406.18394)
+- Zhang, T., et al. (2020). *AutoAlpha: An Efficient Hierarchical Evolutionary
+  Algorithm for Mining Alpha Factors in Quantitative Investment*.
+  [arXiv:2002.08245](https://arxiv.org/abs/2002.08245)
+
+## Decision-focused ranking and calibration
+
+Prediction error is not identical to downstream decision loss. The optional decision toolkit
+therefore fits a bounded Top-K pairwise objective after the factor definitions and directions
+are frozen.
+
+```math
+\min_{w \in \Delta_{[l,u]}}
+\frac{1}{T}\sum_t\frac{1}{|P_t|}
+\sum_{(i,j)\in P_t}\log(1+e^{-w^\top(x_{ti}-x_{tj})})
++ \lambda\lVert w-w_0\rVert_2^2.
+```
+
+| Method | Public implementation | Boundary |
 |---|---|---|
-| Characteristics as time-varying factor loadings | PIT characteristics and neutral books are available; full IPCA estimation is not included | Kelly, Pruitt & Su, *Characteristics Are Covariances: A Unified Model of Risk and Return* |
-| Conditional factor timing | Frozen block-replica weights are available; validation-driven or online timing is forbidden | *Factor Timing with Portfolio Characteristics* |
-| Formulaic alpha generation | The package has a bounded auditable DSL generator; it does not claim to reproduce a neural AlphaForge search | Shi et al., *AlphaForge: A Framework to Mine and Dynamically Combine Formulaic Alpha Factors* |
-| Predict-then-optimise systems | The pairwise Top-K loss is a small transparent decision-focused primitive, not a full SPO portfolio optimiser | Elmachtoub & Grigas, *Smart Predict, then Optimize* |
-| Gaussian-process ensembles | Probability calibration is included; ensemble Gaussian-process forecasting is not | *Ensemble Gaussian Process Regression for Time Series Forecasting* |
+| Decision-focused learning | `fit_pairwise_topk_weights()` | This is a transparent pairwise surrogate, not an implementation of the full SPO optimizer |
+| Weight sensitivity | `fit_pairwise_weight_ensemble()` | Complete-block replicas measure instability; they are not a posterior distribution |
+| Expected-outcome calibration | `fit_ridge_score_model()` | Fitted only on the independent calibration block |
+| Event-probability calibration | `fit_logistic_probability_model()` | Ordinary and severe loss events are separate models |
+| Reliability evaluation | `probability_metrics()` | Validation/shadow may reject but never refit the calibrator |
+
+### Primary references
+
+- Elmachtoub, A. N., Liang, J. C. N., & McNellis, R. (2020). *Decision Trees
+  for Decision-Making under the Predict-then-Optimize Framework*. Proceedings of
+  Machine Learning Research, 119, 2858–2867.
+  [PMLR](https://proceedings.mlr.press/v119/elmachtoub20a.html)
+- Gneiting, T., & Raftery, A. E. (2007). *Strictly Proper Scoring Rules,
+  Prediction, and Estimation*. [DOI](https://doi.org/10.1198/016214506000001437)
+- Politis, D. N., & Romano, J. P. (1994). *The Stationary Bootstrap*.
+  Journal of the American Statistical Association, 89(428), 1303–1313.
+  [DOI](https://doi.org/10.1080/01621459.1994.10476870)
+
+## Regime and transition primitives
+
+| Mechanism | Literature claim | Public implementation | Boundary |
+|---|---|---|---|
+| Hidden Markov regime model | Time-series parameters may depend on an unobserved discrete-state Markov process | `causal_two_state_hmm_filter()` | Forward filtering only; full-path Viterbi labels use future observations |
+| Early-warning signals | Rising variance and autocorrelation may accompany critical slowing before some transitions | `early_warning_features()` | A generic warning is not directional return alpha |
+| Bayesian online change-point detection | Run-length posteriors support online inference of abrupt generative changes | `bocpd_change_probability()` | Hazard assumptions and observation models must be frozen |
+
+### Primary references
+
+- Hamilton, J. D. (1989). *A New Approach to the Economic Analysis of
+  Nonstationary Time Series and the Business Cycle*. Econometrica, 57(2), 357–384.
+  [DOI](https://doi.org/10.2307/1912559)
+- Scheffer, M., et al. (2009). *Early-Warning Signals for Critical Transitions*.
+  Nature, 461, 53–59. [DOI](https://doi.org/10.1038/nature08227)
+- Adams, R. P., & MacKay, D. J. C. (2007). *Bayesian Online Changepoint
+  Detection*. [arXiv:0710.3742](https://arxiv.org/abs/0710.3742)
+
+## Dynamical-systems and bubble-feasibility primitives
+
+| Mechanism | Literature claim | Public implementation | Boundary |
+|---|---|---|---|
+| Dynamic Mode Decomposition | DMD approximates dynamics through the eigendecomposition of a fitted linear operator and connects to Koopman analysis | `causal_dmd_residual()` | Fixed past window; linear consistency and rank deficiency require audit |
+| LPPLS | Reduced-parameter calibration can improve the numerical stability of log-periodic power-law fitting | `simplified_lppls_features()` | Fixed grid, residuals, and `t_c` stability distribution; no exact crash-date forecast |
+
+### Primary references
+
+- Tu, J. H., Rowley, C. W., Luchtenburg, D. M., Brunton, S. L., & Kutz, J. N.
+  (2014). *On Dynamic Mode Decomposition: Theory and Applications*.
+  Journal of Computational Dynamics, 1(2), 391–421.
+  [arXiv:1312.0041](https://arxiv.org/abs/1312.0041)
+- Filimonov, V., & Sornette, D. (2013). *A Stable and Robust Calibration
+  Scheme of the Log-Periodic Power Law Model*. Physica A, 392(17), 3698–3707.
+  [arXiv:1108.0099](https://arxiv.org/abs/1108.0099) ·
+  [DOI](https://doi.org/10.1016/j.physa.2013.04.012)
+
+## Portfolio views, offline labels, and finite-sample bounds
+
+| Mechanism | Public implementation | Boundary |
+|---|---|---|
+| Black–Litterman view shrinkage | `black_litterman_posterior()` | Stabilizes uncertain views; cannot create predictive content |
+| Triple Barrier labeling | `triple_barrier_labels()` | Uses future paths by design and belongs only in an offline label table |
+| Hoeffding lower bound | `hoeffding_lower_bound()` | Independence assumptions and effective sample size remain explicit limitations |
+
+### Primary references
+
+- Black, F., & Litterman, R. (1992). *Global Portfolio Optimization*.
+  Financial Analysts Journal, 48(5), 28–43.
+  [CFA Institute](https://rpc.cfainstitute.org/research/financial-analysts-journal/1992/faj-v48-n5-28) ·
+  [DOI](https://doi.org/10.2469/faj.v48.n5.28)
+- López de Prado, M. (2018). *Advances in Financial Machine Learning*.
+  Wiley. Triple Barrier and purged validation are represented as offline research tools.
+- Hoeffding, W. (1963). *Probability Inequalities for Sums of Bounded Random
+  Variables*. Journal of the American Statistical Association, 58(301), 13–30.
+  [DOI](https://doi.org/10.1080/01621459.1963.10500830)
+
+## Related directions not claimed as implemented
+
+| Direction | Public-package boundary | Reference |
+|---|---|---|
+| Instrumented PCA | PIT characteristics and neutral portfolios are available; full IPCA estimation is not included | Kelly, Pruitt & Su, *Characteristics Are Covariances* ([published article](https://www.sciencedirect.com/science/article/pii/S0304405X19301151)) |
+| Conditional factor timing | Block-replica weights are available; validation-driven or online timing is forbidden | *Factor Timing with Portfolio Characteristics* ([article](https://academic.oup.com/raps/article/14/1/84/7191017)) |
+| Neural formula generation | The generator is bounded and symbolic; it does not reproduce AlphaForge's neural architecture | Shi et al., [arXiv:2406.18394](https://arxiv.org/abs/2406.18394) |
+| Gaussian-process ensembles | Probability calibration is included; Gaussian-process forecasting is not | *Ensemble Gaussian Process Regression for Time Series Forecasting* ([arXiv:2212.01048](https://arxiv.org/abs/2212.01048)) |
+
+## Non-claims
+
+- A cited paper does not validate this implementation on a new market or dataset.
+- A mechanism primitive is not a production model.
+- Better calibration is not a guarantee of profit.
+- Lower turnover or fewer selections is not automatically alpha.
+- Historical validation is not fresh forward evidence.
+- This repository publishes no empirical factor result and defines no execution path.

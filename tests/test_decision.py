@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import numpy as np
 import pandas as pd
@@ -142,3 +143,22 @@ def test_decision_module_has_no_execution_path() -> None:
         "position_sizing",
     )
     assert all(token not in source for token in forbidden)
+
+
+def test_public_research_content_is_english_only() -> None:
+    root = Path(__file__).resolve().parents[1]
+    cjk = re.compile(r"[\u3400-\u9fff]")
+    included = {".md", ".html", ".py", ".json", ".toml"}
+    violations = []
+    for path in root.rglob("*"):
+        if (
+            not path.is_file()
+            or path.suffix not in included
+            or any(part.startswith(".") for part in path.relative_to(root).parts)
+            or "outputs" in path.parts
+            or "data" in path.parts
+        ):
+            continue
+        if cjk.search(path.read_text(encoding="utf-8")):
+            violations.append(str(path.relative_to(root)))
+    assert violations == []
