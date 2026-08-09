@@ -28,7 +28,7 @@ from .forward import (
 )
 from .universe import apply_sealed_bar_limits, eligibility_summary, point_in_time_eligibility
 
-ALLOWED_WINDOWS = {3, 5, 10, 20, 30, 60, 120}
+DEFAULT_WINDOWS = {3, 5, 10, 20, 21, 30, 60, 120}
 EMPTY_STATEMENTS = pd.DataFrame(columns=["symbol", "report_date", "notice_date", "update_date"])
 
 
@@ -43,7 +43,10 @@ def _panel(prices: Path, fundamentals: Path | None) -> dict[str, pd.DataFrame]:
 def _prepared(args) -> tuple[dict, dict[str, pd.DataFrame], pd.DataFrame]:
     spec = load_spec(args.spec)
     panel = _panel(args.prices, args.fundamentals)
-    validate_spec(spec, set(panel), ALLOWED_WINDOWS)
+    # A specification preregisters the windows it is allowed to use; the default set is a
+    # fallback for specs that do not declare one, never a licence to widen a frozen rule.
+    windows = {int(value) for value in spec.get("windows", DEFAULT_WINDOWS)}
+    validate_spec(spec, set(panel), windows)
     eligible = point_in_time_eligibility(panel, **spec.get("universe", {}))
     return spec, panel, eligible
 

@@ -75,6 +75,14 @@ def build_panel(
     }
     close = panel["close"]
     panel["returns"] = close.pct_change(fill_method=None)
+    # A monotone session counter, broadcast across symbols. Constant cross-sectionally, so it
+    # carries no ranking information on its own; its purpose is to let the DSL express trend
+    # quality — corr(close, session_index, w) is the R of price against time, not its direction.
+    panel["session_index"] = pd.DataFrame(
+        np.repeat(np.arange(len(close), dtype=float)[:, None], len(close.columns), axis=1),
+        index=close.index,
+        columns=close.columns,
+    )
     panel["vwap"] = (panel["amount"] / panel["volume"].replace(0.0, np.nan)).combine_first(close)
     market = panel["returns"].median(axis=1)
     panel["market_return"] = pd.DataFrame(
@@ -86,12 +94,18 @@ def build_panel(
         panel["market_cap"] = _pivot(frame, "market_cap").reindex_like(close)
     if "industry" in frame:
         panel["industry"] = _pivot(frame, "industry").reindex_like(close)
+    if "trade_status" in frame:
+        # Numeric rather than boolean (1 = normal), and read by point_in_time_eligibility.
+        panel["trade_status"] = _pivot(frame, "trade_status").reindex_like(close)
     for field in ("is_st", "is_suspended", "is_delisted", "limit_up", "limit_down"):
         if field in frame:
             values = frame[field]
             if values.dtype == object:
                 frame[field] = values.astype(str).str.lower().isin({"1", "true", "yes"})
-            panel[field] = _pivot(frame, field).reindex_like(close).fillna(False).astype(bool)
+            # where(), not fillna(): filling an object-dtype pivot downcasts, which pandas
+            # deprecates and will change under us.
+            flags = _pivot(frame, field).reindex_like(close)
+            panel[field] = flags.where(flags.notna(), False).astype(bool)
         else:
             panel[field] = pd.DataFrame(False, index=close.index, columns=close.columns)
     fundamentals = align_point_in_time_fundamentals(statements, close.index, close.columns)
