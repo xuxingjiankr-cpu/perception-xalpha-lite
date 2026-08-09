@@ -3,6 +3,7 @@
   Perception-XAlpha Lite
 </h1>
 
+[![PyPI](https://img.shields.io/pypi/v/perception-xalpha-lite?color=0073B7&logo=pypi&logoColor=white)](https://pypi.org/project/perception-xalpha-lite/)
 [![ci](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Research Status](https://img.shields.io/badge/status-research--only-7C3AED)](#研究完整性约定)
@@ -29,6 +30,10 @@
 - **[站点](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — 同样的内容,渲染版
 
 ## 检验你自己的回测
+
+```bash
+pip install perception-xalpha-lite
+```
 
 Fork 这个仓库,把你自己的日收益放进 `audit/returns.csv`,在 `audit/audit.json` 里
 写清你**实际试过**多少个变体,推上去。检验在**你自己的 fork 里**运行,结论写进 Actions 摘要。
@@ -165,7 +170,7 @@ python examples/run_forward_record_synthetic.py
 ## 快速开始
 
 ```bash
-pip install -e .
+pip install perception-xalpha-lite      # 或从源码: pip install -e .
 
 python examples/run_synthetic.py                    # 完整发现流程,合成数据
 python examples/selection_artifact.py               # 从纯噪声造出 IR 4.53

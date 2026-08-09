@@ -3,6 +3,7 @@
   Perception-XAlpha Lite
 </h1>
 
+[![PyPI](https://img.shields.io/pypi/v/perception-xalpha-lite?color=0073B7&logo=pypi&logoColor=white)](https://pypi.org/project/perception-xalpha-lite/)
 [![ci](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Research Status](https://img.shields.io/badge/status-research--only-7C3AED)](#research-integrity-contract)
@@ -34,6 +35,10 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
 
 ## Audit your own backtest
+
+```bash
+pip install perception-xalpha-lite
+```
 
 Fork this, drop your daily returns into `audit/returns.csv`, say how many variants you actually
 tried in `audit/audit.json`, and push. The audit runs **in your fork** and writes the verdict to
