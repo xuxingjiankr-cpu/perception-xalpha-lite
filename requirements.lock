@@ -2,3 +2,4 @@ numpy==2.4.3
 pandas==2.3.3
 pytest==9.0.2
 ruff==0.12.12
+scipy==1.16.2
