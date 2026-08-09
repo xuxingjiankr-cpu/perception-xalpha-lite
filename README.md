@@ -28,6 +28,39 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
 
+## It runs the record it describes
+
+This is not a methods library sitting next to the research. The frozen forward record for the
+A-share project it was built for runs on this package — `build_panel`, `point_in_time_eligibility`,
+`long_only_book`, `score_log` — appended daily by a scheduled job.
+
+Pointing it at real work is what found the gaps. Four, in one sitting:
+
+| found by using it | what it was |
+|---|---|
+| `build_panel` defaulted `limit_up`/`limit_down` to `False` | plain OHLCV silently backtested fills on **limit-locked boards**, worth +6.05% a leg against +0.38% for executable ones |
+| no point-in-time universe rule | membership had to be hand-rolled, which is where survivorship gets in |
+| only a dollar-neutral book existed | the construction nearly everyone actually trades — long-only top-N — could not be expressed |
+| the DSL had no time trend | an entire published family (`ts_corr(close, t, w)²`) was inexpressible |
+
+All four are now in the library. The migration was checked rather than assumed: every factor
+recomputed both ways across 400 sessions × 5,169 symbols agrees to a maximum cross-sectional
+rank difference of **0.00e+00**, and the first book the ported spec produced shares nine of ten
+names with the one the original pipeline produced.
+
+The record's value is entirely in what it refuses — `freeze_spec` will not overwrite,
+`load_spec` rejects a file edited after freezing, a session already logged appends nothing, and
+`score_log` counts only fully elapsed holding windows. CI asserts all four still fire, because
+a forward record whose guards stop firing is just a backtest.
+
+```bash
+python examples/run_forward_record_synthetic.py
+```
+
+That example returns **+0.32% net on prices with no drift** and reports it as
+`insufficient_forward_sample` at n=6. Which is the point: the number is noise, and the
+framework says so instead of printing it as a result.
+
 ## What survives so far
 
 A worked run, end to end: 456 published formulaic factors (Kakushadze 101, GTJA 191, Qlib 158,
@@ -332,9 +365,13 @@ src/xalpha_lite/
 ├── pit.py                 # disclosure-aware point-in-time alignment
 ├── dsl.py                 # allowlisted causal expression language
 ├── discovery.py           # generation, neutral books, controls, PBO/DSR
+├── universe.py            # point-in-time membership, sealed-bar limit detection
+├── book.py                # long-only top-N book on the shared cost engine
+├── forward.py             # frozen specifications, tamper-evident forward records
 ├── decision.py            # Top-K weights, block replicas, calibration
 ├── evidence.py            # stationary bootstrap, Reality Check, step-down inference
 ├── evidence_cli.py        # searched-family evidence command line interface
+├── forward_cli.py         # freeze / log / score command line interface
 ├── paper_mechanisms.py    # auditable research primitives
 └── cli.py                 # research-only command line interface
 
