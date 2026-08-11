@@ -21,12 +21,15 @@ Run: python examples/render_rotation_dashboard.py
 from __future__ import annotations
 
 import json
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SERIES = ROOT / "docs" / "data" / "rotation.jsonl"
 NEXT_PICK = ROOT / "docs" / "data" / "next_pick.json"
 OUT = ROOT / "docs" / "daily-rotation.svg"
+# Long enough to sit through a weekend plus a public holiday without crying wolf.
+STALE_AFTER_DAYS = 6
 
 W, H = 1000, 520
 PAD = {"l": 62, "r": 168, "t": 64, "b": 58}
@@ -167,7 +170,25 @@ def main() -> None:
     # The forward pick, stated on the chart itself. Publishing the name before the session it
     # applies to is what makes the record a prediction rather than a report; putting it only in
     # a data file would leave the shared image saying nothing that could later be wrong.
+    # A stalled record has to be visible on the artifact itself. GitHub disables scheduled
+    # workflows after 60 days without repository activity, and commits made by the bot with the
+    # default token do not count — so the job that writes this chart is exactly the job that
+    # would stop without telling anyone. A gap in a forward record that nobody announces is
+    # indistinguishable from one that was edited, which is the whole thing this record exists
+    # not to be. So the chart states its own age and says when that age is wrong.
     pick = read_next_pick()
+    stale_days = None
+    if pick:
+        try:
+            stale_days = (date.today() - date.fromisoformat(pick["as_of"])).days
+        except (ValueError, KeyError):
+            stale_days = None
+    if stale_days is not None and stale_days > STALE_AFTER_DAYS:
+        bx, by = PAD["l"], PAD["t"] + PLOT_H + 34
+        parts.append(f'<rect class="stale-box" x="{bx}" y="{by}" width="{PLOT_W}" height="26" rx="5"/>')
+        parts.append(f'<text class="stale" x="{bx+10}" y="{by+18}">'
+                     f'STALE — last pick published {stale_days} days ago. The daily job has stopped; '
+                     f'this curve is not current.</text>')
     if pick:
         box_w, box_x, box_y = PAD["r"] - 24, PAD["l"] + PLOT_W + 16, H - 118
         parts.append(f'<rect class="pick-box" x="{box_x}" y="{box_y}" width="{box_w}" height="72" rx="8"/>')
@@ -223,6 +244,8 @@ def main() -> None:
     .pick-symbol {{ font-size: 19px; font-weight: 700; fill: var(--ink);
                     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }}
     .pick-meta {{ font-size: 10px; fill: var(--dim); }}
+    .stale-box {{ fill: none; stroke: #d1242f; stroke-width: 1.2; }}
+    .stale {{ font-size: 11px; font-weight: 700; fill: #d1242f; }}
   </style>
   <rect width="{W}" height="{H}" fill="var(--bg, #ffffff)"/>
   <text class="title" x="{PAD['l']}" y="30">Hold one name, rotate every session</text>
@@ -230,6 +253,7 @@ def main() -> None:
   {chr(10) + '  '.join(parts)}
   <text class="footer" x="{PAD['l']}" y="{H-16}">{footer}</text>
   <text class="footer" x="{W-PAD['r']+16}" y="{H-16}" text-anchor="start">Research only. No orders.</text>
+  <text class="footer" x="{PAD['l']}" y="{H-34}">redrawn {datetime.now(timezone.utc).date()}</text>
 </svg>
 """
     OUT.write_text(svg, encoding="utf-8")
