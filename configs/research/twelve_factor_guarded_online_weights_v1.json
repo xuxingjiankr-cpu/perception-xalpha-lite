@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "twelve_factor_guarded_online_weights_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test a low-freedom weekly online weight adapter around the frozen twelve-factor prior. The adapter uses only fully resolved lagged outcomes, requires agreement between short and long factor-health windows, shrinks strongly to the prior and fails back to the prior whenever evidence is insufficient.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "singleOnlineRule": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "fullOutcomeAvailabilityLagTradingDays": 7,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "topCount": 10
+  },
+  "adapter": {
+    "updateEveryTradingDays": 5,
+    "shortWindowTradingDays": 20,
+    "longWindowTradingDays": 60,
+    "minimumShortObservations": 16,
+    "minimumLongObservations": 48,
+    "requireShortLongSignAgreement": true,
+    "evidenceTCap": 2.0,
+    "redundancyPenalty": 0.25,
+    "exponentLearningRate": 0.20,
+    "shrinkageToFrozenPrior": 0.25,
+    "minimumRelativeWeight": 0.75,
+    "maximumRelativeWeight": 1.25,
+    "maximumOneUpdateL1Turnover": 0.08,
+    "negativeEvidenceMayReverseDirection": false,
+    "minimumPositiveWeight": true,
+    "failBackToPriorOnInsufficientEvidence": true
+  },
+  "evaluation": {
+    "sameTop10CountRequired": true,
+    "noAbstentionAllowed": true,
+    "primaryMetrics": [
+      "daily_mean_gross_return",
+      "daily_net_win_rate",
+      "stock_severe_loss_rate"
+    ],
+    "pairedDailyHacTMinimum": 1.96,
+    "mustImproveValidationAndShadow": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_guarded_online_weights_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The twelve factors and every historical evaluation window have already been viewed; this run can reject but cannot validate or promote the adapter.",
+    "Rolling factor IC is a noisy proxy for future Top10 utility and cannot create alpha when the underlying factors have no stable information.",
+    "A five-session update cadence is a preregistered engineering compromise, not an economically unique optimum.",
+    "Daily bars cannot reproduce opening-auction queue priority at locked price limits.",
+    "Expected return and win probability are estimates, never guarantees."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

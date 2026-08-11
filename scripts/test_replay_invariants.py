@@ -11819,6 +11819,76 @@ def t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support() -> No
     )
 
 
+def t145_guarded_online_weights_are_lagged_bounded_and_isolated() -> None:
+    """Weekly factor weights must be causal, positive, bounded and non-trading."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+
+    import research_twelve_factor_guarded_online_weights_v1 as guarded
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_guarded_online_weights_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    guarded.validate_config(config)
+    dates = pd.bdate_range("2025-01-02", periods=110)
+    columns = [f"factor_{index:02d}" for index in range(12)]
+    prior = pd.Series(np.linspace(1.0, 2.1, 12), index=columns)
+    prior /= prior.sum()
+    rng = np.random.default_rng(145)
+    daily_ic = pd.DataFrame(
+        rng.normal(0.01, 0.04, size=(len(dates), len(columns))),
+        index=dates,
+        columns=columns,
+    )
+    original, updates = guarded.guarded_weight_path(daily_ic, prior, config)
+    changed_future = daily_ic.copy()
+    changed_future.loc[dates[85]:] = -0.75
+    replay, _ = guarded.guarded_weight_path(changed_future, prior, config)
+    check(
+        "T145 future factor outcomes cannot revise an earlier weight",
+        np.allclose(
+            original.loc[: dates[84]].to_numpy(),
+            replay.loc[: dates[84]].to_numpy(),
+            atol=1e-12,
+        ),
+    )
+    lower = prior * float(config["adapter"]["minimumRelativeWeight"])
+    upper = prior * float(config["adapter"]["maximumRelativeWeight"])
+    check(
+        "T145 guarded weights stay positive bounded normalised and low-turnover",
+        bool((original.gt(0.0)).all().all())
+        and bool(original.ge(lower, axis=1).all().all())
+        and bool(original.le(upper, axis=1).all().all())
+        and float((original.sum(axis=1) - 1.0).abs().max()) < 1e-10
+        and float(updates["realisedL1Turnover"].max())
+        <= float(config["adapter"]["maximumOneUpdateL1Turnover"]) + 1e-12,
+    )
+    changes = original.diff().abs().sum(axis=1).gt(1e-12)
+    allowed = pd.Series(False, index=dates)
+    allowed.iloc[:: int(config["adapter"]["updateEveryTradingDays"])] = True
+    source = (
+        ROOT / "scripts" / "research_twelve_factor_guarded_online_weights_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T145 updates are weekly research-only and cannot trade",
+        bool((~changes | allowed).all())
+        and config["evaluation"]["noAbstentionAllowed"] is True
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and config["preregisteredHypothesis"]["historicalRunCanPromote"] is False
+        and all(not value for key, value in config["safety"].items() if key.startswith("may"))
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11957,6 +12027,7 @@ if __name__ == "__main__":
     t142_choice_top10_export_is_strict_atomic_and_watchlist_only()
     t143_financial_statement_factor_generator_is_causal_bounded_and_isolated()
     t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support()
+    t145_guarded_online_weights_are_lagged_bounded_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
