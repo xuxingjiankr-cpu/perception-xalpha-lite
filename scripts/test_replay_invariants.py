@@ -11889,6 +11889,37 @@ def t145_guarded_online_weights_are_lagged_bounded_and_isolated() -> None:
     )
 
 
+def t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions() -> None:
+    """Latest estimates must annotate a fixed factor ranking and remain non-trading."""
+    import json
+
+    import generate_guarded_weight_top10_forecast_v1 as forecast
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_guarded_top10_forecast_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    forecast.validate_config(config)
+    source = (
+        ROOT / "scripts" / "generate_guarded_weight_top10_forecast_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T146 guarded forecast annotates rather than selects and cannot trade",
+        config["selection"]["rankingField"] == "guarded_online_weight_score"
+        and config["selection"]["selectionNeverUsesForecastOrFutureOutcome"] is True
+        and config["forecast"]["hyperparameterSearchAllowed"] is False
+        and config["forecast"]["historicalRunCanPromote"] is False
+        and all(not value for key, value in config["safety"].items() if key.startswith("may"))
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12028,6 +12059,7 @@ if __name__ == "__main__":
     t143_financial_statement_factor_generator_is_causal_bounded_and_isolated()
     t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support()
     t145_guarded_online_weights_are_lagged_bounded_and_isolated()
+    t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

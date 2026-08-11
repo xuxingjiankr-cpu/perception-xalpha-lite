@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "twelve_factor_guarded_top10_forecast_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Rank the latest all-A-share research universe with the frozen guarded twelve-factor weight path, then attach individualized next-session gross-up, severe-loss and expected-gross-return estimates from an earlier fixed train/calibration model.",
+  "guardedWeightsConfig": "configs/research/twelve_factor_guarded_online_weights_v1.json",
+  "guardedWeightsConfigSha256": "f12b907d37959535f2013e091dbfaab98ad1cf03be4b8f284dd17278ba70a3fe",
+  "forecastModelTemplate": "configs/research/twelve_factor_alpha070_131_individual_discrimination_v4.json",
+  "forecastModelTemplateSha256": "84bdd1ecc0d6e5ed68154d95ed135375952bafaff86f1e853a73ba65d8c6ba8a",
+  "selection": {
+    "factorCount": 12,
+    "topCount": 10,
+    "rankingField": "guarded_online_weight_score",
+    "selectionNeverUsesForecastOrFutureOutcome": true,
+    "latestClosedSessionOnly": true
+  },
+  "forecast": {
+    "horizon": "next_buyable_open_to_following_sellable_open_max_delay_5",
+    "grossUpDefinition": "executable_gross_return_gt_0",
+    "severeLossDefinition": "executable_gross_return_le_minus_0.03",
+    "expectedReturnDefinition": "expected_executable_gross_return",
+    "multivariateFeatures": "twelve_oriented_cross_sectional_factor_ranks",
+    "missingFeatureFallback": "scalar_guarded_score_calibrator",
+    "hyperparameterSearchAllowed": false,
+    "validationAndShadowAreDiagnosticsOnly": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_guarded_top10_forecast_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
