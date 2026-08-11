@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "financial_statement_factor_discovery_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Generate bounded point-in-time financial-statement factors and test whether they improve next-session Top10 up probability and gross return inside the frozen price-factor Top100.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseResearchConfigFileSha256": "2af84c0ff3b26a02abe6cb1db34a76a17e096b12dd1cbdfc19f652f3e8b76b1c",
+  "frozenTimingConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "frozenTimingConfigFileSha256": "887f2b0dddf25500c67caf764ef086cb65bedd68e0b858d4834e310ecaafcb2e",
+  "frozenSplitSummary": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "frozenSplitSummaryFileSha256": "58bb449915cbcb8b61eb06fdd6d25abdad9d4e07d733269a14709b1a29834492",
+  "data": {
+    "fundamentalRoot": "data/market/ashare_research/fundamentals_pit",
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "sameAvailabilityDateRule": "latest_report_date_with_older_rows_as_context",
+    "lateRestatementRule": "skip_non_advancing_report_date",
+    "signalTimestamp": "safe_disclosure_session_close",
+    "entryTimestamp": "next_buyable_open",
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "levelMaximumAgeTradingDays": 130,
+    "changeMaximumAgeTradingDays": 20,
+    "minimumSymbolFileCoverage": 0.95
+  },
+  "generation": {
+    "provider": "deterministic_financial_statement_mechanism_grammar",
+    "remoteApiAllowed": false,
+    "arbitraryPythonAllowed": false,
+    "maximumGeneratedCandidates": 96,
+    "maximumFullEvaluationCandidates": 24,
+    "families": [
+      "profitability",
+      "growth",
+      "cash_flow_quality",
+      "balance_sheet_safety",
+      "operating_efficiency",
+      "cross_statement_confirmation"
+    ],
+    "transforms": [
+      "level",
+      "change_from_prior_disclosed_report",
+      "same_fiscal_period_symmetric_yoy",
+      "mechanism_confirmation",
+      "mechanism_breadth"
+    ],
+    "validationFeedbackAllowed": false,
+    "shadowFeedbackAllowed": false
+  },
+  "selection": {
+    "firstStageCandidateCount": 100,
+    "topCount": 10,
+    "priceWeight": 0.8,
+    "fundamentalWeight": 0.2,
+    "liquidityNeutraliseBins": 5,
+    "minimumTrainIcDays": 120,
+    "minimumExternalSignalDays": 20,
+    "sameCandidatePoolAndSelectionCountRequired": true,
+    "allowCash": true,
+    "neverForceSelections": true
+  },
+  "evaluation": {
+    "trainOnlyFastScreen": true,
+    "fullEvaluationPeriods": ["validation", "shadow"],
+    "candidateSelectionMetric": "train_mean_ic_plus_paired_daily_gross_delta",
+    "mustImproveStockGrossUpRate": true,
+    "mustImproveStockMeanGrossReturn": true,
+    "mustHavePositiveRankIc": true,
+    "mustPassBothValidationAndShadow": true,
+    "benjaminiHochbergFdr": 0.1,
+    "generatedCandidateCountEntersMultipleTesting": true,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60
+  },
+  "output": {
+    "root": "outputs/edge_research/financial_statement_factor_discovery_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

@@ -11683,6 +11683,87 @@ def t142_choice_top10_export_is_strict_atomic_and_watchlist_only() -> None:
     )
 
 
+def t143_financial_statement_factor_generator_is_causal_bounded_and_isolated() -> None:
+    """Financial-statement candidates must be born before labels and remain PIT-only."""
+    import json
+
+    import pandas as pd
+
+    import research_financial_statement_factor_discovery_v1 as discovery
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "financial_statement_factor_discovery_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    discovery.validate_config(config)
+    candidates = discovery.generate_candidates(config)
+    check(
+        "T143 financial-statement grammar is bounded, unique and label-free",
+        32 < len(candidates) <= config["generation"]["maximumGeneratedCandidates"]
+        and len({item["factorId"] for item in candidates}) == len(candidates)
+        and all(item["pastOnly"] and item["status"] == "DRAFT_RESEARCH_ONLY" for item in candidates)
+        and all("return" not in discovery.canonical(item).lower() for item in candidates),
+    )
+
+    market_index = pd.DatetimeIndex(
+        pd.to_datetime(["2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08"])
+    )
+    first = {
+        "noticeDate": "2026-01-04",
+        "updateDate": "2026-01-04",
+        "reportDate": "2025-12-31",
+        "roePct": 10.0,
+        "roicPct": 8.0,
+        "grossMarginPct": 20.0,
+        "netMarginPct": 5.0,
+        "revenueYoyPct": 6.0,
+        "netProfitYoyPct": 7.0,
+    }
+    future = {
+        "noticeDate": "2026-01-07",
+        "updateDate": "2026-01-07",
+        "reportDate": "2026-03-31",
+        "roePct": 20.0,
+        "roicPct": 12.0,
+        "grossMarginPct": 25.0,
+        "netMarginPct": 8.0,
+        "revenueYoyPct": 16.0,
+        "netProfitYoyPct": 17.0,
+    }
+    prefix, _ = discovery.causal_records_for_symbol(
+        [first], market_index, "SH.600000", candidates
+    )
+    full, _ = discovery.causal_records_for_symbol(
+        [first, future], market_index, "SH.600000", candidates
+    )
+    first_factor = candidates[0]["factorId"]
+    check(
+        "T143 future filings cannot revise an earlier candidate row",
+        len(prefix) == 1
+        and len(full) == 2
+        and prefix[0]["eventDate"] == full[0]["eventDate"] == pd.Timestamp("2026-01-05")
+        and prefix[0][first_factor] == full[0][first_factor]
+        and full[1]["eventDate"] == pd.Timestamp("2026-01-08"),
+    )
+
+    source = (
+        ROOT / "scripts" / "research_financial_statement_factor_discovery_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T143 financial-statement discovery is research-only and cannot trade",
+        config["evaluation"]["historicalRunCanPromote"] is False
+        and config["output"]["ordersAlwaysEmpty"] is True
+        and all(not value for key, value in config["safety"].items() if key.startswith("may"))
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11819,6 +11900,7 @@ if __name__ == "__main__":
     t140_multivariate_top10_discrimination_is_frozen_purged_and_isolated()
     t141_fundamental_second_stage_is_pit_fixed_support_and_isolated()
     t142_choice_top10_export_is_strict_atomic_and_watchlist_only()
+    t143_financial_statement_factor_generator_is_causal_bounded_and_isolated()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
