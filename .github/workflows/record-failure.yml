@@ -1,0 +1,63 @@
+# Put a missing day of the forward record on the public record.
+#
+# The daily job was cancelled at its timeout on 2026-08-11 and nobody found out until somebody
+# happened to look. GitHub emails the owner on `failure`; a run killed at its time limit ends as
+# `cancelled`, which is silent.
+#
+# For a forward record that matters more than it would elsewhere. A gap that appears without
+# explanation is indistinguishable from a day that was withheld, and the whole claim of the
+# record is that nothing is withheld. So an unsuccessful run opens an issue: the maintainer is
+# notified, and the reason the day is missing becomes part of the public history rather than
+# something reconstructed later from workflow logs that expire.
+name: record-failure
+
+on:
+  workflow_run:
+    workflows: ["daily-record"]
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    if: github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update the gap report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_STARTED: ${{ github.event.workflow_run.run_started_at }}
+          REPO: ${{ github.repository }}
+        run: |
+          DAY="${RUN_STARTED%%T*}"
+          TITLE="Forward record: no entry for ${DAY} (${CONCLUSION})"
+          BODY=$(cat <<EOF
+          The daily record job ended as \`${CONCLUSION}\` rather than succeeding, so **no pick was
+          published for ${DAY}** and no session was scored.
+
+          - Run: ${RUN_URL}
+          - Started: ${RUN_STARTED}
+
+          This issue exists so the gap is explained rather than merely present. A forward record
+          with an unexplained missing day cannot be distinguished from one with a withheld day,
+          and the entire claim of the record is that nothing is withheld.
+
+          A backstop run is scheduled for 21:00 Asia/Shanghai. If it succeeds, the day is
+          recovered and this issue can be closed; if it does not, the day stays missing and this
+          issue is the reason why. **The missing entry is never backfilled after the fact** — a
+          pick published after the session it applies to is not a prediction.
+          EOF
+          )
+          EXISTING=$(gh issue list --repo "$REPO" --state open --search "in:title \"no entry for ${DAY}\"" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "Another attempt for ${DAY} ended as \`${CONCLUSION}\`: ${RUN_URL}"
+            echo "commented on #${EXISTING}"
+          else
+            gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "forward-record" 2>/dev/null \
+              || gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY"
+            echo "opened a new gap report for ${DAY}"
+          fi
