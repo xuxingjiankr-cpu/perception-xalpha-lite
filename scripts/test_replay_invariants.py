@@ -11764,6 +11764,61 @@ def t143_financial_statement_factor_generator_is_causal_bounded_and_isolated() -
     )
 
 
+def t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support() -> None:
+    """The requested two-factor extension must not search weights or trade less."""
+    import json
+
+    import pandas as pd
+
+    import research_twelve_plus_two_fundamental_ablation_v1 as ablation
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_plus_two_fundamental_ablation_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    ablation.validate_config(config)
+    both = config["policies"]["price_12_plus_both"]
+    check(
+        "T144 twelve plus two uses exact equal-factor-equivalent weights",
+        abs(float(both["priceWeight"]) - 12.0 / 14.0) < 1e-12
+        and abs(float(both["inventoryDaysWeight"]) - 1.0 / 14.0) < 1e-12
+        and abs(float(both["cashToRevenueWeight"]) - 1.0 / 14.0) < 1e-12,
+    )
+
+    index = pd.DatetimeIndex(pd.to_datetime(["2026-08-10"]))
+    columns = ["SH.600000", "SZ.000001", "SH.600001"]
+    price = pd.DataFrame([[0.9, 0.5, 0.1]], index=index, columns=columns)
+    inventory = pd.DataFrame([[0.1, 0.5, 0.9]], index=index, columns=columns)
+    cash = pd.DataFrame([[0.3, 0.6, 0.8]], index=index, columns=columns)
+    score = ablation.policy_score(both, price, inventory, cash)
+    expected = price * (12.0 / 14.0) + inventory / 14.0 + cash / 14.0
+    check(
+        "T144 policy score is deterministic and contains no fitted weight",
+        float((score - expected).abs().max().max()) < 1e-12,
+    )
+
+    source = (
+        ROOT
+        / "scripts"
+        / "research_twelve_plus_two_fundamental_ablation_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T144 same-support ablation is isolated from trading",
+        config["selection"]["requireBothFundamentalsForEveryArm"] is True
+        and config["selection"]["sameCandidatePoolAndDailySelectionCountRequired"] is True
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and config["evaluation"]["historicalRunCanPromote"] is False
+        and all(not value for key, value in config["safety"].items() if key.startswith("may"))
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -11901,6 +11956,7 @@ if __name__ == "__main__":
     t141_fundamental_second_stage_is_pit_fixed_support_and_isolated()
     t142_choice_top10_export_is_strict_atomic_and_watchlist_only()
     t143_financial_statement_factor_generator_is_causal_bounded_and_isolated()
+    t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

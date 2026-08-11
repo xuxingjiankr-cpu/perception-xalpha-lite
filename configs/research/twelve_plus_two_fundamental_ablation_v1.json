@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "twelve_plus_two_fundamental_ablation_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether inventory-days level and operating-cash-to-revenue level improve the frozen twelve-factor next-session Top10 on identical complete support.",
+  "baseResearchConfig": "configs/research/perception_xalpha_all_ashares_v10_pit_adjusted.json",
+  "baseResearchConfigFileSha256": "2af84c0ff3b26a02abe6cb1db34a76a17e096b12dd1cbdfc19f652f3e8b76b1c",
+  "frozenTimingConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "frozenTimingConfigFileSha256": "887f2b0dddf25500c67caf764ef086cb65bedd68e0b858d4834e310ecaafcb2e",
+  "frozenSplitSummary": "outputs/edge_research/perception_xalpha_nextday_factor_zoo_v2/run_20260806_nextday_factor_zoo_v2_retry3/summary.json",
+  "frozenSplitSummaryFileSha256": "58bb449915cbcb8b61eb06fdd6d25abdad9d4e07d733269a14709b1a29834492",
+  "sourceDiscoveryConfig": "configs/research/financial_statement_factor_discovery_v1.json",
+  "sourceDiscoveryConfigFileSha256": "44b219c0cfcdb08ef6bedf0a551635fce8fb32fb8972e6f4215bba3166a397ed",
+  "fundamentalFactors": [
+    "inventory_days__level",
+    "cash_to_revenue__level"
+  ],
+  "data": {
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update"
+  },
+  "selection": {
+    "firstStageCandidateCount": 100,
+    "topCount": 10,
+    "liquidityNeutraliseBins": 5,
+    "requireBothFundamentalsForEveryArm": true,
+    "sameCandidatePoolAndDailySelectionCountRequired": true
+  },
+  "policies": {
+    "price_12_baseline": {
+      "priceWeight": 1.0,
+      "inventoryDaysWeight": 0.0,
+      "cashToRevenueWeight": 0.0
+    },
+    "price_12_plus_inventory": {
+      "priceWeight": 0.9230769230769231,
+      "inventoryDaysWeight": 0.07692307692307693,
+      "cashToRevenueWeight": 0.0
+    },
+    "price_12_plus_cash_to_revenue": {
+      "priceWeight": 0.9230769230769231,
+      "inventoryDaysWeight": 0.0,
+      "cashToRevenueWeight": 0.07692307692307693
+    },
+    "price_12_plus_both": {
+      "priceWeight": 0.8571428571428571,
+      "inventoryDaysWeight": 0.07142857142857142,
+      "cashToRevenueWeight": 0.07142857142857142
+    }
+  },
+  "evaluation": {
+    "primaryPolicy": "price_12_plus_both",
+    "baselinePolicy": "price_12_baseline",
+    "externalPeriods": ["validation", "shadow"],
+    "mustImproveStockGrossUpRate": true,
+    "mustImproveStockMeanGrossReturn": true,
+    "mustImproveDailyMeanGrossReturn": true,
+    "mustNotIncreaseSevereLossRate": true,
+    "priorDiscoveryTrials": 64,
+    "newPolicyTrials": 3,
+    "familyWiseAlpha": 0.10,
+    "historicalWindowsAlreadyViewed": true,
+    "historicalRunCanPromote": false,
+    "freshForwardDaysRequired": 60
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_plus_two_fundamental_ablation_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
