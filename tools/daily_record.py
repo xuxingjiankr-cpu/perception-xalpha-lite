@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import socket
 import sys
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -60,10 +61,17 @@ INDEX_CODES = {"sh.000016": "SSE50 (onshore A50 proxy)", "sh.000300": "CSI300"}
 # Two gates against publishing a name chosen from whichever symbols happened to answer.
 MINIMUM_COVERAGE = 0.98          # symbols returning any bars
 MINIMUM_SESSION_COVERAGE = 0.95  # of those, symbols quoting on the session being ranked
+# The client has no timeout of its own, so a half-open socket blocks the worker forever and the
+# retry logic below never gets a turn. A run was killed at 110 minutes having never finished a
+# fetch that took 36 the day before, with no error, because nothing ever raised.
+SOCKET_TIMEOUT_SECONDS = 45
+FETCH_BUDGET_SECONDS = 55 * 60
 
 
 def _login():
     import baostock as bs
+
+    socket.setdefaulttimeout(SOCKET_TIMEOUT_SECONDS)
 
     # baostock prints a banner on login; the runner log should carry our lines, not its.
     stdout, sys.stdout = sys.stdout, open(os.devnull, "w")
@@ -171,6 +179,13 @@ def fetch_prices(codes: list[str], start: str, end: str, adjust: str, workers: i
         bs, recovered = _login(), []
         try:
             for code in list(empty):
+                # The sweep is the unbounded part: one symbol at a time, with backoff. On a
+                # degraded source it will happily eat the whole job. Stop and let the coverage
+                # gate decide, rather than being killed with nothing written.
+                if time.time() - began > FETCH_BUDGET_SECONDS:
+                    print(f"sweep abandoned after {FETCH_BUDGET_SECONDS//60} minutes with "
+                          f"{len(empty) - len(recovered)} symbols outstanding")
+                    break
                 found, bs = _query_one(bs, code, start, end, adjust, attempts=4)
                 if found:
                     rows.extend(found)
