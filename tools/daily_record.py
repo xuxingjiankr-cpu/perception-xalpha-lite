@@ -348,8 +348,17 @@ def append_records(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.D
     known = {row["as_of"] for row in read_jsonl(SERIES)}
     indices = index_frames(str(sessions[0].date()), str(sessions[-1].date()))
 
-    fresh, previous = [], None
-    for pick in sorted(read_jsonl(PICKS), key=lambda row: row["as_of"]):
+    # Only this specification's own picks, and one row per session. 2026-08-07 was published
+    # twice — once by the retired v3 record and once by v4 — and both matured into the same
+    # trade, which was scored twice and would have compounded twice on the very first live day.
+    # The prediction log is append-only and keeps both; the scored series is derived, and a
+    # derived series that counts one trade twice is simply wrong.
+    digest = spec["spec_sha256"]
+    picks = [row for row in read_jsonl(PICKS) if row.get("spec_sha256") == digest]
+    picks = sorted({row["as_of"]: row for row in picks}.values(), key=lambda row: row["as_of"])
+
+    fresh, previous, seen = [], None, set(known)
+    for pick in picks:
         as_of = pd.Timestamp(pick["as_of"])
         index = position.get(as_of)
         if index is None or index + hold + 1 >= len(sessions):
@@ -358,8 +367,9 @@ def append_records(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.D
         entry_bar, exit_bar = sessions[index + 1], sessions[index + 1 + hold]
         was = previous
         previous = symbol
-        if pick["as_of"] in known or symbol not in open_.columns:
+        if pick["as_of"] in seen or symbol not in open_.columns:
             continue
+        seen.add(pick["as_of"])
         if bool(limit_up.loc[entry_bar, symbol]) or bool(limit_down.loc[entry_bar, symbol]):
             print(f"{pick['as_of']}: {symbol} sealed at the limit on {entry_bar.date()}; not bought")
             continue
