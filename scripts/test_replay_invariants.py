@@ -11894,13 +11894,15 @@ def t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions() -> 
     import json
 
     import generate_guarded_weight_top10_forecast_v1 as forecast
+    import numpy as np
+    import pandas as pd
 
     config = json.loads(
         (
             ROOT
             / "configs"
             / "research"
-            / "twelve_factor_guarded_top10_forecast_v1.json"
+            / "twelve_factor_guarded_top10_forecast_v2.json"
         ).read_text(encoding="utf-8")
     )
     forecast.validate_config(config)
@@ -11909,14 +11911,108 @@ def t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions() -> 
     ).read_text(encoding="utf-8")
     check(
         "T146 guarded forecast annotates rather than selects and cannot trade",
-        config["selection"]["rankingField"] == "guarded_online_weight_score"
+        config["selection"]["rankingField"]
+        == "guarded_online_weight_score_after_pit_neutral_completion"
         and config["selection"]["selectionNeverUsesForecastOrFutureOutcome"] is True
+        and config["forecast"]["missingFeatureCompletion"]["scalarFallbackAllowed"]
+        is False
         and config["forecast"]["hyperparameterSearchAllowed"] is False
         and config["forecast"]["historicalRunCanPromote"] is False
         and all(not value for key, value in config["safety"].items() if key.startswith("may"))
         and "run_t0_intraday_agent" not in source
         and "latest_strategy_overlay.json" not in source
         and '"orders": []' in source,
+    )
+    dates = pd.to_datetime(["2026-08-10", "2026-08-11"])
+    columns = ["SH.600000", "SZ.000001", "SZ.300001"]
+    eligible = pd.DataFrame(True, index=dates, columns=columns)
+    ranks = {
+        "f1": pd.DataFrame(
+            [[0.2, np.nan, 0.8], [0.3, 0.6, 0.9]], index=dates, columns=columns
+        ),
+        "f2": pd.DataFrame(
+            [[0.1, 0.5, 0.9], [0.2, np.nan, 0.8]], index=dates, columns=columns
+        ),
+    }
+    completed, missing, supported, audit = forecast.complete_rank_book(
+        ranks, eligible, maximum_imputed_factors=1
+    )
+    before = completed["f1"].loc[dates[0]].copy()
+    changed = {key: value.copy() for key, value in ranks.items()}
+    changed["f1"].loc[dates[1]] = [np.nan, np.nan, np.nan]
+    changed_completed, *_ = forecast.complete_rank_book(
+        changed, eligible, maximum_imputed_factors=1
+    )
+    check(
+        "T146 twelve-factor completion is neutral bounded causal and same-support",
+        abs(float(completed["f1"].loc[dates[0], "SZ.000001"]) - 0.5) < 1e-12
+        and int(missing.loc[dates[0], "SZ.000001"]) == 1
+        and bool(supported.loc[dates[0], "SZ.000001"])
+        and before.equals(changed_completed["f1"].loc[dates[0]])
+        and audit["missingnessUsedAsDirectionalFeature"] is False,
+    )
+
+
+def t147_stock_forecast_dashboard_contract_is_stable_searchable_and_read_only() -> None:
+    """The UI contract must survive model iterations without gaining a trading path."""
+    import stock_forecast_dashboard as dashboard
+
+    rows = [
+        {
+            "rank": rank,
+            "securityId": f"SZ.{300000 + rank:06d}",
+            "name": "鼎汉技术" if rank == 1 else f"示例{rank}",
+            "adaptiveFactorScore": 1.0 - rank / 100.0,
+            "expectedGrossReturn": 0.001 * rank,
+            "probabilityUp": 0.50 + rank / 1000.0,
+            "probabilitySevereLoss": 0.10 - rank / 1000.0,
+            "estimateSource": "twelve_rank_multivariate_calibrated",
+        }
+        for rank in range(1, 11)
+    ]
+    result = {
+        "signalDate": "2026-08-12",
+        "intendedTradingSession": "2026-08-13",
+        "runId": "fixture",
+        "codeVersion": "fixture_v1",
+        "forecastReliability": {"status": "low_confidence_diagnostic_estimates_only"},
+        "periodDiagnostics": {},
+    }
+    snapshot = dashboard.build_contract(result, rows)
+    found_by_code = dashboard.search_snapshot(snapshot, "300001")
+    found_by_name = dashboard.search_snapshot(snapshot, "鼎汉技术")
+    found_by_initials = dashboard.search_snapshot(snapshot, "DHJS")
+    check(
+        "T147 dashboard v1 keeps Top10 and individualized probability fields stable",
+        snapshot["schemaVersion"] == "stock_forecast_dashboard_v1"
+        and len(snapshot["top10"]) == 10
+        and snapshot["top10"][0]["probabilityUp"] == 0.501
+        and snapshot["top10"][0]["expectedGrossReturn"] == 0.001
+        and snapshot["top10"][0]["probabilityTailLoss"] == 0.099
+        and found_by_code[0]["securityId"] == "SZ.300001"
+        and found_by_name[0]["name"] == "鼎汉技术"
+        and found_by_initials[0]["name"] == "鼎汉技术"
+        and snapshot["top10"][0]["nameInitials"] == "DHJS",
+    )
+    source = (ROOT / "scripts" / "stock_forecast_dashboard.py").read_text(
+        encoding="utf-8"
+    )
+    html = (ROOT / "dashboard" / "stock_forecast" / "index.html").read_text(
+        encoding="utf-8"
+    )
+    client = html + (
+        ROOT / "dashboard" / "stock_forecast" / "app.js"
+    ).read_text(encoding="utf-8")
+    check(
+        "T147 dashboard is read-only research with no order controls",
+        snapshot["orders"] == []
+        and snapshot["forecastReliability"]["eligibleForTrading"] is False
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and "预计上涨概率" in client
+        and "预计毛涨幅" in client
+        and "尾亏概率" in client,
     )
 
 
@@ -12060,6 +12156,7 @@ if __name__ == "__main__":
     t144_twelve_plus_two_fundamentals_use_fixed_weights_and_same_support()
     t145_guarded_online_weights_are_lagged_bounded_and_isolated()
     t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions()
+    t147_stock_forecast_dashboard_contract_is_stable_searchable_and_read_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

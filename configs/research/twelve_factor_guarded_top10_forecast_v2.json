@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "twelve_factor_guarded_top10_forecast_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Rank the latest all-A-share research universe with one consistent twelve-factor model. Complete limited missing factor ranks with same-date PIT-neutral cross-sectional values before both model fitting and prediction; never switch a selected security to a scalar fallback model.",
+  "guardedWeightsConfig": "configs/research/twelve_factor_guarded_online_weights_v1.json",
+  "guardedWeightsConfigSha256": "f12b907d37959535f2013e091dbfaab98ad1cf03be4b8f284dd17278ba70a3fe",
+  "forecastModelTemplate": "configs/research/twelve_factor_alpha070_131_individual_discrimination_v4.json",
+  "forecastModelTemplateSha256": "84bdd1ecc0d6e5ed68154d95ed135375952bafaff86f1e853a73ba65d8c6ba8a",
+  "selection": {
+    "factorCount": 12,
+    "topCount": 10,
+    "rankingField": "guarded_online_weight_score_after_pit_neutral_completion",
+    "selectionNeverUsesForecastOrFutureOutcome": true,
+    "latestClosedSessionOnly": true,
+    "maximumImputedFactorsForEligibility": 2
+  },
+  "forecast": {
+    "horizon": "next_buyable_open_to_following_sellable_open_max_delay_5",
+    "grossUpDefinition": "executable_gross_return_gt_0",
+    "severeLossDefinition": "executable_gross_return_le_minus_0.03",
+    "expectedReturnDefinition": "expected_executable_gross_return",
+    "multivariateFeatures": "twelve_oriented_cross_sectional_factor_ranks",
+    "missingFeatureCompletion": {
+      "method": "same_date_cross_sectional_median_rank",
+      "allMissingCrossSectionFallbackRank": 0.5,
+      "strictlyPastOrSameDateOnly": true,
+      "samePolicyForFitCalibrationAndPrediction": true,
+      "missingnessMayCreatePositiveOrNegativeSignal": false,
+      "scalarFallbackAllowed": false
+    },
+    "returnAmplitudeCalibration": {
+      "method": "calibration_period_zscore_then_fixed_ridge",
+      "ridgeAlpha": 10.0,
+      "minimumRawPredictionStd": 1e-08,
+      "standardizationUsesCalibrationPeriodOnly": true,
+      "mechanicalOutputStretchingAllowed": false
+    },
+    "hyperparameterSearchAllowed": false,
+    "validationAndShadowAreDiagnosticsOnly": true,
+    "historicalRunCanPromote": false
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_guarded_top10_forecast_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

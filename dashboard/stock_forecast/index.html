@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>A-Share Signal Observatory</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">A-SHARE SIGNAL OBSERVATORY</p>
+        <h1>股票预测观察台</h1>
+        <p class="lede">固定展示每日 Top 10，并按代码或名称查询上涨概率、预计涨幅与尾亏概率。</p>
+      </div>
+      <div id="freshness" class="freshness loading">正在读取最新快照</div>
+    </header>
+
+    <section class="notice" id="reliabilityNotice">
+      <span class="notice-dot"></span>
+      <div>
+        <strong id="reliabilityTitle">模型可靠性加载中</strong>
+        <p id="reliabilityText">所有结果均为 research-only，不构成订单或收益保证。</p>
+      </div>
+    </section>
+
+    <section class="search-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">SECURITY LOOKUP</p>
+          <h2>查询任意股票</h2>
+        </div>
+        <span id="universeCount" class="pill">—</span>
+      </div>
+      <form id="searchForm" class="search-form">
+        <input id="searchInput" autocomplete="off" placeholder="输入 300011、鼎汉技术 或 DHJS" aria-label="股票代码、名称或拼音首字母">
+        <button type="submit">查询</button>
+      </form>
+      <div id="searchResult" class="search-result empty">
+        输入代码或名称，查看当前完整横截面排名与三项预测。
+      </div>
+    </section>
+
+    <section class="top-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">DAILY RANKING</p>
+          <h2>下一交易日 Top 10</h2>
+        </div>
+        <div class="date-block">
+          <span>信号日 <b id="signalDate">—</b></span>
+          <span>适用日 <b id="effectiveDate">—</b></span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>排名</th>
+              <th>股票</th>
+              <th>上涨概率</th>
+              <th>预计毛涨幅</th>
+              <th>尾亏概率</th>
+              <th>模型口径</th>
+            </tr>
+          </thead>
+          <tbody id="top10Body">
+            <tr><td colspan="6" class="loading-row">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <p><span class="mono">stock_forecast_dashboard_v1</span> · 只读研究界面 · 无下单功能</p>
+      <p id="definitions">尾亏定义与预测周期加载中。</p>
+    </footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -6,8 +6,13 @@
 # Repository metadata / docs
 !.gitignore
 !README.md
+!requirements-stock-forecast-dashboard.txt
 !docs/
 !docs/**
+!dashboard/
+!dashboard/stock_forecast/
+!dashboard/stock_forecast/**
+!/*.cmd
 
 # Paper-trading agent source and configs
 !configs/
