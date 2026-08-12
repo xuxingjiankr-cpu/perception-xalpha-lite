@@ -109,16 +109,18 @@ def forecast_reliability(periods: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def latest_top10_rows(
+def latest_forecast_rows(
     score: pd.DataFrame,
     multivariate: dict[str, pd.DataFrame],
     scalar: dict[str, pd.DataFrame],
     panel: dict[str, pd.DataFrame],
     names: dict[str, str],
-    top_count: int,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     date = score.index.max()
-    selected = score.loc[date].dropna().sort_values(ascending=False).head(top_count)
+    selected = score.loc[date].dropna().sort_values(ascending=False)
+    if limit is not None:
+        selected = selected.head(limit)
     rows: list[dict[str, Any]] = []
     for rank, (security_id, factor_score) in enumerate(selected.items(), start=1):
         multi_expected = multivariate["expectedReturn"].loc[date, security_id]
@@ -244,14 +246,14 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     }
     latest_date = panel["close"].index.max()
     intended = latest_date + pd.offsets.BDay(1)
-    top10 = latest_top10_rows(
+    latest_all_forecasts = latest_forecast_rows(
         score,
         multivariate,
         scalar,
         panel,
         discrimination.v6.name_map(base),
-        int(config["selection"]["topCount"]),
     )
+    top10 = latest_all_forecasts[: int(config["selection"]["topCount"])]
     reliability = forecast_reliability(periods)
     result = {
         "schemaVersion": SCHEMA_VERSION,
@@ -276,6 +278,7 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "periodDiagnostics": periods,
         "forecastReliability": reliability,
         "latestTop10": top10,
+        "latestAllForecastCount": len(latest_all_forecasts),
         "historicalRunCanPromote": False,
         "eligibleForTrading": False,
         "orders": [],
@@ -289,6 +292,10 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     precision.atomic_write(
         root / "latest_top10.csv",
         pd.DataFrame(top10).to_csv(index=False, lineterminator="\n"),
+    )
+    precision.atomic_write(
+        root / "latest_all_forecasts.csv",
+        pd.DataFrame(latest_all_forecasts).to_csv(index=False, lineterminator="\n"),
     )
     return result
 
