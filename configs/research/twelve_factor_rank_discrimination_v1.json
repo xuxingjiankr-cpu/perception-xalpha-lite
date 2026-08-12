@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "twelve_factor_rank_discrimination_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether nonlinear interactions or cross-sectional learning-to-rank improve the fixed twelve-factor Top10 over a linear score on identical PIT rows. Probability width is an audited consequence, never an objective or post-hoc stretch.",
+  "sourceForecastConfig": "configs/research/twelve_factor_guarded_top10_forecast_v2.json",
+  "sourceForecastConfigSha256": "f9c668eaa12d84d6bc14497c2f3d4fd2addc07f7e7145c8c9d2b3c3580e2f9f0",
+  "partitionTemplate": "configs/research/twelve_factor_alpha070_131_individual_discrimination_v4.json",
+  "partitionTemplateSha256": "84bdd1ecc0d6e5ed68154d95ed135375952bafaff86f1e853a73ba65d8c6ba8a",
+  "data": {
+    "factorCount": 12,
+    "maximumImputedFactorsForEligibility": 2,
+    "neutralCompletionRank": 0.5,
+    "maximumBaseFitRowsPerDay": 300,
+    "maximumCalibrationRowsPerDay": 600,
+    "minimumCrossSection": 50,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "deterministicSeed": 20260812
+  },
+  "models": {
+    "candidates": ["linear", "nonlinear", "lambdarank", "hybrid"],
+    "linear": {"definition": "current_guarded_adaptive_twelve_factor_score"},
+    "nonlinear": {
+      "numLeaves": 15,
+      "learningRate": 0.03,
+      "nEstimators": 180,
+      "minChildSamples": 100,
+      "regLambda": 10.0,
+      "featureFraction": 0.8
+    },
+    "lambdarank": {
+      "objective": "lambdarank",
+      "relevanceLevels": 5,
+      "labelGain": [0, 1, 3, 7, 15],
+      "evalAt": [10],
+      "numLeaves": 15,
+      "learningRate": 0.03,
+      "nEstimators": 180,
+      "minChildSamples": 100,
+      "regLambda": 10.0,
+      "featureFraction": 0.8
+    },
+    "hybrid": {
+      "nonlinearWeight": 0.5,
+      "lambdaRankWeight": 0.5,
+      "componentStandardization": "base_fit_only"
+    },
+    "calibration": {
+      "scoreStandardization": "calibration_period_only",
+      "returnRidgeAlpha": 10.0,
+      "probabilityLogisticC": 1.0,
+      "mechanicalProbabilityStretchingAllowed": false
+    },
+    "hyperparameterSearchAllowed": false
+  },
+  "evaluation": {
+    "periods": ["audit", "validation", "shadow"],
+    "primaryMetric": "top10MeanGrossReturn",
+    "supportMustBeIdentical": true,
+    "historicalWindowsAlreadyViewed": true,
+    "trialCount": 4,
+    "candidateMustImproveBothValidationAndShadow": true,
+    "minimumMetricsImprovedPerPeriod": 4,
+    "requiredMetrics": [
+      "top10MeanGrossReturn",
+      "top10StockWinRate",
+      "meanDailyRankIc",
+      "grossUpAuc",
+      "grossUpBrier"
+    ],
+    "pairedDailyGrossHacTMinimum": 1.96,
+    "pairedDailyGrossHacLag": 5,
+    "pboMaximumForForwardStudy": 0.2,
+    "deflatedSharpeAlpha": 0.1,
+    "reportHindsightVersusTrailingSelection": true,
+    "freshForwardDaysRequiredBeforeAnyPromotionDiscussion": 60
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_rank_discrimination_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

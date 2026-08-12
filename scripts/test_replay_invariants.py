@@ -12016,6 +12016,90 @@ def t147_stock_forecast_dashboard_contract_is_stable_searchable_and_read_only() 
     )
 
 
+def t148_twelve_factor_rank_discrimination_is_fixed_pit_and_nontrading() -> None:
+    """Nonlinear ranking must use grouped same-day labels without widening permissions."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_twelve_factor_rank_discrimination_v1 as ranker
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_rank_discrimination_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    ranker.validate_config(config)
+    dates = pd.to_datetime(["2026-08-10", "2026-08-11"])
+    columns = [f"SZ.{300000 + value:06d}" for value in range(60)]
+    base = np.linspace(0.0, 1.0, len(columns))
+    ranks = {
+        f"factor_{factor}": pd.DataFrame(
+            np.vstack([base, base[::-1]]), index=dates, columns=columns
+        )
+        for factor in range(12)
+    }
+    outcome = pd.DataFrame(
+        np.vstack([base - 0.5, 0.5 - base]), index=dates, columns=columns
+    )
+    baseline_score = pd.DataFrame(
+        np.vstack([base, base[::-1]]), index=dates, columns=columns
+    )
+    table = ranker.stack_rows(
+        ranks,
+        outcome,
+        baseline_score,
+        dates,
+        maximum_rows_per_day=20,
+        seed=20260812,
+        minimum_cross_section=50,
+        relevance_levels=5,
+    )
+    check(
+        "T148 LambdaRank labels are same-day grouped bounded and deterministic",
+        table["groups"] == [20, 20]
+        and int(table["relevance"].min()) == 0
+        and int(table["relevance"].max()) == 4
+        and abs(float(table["weights"][:20].sum()) - 1.0) < 1e-12
+        and abs(float(table["weights"][20:].sum()) - 1.0) < 1e-12,
+    )
+    stable = np.linspace(-0.01, 0.01, 100)
+    check(
+        "T148 internal Newey-West statistic is finite directional and bounded-lag",
+        ranker.newey_west_t(stable, 5) is not None
+        and ranker.newey_west_t(stable, 5) > -1e-10
+        and config["evaluation"]["pairedDailyGrossHacLag"] == 5,
+    )
+    baseline = pd.Series(np.linspace(-0.005, 0.005, 40))
+    candidate = baseline.copy()
+    dsr = ranker.deflated_sharpe_difference(candidate, baseline, 4, 0.10)
+    check(
+        "T148 DSR counts every candidate and cannot pass an insignificant difference",
+        dsr["nTrials"] == 4
+        and dsr["nDays"] == 40
+        and dsr["significant"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "research_twelve_factor_rank_discrimination_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T148 rank-discrimination audit cannot stretch probabilities or trade",
+        config["models"]["hyperparameterSearchAllowed"] is False
+        and config["models"]["calibration"]["mechanicalProbabilityStretchingAllowed"]
+        is False
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and config["evaluation"]["trialCount"] == 4
+        and all(not value for key, value in config["safety"].items() if key.startswith("may"))
+        and "stock_forecast_dashboard" not in source
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12157,6 +12241,7 @@ if __name__ == "__main__":
     t145_guarded_online_weights_are_lagged_bounded_and_isolated()
     t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions()
     t147_stock_forecast_dashboard_contract_is_stable_searchable_and_read_only()
+    t148_twelve_factor_rank_discrimination_is_fixed_pit_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
