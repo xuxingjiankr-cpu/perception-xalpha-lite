@@ -470,16 +470,18 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     )
     latest_weights["signalDate"] = latest_date.date().isoformat()
     latest_weights["status"] = "diagnostic_only_not_trading"
-    latest_top10 = pd.DataFrame(
+    latest_all_scores = pd.DataFrame(
         {
             "securityId": online_score.columns,
             "adaptiveScore": online_score.loc[latest_date].to_numpy(dtype=float),
         }
     ).dropna().sort_values(
         ["adaptiveScore", "securityId"], ascending=[False, True]
-    ).head(top_count)
-    latest_top10.insert(0, "signalDate", latest_date.date().isoformat())
-    latest_top10["status"] = "diagnostic_only_not_an_order"
+    ).reset_index(drop=True)
+    latest_all_scores.insert(0, "rank", np.arange(1, len(latest_all_scores) + 1))
+    latest_all_scores.insert(0, "signalDate", latest_date.date().isoformat())
+    latest_all_scores["status"] = "diagnostic_only_not_an_order"
+    latest_top10 = latest_all_scores.head(top_count).copy()
     report = {
         "schemaVersion": SCHEMA_VERSION,
         "status": "research_only_shadow_only_not_trading",
@@ -536,6 +538,10 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     precision.atomic_write(
         output / "latest_diagnostic_top10.csv",
         latest_top10.to_csv(index=False, lineterminator="\n"),
+    )
+    precision.atomic_write(
+        output / "latest_diagnostic_all_scores.csv",
+        latest_all_scores.to_csv(index=False, lineterminator="\n"),
     )
     return report
 
