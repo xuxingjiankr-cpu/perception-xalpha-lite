@@ -12100,6 +12100,173 @@ def t148_twelve_factor_rank_discrimination_is_fixed_pit_and_nontrading() -> None
     )
 
 
+def t149_pit_fundamentals_increment_is_same_support_causal_and_nontrading() -> None:
+    """Fundamental forecast inputs must not change the fixed selector or use later filings."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_twelve_factor_pit_fundamental_increment_v1 as increment
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_pit_fundamental_increment_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    increment.validate_config(config)
+    dates = pd.to_datetime(["2026-08-12", "2026-08-13"])
+    columns = ["SZ.000001", "SZ.000002", "SH.600000"]
+    price = {
+        f"price_{number}": pd.DataFrame(
+            [[0.2, 0.5, 0.8], [0.3, 0.6, 0.9]], index=dates, columns=columns
+        )
+        for number in range(12)
+    }
+    families = {
+        name: pd.DataFrame(
+            [[0.1, 0.4, 0.7], [0.2, 0.5, 0.8]], index=dates, columns=columns
+        )
+        for name in config["hypothesis"]["fundamentalFamilies"]
+    }
+    support = pd.DataFrame(True, index=dates, columns=columns)
+    baseline, candidate = increment.combine_feature_books(price, families, support)
+    revised_families = {name: value.copy() for name, value in families.items()}
+    revised_families["quality"].loc[dates[1]] = [0.9, 0.1, 0.2]
+    baseline_revised, candidate_revised = increment.combine_feature_books(
+        price, revised_families, support
+    )
+    check(
+        "T149 twelve-plus-four feature contract is fixed and same-support",
+        len(baseline) == 12
+        and len(candidate) == 16
+        and all(frame.notna().all().all() for frame in candidate.values())
+        and list(baseline) == list(baseline_revised),
+    )
+    check(
+        "T149 a later fundamental revision cannot alter an earlier feature row",
+        all(
+            candidate[key].loc[dates[0]].equals(candidate_revised[key].loc[dates[0]])
+            for key in candidate
+        ),
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_twelve_factor_pit_fundamental_increment_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T149 fixed-selection fundamental audit cannot stretch probabilities or trade",
+        config["data"]["availabilityRule"]
+        == "first_market_date_strictly_after_max_notice_update"
+        and config["data"]["reportDateMayDetermineAvailability"] is False
+        and config["training"]["sameRowsForBaselineAndCandidate"] is True
+        and config["training"]["sameTop10ForForecastComparison"] is True
+        and config["training"]["probabilityStretchingAllowed"] is False
+        and all(
+            not value for key, value in config["safety"].items() if key.startswith("may")
+        )
+        and "stock_forecast_dashboard" not in source
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
+def t150_fundamental_price_interactions_are_preregistered_causal_and_fixed() -> None:
+    """Mechanism interactions must be past-only and may not form a winner menu."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_twelve_factor_fundamental_price_interactions_v1 as interactions
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "twelve_factor_fundamental_price_interactions_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    interactions.validate_config(config)
+    dates = pd.bdate_range("2026-06-01", periods=30)
+    columns = ["SZ.000001", "SZ.000002", "SH.600000"]
+    base = np.arange(len(dates), dtype=float).reshape(-1, 1)
+    close = pd.DataFrame(
+        10.0 + base * np.asarray([[0.03, 0.02, 0.01]]),
+        index=dates,
+        columns=columns,
+    )
+    amount = pd.DataFrame(
+        1e8 + base * np.asarray([[1e6, 2e6, 3e6]]),
+        index=dates,
+        columns=columns,
+    )
+    eligible = pd.DataFrame(True, index=dates, columns=columns)
+    panel = {"close": close, "amount": amount, "eligible": eligible}
+    contexts = interactions.build_market_context_ranks(panel, config)
+    revised = {"close": close.copy(), "amount": amount.copy(), "eligible": eligible}
+    revised["close"].loc[dates[-1]] *= 2.0
+    revised["amount"].loc[dates[-1]] *= 5.0
+    contexts_revised = interactions.build_market_context_ranks(revised, config)
+    check(
+        "T150 later price-volume observations cannot revise prior market contexts",
+        all(
+            contexts[name].iloc[:-1].equals(contexts_revised[name].iloc[:-1])
+            for name in contexts
+        ),
+    )
+    families = {
+        name: pd.DataFrame(0.75, index=dates, columns=columns)
+        for name in {
+            value["fundamentalFamily"]
+            for value in config["hypothesis"]["interactions"].values()
+        }
+    }
+    support = eligible.copy()
+    for frame in contexts.values():
+        support &= frame.notna()
+    combined = interactions.build_interaction_ranks(
+        families, contexts, config, support
+    )
+    price = {
+        f"price_{number}": pd.DataFrame(0.5, index=dates, columns=columns)
+        for number in range(12)
+    }
+    books = interactions.feature_books(price, combined, support)
+    check(
+        "T150 four fixed interactions produce four ablations and one 16-feature primary",
+        len(combined) == 4
+        and len(books) == 6
+        and len(books["baseline"]) == 12
+        and all(len(books[name]) == 13 for name in combined)
+        and len(books["all_interactions"]) == 16,
+    )
+    source = (
+        ROOT
+        / "scripts"
+        / "research_twelve_factor_fundamental_price_interactions_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T150 interaction research cannot select a historical winner or trade",
+        config["hypothesis"]["historicalOutcomeMaySelectInteraction"] is False
+        and config["hypothesis"]["historicalOutcomeMayFitInteractionWeight"] is False
+        and config["training"]["individualAblationsAreDiagnosticOnly"] is True
+        and config["training"]["postOutcomeWinnerSelectionAllowed"] is False
+        and config["training"]["sameTop10ForForecastComparison"] is True
+        and all(
+            not value for key, value in config["safety"].items() if key.startswith("may")
+        )
+        and "stock_forecast_dashboard" not in source
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12242,6 +12409,8 @@ if __name__ == "__main__":
     t146_guarded_top10_forecast_is_frozen_and_never_selects_on_predictions()
     t147_stock_forecast_dashboard_contract_is_stable_searchable_and_read_only()
     t148_twelve_factor_rank_discrimination_is_fixed_pit_and_nontrading()
+    t149_pit_fundamentals_increment_is_same_support_causal_and_nontrading()
+    t150_fundamental_price_interactions_are_preregistered_causal_and_fixed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

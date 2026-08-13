@@ -1,0 +1,2499 @@
+{
+  "schemaVersion": "twelve_factor_fundamental_price_interactions_result_v1",
+  "codeVersion": "twelve_factor_fundamental_price_interactions_v1_20260813",
+  "status": "research_only_historical_rejection_test_not_trading",
+  "runId": "run_20260813_four_preregistered_interactions_v1",
+  "generatedAt": "2026-08-13T09:35:35.482231+09:00",
+  "configSha256": "2dcd0754bbce4cc03782a68538b1920599620e14a8a40ae7bedf249d8170c15e",
+  "dataRange": [
+    "2019-01-02",
+    "2026-08-12"
+  ],
+  "signalDate": "2026-08-12",
+  "panelAudit": {
+    "schemaVersion": "ashare_research_panel_audit_v1",
+    "status": "diagnostic_only_research_only",
+    "universeKind": "all_a_shares_pit_adjusted",
+    "masterPath": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\master\\ashare_pit_master_latest.jsonl",
+    "barsRoot": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\bars_1d_backward_adjusted",
+    "masterCount": 5443,
+    "matchedBarFiles": 5443,
+    "masterCoverage": 1.0,
+    "minimumRequiredCoverage": 0.98,
+    "acceptedSymbols": 4710,
+    "acceptedByExchange": {
+      "SH": 1981,
+      "SZ": 2729
+    },
+    "acceptedByBoard": {
+      "None": 4710
+    },
+    "amountSourceCounts": {
+      "exchange_reported_via_baostock": 4710
+    },
+    "rejectionCounts": {
+      "insufficient_median_amount": 528,
+      "insufficient_observations": 201,
+      "excess_suspension_fraction": 4
+    },
+    "invalidRows": 0,
+    "duplicateDates": 0,
+    "volumeRowsScaledFromLotsToShares": 0,
+    "historicalStatusRows": 8503298,
+    "adjustedPriceRows": 8503298,
+    "historicalValidationEligible": true,
+    "pointInTimeMembership": true,
+    "historicalStatusAvailable": true,
+    "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+    "noForwardFill": true,
+    "rawPricesUnadjusted": false,
+    "unbiasedHistoricalValidationEligible": true,
+    "orders": [],
+    "automaticTradingChanges": [],
+    "fundamentalAudit": {
+      "schemaVersion": "ashare_fundamental_pit_audit_v1",
+      "status": "diagnostic_only_research_only",
+      "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+      "pricePanelSymbols": 4710,
+      "symbolsWithFundamentals": 4710,
+      "symbolCoverage": 1.0,
+      "minimumSymbolCoverage": 0.6,
+      "validStatementRows": 296875,
+      "missingNoticeDateRows": 0,
+      "latestFeatureCoverage": {
+        "fund_eps_ytd": 1.0,
+        "fund_book_value_per_share": 1.0,
+        "fund_revenue_yoy": 1.0,
+        "fund_net_profit_yoy": 1.0,
+        "fund_roe": 1.0,
+        "fund_roic": 0.98089172,
+        "fund_gross_margin": 0.98492569,
+        "fund_net_margin": 1.0,
+        "fund_debt_asset_ratio": 1.0,
+        "fund_current_ratio": 0.9866242,
+        "fund_quick_ratio": 0.9866242,
+        "fund_cash_to_revenue": 1.0,
+        "fund_cash_to_profit": 0.98492569,
+        "fund_receivable_turnover_days": 0.98089172,
+        "fund_inventory_turnover_days": 0.97876858,
+        "fund_total_asset_turnover": 1.0,
+        "fund_book_to_price": 0.96348195,
+        "fund_annualized_earnings_yield": 0.97091295,
+        "fund_quality_composite": 0.98089172,
+        "fund_growth_composite": 1.0,
+        "fund_balance_sheet_safety": 0.9866242,
+        "fund_accrual_quality": 0.98492569
+      },
+      "minimumLatestCoreFeatureCoverage": 0.35,
+      "historicalValidationEligible": true,
+      "availabilityRule": "first market date strictly after max(noticeDate, updateDate)",
+      "restatementLimitation": "The public endpoint exposes the currently retrievable statement version; historical restatement vintages may be incomplete. Using UPDATE_DATE is conservative but cannot reconstruct unavailable old vintages.",
+      "pointInTimeMembership": true,
+      "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+      "orders": [],
+      "automaticTradingChanges": []
+    }
+  },
+  "fundamentalAudit": {
+    "schemaVersion": "fundamental_mechanism_event_audit_v1",
+    "status": "research_only",
+    "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+    "symbolsRequested": 4710,
+    "filesFound": 4710,
+    "symbolFileCoverage": 1.0,
+    "statementEvents": 114897,
+    "eventDateStart": "2019-01-02",
+    "eventDateEnd": "2026-08-10",
+    "processingCounts": {
+      "same_day_older_report_used_as_causal_context": 178552,
+      "available_earnings_innovation_reported_net_profit_growth": 110569,
+      "available_earnings_innovation_net_profit_growth_acceleration": 108432,
+      "available_earnings_innovation_eps_yoy_innovation": 108928,
+      "available_earnings_innovation_parent_profit_yoy_innovation": 110392,
+      "available_growth_acceleration_reported_revenue_growth": 110482,
+      "available_growth_acceleration_revenue_growth_acceleration": 108337,
+      "available_growth_acceleration_revenue_ytd_yoy_innovation": 110325,
+      "available_growth_acceleration_asset_turnover_acceleration": 109230,
+      "available_quality_return_on_equity": 111929,
+      "available_quality_net_margin": 114134,
+      "available_cash_flow_quality_operating_cash_to_revenue": 114080,
+      "available_cash_flow_quality_cash_margin_gap": 114080,
+      "accepted_statement_events": 114897,
+      "available_quality_return_on_invested_capital": 111387,
+      "available_quality_gross_margin": 111308,
+      "available_cash_flow_quality_operating_cash_to_profit": 108567,
+      "available_cash_flow_quality_cash_to_profit_improvement": 105878,
+      "non_advancing_report_date_skipped": 3426
+    },
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateUsedForAvailability": false,
+    "futureRowsWrittenBack": 0
+  },
+  "factorAudit": {
+    "factorCount": 12,
+    "factors": [
+      {
+        "factorKey": "gtja191/alpha_070",
+        "direction": -1.0,
+        "baseWeight": 0.10972302839665153,
+        "finiteValues": 6917464
+      },
+      {
+        "factorKey": "gtja191/alpha_052",
+        "direction": -1.0,
+        "baseWeight": 0.09754145388582226,
+        "finiteValues": 6896779
+      },
+      {
+        "factorKey": "qlib158/vstd60",
+        "direction": 1.0,
+        "baseWeight": 0.09596236745725856,
+        "finiteValues": 6866759
+      },
+      {
+        "factorKey": "gtja191/alpha_097",
+        "direction": -1.0,
+        "baseWeight": 0.08407276928311685,
+        "finiteValues": 6913347
+      },
+      {
+        "factorKey": "academic/retskew",
+        "direction": 1.0,
+        "baseWeight": 0.0824076063413904,
+        "finiteValues": 6865876
+      },
+      {
+        "factorKey": "gtja191/alpha_145",
+        "direction": -1.0,
+        "baseWeight": 0.08032135398638528,
+        "finiteValues": 6897722
+      },
+      {
+        "factorKey": "qlib158/cord30",
+        "direction": -1.0,
+        "baseWeight": 0.07947576740718569,
+        "finiteValues": 6893025
+      },
+      {
+        "factorKey": "gtja191/alpha_063",
+        "direction": -1.0,
+        "baseWeight": 0.07819515902290122,
+        "finiteValues": 6922664
+      },
+      {
+        "factorKey": "alpha101/alpha_029",
+        "direction": 1.0,
+        "baseWeight": 0.07519241648411835,
+        "finiteValues": 6912321
+      },
+      {
+        "factorKey": "alpha101/alpha_094",
+        "direction": 1.0,
+        "baseWeight": 0.0730773681113405,
+        "finiteValues": 5530720
+      },
+      {
+        "factorKey": "alpha101/alpha_088",
+        "direction": 1.0,
+        "baseWeight": 0.07243180047084757,
+        "finiteValues": 6915402
+      },
+      {
+        "factorKey": "qlib158/min5",
+        "direction": 1.0,
+        "baseWeight": 0.07159890915298193,
+        "finiteValues": 6918499
+      }
+    ]
+  },
+  "interactionDefinitions": {
+    "earnings_volume_confirmation": {
+      "fundamentalFamily": "earnings_innovation",
+      "marketContext": "amount_surprise_20",
+      "mechanism": "A newly disclosed earnings improvement is more informative when same-session trading activity confirms that investors noticed it."
+    },
+    "growth_momentum_confirmation": {
+      "fundamentalFamily": "growth_acceleration",
+      "marketContext": "momentum_20",
+      "mechanism": "Growth acceleration combined with positive medium-horizon price diffusion is a constrained post-announcement-drift hypothesis."
+    },
+    "quality_low_volatility": {
+      "fundamentalFamily": "quality",
+      "marketContext": "low_volatility_20",
+      "mechanism": "High operating quality with low realised volatility may distinguish durable quality from speculative quality."
+    },
+    "cash_quality_reversal": {
+      "fundamentalFamily": "cash_flow_quality",
+      "marketContext": "reversal_5",
+      "mechanism": "Cash-supported profitability after a short price drawdown is a constrained quality-at-temporary-discount hypothesis."
+    }
+  },
+  "supportAudit": {
+    "sameRowsEveryModel": true,
+    "sameFixedTop10EveryModel": true,
+    "latestPriceSupported": 4335,
+    "latestFundamentalSupported": 4267,
+    "latestContextSupported": 4387,
+    "latestCommonSupported": 4215,
+    "priceCompletion": {
+      "method": "same_date_cross_sectional_median_rank",
+      "factorCount": 12,
+      "maximumImputedFactorsForEligibility": 2,
+      "neutralFallbackRank": 0.5,
+      "latestEligibleSecurities": 4404,
+      "latestSupportedSecurities": 4335,
+      "latestExcludedForExcessMissing": 69,
+      "latestMissingCountDistribution": {
+        "0": 3777,
+        "1": 554,
+        "2": 4,
+        "3": 40,
+        "4": 5,
+        "5": 1,
+        "6": 12,
+        "7": 4,
+        "8": 2,
+        "9": 2,
+        "11": 3
+      },
+      "strictlyPastOrSameDateOnly": true,
+      "missingnessUsedAsDirectionalFeature": false
+    }
+  },
+  "featureAudit": {
+    "bookFeatureCounts": {
+      "baseline": 12,
+      "earnings_volume_confirmation": 13,
+      "growth_momentum_confirmation": 13,
+      "quality_low_volatility": 13,
+      "cash_quality_reversal": 13,
+      "all_interactions": 16
+    },
+    "strictlyPastOrSameDateOnly": true,
+    "amountSurpriseDenominatorEndsAtPreviousSession": true,
+    "reportDateUsedForAvailability": false,
+    "outcomesUsedToConstructInteractions": false
+  },
+  "fitAudit": {
+    "baseline": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.0013899746574872734,
+          0.00019331114184168422,
+          -0.0004173039626148617,
+          0.0003781080651011921,
+          0.000328736228895142,
+          -7.516697081751868e-05,
+          -0.0003580329432427419,
+          7.260544920534558e-05,
+          0.0004423426834439056,
+          9.691405084735951e-05,
+          -0.00016811111259081428,
+          0.0003156146376451332
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.02770762402348476,
+            0.005600345249075422,
+            0.03585336067086566,
+            0.09233313660927008,
+            0.03964576044403624,
+            0.018398052679418977,
+            0.0025183911773053002,
+            0.04091568579171473,
+            0.02400667734364858,
+            -0.0035693117370161655,
+            -0.008793725501737914,
+            0.05376954205369253
+          ],
+          "netPositive": [
+            0.026898752050507325,
+            7.223582588325862e-05,
+            0.018880809490698307,
+            0.03355360756824474,
+            0.02614036355388457,
+            0.025143843346981894,
+            -0.004251410502302993,
+            0.053376900468897925,
+            0.025734933288706886,
+            0.00033958791568874415,
+            -0.05756060711097217,
+            -0.0016814241018196885
+          ],
+          "severeLoss": [
+            -0.3993874513712199,
+            -0.1543009482610514,
+            -0.14410053770959633,
+            -0.06414686818941993,
+            -0.11598905918826116,
+            -0.014082613814763901,
+            -0.062046621018766866,
+            0.039813724364807734,
+            -0.06576044912402937,
+            -0.13193327682046196,
+            -0.45390017140311034,
+            -0.38597863362204526
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.0005399569687456509,
+        "rawPredictionStd": 0.0005430098034261922,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.000500423767153181,
+        "calibratedIntercept": 0.0007281831415120747,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    },
+    "earnings_volume_confirmation": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.0013911336293193613,
+          0.00018886936578002642,
+          -0.00040237732699619747,
+          0.0003741274451912412,
+          0.0003303196736271248,
+          -6.581799121888304e-05,
+          -0.0003593468164169961,
+          8.13986260766108e-05,
+          0.00044369034153266484,
+          9.645402471203698e-05,
+          -0.00017190223547230632,
+          0.0003163194334858098,
+          4.771546408939982e-05
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.02593769351064578,
+            0.007454150950609648,
+            0.03437035041298255,
+            0.09417800882605586,
+            0.038837934382272433,
+            0.017370976589194044,
+            0.0016501129573661738,
+            0.04004964436378643,
+            0.023760974206352533,
+            -0.004155732603637029,
+            -0.008696784859945812,
+            0.05492724804330558,
+            0.0001952096602496296
+          ],
+          "netPositive": [
+            0.025161718660350923,
+            0.0017227224698924573,
+            0.017842414875858803,
+            0.03633589308098044,
+            0.02374969527584812,
+            0.02470910202590156,
+            -0.004582578154362688,
+            0.05199235467805178,
+            0.02505178510686376,
+            0.0008997215863901477,
+            -0.05621507366389402,
+            -0.002112886507997419,
+            -0.009693545544373093
+          ],
+          "severeLoss": [
+            -0.4017002090552195,
+            -0.15441359698136417,
+            -0.15127568942766573,
+            -0.06024214026244707,
+            -0.11627768183627064,
+            -0.018975157591542727,
+            -0.06144276761880116,
+            0.03728318850465487,
+            -0.06768106463394365,
+            -0.1324908088829191,
+            -0.4518671909824503,
+            -0.3890233867164625,
+            -0.037071375068084556
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.0005399139053163655,
+        "rawPredictionStd": 0.0005429284892759062,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.0005014787871764272,
+        "calibratedIntercept": 0.0007281831415120746,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    },
+    "growth_momentum_confirmation": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.0014002458222960102,
+          0.0002583692759680835,
+          -0.0004169041481311038,
+          0.00035496098470058136,
+          0.00033035032383011445,
+          -5.144687277662636e-05,
+          -0.0003549836866334649,
+          0.00011885484040772053,
+          0.0004479494765428914,
+          0.00010493245764504097,
+          -0.00017323119720490896,
+          0.000301236195330808,
+          0.00020723260176236792
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.025185203613007738,
+            0.00949434152706024,
+            0.03602471844587364,
+            0.09264465013962767,
+            0.03947092061386307,
+            0.01876700074177777,
+            0.004792536499435657,
+            0.04331118993019222,
+            0.025003718293695562,
+            -0.004215873465087191,
+            -0.00789608460339443,
+            0.054995780775729794,
+            0.014549503723299672
+          ],
+          "netPositive": [
+            0.024222378619887727,
+            -0.0005608440270911993,
+            0.019289427482362297,
+            0.0366459201544515,
+            0.024446522524230543,
+            0.023951639250779068,
+            -0.0023957476911541406,
+            0.052688825656157845,
+            0.025492716159218807,
+            0.0003183482252065164,
+            -0.055463987865463575,
+            -0.0016405274853197051,
+            -0.0007560786334736556
+          ],
+          "severeLoss": [
+            -0.40227892258533426,
+            -0.1636061516190047,
+            -0.14685425661331503,
+            -0.058964677364716424,
+            -0.1166236930644974,
+            -0.01853594190545739,
+            -0.06312714159533296,
+            0.035697826795560515,
+            -0.06823762322604272,
+            -0.13379785204773958,
+            -0.4523693113143775,
+            -0.38791189195762865,
+            -0.04212992273686321
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.0005397510939357345,
+        "rawPredictionStd": 0.0005455549853824674,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.0004939295165317021,
+        "calibratedIntercept": 0.0007281831415120747,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    },
+    "quality_low_volatility": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.001391056381661634,
+          0.0001985203217914735,
+          -0.00042214787729901956,
+          0.00039211877073419836,
+          0.00033034034339834186,
+          -7.9471727765579e-05,
+          -0.0003546856945841396,
+          6.117187500556887e-05,
+          0.0004406578158691831,
+          9.70853194733509e-05,
+          -0.00015184351813132875,
+          0.000329409829839587,
+          -5.679454966154327e-05
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.028161277250989845,
+            0.006317039761156932,
+            0.035100480001041455,
+            0.0936611366941586,
+            0.040090531214173684,
+            0.017878495844352797,
+            0.0028282887289637856,
+            0.0401188603796282,
+            0.02374595075004121,
+            -0.0039006479553005133,
+            -0.007018490085422493,
+            0.05568098891988996,
+            -0.007088082720835463
+          ],
+          "netPositive": [
+            0.03054449877203194,
+            0.003901549019684247,
+            0.014077799474213622,
+            0.047535766132566305,
+            0.02873267991875066,
+            0.021205709939829707,
+            0.0003540030198297997,
+            0.04558287751907607,
+            0.02378584310146643,
+            0.000724548031996541,
+            -0.04041961449106663,
+            0.010263842805095161,
+            -0.07195697707582735
+          ],
+          "severeLoss": [
+            -0.36411910509862644,
+            -0.13166760995896692,
+            -0.1671506880150517,
+            -0.0011403079583630253,
+            -0.09842116037643464,
+            -0.02290277675488958,
+            -0.03674886348763224,
+            0.018223346482329643,
+            -0.07061010327768587,
+            -0.13453724596338557,
+            -0.3748033096265674,
+            -0.34105697860694745,
+            -0.47306748359004835
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.0005400097923738944,
+        "rawPredictionStd": 0.0005435095341096528,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.0004989877905353856,
+        "calibratedIntercept": 0.0007281831415120747,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    },
+    "cash_quality_reversal": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.00139216826813786,
+          0.00020722528702315701,
+          -0.00044117610022602436,
+          0.00037902009139483515,
+          0.0003212233988203423,
+          -5.489425879673707e-05,
+          -0.00036820743903991603,
+          -0.00014239549340507818,
+          0.00042846611029196427,
+          6.04045549461006e-05,
+          -0.0001658745097794702,
+          0.00012882548010429502,
+          0.0007150001228498874
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.027753149350717668,
+            0.005242804479876437,
+            0.03504713877985805,
+            0.0924695631960452,
+            0.039469727395858425,
+            0.018763501270740404,
+            0.0022849117466260662,
+            0.03607165312271212,
+            0.0234111961813867,
+            -0.005170045271555902,
+            -0.00883152101143284,
+            0.04887180376887664,
+            0.022283362238953774
+          ],
+          "netPositive": [
+            0.028001301808842374,
+            -0.0002079773027673388,
+            0.017265687136945936,
+            0.032139618552318755,
+            0.027124036555384163,
+            0.025364942659406343,
+            -0.004784907912421291,
+            0.05150330680455446,
+            0.02520402952585292,
+            -0.0017872728758554649,
+            -0.058720227581157386,
+            -0.004374331760061777,
+            0.014268862295247015
+          ],
+          "severeLoss": [
+            -0.3984303949172241,
+            -0.15135535047699167,
+            -0.13857829948984837,
+            -0.06356573423624678,
+            -0.11414937585385276,
+            -0.01461691074135345,
+            -0.06040466697041164,
+            0.06079988173695275,
+            -0.06217245094351456,
+            -0.12387211191431541,
+            -0.45191292981723324,
+            -0.3641867199276597,
+            -0.12185244426604738
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.0005400249123442789,
+        "rawPredictionStd": 0.0005727804630646973,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.0005585904446736601,
+        "calibratedIntercept": 0.0007281831415120747,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    },
+    "all_interactions": {
+      "fit": {
+        "baseRows": 775200,
+        "baseDays": 1292,
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "returnCoefficients": [
+          0.0014066257611899705,
+          0.0002896107942357215,
+          -0.0004504645051044794,
+          0.0003954895359849589,
+          0.00032812980291868003,
+          -3.9184470053594114e-05,
+          -0.0003556713637839896,
+          -0.00013012778302752464,
+          0.00042943633214155243,
+          6.830149567035389e-05,
+          -0.00012367810704460544,
+          0.00015121384681339293,
+          1.723258495117296e-05,
+          0.00021667666796117697,
+          -0.0001706107434712449,
+          0.0007313573066710603
+        ],
+        "classifierCoefficients": {
+          "grossUp": [
+            0.025459778735781525,
+            0.012068691359752266,
+            0.0330991805199889,
+            0.09597459465642039,
+            0.039453918618632705,
+            0.01850886360993112,
+            0.004034752348062831,
+            0.037728868799572386,
+            0.024695573943298552,
+            -0.006034191295619542,
+            -0.006091186987962745,
+            0.05248487645381747,
+            -0.0029334399167158776,
+            0.016868081111657825,
+            -0.012225849016325164,
+            0.02157746951468901
+          ],
+          "netPositive": [
+            0.030068214418352394,
+            0.006444392920138356,
+            0.013295301590521344,
+            0.04926081242967219,
+            0.02655546286411203,
+            0.02260438312774916,
+            0.0013764991527992286,
+            0.04265087497622489,
+            0.023310661636727497,
+            -0.0015359015160874556,
+            -0.0389896997609447,
+            0.00587278985975018,
+            0.0049270442843338995,
+            0.006412818014426341,
+            -0.0762645106724023,
+            0.019896993060036654
+          ],
+          "severeLoss": [
+            -0.3669249877515388,
+            -0.13414444961440913,
+            -0.15775373999769277,
+            0.001712542154655413,
+            -0.09871192766017056,
+            -0.021356181843973795,
+            -0.03763459987471848,
+            0.038292531291524226,
+            -0.06830970967612988,
+            -0.12732366289060656,
+            -0.37185850368018614,
+            -0.32298656806098247,
+            0.029651660570178477,
+            -0.019812831937870225,
+            -0.4693689023944646,
+            -0.09655982709414038
+          ]
+        }
+      },
+      "returnAmplitude": {
+        "method": "calibration_period_zscore_then_fixed_ridge",
+        "calibrationRows": 268527,
+        "calibrationDays": 63,
+        "rawPredictionMean": 0.000539954339316489,
+        "rawPredictionStd": 0.0005766396297587443,
+        "ridgeAlpha": 10.0,
+        "calibratedCoefficient": 0.0005502203747134905,
+        "calibratedIntercept": 0.0007281831415120746,
+        "standardizationUsesCalibrationPeriodOnly": true
+      }
+    }
+  },
+  "weightUpdateCount": 370,
+  "partitions": {
+    "baseFit": [
+      "2019-01-02",
+      "2024-11-27",
+      1432
+    ],
+    "calibration": [
+      "2024-12-06",
+      "2025-03-13",
+      63
+    ],
+    "audit": [
+      "2025-03-24",
+      "2025-06-25",
+      63
+    ],
+    "validation": [
+      "2025-07-10",
+      "2026-01-13",
+      126
+    ],
+    "shadow": [
+      "2026-01-28",
+      "2026-08-12",
+      130
+    ]
+  },
+  "periods": {
+    "audit": {
+      "baseline": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.48918023230034036,
+            "minimumProbability": 0.4863375955817967,
+            "maximumProbability": 0.4915942893270768,
+            "probabilitySpread": 0.00525669374528015,
+            "brier": 0.24966057551691473,
+            "logLoss": 0.6924682053056836,
+            "auc": 0.5349194008647296,
+            "ece": 0.007648413265236187
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12133775280235871,
+            "minimumProbability": 0.06603278593692077,
+            "maximumProbability": 0.2141377899672903,
+            "probabilitySpread": 0.14810500403036952,
+            "brier": 0.0834201860442262,
+            "logLoss": 0.3042636876056773,
+            "auc": 0.6649235289917502,
+            "ece": 0.029461459620138228
+          },
+          "expectedReturnMae": 0.02086374540101497,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.004892364832214512
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.4910441849903025,
+            "minimumProbability": 0.4902866431722278,
+            "maximumProbability": 0.4915942893270768,
+            "probabilitySpread": 0.0013076461548490181,
+            "brier": 0.25070508810292663,
+            "logLoss": 0.6945575163311015,
+            "auc": 0.5021014573480115,
+            "ece": 0.043876449930332406
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.07580393501367187,
+            "minimumProbability": 0.06603278593692077,
+            "maximumProbability": 0.09632930424173301,
+            "probabilitySpread": 0.03029651830481224,
+            "brier": 0.05137995380831727,
+            "logLoss": 0.2126658830886514,
+            "auc": 0.6198677457560204,
+            "ece": 0.0218356810454179
+          },
+          "expectedReturnMae": 0.016710573766037316,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0006379946981255915
+        }
+      },
+      "earnings_volume_confirmation": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.489179127947281,
+            "minimumProbability": 0.48636521582260617,
+            "maximumProbability": 0.49156479976179707,
+            "probabilitySpread": 0.005199583939190899,
+            "brier": 0.24966111577121852,
+            "logLoss": 0.6924692863808437,
+            "auc": 0.5349847242181062,
+            "ece": 0.007647308912176853
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12131840479739922,
+            "minimumProbability": 0.06603953379306023,
+            "maximumProbability": 0.21525319329744902,
+            "probabilitySpread": 0.1492136595043888,
+            "brier": 0.08340983556941012,
+            "logLoss": 0.30420839903448704,
+            "auc": 0.6653090707920208,
+            "ece": 0.029468107184805817
+          },
+          "expectedReturnMae": 0.02086373786295345,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.004831114547245962
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.49101796142962223,
+            "minimumProbability": 0.49025938835908933,
+            "maximumProbability": 0.49156479976179707,
+            "probabilitySpread": 0.0013054114027077346,
+            "brier": 0.25070721194234136,
+            "logLoss": 0.6945617653542322,
+            "auc": 0.5022432424220942,
+            "ece": 0.04390267349101268
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.0756442867951574,
+            "minimumProbability": 0.06603953379306023,
+            "maximumProbability": 0.0966835317141778,
+            "probabilitySpread": 0.030643997921117577,
+            "brier": 0.05135656250940087,
+            "logLoss": 0.21249416966762139,
+            "auc": 0.6314646664034742,
+            "ece": 0.021676032826903432
+          },
+          "expectedReturnMae": 0.016710154201292477,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0006361673243306272
+        }
+      },
+      "growth_momentum_confirmation": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.48917986807663866,
+            "minimumProbability": 0.4862593725412019,
+            "maximumProbability": 0.4915766855554767,
+            "probabilitySpread": 0.005317313014274794,
+            "brier": 0.2496609876355309,
+            "logLoss": 0.6924690299339807,
+            "auc": 0.5347971506220508,
+            "ece": 0.007648049041534488
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12132518409613172,
+            "minimumProbability": 0.06587765336224197,
+            "maximumProbability": 0.2159179134109461,
+            "probabilitySpread": 0.15004026004870413,
+            "brier": 0.08341377316165219,
+            "logLoss": 0.3042302386654723,
+            "auc": 0.6651717503914106,
+            "ece": 0.029405478938440803
+          },
+          "expectedReturnMae": 0.02086416351665366,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.004923814683726919
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.49103391486951103,
+            "minimumProbability": 0.49028836170734563,
+            "maximumProbability": 0.4915766855554767,
+            "probabilitySpread": 0.0012883238481310455,
+            "brier": 0.25070420820299744,
+            "logLoss": 0.6945557559327649,
+            "auc": 0.5060916944329104,
+            "ece": 0.04388672005112387
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.0757862945770641,
+            "minimumProbability": 0.06587765336224197,
+            "maximumProbability": 0.09717864952124479,
+            "probabilitySpread": 0.03130099615900282,
+            "brier": 0.051372992088064215,
+            "logLoss": 0.21261367512831103,
+            "auc": 0.6239143308330043,
+            "ece": 0.021818040608810124
+          },
+          "expectedReturnMae": 0.016709872480639248,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0006471326656991484
+        }
+      },
+      "quality_low_volatility": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.48918100848355345,
+            "minimumProbability": 0.4862887303655576,
+            "maximumProbability": 0.49167515510218623,
+            "probabilitySpread": 0.005386424736628648,
+            "brier": 0.2496598363673572,
+            "logLoss": 0.6924667263196636,
+            "auc": 0.5351030014228931,
+            "ece": 0.007649189448449278
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12118767259592195,
+            "minimumProbability": 0.05830731539108295,
+            "maximumProbability": 0.24261170855289232,
+            "probabilitySpread": 0.18430439316180938,
+            "brier": 0.08290180685831988,
+            "logLoss": 0.30179498247422804,
+            "auc": 0.6758174488141382,
+            "ece": 0.033062446852312424
+          },
+          "expectedReturnMae": 0.020863650802842477,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.004921867688518914
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.49106218345929686,
+            "minimumProbability": 0.49026874707845464,
+            "maximumProbability": 0.49167515510218623,
+            "probabilitySpread": 0.001406408023731598,
+            "brier": 0.25070575337193246,
+            "logLoss": 0.6945588472738121,
+            "auc": 0.4966326044905358,
+            "ece": 0.043858451461338044
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.07228823950542392,
+            "minimumProbability": 0.05830731539108295,
+            "maximumProbability": 0.10304066400265996,
+            "probabilitySpread": 0.04473334861157701,
+            "brier": 0.05100889776812432,
+            "logLoss": 0.20982203396486915,
+            "auc": 0.6453809711804185,
+            "ece": 0.01831998553716995
+          },
+          "expectedReturnMae": 0.016710877591078758,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0006506999809614045
+        }
+      },
+      "cash_quality_reversal": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.48918396280679155,
+            "minimumProbability": 0.48617698638255724,
+            "maximumProbability": 0.49167802512759357,
+            "probabilitySpread": 0.005501038745036324,
+            "brier": 0.2496590318036973,
+            "logLoss": 0.6924651161534242,
+            "auc": 0.534599164513945,
+            "ece": 0.007652143771687381
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12133293968324013,
+            "minimumProbability": 0.06656865100082582,
+            "maximumProbability": 0.21849007597494133,
+            "probabilitySpread": 0.1519214249741155,
+            "brier": 0.08337078519670843,
+            "logLoss": 0.3040479863978258,
+            "auc": 0.6653079026831191,
+            "ece": 0.03043319545867843
+          },
+          "expectedReturnMae": 0.020863689931175114,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.005152011497524336
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.49107408814934767,
+            "minimumProbability": 0.49029619923643747,
+            "maximumProbability": 0.49167802512759357,
+            "probabilitySpread": 0.0013818258911560966,
+            "brier": 0.2507000883827458,
+            "logLoss": 0.694547513934705,
+            "auc": 0.5049979238614153,
+            "ece": 0.04384654677128724
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.07582113375377568,
+            "minimumProbability": 0.06656865100082582,
+            "maximumProbability": 0.09459366899484287,
+            "probabilitySpread": 0.02802501799401705,
+            "brier": 0.05129802148230526,
+            "logLoss": 0.21212811365925896,
+            "auc": 0.6345736281089617,
+            "ece": 0.02185287978552171
+          },
+          "expectedReturnMae": 0.016709997993659728,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0007387094339406908
+        }
+      },
+      "all_interactions": {
+        "overall": {
+          "rows": 266350,
+          "days": 63,
+          "grossUp": {
+            "n": 266350,
+            "eventRate": 0.48153181903510417,
+            "meanProbability": 0.48918560380140275,
+            "minimumProbability": 0.4861107270603761,
+            "maximumProbability": 0.49174260654647417,
+            "probabilitySpread": 0.005631879486098057,
+            "brier": 0.24965809687499568,
+            "logLoss": 0.6924632453698567,
+            "auc": 0.5346972247216467,
+            "ece": 0.007653784766298577
+          },
+          "severeLoss": {
+            "n": 266350,
+            "eventRate": 0.0937563356485827,
+            "meanProbability": 0.12119003847398607,
+            "minimumProbability": 0.05746651597435415,
+            "maximumProbability": 0.2479508099835942,
+            "probabilitySpread": 0.19048429400924005,
+            "brier": 0.08287386754339486,
+            "logLoss": 0.301682315443105,
+            "auc": 0.676108236759146,
+            "ece": 0.03316783819119913
+          },
+          "expectedReturnMae": 0.020863704676067314,
+          "actualMeanGrossReturn": 0.0007582043578856896,
+          "actualGrossUpRate": 0.48153181903510417,
+          "actualSevereLossRate": 0.0937563356485827,
+          "meanProbabilityUpSpread": 0.005260271563970299
+        },
+        "fixedTop10": {
+          "rows": 630,
+          "days": 63,
+          "grossUp": {
+            "n": 630,
+            "eventRate": 0.5349206349206349,
+            "meanProbability": 0.49109805853169497,
+            "minimumProbability": 0.4902466431895068,
+            "maximumProbability": 0.4916885295825557,
+            "probabilitySpread": 0.00144188639304893,
+            "brier": 0.25070105303603496,
+            "logLoss": 0.6945494438152291,
+            "auc": 0.498769508107068,
+            "ece": 0.04382257638893994
+          },
+          "severeLoss": {
+            "n": 630,
+            "eventRate": 0.05396825396825397,
+            "meanProbability": 0.07262662445235699,
+            "minimumProbability": 0.05746651597435415,
+            "maximumProbability": 0.10558336059989587,
+            "probabilitySpread": 0.04811684462554172,
+            "brier": 0.05096713010043715,
+            "logLoss": 0.20954781555504098,
+            "auc": 0.654510461902882,
+            "ece": 0.01865837048410303
+          },
+          "expectedReturnMae": 0.016710140524453698,
+          "actualMeanGrossReturn": 0.0019259100868642411,
+          "actualGrossUpRate": 0.5349206349206349,
+          "actualSevereLossRate": 0.05396825396825397,
+          "meanProbabilityUpSpread": 0.0007664408035789165
+        }
+      },
+      "pairedLossDiagnostics": {
+        "overall": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 266350,
+          "pairedDays": 63,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -2.472610081967979e-06,
+            "neweyWestT": -2.4456752098616703
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -4.947866180225449e-06,
+            "neweyWestT": -2.446076736010386
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.0005465552298730515,
+            "neweyWestT": -6.481125377282237
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": -3.182487512102915e-08,
+            "neweyWestT": -0.029126792438356596
+          }
+        },
+        "fixedTop10": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 630,
+          "pairedDays": 63,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -4.0350668916308015e-06,
+            "neweyWestT": -0.7679222034270937
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -8.072515872275119e-06,
+            "neweyWestT": -0.7679141217288253
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.00041282370788012804,
+            "neweyWestT": -3.2331751283226713
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": -4.332415836166082e-07,
+            "neweyWestT": -0.04628566411732605
+          }
+        }
+      }
+    },
+    "validation": {
+      "baseline": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.48917593988815716,
+            "minimumProbability": 0.48631791916485034,
+            "maximumProbability": 0.49177054462113984,
+            "probabilitySpread": 0.005452625456289495,
+            "brier": 0.24985097200398665,
+            "logLoss": 0.6928490670624976,
+            "auc": 0.5261257152595202,
+            "ece": 0.0005581304477401683
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.12173801597391748,
+            "minimumProbability": 0.06337077084853657,
+            "maximumProbability": 0.21520430456881562,
+            "probabilitySpread": 0.15183353372027905,
+            "brier": 0.07221579984678946,
+            "logLoss": 0.27351325533913756,
+            "auc": 0.7248167556651994,
+            "ece": 0.04304245364538357
+          },
+          "expectedReturnMae": 0.019175041011192172,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.005000096702607345
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.49115666840229105,
+            "minimumProbability": 0.4900678518329722,
+            "maximumProbability": 0.49177054462113984,
+            "probabilitySpread": 0.001702692788167648,
+            "brier": 0.2508313595991026,
+            "logLoss": 0.6948100825015499,
+            "auc": 0.49306318122661463,
+            "ece": 0.05133737448889247
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.07301669489886499,
+            "minimumProbability": 0.06337077084853657,
+            "maximumProbability": 0.08841373351994193,
+            "probabilitySpread": 0.025042962671405364,
+            "brier": 0.017557824903556143,
+            "logLoss": 0.11220986072110345,
+            "auc": 0.46293311845286056,
+            "ece": 0.058719633739214475
+          },
+          "expectedReturnMae": 0.010943769999142205,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0006977481280415485
+        }
+      },
+      "earnings_volume_confirmation": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.4891748866266237,
+            "minimumProbability": 0.486345441264155,
+            "maximumProbability": 0.4917366978037499,
+            "probabilitySpread": 0.00539125653959488,
+            "brier": 0.24985136194059293,
+            "logLoss": 0.6928498473368673,
+            "auc": 0.5261855425306838,
+            "ece": 0.0005591837092736585
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.12172096718680969,
+            "minimumProbability": 0.06345394575559629,
+            "maximumProbability": 0.21717262574000654,
+            "probabilitySpread": 0.15371867998441024,
+            "brier": 0.07220231826567945,
+            "logLoss": 0.27344931315612037,
+            "auc": 0.7251394618399789,
+            "ece": 0.04309479459860724
+          },
+          "expectedReturnMae": 0.01917501320102096,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.004936180950854921
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.49112830864687795,
+            "minimumProbability": 0.4900228369058289,
+            "maximumProbability": 0.4917366978037499,
+            "probabilitySpread": 0.0017138608979210268,
+            "brier": 0.25083396638285743,
+            "logLoss": 0.6948152977131347,
+            "auc": 0.49383845778428503,
+            "ece": 0.05136573424430557
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.07291066862060813,
+            "minimumProbability": 0.06345394575559629,
+            "maximumProbability": 0.08879111714831395,
+            "probabilitySpread": 0.025337171392717656,
+            "brier": 0.01754363434555639,
+            "logLoss": 0.1121037133650139,
+            "auc": 0.46620109230906975,
+            "ece": 0.05861360746095762
+          },
+          "expectedReturnMae": 0.010943897122370998,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0006994115320271317
+        }
+      },
+      "growth_momentum_confirmation": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.48917519673588544,
+            "minimumProbability": 0.48624144960364074,
+            "maximumProbability": 0.49175138982765476,
+            "probabilitySpread": 0.0055099402240140205,
+            "brier": 0.2498509692467742,
+            "logLoss": 0.6928490614862934,
+            "auc": 0.526257480462582,
+            "ece": 0.0005588736000118888
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.12172350484678018,
+            "minimumProbability": 0.06357583684015988,
+            "maximumProbability": 0.21699110106350175,
+            "probabilitySpread": 0.15341526422334187,
+            "brier": 0.07221240496066339,
+            "logLoss": 0.27349633058734324,
+            "auc": 0.7248896372191138,
+            "ece": 0.0431226700868736
+          },
+          "expectedReturnMae": 0.019175074626646818,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.005017323737874677
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.49113873518734175,
+            "minimumProbability": 0.49003188349453264,
+            "maximumProbability": 0.49175138982765476,
+            "probabilitySpread": 0.0017195063331221228,
+            "brier": 0.2508326974349106,
+            "logLoss": 0.6948127590027072,
+            "auc": 0.4930860582397918,
+            "ece": 0.05135530770384178
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.07305085996730552,
+            "minimumProbability": 0.06357583684015988,
+            "maximumProbability": 0.08888139345095986,
+            "probabilitySpread": 0.025305556610799973,
+            "brier": 0.017560303665187262,
+            "logLoss": 0.11222602282543533,
+            "auc": 0.4668278270212194,
+            "ece": 0.05875379880765501
+          },
+          "expectedReturnMae": 0.010944094227340679,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0007011211856438754
+        }
+      },
+      "quality_low_volatility": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.48917677427249456,
+            "minimumProbability": 0.4863340935974538,
+            "maximumProbability": 0.4917712827245912,
+            "probabilitySpread": 0.005437189127137421,
+            "brier": 0.249850729338074,
+            "logLoss": 0.6928485815031477,
+            "auc": 0.5260953745675959,
+            "ece": 0.0005572960634027679
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.12178973320409879,
+            "minimumProbability": 0.05441822838069646,
+            "maximumProbability": 0.24248888199218196,
+            "probabilitySpread": 0.1880706536114855,
+            "brier": 0.07153088245856885,
+            "logLoss": 0.2701549439372688,
+            "auc": 0.7392776301468358,
+            "ece": 0.047536790264589686
+          },
+          "expectedReturnMae": 0.019175046814602897,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.005020182370966284
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.4911726304890244,
+            "minimumProbability": 0.49013613001427003,
+            "maximumProbability": 0.4917712827245912,
+            "probabilitySpread": 0.0016351527103211638,
+            "brier": 0.2508293815014434,
+            "logLoss": 0.6948061250647242,
+            "auc": 0.4940341833414673,
+            "ece": 0.05132141240215915
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.06861901494513688,
+            "minimumProbability": 0.05441822838069646,
+            "maximumProbability": 0.09541980750242388,
+            "probabilitySpread": 0.041001579121727416,
+            "brier": 0.017050131957009346,
+            "logLoss": 0.1081183500154097,
+            "auc": 0.5422598263049512,
+            "ece": 0.05432195378548636
+          },
+          "expectedReturnMae": 0.010943383722047208,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0006918404200359526
+        }
+      },
+      "cash_quality_reversal": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.4891800497814473,
+            "minimumProbability": 0.48614638686353534,
+            "maximumProbability": 0.49182308212344056,
+            "probabilitySpread": 0.005676695259905218,
+            "brier": 0.2498494300083652,
+            "logLoss": 0.6928459813686467,
+            "auc": 0.526018419557105,
+            "ece": 0.0005540205544500298
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.12173812962077397,
+            "minimumProbability": 0.0622476047390585,
+            "maximumProbability": 0.21940819530687886,
+            "probabilitySpread": 0.15716059056782036,
+            "brier": 0.07215914990820038,
+            "logLoss": 0.273259165181993,
+            "auc": 0.7246188153181792,
+            "ece": 0.04378055089231758
+          },
+          "expectedReturnMae": 0.01917533060580579,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.005211126528732435
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.49118330551683403,
+            "minimumProbability": 0.4901298581998388,
+            "maximumProbability": 0.49182308212344056,
+            "probabilitySpread": 0.001693223923601772,
+            "brier": 0.2508268570999268,
+            "logLoss": 0.6948010749187586,
+            "auc": 0.49629392386530014,
+            "ece": 0.05131073737434949
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.0730952534952782,
+            "minimumProbability": 0.0622476047390585,
+            "maximumProbability": 0.08832174829908253,
+            "probabilitySpread": 0.026074143560024028,
+            "brier": 0.01757452619746914,
+            "logLoss": 0.11230842670937037,
+            "auc": 0.4562181036798281,
+            "ece": 0.05879819233562769
+          },
+          "expectedReturnMae": 0.010940951132020982,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0007489051343407985
+        }
+      },
+      "all_interactions": {
+        "overall": {
+          "rows": 532246,
+          "days": 126,
+          "grossUp": {
+            "n": 532246,
+            "eventRate": 0.48973407033589733,
+            "meanProbability": 0.4891812142982307,
+            "minimumProbability": 0.4860533306174491,
+            "maximumProbability": 0.4919301252159986,
+            "probabilitySpread": 0.005876794598549506,
+            "brier": 0.2498488794733934,
+            "logLoss": 0.6928448796998418,
+            "auc": 0.5260487070506241,
+            "ece": 0.000552856037666638
+          },
+          "severeLoss": {
+            "n": 532246,
+            "eventRate": 0.07955156074446779,
+            "meanProbability": 0.1217967143560628,
+            "minimumProbability": 0.05378452031794001,
+            "maximumProbability": 0.24535642338357724,
+            "probabilitySpread": 0.19157190306563723,
+            "brier": 0.07150693699055444,
+            "logLoss": 0.27005191265546835,
+            "auc": 0.7389222895511072,
+            "ece": 0.04780330131086615
+          },
+          "expectedReturnMae": 0.019175296309571113,
+          "actualMeanGrossReturn": 0.0018928274659479791,
+          "actualGrossUpRate": 0.48973407033589733,
+          "actualSevereLossRate": 0.07955156074446779,
+          "meanProbabilityUpSpread": 0.005300327770881609
+        },
+        "fixedTop10": {
+          "rows": 1259,
+          "days": 126,
+          "grossUp": {
+            "n": 1259,
+            "eventRate": 0.5424940428911835,
+            "meanProbability": 0.4911959386906494,
+            "minimumProbability": 0.49019340789660937,
+            "maximumProbability": 0.4919301252159986,
+            "probabilitySpread": 0.001736717319389236,
+            "brier": 0.2508241218951517,
+            "logLoss": 0.6947956028075103,
+            "auc": 0.5003533227590695,
+            "ece": 0.0512981042005341
+          },
+          "severeLoss": {
+            "n": 1259,
+            "eventRate": 0.014297061159650517,
+            "meanProbability": 0.06898154653864352,
+            "minimumProbability": 0.05378452031794001,
+            "maximumProbability": 0.09589471260788318,
+            "probabilitySpread": 0.04211019228994317,
+            "brier": 0.01709967632510215,
+            "logLoss": 0.10845815619930231,
+            "auc": 0.5472289372369952,
+            "ece": 0.05468448537899301
+          },
+          "expectedReturnMae": 0.010940179746112987,
+          "actualMeanGrossReturn": 0.001835600349565297,
+          "actualGrossUpRate": 0.5424940428911835,
+          "actualSevereLossRate": 0.014297061159650517,
+          "meanProbabilityUpSpread": 0.0007559236303213071
+        }
+      },
+      "pairedLossDiagnostics": {
+        "overall": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 532246,
+          "pairedDays": 126,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -2.0973433189990114e-06,
+            "neweyWestT": -2.859112823580473
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -4.196990721189447e-06,
+            "neweyWestT": -2.859574014031235
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.00070849892872906,
+            "neweyWestT": -10.75805885057724
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": 2.5465036900840266e-07,
+            "neweyWestT": 0.4353367947952885
+          }
+        },
+        "fixedTop10": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 1259,
+          "pairedDays": 126,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -7.213100409626101e-06,
+            "neweyWestT": -1.8965052590210758
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -1.443047042796153e-05,
+            "neweyWestT": -1.89647925537836
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.0004586042035436381,
+            "neweyWestT": -7.528246739424456
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": -3.490429412315418e-06,
+            "neweyWestT": -0.44717057154279416
+          }
+        }
+      }
+    },
+    "shadow": {
+      "baseline": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.4891757684203595,
+            "minimumProbability": 0.486349943883362,
+            "maximumProbability": 0.4918328435357692,
+            "probabilitySpread": 0.005482899652407225,
+            "brier": 0.24935437108103573,
+            "logLoss": 0.6918557314274674,
+            "auc": 0.5031397077892883,
+            "ece": 0.024186729665854223
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.12167355404579668,
+            "minimumProbability": 0.06421885586452264,
+            "maximumProbability": 0.2120747650517283,
+            "probabilitySpread": 0.14785590918720565,
+            "brier": 0.12080255651783367,
+            "logLoss": 0.4020062646058635,
+            "auc": 0.6396710530475637,
+            "ece": 0.027202863816663297
+          },
+          "expectedReturnMae": 0.02424853216859264,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.0049400932357804225
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.49109943458473815,
+            "minimumProbability": 0.4901367719897324,
+            "maximumProbability": 0.4918328435357692,
+            "probabilitySpread": 0.001696071546036848,
+            "brier": 0.2501897123932592,
+            "logLoss": 0.6935266621831216,
+            "auc": 0.4504937420216278,
+            "ece": 0.013982660802282942
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.07387795343741183,
+            "minimumProbability": 0.06421885586452264,
+            "maximumProbability": 0.09482730847008422,
+            "probabilitySpread": 0.03060845260556158,
+            "brier": 0.059961004321522904,
+            "logLoss": 0.2378309145661382,
+            "auc": 0.607901868492369,
+            "ece": 0.009765365478068583
+          },
+          "expectedReturnMae": 0.01624847942322031,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.0006761405994928338
+        }
+      },
+      "earnings_volume_confirmation": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.48917473408053547,
+            "minimumProbability": 0.486385243329996,
+            "maximumProbability": 0.4918012645237116,
+            "probabilitySpread": 0.005416021193715592,
+            "brier": 0.24935414348249202,
+            "logLoss": 0.6918552761154331,
+            "auc": 0.5032718087299395,
+            "ece": 0.02418569532603021
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.12165621647025807,
+            "minimumProbability": 0.06409608967334479,
+            "maximumProbability": 0.21547229569760734,
+            "probabilitySpread": 0.15137620602426255,
+            "brier": 0.12078785561277598,
+            "logLoss": 0.40194534469200455,
+            "auc": 0.640025129996664,
+            "ece": 0.027292660081366427
+          },
+          "expectedReturnMae": 0.024248550770670955,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.004877282819954741
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.49107224888891565,
+            "minimumProbability": 0.4900916022150518,
+            "maximumProbability": 0.4918012645237116,
+            "probabilitySpread": 0.001709662308659765,
+            "brier": 0.25019020794750924,
+            "logLoss": 0.6935276536917359,
+            "auc": 0.4512273854415799,
+            "ece": 0.014009846498105438
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.07381017333081479,
+            "minimumProbability": 0.06409608967334479,
+            "maximumProbability": 0.09490617366057971,
+            "probabilitySpread": 0.03081008398723492,
+            "brier": 0.05996796236006391,
+            "logLoss": 0.23788268014607752,
+            "auc": 0.6025123785072436,
+            "ece": 0.009697585371471543
+          },
+          "expectedReturnMae": 0.01624845754231737,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.0006762838943833943
+        }
+      },
+      "growth_momentum_confirmation": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.48917526816499945,
+            "minimumProbability": 0.4862649906153328,
+            "maximumProbability": 0.4919746275968961,
+            "probabilitySpread": 0.005709636981563293,
+            "brier": 0.24935355527541014,
+            "logLoss": 0.6918540990563511,
+            "auc": 0.5035456039113587,
+            "ece": 0.024186229410494198
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.12166209235524185,
+            "minimumProbability": 0.06354104855196488,
+            "maximumProbability": 0.21330952282522875,
+            "probabilitySpread": 0.14976847427326387,
+            "brier": 0.12079476480887258,
+            "logLoss": 0.401966688084215,
+            "auc": 0.6399838572707817,
+            "ece": 0.027359052846400975
+          },
+          "expectedReturnMae": 0.024247912713914316,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.004981560750596895
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.4910915423691537,
+            "minimumProbability": 0.49009513292731177,
+            "maximumProbability": 0.4919746275968961,
+            "probabilitySpread": 0.001879494669584314,
+            "brier": 0.25018776156551925,
+            "logLoss": 0.6935227593106208,
+            "auc": 0.4561158960965279,
+            "ece": 0.013990553017867391
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.07383348885771303,
+            "minimumProbability": 0.06354104855196488,
+            "maximumProbability": 0.094257103732113,
+            "probabilitySpread": 0.030716055180148125,
+            "brier": 0.05994975867430373,
+            "logLoss": 0.23775132290114204,
+            "auc": 0.6106832120952789,
+            "ece": 0.009720900898369786
+          },
+          "expectedReturnMae": 0.01624638260344067,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.0007013936980305091
+        }
+      },
+      "quality_low_volatility": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.48917649623685766,
+            "minimumProbability": 0.48635986479195525,
+            "maximumProbability": 0.49187512262116223,
+            "probabilitySpread": 0.0055152578292069765,
+            "brier": 0.24935430474134163,
+            "logLoss": 0.6918555986267872,
+            "auc": 0.503199344930129,
+            "ece": 0.024187457482352404
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.1217062112861788,
+            "minimumProbability": 0.05511068763224451,
+            "maximumProbability": 0.2393591572254982,
+            "probabilitySpread": 0.1842484695932537,
+            "brier": 0.11999309397846862,
+            "logLoss": 0.39859864893839825,
+            "auc": 0.6545753113375433,
+            "ece": 0.02839398413955826
+          },
+          "expectedReturnMae": 0.024248431111916862,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.004965123262253388
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.49111353895242416,
+            "minimumProbability": 0.49014764066095007,
+            "maximumProbability": 0.49187512262116223,
+            "probabilitySpread": 0.0017274819602121627,
+            "brier": 0.2501892124397776,
+            "logLoss": 0.6935256619282527,
+            "auc": 0.4504105957673666,
+            "ece": 0.013968556434596935
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.06913788864243718,
+            "minimumProbability": 0.05511068763224451,
+            "maximumProbability": 0.09582061171409735,
+            "probabilitySpread": 0.04070992408185284,
+            "brier": 0.05964301034980557,
+            "logLoss": 0.23544475685302485,
+            "auc": 0.6276463516514864,
+            "ece": 0.005025300683093939
+          },
+          "expectedReturnMae": 0.01624809739899555,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.0006730460830594752
+        }
+      },
+      "cash_quality_reversal": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.48917969721776106,
+            "minimumProbability": 0.48619487357580515,
+            "maximumProbability": 0.4918852774658418,
+            "probabilitySpread": 0.005690403890036666,
+            "brier": 0.24935455966496523,
+            "logLoss": 0.6918561084305701,
+            "auc": 0.5029571588918192,
+            "ece": 0.0241906584632558
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.12165716490740618,
+            "minimumProbability": 0.06298081117404575,
+            "maximumProbability": 0.2156727319513908,
+            "probabilitySpread": 0.15269192077734506,
+            "brier": 0.12078683511248095,
+            "logLoss": 0.40197162353389343,
+            "auc": 0.6388829075638369,
+            "ece": 0.027055056475247537
+          },
+          "expectedReturnMae": 0.02424935149940947,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.005161419114098773
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.49113373084595485,
+            "minimumProbability": 0.49005872150469376,
+            "maximumProbability": 0.4918852774658418,
+            "probabilitySpread": 0.0018265559611480575,
+            "brier": 0.2501872337616518,
+            "logLoss": 0.6935217033016339,
+            "auc": 0.4583143808783179,
+            "ece": 0.013948364541066238
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.0738215102629852,
+            "minimumProbability": 0.06298081117404575,
+            "maximumProbability": 0.09234549867161077,
+            "probabilitySpread": 0.029364687497565017,
+            "brier": 0.059943365383729554,
+            "logLoss": 0.23770502727683093,
+            "auc": 0.611223179900972,
+            "ece": 0.009708922303641954
+          },
+          "expectedReturnMae": 0.016248772877202094,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.0007572105827476782
+        }
+      },
+      "all_interactions": {
+        "overall": {
+          "rows": 538260,
+          "days": 128,
+          "grossUp": {
+            "n": 538260,
+            "eventRate": 0.46498903875450526,
+            "meanProbability": 0.4891810453545157,
+            "minimumProbability": 0.48604296289805754,
+            "maximumProbability": 0.4920090514112803,
+            "probabilitySpread": 0.005966088513222778,
+            "brier": 0.24935342766763485,
+            "logLoss": 0.6918538432341411,
+            "auc": 0.5035567633954676,
+            "ece": 0.02419200660001042
+          },
+          "severeLoss": {
+            "n": 538260,
+            "eventRate": 0.14369263924497455,
+            "meanProbability": 0.1216959011530855,
+            "minimumProbability": 0.054376473633667696,
+            "maximumProbability": 0.24212955749769918,
+            "probabilitySpread": 0.1877530838640315,
+            "brier": 0.12000270177571,
+            "logLoss": 0.3986469041790386,
+            "auc": 0.6539851282582789,
+            "ece": 0.028315850200158317
+          },
+          "expectedReturnMae": 0.024248379171964984,
+          "actualMeanGrossReturn": -0.0006093880566141639,
+          "actualGrossUpRate": 0.46498903875450526,
+          "actualSevereLossRate": 0.14369263924497455,
+          "meanProbabilityUpSpread": 0.005286173623136379
+        },
+        "fixedTop10": {
+          "rows": 1279,
+          "days": 128,
+          "grossUp": {
+            "n": 1279,
+            "eventRate": 0.5050820953870211,
+            "meanProbability": 0.49115490977613724,
+            "minimumProbability": 0.4900325481605881,
+            "maximumProbability": 0.4920090514112803,
+            "probabilitySpread": 0.0019765032506922076,
+            "brier": 0.25018392311816895,
+            "logLoss": 0.6935150798997546,
+            "auc": 0.4638680615673558,
+            "ece": 0.013927185610883852
+          },
+          "severeLoss": {
+            "n": 1279,
+            "eventRate": 0.06411258795934324,
+            "meanProbability": 0.06931601324303238,
+            "minimumProbability": 0.054376473633667696,
+            "maximumProbability": 0.09734884303019471,
+            "probabilitySpread": 0.042972369396527016,
+            "brier": 0.05961928786883496,
+            "logLoss": 0.23527585301744386,
+            "auc": 0.6323023004666137,
+            "ece": 0.005203425283689139
+          },
+          "expectedReturnMae": 0.016245459487213863,
+          "actualMeanGrossReturn": 0.0003940075203110222,
+          "actualGrossUpRate": 0.5050820953870211,
+          "actualSevereLossRate": 0.06411258795934324,
+          "meanProbabilityUpSpread": 0.000776074927518077
+        }
+      },
+      "pairedLossDiagnostics": {
+        "overall": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 538260,
+          "pairedDays": 128,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -9.453371771980224e-07,
+            "neweyWestT": -1.011545362492667
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -1.8920422324160231e-06,
+            "neweyWestT": -1.0118677265879894
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.0007997649796657086,
+            "neweyWestT": -7.051173025188798
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": -1.5321238231207266e-07,
+            "neweyWestT": -0.16500246128059495
+          }
+        },
+        "fixedTop10": {
+          "interpretation": "negative_candidate_minus_baseline_is_improvement",
+          "pairedRows": 1279,
+          "pairedDays": 128,
+          "grossUpBrier": {
+            "meanCandidateMinusBaseline": -5.791973443623845e-06,
+            "neweyWestT": -1.1094478814157254
+          },
+          "grossUpLogLoss": {
+            "meanCandidateMinusBaseline": -1.1587680430347028e-05,
+            "neweyWestT": -1.1094612628429508
+          },
+          "severeLossBrier": {
+            "meanCandidateMinusBaseline": -0.00034210071575830866,
+            "neweyWestT": -2.535937649483068
+          },
+          "expectedReturnAbsoluteError": {
+            "meanCandidateMinusBaseline": -2.9990899715671275e-06,
+            "neweyWestT": -0.5402648021462539
+          }
+        }
+      }
+    }
+  },
+  "acceptance": {
+    "externalRejectOnlyChecks": {
+      "validation": {
+        "overallGrossUpMajority": true,
+        "overallGrossUpDetails": {
+          "auc": false,
+          "brier": true,
+          "logLoss": true
+        },
+        "overallSevereLossMajority": true,
+        "overallSevereLossDetails": {
+          "auc": true,
+          "brier": true,
+          "logLoss": true
+        },
+        "fixedTop10GrossUpMajority": true,
+        "fixedTop10GrossUpDetails": {
+          "auc": true,
+          "brier": true,
+          "logLoss": true
+        },
+        "overallExpectedReturnMaeImproved": false,
+        "fixedTop10ExpectedReturnMaeImproved": true,
+        "sameOverallRows": true,
+        "sameFixedTop10Rows": true,
+        "passed": false
+      },
+      "shadow": {
+        "overallGrossUpMajority": true,
+        "overallGrossUpDetails": {
+          "auc": true,
+          "brier": true,
+          "logLoss": true
+        },
+        "overallSevereLossMajority": true,
+        "overallSevereLossDetails": {
+          "auc": true,
+          "brier": true,
+          "logLoss": true
+        },
+        "fixedTop10GrossUpMajority": true,
+        "fixedTop10GrossUpDetails": {
+          "auc": true,
+          "brier": true,
+          "logLoss": true
+        },
+        "overallExpectedReturnMaeImproved": true,
+        "fixedTop10ExpectedReturnMaeImproved": true,
+        "sameOverallRows": true,
+        "sameFixedTop10Rows": true,
+        "passed": true
+      }
+    },
+    "historicalHypothesisPass": false,
+    "decision": "reject_fundamental_increment_for_current_forecast",
+    "historicalRunCanPromote": false,
+    "eligibleForTrading": false
+  },
+  "multipleTesting": {
+    "newHistoricalTrials": 5,
+    "priorFundamentalIntegrationTrialsCharged": 5,
+    "totalFundamentalIntegrationTrials": 10,
+    "individualAblationsMaySelectWinner": false,
+    "pbo": "not_used_no_historical_winner_selection_primary_candidate_frozen_in_advance",
+    "dsr": "not_applicable_forecast_only_fixed_selection_no_return_policy_change"
+  },
+  "latestFixedTop10Comparison": [
+    {
+      "rank": 1,
+      "securityId": "SH.600955",
+      "name": "维远股份",
+      "close": 13.163072,
+      "fixedTwelveFactorScore": 0.8769366251525148,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.6901541948318481,
+        "growth_momentum_confirmation": 0.5228944420814514,
+        "quality_low_volatility": 0.7221826910972595,
+        "cash_quality_reversal": 0.9409252405166626
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.00155607993645717,
+          "probabilityUp": 0.49131551035786736,
+          "probabilitySevereLoss": 0.07368994172863721
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0018136864905830084,
+          "probabilityUp": 0.49155347322951287,
+          "probabilitySevereLoss": 0.06745887081157699
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 2,
+      "securityId": "SZ.000521",
+      "name": "长虹美菱",
+      "close": 22.54434435,
+      "fixedTwelveFactorScore": 0.8518280542815593,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.04151838645339012,
+        "growth_momentum_confirmation": 0.2360616773366928,
+        "quality_low_volatility": 0.7767497301101685,
+        "cash_quality_reversal": 0.6780545711517334
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0011925980013845522,
+          "probabilityUp": 0.49058864500984356,
+          "probabilitySevereLoss": 0.07273555981165052
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0011456338601201015,
+          "probabilityUp": 0.4906121710581383,
+          "probabilitySevereLoss": 0.06485217446411204
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 3,
+      "securityId": "SH.603075",
+      "name": "热威股份",
+      "close": 21.00900256,
+      "fixedTwelveFactorScore": 0.8444144716005744,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.682087779045105,
+        "growth_momentum_confirmation": 0.16583630442619324,
+        "quality_low_volatility": 0.8332147002220154,
+        "cash_quality_reversal": 0.8374851942062378
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0014654786418033694,
+          "probabilityUp": 0.4913030563590664,
+          "probabilitySevereLoss": 0.07619018992587913
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0015506382806822314,
+          "probabilityUp": 0.49136051863509533,
+          "probabilitySevereLoss": 0.06805286874862682
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 4,
+      "securityId": "SH.603665",
+      "name": "康隆达",
+      "close": 35.43364295,
+      "fixedTwelveFactorScore": 0.82246538564625,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.20142348110675812,
+        "growth_momentum_confirmation": 0.04223012924194336,
+        "quality_low_volatility": 0.6196915507316589,
+        "cash_quality_reversal": 0.7150652408599854
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0014251168635994725,
+          "probabilityUp": 0.4910626406806818,
+          "probabilitySevereLoss": 0.07767130839798322
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.001428051554463236,
+          "probabilityUp": 0.49110851111173315,
+          "probabilitySevereLoss": 0.07529992215148705
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 5,
+      "securityId": "SZ.002066",
+      "name": "瑞泰科技",
+      "close": 65.02170792,
+      "fixedTwelveFactorScore": 0.822048113642369,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.15848161280155182,
+        "growth_momentum_confirmation": 0.1485172063112259,
+        "quality_low_volatility": 0.5473309755325317,
+        "cash_quality_reversal": 0.663582444190979
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.001116361902356845,
+          "probabilityUp": 0.4911182156275949,
+          "probabilitySevereLoss": 0.07520972248206587
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0010367346894560878,
+          "probabilityUp": 0.49113840088739463,
+          "probabilitySevereLoss": 0.07445636310376161
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 6,
+      "securityId": "SZ.000027",
+      "name": "深圳能源",
+      "close": 101.98456065,
+      "fixedTwelveFactorScore": 0.8202192334033971,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.37864768505096436,
+        "growth_momentum_confirmation": 0.5663108229637146,
+        "quality_low_volatility": 0.9572953581809998,
+        "cash_quality_reversal": 0.8436536192893982
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.001139533017814394,
+          "probabilityUp": 0.4907563339179766,
+          "probabilitySevereLoss": 0.07643060387276637
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0011689312726481675,
+          "probabilityUp": 0.4908171652315476,
+          "probabilitySevereLoss": 0.06300723442646973
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 7,
+      "securityId": "SH.603856",
+      "name": "东宏股份",
+      "close": 17.33515182,
+      "fixedTwelveFactorScore": 0.8197983338185701,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.44911032915115356,
+        "growth_momentum_confirmation": 0.3198102116584778,
+        "quality_low_volatility": 0.900355875492096,
+        "cash_quality_reversal": 0.9655990600585938
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0013161719156999869,
+          "probabilityUp": 0.4909531670722709,
+          "probabilitySevereLoss": 0.077461303644595
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0014742929495722944,
+          "probabilityUp": 0.4911007814916255,
+          "probabilitySevereLoss": 0.06610738184311388
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 8,
+      "securityId": "SH.603886",
+      "name": "元祖股份",
+      "close": 17.38169744,
+      "fixedTwelveFactorScore": 0.8162242822934794,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.3622775673866272,
+        "growth_momentum_confirmation": 0.28446024656295776,
+        "quality_low_volatility": 0.44436535239219666,
+        "cash_quality_reversal": 0.6071174144744873
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0012815635491601075,
+          "probabilityUp": 0.4909168685748874,
+          "probabilitySevereLoss": 0.07883168066077163
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0013230241226897344,
+          "probabilityUp": 0.49103371307718396,
+          "probabilitySevereLoss": 0.08106260568727716
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 9,
+      "securityId": "SH.603181",
+      "name": "皇马科技",
+      "close": 42.70955276,
+      "fixedTwelveFactorScore": 0.8141931688966694,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.05243179202079773,
+        "growth_momentum_confirmation": 0.5428232550621033,
+        "quality_low_volatility": 0.9335705637931824,
+        "cash_quality_reversal": 0.7850533723831177
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0010066201605907945,
+          "probabilityUp": 0.4908906814213182,
+          "probabilitySevereLoss": 0.07773289261350352
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0010857862680821316,
+          "probabilityUp": 0.49106135543266627,
+          "probabilitySevereLoss": 0.06569155219709177
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    },
+    {
+      "rank": 10,
+      "securityId": "SZ.000819",
+      "name": "岳阳兴长",
+      "close": 64.82301942,
+      "fixedTwelveFactorScore": 0.8141537334067411,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.5169632434844971,
+        "growth_momentum_confirmation": 0.5511269569396973,
+        "quality_low_volatility": 0.6161328554153442,
+        "cash_quality_reversal": 0.9670225381851196
+      },
+      "forecasts": {
+        "baseline": {
+          "expectedGrossReturn": 0.0014495865579408798,
+          "probabilityUp": 0.4910329830864245,
+          "probabilitySevereLoss": 0.07372106332566855
+        },
+        "all_interactions": {
+          "expectedGrossReturn": 0.0016591534990103528,
+          "probabilityUp": 0.4912506677416411,
+          "probabilitySevereLoss": 0.06996494579866129
+        }
+      },
+      "status": "diagnostic_only_same_fixed_selection_not_an_order"
+    }
+  ],
+  "dashboardChanged": false,
+  "rankingChanged": false,
+  "historicalRunCanPromote": false,
+  "eligibleForTrading": false,
+  "orders": [],
+  "automaticTradingChanges": []
+}

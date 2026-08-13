@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "twelve_factor_fundamental_price_interactions_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test four economically preregistered point-in-time fundamental by price-volume interaction factors as forecast increments to the current complete twelve-factor model.",
+  "preregisteredAt": "2026-08-13T17:40:00+09:00",
+  "sourceForecastConfig": "configs/research/twelve_factor_guarded_top10_forecast_v2.json",
+  "sourceForecastConfigSha256": "f9c668eaa12d84d6bc14497c2f3d4fd2addc07f7e7145c8c9d2b3c3580e2f9f0",
+  "modelTemplate": "configs/research/twelve_factor_alpha070_131_individual_discrimination_v4.json",
+  "modelTemplateSha256": "84bdd1ecc0d6e5ed68154d95ed135375952bafaff86f1e853a73ba65d8c6ba8a",
+  "fundamentalMechanismConfig": "configs/research/fundamental_mechanism_families_v1.json",
+  "fundamentalMechanismConfigSha256": "324a6d979cf5d4c23e37a7c9cc25c77691b127cdb604a617033599e1badf2670",
+  "hypothesis": {
+    "baseline": "current_complete_twelve_factor_multivariate_forecast",
+    "primaryCandidate": "same_twelve_factors_plus_all_four_preregistered_interaction_ranks",
+    "rankingHeldFixed": "current_guarded_twelve_factor_score",
+    "interactionFormula": "cross_section_rank_sqrt_fundamental_family_rank_times_market_context_rank",
+    "interactions": {
+      "earnings_volume_confirmation": {
+        "fundamentalFamily": "earnings_innovation",
+        "marketContext": "amount_surprise_20",
+        "mechanism": "A newly disclosed earnings improvement is more informative when same-session trading activity confirms that investors noticed it."
+      },
+      "growth_momentum_confirmation": {
+        "fundamentalFamily": "growth_acceleration",
+        "marketContext": "momentum_20",
+        "mechanism": "Growth acceleration combined with positive medium-horizon price diffusion is a constrained post-announcement-drift hypothesis."
+      },
+      "quality_low_volatility": {
+        "fundamentalFamily": "quality",
+        "marketContext": "low_volatility_20",
+        "mechanism": "High operating quality with low realised volatility may distinguish durable quality from speculative quality."
+      },
+      "cash_quality_reversal": {
+        "fundamentalFamily": "cash_flow_quality",
+        "marketContext": "reversal_5",
+        "mechanism": "Cash-supported profitability after a short price drawdown is a constrained quality-at-temporary-discount hypothesis."
+      }
+    },
+    "historicalOutcomeMaySelectInteraction": false,
+    "historicalOutcomeMayFitInteractionWeight": false,
+    "hyperparameterSearchAllowed": false,
+    "historicalRunCanPromote": false
+  },
+  "marketContexts": {
+    "amount_surprise_20": {
+      "definition": "log_amount_t_minus_log_median_amount_t_minus_20_to_t_minus_1",
+      "lookbackTradingDays": 20,
+      "minimumObservations": 15,
+      "includesSignalDateAmount": true,
+      "denominatorEndsAtPreviousSession": true
+    },
+    "momentum_20": {
+      "definition": "close_t_div_close_t_minus_20_minus_1",
+      "lookbackTradingDays": 20
+    },
+    "low_volatility_20": {
+      "definition": "negative_std_of_close_returns_t_minus_19_to_t",
+      "lookbackTradingDays": 20
+    },
+    "reversal_5": {
+      "definition": "negative_close_t_div_close_t_minus_5_minus_1",
+      "lookbackTradingDays": 5
+    }
+  },
+  "data": {
+    "priceFactorCount": 12,
+    "fundamentalFamilyCount": 4,
+    "interactionCount": 4,
+    "primaryCandidateFeatureCount": 16,
+    "maximumImputedPriceFactorsForEligibility": 2,
+    "fundamentalMissingPolicy": "fail_closed_require_all_four_families",
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateMayDetermineAvailability": false,
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "topCount": 10
+  },
+  "training": {
+    "partitions": "inherit_frozen_model_template",
+    "modelFamily": "fixed_ridge_and_l2_logistic_with_separate_calibration",
+    "returnAmplitudeCalibration": "calibration_period_zscore_then_fixed_ridge",
+    "sameRowsForEveryAblation": true,
+    "sameTop10ForForecastComparison": true,
+    "probabilityStretchingAllowed": false,
+    "individualAblationsAreDiagnosticOnly": true,
+    "postOutcomeWinnerSelectionAllowed": false,
+    "newHistoricalTrials": 5,
+    "priorFundamentalIntegrationTrialsCharged": 5
+  },
+  "evaluation": {
+    "periods": ["audit", "validation", "shadow"],
+    "primaryRejectOnlyPeriods": ["validation", "shadow"],
+    "requireAtLeastTwoOfAucBrierLogLoss": true,
+    "requireOverallGrossUpMajorityImprovement": true,
+    "requireOverallSevereLossMajorityImprovement": true,
+    "requireFixedTop10GrossUpMajorityImprovement": true,
+    "requireOverallExpectedReturnMaeImprovement": true,
+    "requireFixedTop10ExpectedReturnMaeImprovement": true,
+    "sameSupportAndSameSelectionRequired": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardDaysRequiredAfterSeparatePreregistration": 60,
+    "pboStatus": "not_used_no_historical_winner_selection_primary_candidate_frozen_in_advance",
+    "dsrStatus": "not_applicable_forecast_only_fixed_selection_no_return_policy_change"
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_fundamental_price_interactions_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
