@@ -1,12 +1,12 @@
 {
-  "as_of": "2026-08-12",
+  "as_of": "2026-08-13",
   "buy_at": "open of the next trading session",
   "symbol": "SZ_301203",
-  "composite_rank": 0.928193,
-  "close_on_as_of": 39.7544,
-  "eligible_names": 4721,
+  "composite_rank": 0.91317,
+  "close_on_as_of": 39.0665,
+  "eligible_names": 4719,
   "spec_sha256": "dea0e60855645c2e17bec001fd103cadfae027c1cbd9e3fdeb8ed66cdbe3de44",
-  "published_at": "2026-08-12T14:50:03.121107+00:00",
+  "published_at": "2026-08-13T14:53:12.102036+00:00",
   "computed_by": "github-actions",
   "status": "research_only_forward_record_not_trading",
   "orders": []
