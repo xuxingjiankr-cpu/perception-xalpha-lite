@@ -40,6 +40,29 @@ up-probability and tail-loss probability. A narrow calibrated probability range
 is surfaced as weak discrimination; the interface never applies temperature
 scaling or a multiplier merely to make probabilities look more decisive.
 
+## Fundamental interaction shadow
+
+For the exact same ranked Top10, the page may also display a research-only
+fundamental interaction estimate. The four preregistered mechanisms are:
+
+1. earnings innovation x abnormal trading amount;
+2. growth acceleration x 20-session momentum;
+3. accounting quality x low 20-session volatility; and
+4. cash-flow quality x five-session reversal.
+
+Fundamental availability is aligned by `noticeDate`, never by fiscal
+`reportDate`. Market context uses only information available at or before the
+signal date. The optional shadow fields are deliberately additive: they cannot
+change rank, selected securities, factor score, orders, position, or any
+trading gate. A date or Top10 mismatch fails closed.
+
+The historical interaction hypothesis did not pass every preregistered gate.
+Accordingly, the interface shows the adjusted estimates side by side for
+diagnosis and labels them as shadow-only; the complete twelve-factor values
+remain the stable primary contract.
+Displayed deltas are measured against the primary values in the same dashboard
+snapshot, while the interaction run's own baseline is retained as provenance.
+
 ## Open the page
 
 Double-click `打开股票预测观察台.cmd` in the repository root. The launcher
@@ -69,6 +92,21 @@ published without rerunning the model:
 
 ```powershell
 py -3.13 scripts/stock_forecast_dashboard.py publish --result <run-directory>\result.json
+```
+
+To generate the complete twelve-factor forecast, run the frozen interaction
+research, verify the signal-date and Top10 identity, and publish both layers in
+one fail-closed job:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run_stock_forecast_with_fundamental_interactions.ps1
+```
+
+An already generated same-date interaction artifact can be attached without
+rerunning either model:
+
+```powershell
+py -3.13 scripts/publish_fundamental_interaction_shadow.py --interaction-result <run-directory>\result.json
 ```
 
 Files are atomically written to:

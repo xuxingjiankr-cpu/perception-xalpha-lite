@@ -83,11 +83,17 @@ tbody tr:hover { background: rgba(105, 240, 187, .035); }
 .stock-name { font-weight: 750; }
 .stock-code { display: block; color: var(--muted); margin-top: 5px; font: 11px ui-monospace, monospace; }
 .metric { font: 700 14px ui-monospace, monospace; }
+.shadow-metric { display: block; margin-top: 6px; color: var(--blue); font: 10px/1.35 ui-monospace, monospace; white-space: nowrap; }
+.shadow-metric em { margin-left: 3px; font-style: normal; }
+.shadow-metric.improved em { color: var(--mint); }
+.shadow-metric.weakened em { color: var(--red); }
+.shadow-metric.unavailable { color: var(--muted); }
 .positive { color: var(--mint); }
 .negative { color: var(--red); }
 .neutral { color: var(--amber); }
 .source-badge { display: inline-block; padding: 6px 8px; border-radius: 8px; color: var(--blue); background: rgba(81, 132, 202, .12); font-size: 11px; }
 .source-badge.fallback { color: var(--amber); background: rgba(241, 198, 109, .12); }
+.shadow-badge { display: block; margin-top: 6px; color: var(--mint); font: 10px ui-monospace, monospace; }
 .loading-row { text-align: center; color: var(--muted); padding: 38px; }
 
 footer { display: flex; justify-content: space-between; gap: 24px; color: #607a70; font-size: 11px; padding: 24px 4px 0; }

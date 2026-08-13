@@ -24,15 +24,29 @@ function sourceLabel(row) {
     : "完整12因子（无缺失）";
 }
 
+const signedPct = (value, digits = 3) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+  const number = Number(value) * 100;
+  return `${number >= 0 ? "+" : ""}${number.toFixed(digits)}%`;
+};
+
+function shadowMetric(row, field, deltaField, digits = 2, tail = false) {
+  const shadow = row.fundamentalInteractionShadow;
+  if (!shadow) return '<small class="shadow-metric unavailable">基本面交互：不可用</small>';
+  const delta = Number(shadow[deltaField]);
+  const improved = tail ? delta < 0 : delta > 0;
+  return `<small class="shadow-metric ${improved ? "improved" : "weakened"}">交互 ${pct(shadow[field], digits)} <em>${signedPct(delta, digits + 1)}</em></small>`;
+}
+
 function renderRows(rows) {
   $("#top10Body").innerHTML = rows.map((row) => `
     <tr>
       <td><span class="rank">#${row.rank}</span></td>
       <td><span class="stock-name">${escapeHtml(row.name)}</span><span class="stock-code">${row.securityId}</span></td>
-      <td><span class="metric ${metricClass(row.probabilityUp, .5)}">${pct(row.probabilityUp)}</span></td>
-      <td><span class="metric ${metricClass(row.expectedGrossReturn)}">${pct(row.expectedGrossReturn, 3)}</span></td>
-      <td><span class="metric ${row.probabilityTailLoss > .08 ? "negative" : "neutral"}">${pct(row.probabilityTailLoss)}</span></td>
-      <td><span class="source-badge ${row.completeTwelveFactorEstimate ? "" : "fallback"}">${sourceLabel(row)}</span></td>
+      <td><span class="metric ${metricClass(row.probabilityUp, .5)}">${pct(row.probabilityUp)}</span>${shadowMetric(row, "probabilityUp", "deltaProbabilityUp")}</td>
+      <td><span class="metric ${metricClass(row.expectedGrossReturn)}">${pct(row.expectedGrossReturn, 3)}</span>${shadowMetric(row, "expectedGrossReturn", "deltaExpectedGrossReturn", 3)}</td>
+      <td><span class="metric ${row.probabilityTailLoss > .08 ? "negative" : "neutral"}">${pct(row.probabilityTailLoss)}</span>${shadowMetric(row, "probabilityTailLoss", "deltaProbabilityTailLoss", 2, true)}</td>
+      <td><span class="source-badge ${row.completeTwelveFactorEstimate ? "" : "fallback"}">${sourceLabel(row)}</span>${row.fundamentalInteractionShadow ? '<small class="shadow-badge">+ 基本面×价量影子</small>' : ''}</td>
     </tr>
   `).join("");
 }
@@ -51,9 +65,9 @@ function renderSearch(rows) {
         <strong>#${row.rank} · ${escapeHtml(row.name)}</strong>
         <span>${row.securityId} · ${row.nameInitials || "—"} · ${sourceLabel(row)}</span>
       </div>
-      <div class="result-cell"><small>预计上涨概率</small><strong class="${metricClass(row.probabilityUp, .5)}">${pct(row.probabilityUp)}</strong></div>
-      <div class="result-cell"><small>预计毛涨幅</small><strong class="${metricClass(row.expectedGrossReturn)}">${pct(row.expectedGrossReturn, 3)}</strong></div>
-      <div class="result-cell"><small>尾亏概率</small><strong class="${row.probabilityTailLoss > .08 ? "negative" : "neutral"}">${pct(row.probabilityTailLoss)}</strong></div>
+      <div class="result-cell"><small>预计上涨概率</small><strong class="${metricClass(row.probabilityUp, .5)}">${pct(row.probabilityUp)}</strong>${shadowMetric(row, "probabilityUp", "deltaProbabilityUp")}</div>
+      <div class="result-cell"><small>预计毛涨幅</small><strong class="${metricClass(row.expectedGrossReturn)}">${pct(row.expectedGrossReturn, 3)}</strong>${shadowMetric(row, "expectedGrossReturn", "deltaExpectedGrossReturn", 3)}</div>
+      <div class="result-cell"><small>尾亏概率</small><strong class="${row.probabilityTailLoss > .08 ? "negative" : "neutral"}">${pct(row.probabilityTailLoss)}</strong>${shadowMetric(row, "probabilityTailLoss", "deltaProbabilityTailLoss", 2, true)}</div>
     </div>`).join("");
 }
 
@@ -73,8 +87,12 @@ async function loadLatest() {
   const spread = distribution.top10ExpectedReturnSpread;
   const probabilitySpread = distribution.top10ProbabilityUpSpread;
   const directionWeak = probabilitySpread === null || probabilitySpread === undefined || probabilitySpread < .05;
+  const interaction = data.fundamentalInteractionShadow;
   $("#reliabilityTitle").textContent = low ? "当前预测可信度较低" : "历史区分度通过，仍需前向验证";
-  $("#reliabilityText").textContent = `影子期上涨 AUC ${Number(reliability.shadowUpAuc ?? 0).toFixed(3)}，尾亏 AUC ${Number(reliability.shadowTailAuc ?? 0).toFixed(3)}；Top10 预计涨幅跨度 ${pct(spread, 3)}，上涨概率跨度 ${pct(probabilitySpread, 3)}。${directionWeak ? "方向概率区分力不足，不能判断确定上涨或下跌。" : "方向概率存在横截面差异，仍不代表确定涨跌。"}`;
+  const interactionText = interaction
+    ? ` 基本面交互已作为影子层加入：验证/影子 Top10 尾亏 AUC ${Number(interaction.validationTop10TailAuc ?? 0).toFixed(3)}/${Number(interaction.shadowTop10TailAuc ?? 0).toFixed(3)}；历史总门未通过，不改变排名。`
+    : " 基本面交互影子层尚无同日结果。";
+  $("#reliabilityText").textContent = `原12因子影子期上涨 AUC ${Number(reliability.shadowUpAuc ?? 0).toFixed(3)}，尾亏 AUC ${Number(reliability.shadowTailAuc ?? 0).toFixed(3)}；Top10 预计涨幅跨度 ${pct(spread, 3)}，上涨概率跨度 ${pct(probabilitySpread, 3)}。${directionWeak ? "方向概率区分力不足，不能判断确定上涨或下跌。" : "方向概率存在横截面差异，仍不代表确定涨跌。"}${interactionText}`;
   $("#definitions").textContent = `${data.forecastHorizon}；尾亏：${data.tailLossDefinition}。`;
 }
 

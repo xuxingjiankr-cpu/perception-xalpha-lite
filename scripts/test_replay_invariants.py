@@ -12267,6 +12267,144 @@ def t150_fundamental_price_interactions_are_preregistered_causal_and_fixed() -> 
     )
 
 
+def t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable() -> None:
+    """Dashboard interaction estimates may annotate, but never select or trade."""
+    import copy
+
+    import publish_fundamental_interaction_shadow as publisher
+    import stock_forecast_dashboard as dashboard
+
+    rows = [
+        {
+            "rank": rank,
+            "securityId": f"SZ.{300000 + rank:06d}",
+            "name": f"示例{rank}",
+            "adaptiveFactorScore": 1.0 - rank / 100.0,
+            "expectedGrossReturn": 0.001 * rank,
+            "probabilityUp": 0.50 + rank / 1000.0,
+            "probabilitySevereLoss": 0.10 - rank / 1000.0,
+            "estimateSource": "twelve_rank_multivariate_calibrated",
+        }
+        for rank in range(1, 11)
+    ]
+    base_result = {
+        "signalDate": "2026-08-12",
+        "intendedTradingSession": "2026-08-13",
+        "runId": "fixture",
+        "codeVersion": "fixture_v1",
+        "forecastReliability": {"status": "low_confidence_diagnostic_estimates_only"},
+        "periodDiagnostics": {},
+    }
+    snapshot = dashboard.build_contract(base_result, rows)
+    original = copy.deepcopy(snapshot)
+    interaction_rows = []
+    for rank, row in enumerate(rows, start=1):
+        interaction_rows.append(
+            {
+                "rank": rank,
+                "securityId": row["securityId"],
+                "interactionRanks": {
+                    "quality_x_low_volatility": rank / 10.0,
+                },
+                "forecasts": {
+                    "baseline": {
+                        "expectedGrossReturn": row["expectedGrossReturn"],
+                        "probabilityUp": row["probabilityUp"],
+                        "probabilitySevereLoss": row["probabilitySevereLoss"],
+                    },
+                    "all_interactions": {
+                        "expectedGrossReturn": row["expectedGrossReturn"] + 0.0002,
+                        "probabilityUp": row["probabilityUp"] + 0.002,
+                        "probabilitySevereLoss": row["probabilitySevereLoss"] - 0.003,
+                    },
+                },
+            }
+        )
+    interaction = {
+        "schemaVersion": publisher.EXPECTED_INTERACTION_SCHEMA,
+        "codeVersion": "fixture_interactions_v1",
+        "runId": "fixture_interactions",
+        "signalDate": "2026-08-12",
+        "acceptance": {"historicalHypothesisPass": False},
+        "periods": {
+            period: {
+                "all_interactions": {
+                    "fixedTop10": {
+                        "grossUp": {"auc": 0.51},
+                        "severeLoss": {"auc": 0.63},
+                    }
+                }
+            }
+            for period in ("validation", "shadow")
+        },
+        "latestFixedTop10Comparison": interaction_rows,
+        "eligibleForTrading": False,
+        "orders": [],
+    }
+    merged = publisher.merge_snapshot(
+        snapshot,
+        interaction,
+        ROOT / "scripts" / "publish_fundamental_interaction_shadow.py",
+    )
+    check(
+        "T151 fundamental interactions annotate the exact Top10 without changing selection",
+        [row["securityId"] for row in merged["top10"]]
+        == [row["securityId"] for row in original["top10"]]
+        and [row["rank"] for row in merged["top10"]]
+        == [row["rank"] for row in original["top10"]]
+        and [row["factorScore"] for row in merged["top10"]]
+        == [row["factorScore"] for row in original["top10"]]
+        and [row["expectedGrossReturn"] for row in merged["top10"]]
+        == [row["expectedGrossReturn"] for row in original["top10"]]
+        and abs(
+            merged["top10"][0]["fundamentalInteractionShadow"][
+                "deltaProbabilityTailLoss"
+            ]
+            + 0.003
+        )
+        < 1e-12
+        and merged["fundamentalInteractionShadow"]["rankingChanged"] is False,
+    )
+    source = (
+        ROOT / "scripts" / "publish_fundamental_interaction_shadow.py"
+    ).read_text(encoding="utf-8")
+    wrapper = (
+        ROOT / "scripts" / "run_stock_forecast_with_fundamental_interactions.ps1"
+    ).read_text(encoding="utf-8")
+    client = (
+        ROOT / "dashboard" / "stock_forecast" / "app.js"
+    ).read_text(encoding="utf-8")
+    check(
+        "T151 fundamental interaction publisher is fail-closed shadow-only and nontrading",
+        merged["orders"] == []
+        and merged["automaticTradingChanges"] == []
+        and merged["fundamentalInteractionShadow"]["eligibleForTrading"] is False
+        and merged["top10"][0]["fundamentalInteractionShadow"][
+            "eligibleForTrading"
+        ]
+        is False
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and "run_t0_intraday_agent" not in wrapper
+        and "latest_strategy_overlay.json" not in wrapper
+        and "submit_order" not in wrapper.lower()
+        and "基本面×价量影子" in client,
+    )
+    mismatched = copy.deepcopy(interaction)
+    mismatched["signalDate"] = "2026-08-11"
+    rejected = False
+    try:
+        publisher.merge_snapshot(
+            snapshot,
+            mismatched,
+            ROOT / "scripts" / "publish_fundamental_interaction_shadow.py",
+        )
+    except ValueError:
+        rejected = True
+    check("T151 signal-date mismatch fails closed", rejected)
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12411,6 +12549,7 @@ if __name__ == "__main__":
     t148_twelve_factor_rank_discrimination_is_fixed_pit_and_nontrading()
     t149_pit_fundamentals_increment_is_same_support_causal_and_nontrading()
     t150_fundamental_price_interactions_are_preregistered_causal_and_fixed()
+    t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
