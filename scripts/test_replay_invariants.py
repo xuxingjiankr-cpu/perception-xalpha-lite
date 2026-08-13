@@ -12509,6 +12509,79 @@ def t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading() -> None:
     )
 
 
+def t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only() -> None:
+    """Non-equal weights must stay bounded and cannot optimize on evaluation rows."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_sixteen_factor_walkforward_weights_v1 as weights
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "sixteen_factor_walkforward_weights_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    weights.validate_config(config)
+    dates = pd.bdate_range("2026-01-01", periods=8)
+    columns = [f"SZ.{value:06d}" for value in range(1, 121)]
+    planted = np.linspace(0.0, 1.0, len(columns))
+    rng = np.random.default_rng(153)
+    features = {
+        "planted": pd.DataFrame(
+            np.tile(planted, (len(dates), 1)), index=dates, columns=columns
+        )
+    }
+    for index in range(15):
+        features[f"noise_{index}"] = pd.DataFrame(
+            rng.uniform(0.0, 1.0, size=(len(dates), len(columns))),
+            index=dates,
+            columns=columns,
+        )
+    outcome = pd.DataFrame(
+        np.tile((planted - 0.5) * 0.04, (len(dates), 1)),
+        index=dates,
+        columns=columns,
+    )
+    prior = np.full(16, 1.0 / 16.0)
+    learned, audit = weights.fit_weights(
+        features, outcome, dates, prior, config
+    )
+    check(
+        "T153 bounded pairwise fit rewards planted ranking evidence inside the simplex",
+        abs(float(learned.sum()) - 1.0) < 1e-8
+        and learned[0] > prior[0]
+        and float(learned.min()) >= config["training"]["minimumFactorWeight"] - 1e-9
+        and float(learned.max()) <= config["training"]["maximumFactorWeight"] + 1e-9
+        and config["training"]["minimumInteractionBlockWeight"] - 1e-9
+        <= float(learned[-4:].sum())
+        <= config["training"]["maximumInteractionBlockWeight"] + 1e-9
+        and audit["success"] is True,
+    )
+    source = (
+        ROOT / "scripts" / "research_sixteen_factor_walkforward_weights_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T153 walk-forward weight research is purged reject-only and nontrading",
+        int(config["training"]["purgeTradingDays"]) == 10
+        and config["training"]["validationOrShadowMayTuneHyperparameters"] is False
+        and config["training"]["hindsightWeightsMayBePublished"] is False
+        and config["evaluation"]["reportHindsightAndTrailingOnIdenticalDates"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12655,6 +12728,7 @@ if __name__ == "__main__":
     t150_fundamental_price_interactions_are_preregistered_causal_and_fixed()
     t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable()
     t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading()
+    t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

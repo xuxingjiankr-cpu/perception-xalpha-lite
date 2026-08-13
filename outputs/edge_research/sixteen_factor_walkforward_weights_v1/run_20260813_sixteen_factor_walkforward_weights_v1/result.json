@@ -1,0 +1,844 @@
+{
+  "schemaVersion": "sixteen_factor_walkforward_weights_result_v1",
+  "codeVersion": "sixteen_factor_walkforward_weights_v1_20260813",
+  "status": "research_only_shadow_only_not_trading",
+  "runId": "run_20260813_sixteen_factor_walkforward_weights_v1",
+  "generatedAt": "2026-08-13T12:38:37.300771+09:00",
+  "dataRange": [
+    "2019-01-02",
+    "2026-08-12"
+  ],
+  "signalDate": "2026-08-12",
+  "panelAudit": {
+    "schemaVersion": "ashare_research_panel_audit_v1",
+    "status": "diagnostic_only_research_only",
+    "universeKind": "all_a_shares_pit_adjusted",
+    "masterPath": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\master\\ashare_pit_master_latest.jsonl",
+    "barsRoot": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\bars_1d_backward_adjusted",
+    "masterCount": 5443,
+    "matchedBarFiles": 5443,
+    "masterCoverage": 1.0,
+    "minimumRequiredCoverage": 0.98,
+    "acceptedSymbols": 4710,
+    "acceptedByExchange": {
+      "SH": 1981,
+      "SZ": 2729
+    },
+    "acceptedByBoard": {
+      "None": 4710
+    },
+    "amountSourceCounts": {
+      "exchange_reported_via_baostock": 4710
+    },
+    "rejectionCounts": {
+      "insufficient_median_amount": 528,
+      "insufficient_observations": 201,
+      "excess_suspension_fraction": 4
+    },
+    "invalidRows": 0,
+    "duplicateDates": 0,
+    "volumeRowsScaledFromLotsToShares": 0,
+    "historicalStatusRows": 8503298,
+    "adjustedPriceRows": 8503298,
+    "historicalValidationEligible": true,
+    "pointInTimeMembership": true,
+    "historicalStatusAvailable": true,
+    "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+    "noForwardFill": true,
+    "rawPricesUnadjusted": false,
+    "unbiasedHistoricalValidationEligible": true,
+    "orders": [],
+    "automaticTradingChanges": [],
+    "fundamentalAudit": {
+      "schemaVersion": "ashare_fundamental_pit_audit_v1",
+      "status": "diagnostic_only_research_only",
+      "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+      "pricePanelSymbols": 4710,
+      "symbolsWithFundamentals": 4710,
+      "symbolCoverage": 1.0,
+      "minimumSymbolCoverage": 0.6,
+      "validStatementRows": 296875,
+      "missingNoticeDateRows": 0,
+      "latestFeatureCoverage": {
+        "fund_eps_ytd": 1.0,
+        "fund_book_value_per_share": 1.0,
+        "fund_revenue_yoy": 1.0,
+        "fund_net_profit_yoy": 1.0,
+        "fund_roe": 1.0,
+        "fund_roic": 0.98089172,
+        "fund_gross_margin": 0.98492569,
+        "fund_net_margin": 1.0,
+        "fund_debt_asset_ratio": 1.0,
+        "fund_current_ratio": 0.9866242,
+        "fund_quick_ratio": 0.9866242,
+        "fund_cash_to_revenue": 1.0,
+        "fund_cash_to_profit": 0.98492569,
+        "fund_receivable_turnover_days": 0.98089172,
+        "fund_inventory_turnover_days": 0.97876858,
+        "fund_total_asset_turnover": 1.0,
+        "fund_book_to_price": 0.96348195,
+        "fund_annualized_earnings_yield": 0.97091295,
+        "fund_quality_composite": 0.98089172,
+        "fund_growth_composite": 1.0,
+        "fund_balance_sheet_safety": 0.9866242,
+        "fund_accrual_quality": 0.98492569
+      },
+      "minimumLatestCoreFeatureCoverage": 0.35,
+      "historicalValidationEligible": true,
+      "availabilityRule": "first market date strictly after max(noticeDate, updateDate)",
+      "restatementLimitation": "The public endpoint exposes the currently retrievable statement version; historical restatement vintages may be incomplete. Using UPDATE_DATE is conservative but cannot reconstruct unavailable old vintages.",
+      "pointInTimeMembership": true,
+      "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+      "orders": [],
+      "automaticTradingChanges": []
+    }
+  },
+  "factorAudit": {
+    "factorCount": 12,
+    "factors": [
+      {
+        "factorKey": "gtja191/alpha_070",
+        "direction": -1.0,
+        "baseWeight": 0.10972302839665153,
+        "finiteValues": 6917464
+      },
+      {
+        "factorKey": "gtja191/alpha_052",
+        "direction": -1.0,
+        "baseWeight": 0.09754145388582226,
+        "finiteValues": 6896779
+      },
+      {
+        "factorKey": "qlib158/vstd60",
+        "direction": 1.0,
+        "baseWeight": 0.09596236745725856,
+        "finiteValues": 6866759
+      },
+      {
+        "factorKey": "gtja191/alpha_097",
+        "direction": -1.0,
+        "baseWeight": 0.08407276928311685,
+        "finiteValues": 6913347
+      },
+      {
+        "factorKey": "academic/retskew",
+        "direction": 1.0,
+        "baseWeight": 0.0824076063413904,
+        "finiteValues": 6865876
+      },
+      {
+        "factorKey": "gtja191/alpha_145",
+        "direction": -1.0,
+        "baseWeight": 0.08032135398638528,
+        "finiteValues": 6897722
+      },
+      {
+        "factorKey": "qlib158/cord30",
+        "direction": -1.0,
+        "baseWeight": 0.07947576740718569,
+        "finiteValues": 6893025
+      },
+      {
+        "factorKey": "gtja191/alpha_063",
+        "direction": -1.0,
+        "baseWeight": 0.07819515902290122,
+        "finiteValues": 6922664
+      },
+      {
+        "factorKey": "alpha101/alpha_029",
+        "direction": 1.0,
+        "baseWeight": 0.07519241648411835,
+        "finiteValues": 6912321
+      },
+      {
+        "factorKey": "alpha101/alpha_094",
+        "direction": 1.0,
+        "baseWeight": 0.0730773681113405,
+        "finiteValues": 5530720
+      },
+      {
+        "factorKey": "alpha101/alpha_088",
+        "direction": 1.0,
+        "baseWeight": 0.07243180047084757,
+        "finiteValues": 6915402
+      },
+      {
+        "factorKey": "qlib158/min5",
+        "direction": 1.0,
+        "baseWeight": 0.07159890915298193,
+        "finiteValues": 6918499
+      }
+    ]
+  },
+  "fundamentalAudit": {
+    "schemaVersion": "fundamental_mechanism_event_audit_v1",
+    "status": "research_only",
+    "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+    "symbolsRequested": 4710,
+    "filesFound": 4710,
+    "symbolFileCoverage": 1.0,
+    "statementEvents": 114897,
+    "eventDateStart": "2019-01-02",
+    "eventDateEnd": "2026-08-10",
+    "processingCounts": {
+      "same_day_older_report_used_as_causal_context": 178552,
+      "available_earnings_innovation_reported_net_profit_growth": 110569,
+      "available_earnings_innovation_net_profit_growth_acceleration": 108432,
+      "available_earnings_innovation_eps_yoy_innovation": 108928,
+      "available_earnings_innovation_parent_profit_yoy_innovation": 110392,
+      "available_growth_acceleration_reported_revenue_growth": 110482,
+      "available_growth_acceleration_revenue_growth_acceleration": 108337,
+      "available_growth_acceleration_revenue_ytd_yoy_innovation": 110325,
+      "available_growth_acceleration_asset_turnover_acceleration": 109230,
+      "available_quality_return_on_equity": 111929,
+      "available_quality_net_margin": 114134,
+      "available_cash_flow_quality_operating_cash_to_revenue": 114080,
+      "available_cash_flow_quality_cash_margin_gap": 114080,
+      "accepted_statement_events": 114897,
+      "available_quality_return_on_invested_capital": 111387,
+      "available_quality_gross_margin": 111308,
+      "available_cash_flow_quality_operating_cash_to_profit": 108567,
+      "available_cash_flow_quality_cash_to_profit_improvement": 105878,
+      "non_advancing_report_date_skipped": 3426
+    },
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateUsedForAvailability": false,
+    "futureRowsWrittenBack": 0
+  },
+  "configSha256": "780492e2a31312ba869376ac465a39a4890a7e5639a6289acc68d90bf4ff3171",
+  "sourceRankingConfigSha256": "49403ae4dbfe8b6334fe126b3159ae5c26f0f8a5b6cd38c72ad9808b55b7cd8c",
+  "featureOrder": [
+    "gtja191/alpha_070",
+    "gtja191/alpha_052",
+    "qlib158/vstd60",
+    "gtja191/alpha_097",
+    "academic/retskew",
+    "gtja191/alpha_145",
+    "qlib158/cord30",
+    "gtja191/alpha_063",
+    "alpha101/alpha_029",
+    "alpha101/alpha_094",
+    "alpha101/alpha_088",
+    "qlib158/min5",
+    "interaction/earnings_volume_confirmation",
+    "interaction/growth_momentum_confirmation",
+    "interaction/quality_low_volatility",
+    "interaction/cash_quality_reversal"
+  ],
+  "latestTrainingRange": [
+    "2024-07-02",
+    "2026-07-29"
+  ],
+  "latestFit": {
+    "usedTradingDays": 504,
+    "usedRows": 2131436,
+    "pairCount": 100800,
+    "objective": 0.7003873480175701,
+    "iterations": 14,
+    "interactionBlockWeight": 0.35521274864556,
+    "success": true
+  },
+  "latestWeights": [
+    {
+      "factor": "gtja191/alpha_070",
+      "prior": 0.08229227129748864,
+      "learned": 0.12539840614251838,
+      "replicaMinimum": 0.11950207426515945,
+      "replicaMaximum": 0.13227274464620684,
+      "replicaStd": 0.005376192139764672
+    },
+    {
+      "factor": "gtja191/alpha_052",
+      "prior": 0.0731560904143667,
+      "learned": 0.04065437306922222,
+      "replicaMinimum": 0.03348513282476551,
+      "replicaMaximum": 0.0455634247855433,
+      "replicaStd": 0.004493618317472308
+    },
+    {
+      "factor": "qlib158/vstd60",
+      "prior": 0.07197177559294392,
+      "learned": 0.0437812609341778,
+      "replicaMinimum": 0.037214310106984366,
+      "replicaMaximum": 0.04586871765597664,
+      "replicaStd": 0.0034601543325930902
+    },
+    {
+      "factor": "gtja191/alpha_097",
+      "prior": 0.06305457696233764,
+      "learned": 0.11376694392328886,
+      "replicaMinimum": 0.10673028962637088,
+      "replicaMaximum": 0.11833799645979665,
+      "replicaStd": 0.004644179146389644
+    },
+    {
+      "factor": "academic/retskew",
+      "prior": 0.0618057047560428,
+      "learned": 0.06966487812561145,
+      "replicaMinimum": 0.06206182471586301,
+      "replicaMaximum": 0.07773713855520704,
+      "replicaStd": 0.00621433746600461
+    },
+    {
+      "factor": "gtja191/alpha_145",
+      "prior": 0.060241015489788954,
+      "learned": 0.02690292042881155,
+      "replicaMinimum": 0.022523875565581098,
+      "replicaMaximum": 0.032531821711886524,
+      "replicaStd": 0.0035523278363708785
+    },
+    {
+      "factor": "qlib158/cord30",
+      "prior": 0.059606825555389265,
+      "learned": 0.030797636891143332,
+      "replicaMinimum": 0.022684845445492978,
+      "replicaMaximum": 0.04027996407392467,
+      "replicaStd": 0.006680094194710379
+    },
+    {
+      "factor": "gtja191/alpha_063",
+      "prior": 0.05864636926717592,
+      "learned": 0.02638509411628171,
+      "replicaMinimum": 0.019932647900202567,
+      "replicaMaximum": 0.03451562587413069,
+      "replicaStd": 0.0057564743363578506
+    },
+    {
+      "factor": "alpha101/alpha_029",
+      "prior": 0.05639431236308877,
+      "learned": 0.05968763980160825,
+      "replicaMinimum": 0.0536103807067299,
+      "replicaMaximum": 0.07089691694018052,
+      "replicaStd": 0.006184701712450385
+    },
+    {
+      "factor": "alpha101/alpha_094",
+      "prior": 0.05480802608350537,
+      "learned": 0.05992329509063522,
+      "replicaMinimum": 0.05663794102972949,
+      "replicaMaximum": 0.07108780828881721,
+      "replicaStd": 0.005697441363974849
+    },
+    {
+      "factor": "alpha101/alpha_088",
+      "prior": 0.05432385035313568,
+      "learned": 0.023751488045487018,
+      "replicaMinimum": 0.01936004964625344,
+      "replicaMaximum": 0.02523415338772297,
+      "replicaStd": 0.0027948430191144604
+    },
+    {
+      "factor": "qlib158/min5",
+      "prior": 0.05369918186473645,
+      "learned": 0.02407331478565427,
+      "replicaMinimum": 0.020404340479959163,
+      "replicaMaximum": 0.025919382000804927,
+      "replicaStd": 0.0021004843981457058
+    },
+    {
+      "factor": "interaction/earnings_volume_confirmation",
+      "prior": 0.0625,
+      "learned": 0.14348367079905378,
+      "replicaMinimum": 0.1367263359400494,
+      "replicaMaximum": 0.14802743292131515,
+      "replicaStd": 0.004849823878825382
+    },
+    {
+      "factor": "interaction/growth_momentum_confirmation",
+      "prior": 0.0625,
+      "learned": 0.15,
+      "replicaMinimum": 0.14876210119627636,
+      "replicaMaximum": 0.15,
+      "replicaStd": 0.0006545316867788482
+    },
+    {
+      "factor": "interaction/quality_low_volatility",
+      "prior": 0.0625,
+      "learned": 0.03212193229958333,
+      "replicaMinimum": 0.02361316396398328,
+      "replicaMaximum": 0.03695652720536911,
+      "replicaStd": 0.005934236845154271
+    },
+    {
+      "factor": "interaction/cash_quality_reversal",
+      "prior": 0.0625,
+      "learned": 0.02960714554692289,
+      "replicaMinimum": 0.026341516127446115,
+      "replicaMaximum": 0.03901215389299936,
+      "replicaStd": 0.00476652558535541
+    }
+  ],
+  "walkForwardBlocks": [
+    {
+      "trainRange": [
+        "2023-02-08",
+        "2025-03-07"
+      ],
+      "testRange": [
+        "2025-03-24",
+        "2025-06-25"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2072165,
+        "pairCount": 100800,
+        "objective": 0.7040813616939595,
+        "iterations": 14,
+        "interactionBlockWeight": 0.3273779720780214,
+        "success": true
+      },
+      "weights": [
+        0.1295252425400677,
+        0.030064241819393947,
+        0.03965840380512194,
+        0.08148010375182829,
+        0.09012190321529401,
+        0.02492752534234563,
+        0.07598713439189066,
+        0.023535128216748975,
+        0.0659550053754856,
+        0.07566651784317542,
+        0.018577644176591815,
+        0.017123177444034698,
+        0.1367621419954605,
+        0.15,
+        0.01,
+        0.030615830082560913
+      ],
+      "candidate": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.0027380514177771276,
+        "meanNetReturn": -0.0002619485822228725,
+        "grossUpRate": 0.5333333333333333,
+        "netWinRate": 0.4587301587301587,
+        "nonPositiveRate": 0.4666666666666667,
+        "severeLossRate": 0.03015873015873016,
+        "worstDailyGrossReturn": -0.052040017291356565,
+        "dailyGrossStd": 0.016721836610259798,
+        "maximumDrawdownNet": -0.08902142986722539
+      },
+      "baseline": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.0015122495170302118,
+        "meanNetReturn": -0.0014877504829697882,
+        "grossUpRate": 0.5492063492063493,
+        "netWinRate": 0.4634920634920635,
+        "nonPositiveRate": 0.4507936507936508,
+        "severeLossRate": 0.04285714285714286,
+        "worstDailyGrossReturn": -0.06755568408111093,
+        "dailyGrossStd": 0.016823722090588068,
+        "maximumDrawdownNet": -0.15370621837208542
+      },
+      "grossImproved": true
+    },
+    {
+      "trainRange": [
+        "2023-05-26",
+        "2025-06-25"
+      ],
+      "testRange": [
+        "2025-07-10",
+        "2025-10-14"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2097603,
+        "pairCount": 100800,
+        "objective": 0.7032518466883086,
+        "iterations": 14,
+        "interactionBlockWeight": 0.3258660741832949,
+        "success": true
+      },
+      "weights": [
+        0.12823959221335254,
+        0.03364226718103723,
+        0.0372364792347807,
+        0.08513933278183428,
+        0.100414948323465,
+        0.02048851878586795,
+        0.07136989920585751,
+        0.022716659996093794,
+        0.06419485511822524,
+        0.07587111535120068,
+        0.018590116079962603,
+        0.016230141545027648,
+        0.13942201761858564,
+        0.15,
+        0.01636389674003377,
+        0.020080159824675477
+      ],
+      "candidate": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.0024640041827662653,
+        "meanNetReturn": -0.0005359958172337347,
+        "grossUpRate": 0.546031746031746,
+        "netWinRate": 0.47619047619047616,
+        "nonPositiveRate": 0.45396825396825397,
+        "severeLossRate": 0.02857142857142857,
+        "worstDailyGrossReturn": -0.02514160102895361,
+        "dailyGrossStd": 0.010741567545619972,
+        "maximumDrawdownNet": -0.10120764906660162
+      },
+      "baseline": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.002154720321411502,
+        "meanNetReturn": -0.0008452796785884979,
+        "grossUpRate": 0.5507936507936508,
+        "netWinRate": 0.44285714285714284,
+        "nonPositiveRate": 0.4492063492063492,
+        "severeLossRate": 0.015873015873015872,
+        "worstDailyGrossReturn": -0.02208078563955569,
+        "dailyGrossStd": 0.010081378901634882,
+        "maximumDrawdownNet": -0.11568743611467414
+      },
+      "grossImproved": true
+    },
+    {
+      "trainRange": [
+        "2023-08-25",
+        "2025-09-22"
+      ],
+      "testRange": [
+        "2025-10-15",
+        "2026-01-13"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2112039,
+        "pairCount": 100800,
+        "objective": 0.7012891044543951,
+        "iterations": 12,
+        "interactionBlockWeight": 0.31181278029419357,
+        "success": true
+      },
+      "weights": [
+        0.1318688471546355,
+        0.04273753774251344,
+        0.033812534956904644,
+        0.09945153692033835,
+        0.10185837579936022,
+        0.023633923881448016,
+        0.06739486286578958,
+        0.022285341032166315,
+        0.06582732069323985,
+        0.06628848621560333,
+        0.01804004665452086,
+        0.014988405789286355,
+        0.12850710124797854,
+        0.14182421941954382,
+        0.01647682168010218,
+        0.02500463794656904
+      ],
+      "candidate": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.001998261325140538,
+        "meanNetReturn": -0.001001738674859462,
+        "grossUpRate": 0.526984126984127,
+        "netWinRate": 0.4365079365079365,
+        "nonPositiveRate": 0.473015873015873,
+        "severeLossRate": 0.009523809523809525,
+        "worstDailyGrossReturn": -0.01779417578573439,
+        "dailyGrossStd": 0.008854060127844086,
+        "maximumDrawdownNet": -0.12173745138095882
+      },
+      "baseline": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.000988821038768314,
+        "meanNetReturn": -0.002011178961231686,
+        "grossUpRate": 0.5063492063492063,
+        "netWinRate": 0.4126984126984127,
+        "nonPositiveRate": 0.4936507936507937,
+        "severeLossRate": 0.006349206349206349,
+        "worstDailyGrossReturn": -0.01664063282350391,
+        "dailyGrossStd": 0.008492617528138019,
+        "maximumDrawdownNet": -0.1324282726275755
+      },
+      "grossImproved": true
+    },
+    {
+      "trainRange": [
+        "2023-12-14",
+        "2026-01-13"
+      ],
+      "testRange": [
+        "2026-01-28",
+        "2026-05-08"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2123388,
+        "pairCount": 100800,
+        "objective": 0.6997890378208428,
+        "iterations": 12,
+        "interactionBlockWeight": 0.3134826587421934,
+        "success": true
+      },
+      "weights": [
+        0.14055812682636282,
+        0.045462839851183316,
+        0.02795702843594497,
+        0.11994346106773471,
+        0.09851260712311252,
+        0.022103678732685202,
+        0.055209523583814764,
+        0.024043356603165388,
+        0.05909395325642715,
+        0.05846629422458027,
+        0.01682678488641596,
+        0.018339686666379553,
+        0.13001787393274838,
+        0.14286492953986168,
+        0.018905952039832113,
+        0.0216939032297512
+      ],
+      "candidate": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.0006087620044628219,
+        "meanNetReturn": -0.002391237995537178,
+        "grossUpRate": 0.4793650793650794,
+        "netWinRate": 0.41904761904761906,
+        "nonPositiveRate": 0.5206349206349207,
+        "severeLossRate": 0.06031746031746032,
+        "worstDailyGrossReturn": -0.037137673562694797,
+        "dailyGrossStd": 0.014274307416727808,
+        "maximumDrawdownNet": -0.15468064693840566
+      },
+      "baseline": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": 0.00029479005756225175,
+        "meanNetReturn": -0.002705209942437748,
+        "grossUpRate": 0.5047619047619047,
+        "netWinRate": 0.42857142857142855,
+        "nonPositiveRate": 0.49523809523809526,
+        "severeLossRate": 0.04285714285714286,
+        "worstDailyGrossReturn": -0.036363221343279795,
+        "dailyGrossStd": 0.01260105709132049,
+        "maximumDrawdownNet": -0.15876874594062473
+      },
+      "grossImproved": true
+    },
+    {
+      "trainRange": [
+        "2024-03-21",
+        "2026-04-21"
+      ],
+      "testRange": [
+        "2026-05-11",
+        "2026-08-06"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2129895,
+        "pairCount": 100800,
+        "objective": 0.7004490471658317,
+        "iterations": 13,
+        "interactionBlockWeight": 0.3369136661058002,
+        "success": true
+      },
+      "weights": [
+        0.12900457817950695,
+        0.037785775309605044,
+        0.03747703109561456,
+        0.11790850461833861,
+        0.08606678834454656,
+        0.0292858770674138,
+        0.04286845760716758,
+        0.024736773686852547,
+        0.05979481905358995,
+        0.05650187877212151,
+        0.017762543814450582,
+        0.023893306344992093,
+        0.1366413057152393,
+        0.14846105514467406,
+        0.02642186750270471,
+        0.025389437743182166
+      ],
+      "candidate": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": -0.0011501567878991284,
+        "meanNetReturn": -0.004150156787899128,
+        "grossUpRate": 0.46825396825396826,
+        "netWinRate": 0.4253968253968254,
+        "nonPositiveRate": 0.5317460317460317,
+        "severeLossRate": 0.09206349206349207,
+        "worstDailyGrossReturn": -0.029214859546175066,
+        "dailyGrossStd": 0.01563556461789711,
+        "maximumDrawdownNet": -0.2810543904703121
+      },
+      "baseline": {
+        "tradingDays": 63,
+        "selectedRows": 630,
+        "meanGrossReturn": -0.0013339360209342847,
+        "meanNetReturn": -0.004333936020934285,
+        "grossUpRate": 0.46190476190476193,
+        "netWinRate": 0.41904761904761906,
+        "nonPositiveRate": 0.5380952380952381,
+        "severeLossRate": 0.06984126984126984,
+        "worstDailyGrossReturn": -0.042954843684432975,
+        "dailyGrossStd": 0.015277516360616973,
+        "maximumDrawdownNet": -0.2790767419604048
+      },
+      "grossImproved": true
+    },
+    {
+      "trainRange": [
+        "2024-06-26",
+        "2026-07-23"
+      ],
+      "testRange": [
+        "2026-08-07",
+        "2026-08-12"
+      ],
+      "fit": {
+        "usedTradingDays": 504,
+        "usedRows": 2131490,
+        "pairCount": 100800,
+        "objective": 0.7005953402251506,
+        "iterations": 13,
+        "interactionBlockWeight": 0.3531838542072368,
+        "success": true
+      },
+      "weights": [
+        0.1264632514989986,
+        0.04190717335317852,
+        0.0421142801563285,
+        0.11390914225444826,
+        0.07065774414628191,
+        0.02856518077961288,
+        0.03320692009487948,
+        0.02489473486207544,
+        0.06013942707160128,
+        0.0596356745416816,
+        0.02285739200609305,
+        0.022465225027583715,
+        0.1431933511550306,
+        0.15,
+        0.030802830356838052,
+        0.029187672695368164
+      ],
+      "candidate": {
+        "tradingDays": 2,
+        "selectedRows": 20,
+        "meanGrossReturn": 0.00879089737781501,
+        "meanNetReturn": 0.005790897377815011,
+        "grossUpRate": 0.6,
+        "netWinRate": 0.5,
+        "nonPositiveRate": 0.4,
+        "severeLossRate": 0.0,
+        "worstDailyGrossReturn": -0.00449774296330917,
+        "dailyGrossStd": 0.018792975395916046,
+        "maximumDrawdownNet": -0.007497742963309184
+      },
+      "baseline": {
+        "tradingDays": 2,
+        "selectedRows": 20,
+        "meanGrossReturn": 0.004849533732987343,
+        "meanNetReturn": 0.0018495337329873431,
+        "grossUpRate": 0.5,
+        "netWinRate": 0.45,
+        "nonPositiveRate": 0.5,
+        "severeLossRate": 0.0,
+        "worstDailyGrossReturn": -0.009086673379153443,
+        "dailyGrossStd": 0.019708773106029885,
+        "maximumDrawdownNet": -0.01208667337915359
+      },
+      "grossImproved": true
+    }
+  ],
+  "walkForwardSummary": {
+    "blockCount": 6,
+    "grossImprovedBlocks": 6
+  },
+  "hindsightFit": {
+    "usedTradingDays": 317,
+    "usedRows": 1336856,
+    "pairCount": 63400,
+    "objective": 0.6972194817051596,
+    "iterations": 13,
+    "interactionBlockWeight": 0.3628494922859104,
+    "success": true
+  },
+  "hindsightWeights": [
+    0.13532103203026163,
+    0.04653264082538432,
+    0.03635368165007114,
+    0.12351434794160131,
+    0.0634610694401289,
+    0.03586429692504241,
+    0.013460153467017408,
+    0.012157449788643939,
+    0.06293601456750031,
+    0.05216917874258255,
+    0.03615345400246113,
+    0.01922718833339461,
+    0.15,
+    0.15,
+    0.04168867105943401,
+    0.021160821226476403
+  ],
+  "identicalDateMetrics": {
+    "baseline": {
+      "tradingDays": 317,
+      "selectedRows": 3170,
+      "meanGrossReturn": 0.0007493618203084174,
+      "meanNetReturn": -0.002250638179691583,
+      "grossUpRate": 0.5145110410094638,
+      "netWinRate": 0.4334384858044164,
+      "nonPositiveRate": 0.4854889589905363,
+      "severeLossRate": 0.03533123028391167,
+      "worstDailyGrossReturn": -0.06755568408111093,
+      "dailyGrossStd": 0.013012933272979145,
+      "maximumDrawdownNet": -0.5584486355116328
+    },
+    "trailing": {
+      "tradingDays": 317,
+      "selectedRows": 3170,
+      "meanGrossReturn": 0.0013788450779723355,
+      "meanNetReturn": -0.0016211549220276646,
+      "grossUpRate": 0.5113564668769716,
+      "netWinRate": 0.44353312302839115,
+      "nonPositiveRate": 0.4886435331230284,
+      "severeLossRate": 0.043848580441640375,
+      "worstDailyGrossReturn": -0.052040017291356565,
+      "dailyGrossStd": 0.013578030061399531,
+      "maximumDrawdownNet": -0.47885567682962593
+    },
+    "hindsight": {
+      "tradingDays": 317,
+      "selectedRows": 3170,
+      "meanGrossReturn": 0.0011362518556967316,
+      "meanNetReturn": -0.0018637481443032685,
+      "grossUpRate": 0.5107255520504732,
+      "netWinRate": 0.4416403785488959,
+      "nonPositiveRate": 0.4892744479495268,
+      "severeLossRate": 0.04952681388012618,
+      "worstDailyGrossReturn": -0.050489696300851,
+      "dailyGrossStd": 0.013603819369902553,
+      "maximumDrawdownNet": -0.5068117812794011
+    }
+  },
+  "selectionOverfitExposure": {
+    "meanGrossReturnGap": -0.0002425932222756039,
+    "invalidHindsightMayBePublished": false
+  },
+  "checks": {
+    "trailingMeanGrossImproved": true,
+    "trailingUpRateImproved": false,
+    "trailingSevereLossNotWorse": false,
+    "majorityWalkForwardBlocksImproveGross": true
+  },
+  "decision": "reject_learned_weights_keep_current_fixed_ranking",
+  "historicalRunCanPromote": false,
+  "eligibleForTrading": false,
+  "orders": [],
+  "automaticTradingChanges": []
+}

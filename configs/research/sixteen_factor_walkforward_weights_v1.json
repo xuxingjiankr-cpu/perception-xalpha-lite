@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "sixteen_factor_walkforward_weights_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Estimate non-equal sixteen-factor ranking weights using only trailing data, and quantify the gap to an invalid hindsight fit on identical dates.",
+  "sourceRankingConfig": "configs/research/sixteen_factor_interaction_ranking_v1.json",
+  "sourceRankingConfigSha256": "frozen_at_run_time_and_recorded",
+  "training": {
+    "method": "bounded_daily_equal_pairwise_top10_logistic",
+    "lookbackTradingDays": 504,
+    "refitEveryTradingDays": 63,
+    "purgeTradingDays": 10,
+    "trueTopCount": 10,
+    "nearBoundaryNegativeCount": 20,
+    "minimumCrossSectionRows": 100,
+    "minimumFactorWeight": 0.01,
+    "maximumFactorWeight": 0.15,
+    "minimumInteractionBlockWeight": 0.15,
+    "maximumInteractionBlockWeight": 0.40,
+    "l2ShrinkageToPrior": 0.10,
+    "realizedUtilityPenaltyNonPositive": 0.005,
+    "realizedUtilityPenaltySevereLoss": 0.02,
+    "blockReplicaCount": 5,
+    "blockLengthTradingDays": 21,
+    "blockSubsampleFraction": 0.80,
+    "randomSeed": 20260813,
+    "validationOrShadowMayTuneHyperparameters": false,
+    "hindsightWeightsMayBePublished": false
+  },
+  "evaluation": {
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "reportHindsightAndTrailingOnIdenticalDates": true,
+    "requireTrailingMeanGrossImprovement": true,
+    "requireTrailingUpRateImprovement": true,
+    "requireTrailingSevereLossNotWorse": true,
+    "requireMajorityWalkForwardBlocksImproveGross": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/sixteen_factor_walkforward_weights_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
