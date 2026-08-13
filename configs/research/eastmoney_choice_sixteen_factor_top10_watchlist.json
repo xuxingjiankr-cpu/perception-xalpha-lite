@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "eastmoney_choice_top10_watchlist_v1",
+  "status": "research_only_watchlist_only_not_trading",
+  "sourceRoot": "outputs/edge_research/sixteen_factor_interaction_ranking_v1",
+  "sourceArtifactName": "result.json",
+  "sourceSchemaVersion": "sixteen_factor_interaction_ranking_result_v1",
+  "sourceRowsField": "latestTop10",
+  "sourceEntryDateField": "intendedTradingSession",
+  "acceptedSourceStatuses": [
+    "research_only_shadow_only_not_trading"
+  ],
+  "requiredCount": 10,
+  "watchlistName": "Codex_Model_Top10",
+  "stableImportFile": "data/research/eastmoney_choice_top10/Codex_Model_Top10.txt",
+  "auditCsv": "data/research/eastmoney_choice_top10/Codex_Model_Top10_audit.csv",
+  "manifest": "data/research/eastmoney_choice_top10/latest_manifest.json",
+  "logRoot": "logs/eastmoney_choice_top10",
+  "choice": {
+    "installedPath": "C:/eastmoney/Choice/Choice.exe",
+    "localBlockRoot": "C:/eastmoney/Choice/config/user/4371094175689736/UserData/CustomBlockV2",
+    "directPrivateFileMutationAllowed": false,
+    "cloudPrivateApiAllowed": false,
+    "integrationMode": "fixed_text_import_via_choice_client"
+  },
+  "schedule": {
+    "taskName": "Eastmoney_Choice_Model_Top10_Daily",
+    "weekdaysOnly": true,
+    "localTimeKst": "18:50",
+    "beijingEquivalent": "17:50"
+  },
+  "orders": [],
+  "automaticTradingChanges": []
+}

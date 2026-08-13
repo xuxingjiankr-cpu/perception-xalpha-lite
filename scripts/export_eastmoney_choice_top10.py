@@ -51,10 +51,10 @@ def resolve_root_path(value: str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def latest_source(source_root: Path) -> Path:
-    candidates = list(source_root.glob("*/shadow_top10.json"))
+def latest_source(source_root: Path, artifact_name: str = "shadow_top10.json") -> Path:
+    candidates = list(source_root.glob(f"*/{artifact_name}"))
     if not candidates:
-        raise ValidationError(f"no shadow_top10.json under {source_root}")
+        raise ValidationError(f"no {artifact_name} under {source_root}")
     dated: list[tuple[str, Path]] = []
     for path in candidates:
         try:
@@ -76,7 +76,7 @@ def validate_source(payload: dict[str, Any], config: dict[str, Any]) -> list[dic
         raise ValidationError("source must have eligibleForTrading=false")
     if payload.get("orders") != [] or payload.get("automaticTradingChanges") != []:
         raise ValidationError("source contains an order or automatic trading change")
-    rows = payload.get("top10")
+    rows = payload.get(str(config.get("sourceRowsField", "top10")))
     required = int(config["requiredCount"])
     if not isinstance(rows, list) or len(rows) != required:
         raise ValidationError(f"source must contain exactly {required} rows")
@@ -95,7 +95,15 @@ def validate_source(payload: dict[str, Any], config: dict[str, Any]) -> list[dic
         if code in seen:
             raise ValidationError(f"duplicate stock code: {code}")
         seen.add(code)
-        validated.append({**row, "exchange": exchange, "stockCode": code})
+        factor_score = row.get("factorScore", row.get("adaptiveFactorScore"))
+        validated.append(
+            {
+                **row,
+                "factorScore": factor_score,
+                "exchange": exchange,
+                "stockCode": code,
+            }
+        )
     return validated
 
 
@@ -130,7 +138,10 @@ def export(config_path: Path, source_path: Path | None, dry_run: bool) -> dict[s
         raise ValidationError("exporter config must remain watchlist-only")
     if config.get("choice", {}).get("directPrivateFileMutationAllowed") is not False:
         raise ValidationError("direct Choice private-file mutation must remain disabled")
-    source = source_path or latest_source(resolve_root_path(str(config["sourceRoot"])))
+    source = source_path or latest_source(
+        resolve_root_path(str(config["sourceRoot"])),
+        str(config.get("sourceArtifactName", "shadow_top10.json")),
+    )
     payload = load_json(source)
     rows = validate_source(payload, config)
     import_path = resolve_root_path(str(config["stableImportFile"]))
@@ -145,7 +156,9 @@ def export(config_path: Path, source_path: Path | None, dry_run: bool) -> dict[s
         "source": str(source.resolve()),
         "sourceSha256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "signalDate": payload["signalDate"],
-        "intendedEntryDate": payload.get("intendedEntryDate"),
+        "intendedEntryDate": payload.get(
+            str(config.get("sourceEntryDateField", "intendedEntryDate"))
+        ),
         "count": len(rows),
         "codes": [row["stockCode"] for row in rows],
         "stableImportFile": str(import_path.resolve()),

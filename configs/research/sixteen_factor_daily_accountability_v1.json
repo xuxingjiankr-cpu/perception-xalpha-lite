@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "sixteen_factor_daily_accountability_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Maintain an idempotent daily ledger for the frozen sixteen-factor Top10, separate provisional same-session observations from the preregistered next-open outcome, and fail closed when the model has no qualified directional evidence.",
+  "sourceRoot": "outputs/edge_research/sixteen_factor_interaction_ranking_v1",
+  "sourceSchemaVersion": "sixteen_factor_interaction_ranking_result_v1",
+  "rawBarsRoot": "data/market/ashare_research/bars_1d_raw",
+  "adjustedBarsRoot": "data/market/ashare_research/baostock_pit_adjusted/bars_1d_backward_adjusted",
+  "outputRoot": "outputs/edge_research/sixteen_factor_daily_accountability_v1",
+  "outcome": {
+    "signalTimestamp": "market_close_t",
+    "entryTimestamp": "next_xshg_session_open",
+    "exitTimestamp": "following_xshg_session_open",
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "provisionalMetric": "entry_session_close_div_entry_session_open_minus_one",
+    "finalMetric": "exit_session_open_div_entry_session_open_minus_one"
+  },
+  "confidenceGate": {
+    "policy": "semantic_thresholds_not_fitted_to_2026_08_13_loss",
+    "minimumProbabilityUp": 0.5,
+    "minimumExpectedGrossReturn": 0.003,
+    "maximumProbabilitySevereLoss": 0.1,
+    "requiredForecastReliabilityStatus": "historically_discriminative_but_fresh_forward_required",
+    "top10ObservationListAlwaysPublished": true,
+    "qualifiedListMayBeEmpty": true,
+    "failedGateMayNeverBeRelabeledAsBuy": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  },
+  "orders": [],
+  "automaticTradingChanges": []
+}

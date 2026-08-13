@@ -12582,6 +12582,104 @@ def t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only() -> None:
     )
 
 
+def t154_sixteen_factor_daily_accountability_abstains_and_is_idempotent() -> None:
+    """Daily review must separate provisional/final labels and permit zero picks."""
+    import json
+    import tempfile
+
+    import review_sixteen_factor_daily_v1 as review
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "sixteen_factor_daily_accountability_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    review.validate_config(config)
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        raw = root / "raw"
+        adjusted = root / "adjusted"
+        raw.mkdir()
+        adjusted.mkdir()
+        rows = []
+        for rank in range(1, 11):
+            security_id = f"SZ.{rank:06d}"
+            rows.append(
+                {
+                    "rank": rank,
+                    "securityId": security_id,
+                    "name": f"fixture_{rank}",
+                    "expectedGrossReturn": 0.002,
+                    "probabilityUp": 0.49,
+                    "probabilitySevereLoss": 0.05,
+                }
+            )
+            lines = [
+                {
+                    "dt": "2026-08-13",
+                    "open": 10.0,
+                    "close": 10.1 if rank == 1 else 9.9,
+                },
+                {"dt": "2026-08-14", "open": 10.2, "close": 10.2},
+            ]
+            (raw / f"SZ_{rank:06d}.jsonl").write_text(
+                "".join(json.dumps(item) + "\n" for item in lines), encoding="utf-8"
+            )
+        fixture = {
+            "schemaVersion": "sixteen_factor_interaction_ranking_result_v1",
+            "status": "research_only_shadow_only_not_trading",
+            "eligibleForTrading": False,
+            "orders": [],
+            "automaticTradingChanges": [],
+            "signalDate": "2026-08-12",
+            "intendedTradingSession": "2026-08-13",
+            "generatedAt": "2026-08-12T18:50:00+08:00",
+            "forecastReliability": {
+                "status": "low_confidence_diagnostic_estimates_only"
+            },
+            "latestTop10": rows,
+        }
+        local = json.loads(json.dumps(config))
+        local["rawBarsRoot"] = str(raw)
+        local["adjustedBarsRoot"] = str(adjusted)
+        first = review.review_one(root / "result.json", fixture, local)
+        second = review.review_one(root / "result.json", fixture, local)
+        check(
+            "T154 daily ledger uses fixed next-open labels and abstains on weak evidence",
+            first == second
+            and first["outcomeStatus"] == "final"
+            and first["qualifiedCount"] == 0
+            and abs(first["provisional"]["winRate"] - 0.1) < 1e-12
+            and abs(first["final"]["meanGrossReturn"] - 0.02) < 1e-12
+            and all(
+                "probability_up_below_50pct"
+                in row["confidenceGate"]["failedReasons"]
+                for row in first["top10"]
+            )
+            and first["orders"] == [],
+        )
+    source = (
+        ROOT / "scripts" / "review_sixteen_factor_daily_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T154 accountability review remains research-only and cannot mutate trading",
+        config["confidenceGate"]["qualifiedListMayBeEmpty"] is True
+        and config["confidenceGate"]["failedGateMayNeverBeRelabeledAsBuy"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12729,6 +12827,7 @@ if __name__ == "__main__":
     t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable()
     t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading()
     t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only()
+    t154_sixteen_factor_daily_accountability_abstains_and_is_idempotent()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
