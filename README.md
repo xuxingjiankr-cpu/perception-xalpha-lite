@@ -206,6 +206,44 @@ from on both counts, which is the whole finding: **the return is real and the sk
 demonstrated.** Reporting only the first line would be the same move as plotting an excess
 against a raw index, run in the opposite direction.
 
+### What pinning the data source turned out to be worth
+
+A provider outage lost the entry for 2026-08-12. Adding a fallback source is the obvious fix,
+and shipping it without checking would have been the same mistake that retired the previous
+specification. So
+the same frozen rule was run over panels built from two different providers of backward-adjusted
+A-share bars — baostock, which the specification names, and TDX as the candidate fallback — and
+compared on the single thing that matters: **which name each one picks.**
+
+| | |
+|---|--:|
+| Sessions compared | 140 |
+| **Sessions where both picked the same name** | **57.9%** |
+| Where they differed, the other provider's pick ranked (in the primary) | **median 4th** of ~4,700 |
+
+The fallback was not adopted. **A source that changes the answer on 42% of sessions is not a
+fallback, it is a different rule.** The gap stands, explained rather than filled, and
+[the data is published](docs/data/source_reconciliation.json).
+
+**The disagreements are near-ties, not divergence.** A median rank of 4 means the two providers
+are usually choosing between candidates the composite cannot separate. Where the leader is
+clear they agree without exception: over the eight most recent sessions both pick the same name,
+which leads the runner-up 0.945 to 0.872.
+
+Two things follow, and the second is more important than the first.
+
+**Naming the provider in the specification was necessary, not pedantic.** A reader who follows
+the spec uses the same source and gets the same names, so the record reproduces exactly — which
+is what `dea0e608` was frozen to guarantee after its predecessor failed to. Had the source been left
+open, 42% of published picks would be unreproducible by an equally careful reader.
+
+**A one-name book is the most fragile object this rule can produce.** On close to half of all
+sessions the winner is decided in the fourth decimal place, where the difference between two
+honest vendors of the same adjusted prices is enough to change it. That is a property of holding
+one name, not of the data: with a median disagreement rank of 4, a ten-name book contains the
+other provider's pick almost every time. The ten-name record is the more meaningful of the two,
+and the one-name chart on this page should be read knowing what decides it.
+
 ### Selection works, and it is not enough
 
 The interesting number is not in the table. Across all 456 factors, training-window excess
