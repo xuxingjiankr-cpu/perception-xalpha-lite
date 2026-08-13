@@ -87,7 +87,9 @@ be shown to be wrong, but it cannot be edited.
 **The dashed span on the left proves nothing, and is drawn that way deliberately.** Those
 factors were chosen from a 456-candidate search on data that overlaps it, and on this panel the
 selection step alone is worth ~3 bps/day. An in-sample curve that beats every index is what a
-selected strategy always looks like. Only the solid span is evidence, and today it is empty.
+selected strategy always looks like. Only the solid span is evidence, the chart states how many
+sessions it contains, and a handful of them settles nothing — the scorecard reports
+`insufficient_forward_sample` below sixty and will keep doing so for months.
 
 Two numbers people routinely conflate, over the backtested span:
 
@@ -208,9 +210,9 @@ against a raw index, run in the opposite direction.
 
 ### What pinning the data source turned out to be worth
 
-A provider outage lost the entry for 2026-08-12. Adding a fallback source is the obvious fix,
-and shipping it without checking would have been the same mistake that retired the previous
-specification. So
+A provider outage broke the 17:00 run on 2026-08-12 and again on 2026-08-13. Adding a fallback
+source is the obvious fix, and shipping it without checking would have been the same mistake
+that retired the previous specification. So
 the same frozen rule was run over panels built from two different providers of backward-adjusted
 A-share bars — baostock, which the specification names, and TDX as the candidate fallback — and
 compared on the single thing that matters: **which name each one picks.**
@@ -222,8 +224,13 @@ compared on the single thing that matters: **which name each one picks.**
 | Where they differed, the other provider's pick ranked (in the primary) | **median 4th** of ~4,700 |
 
 The fallback was not adopted. **A source that changes the answer on 42% of sessions is not a
-fallback, it is a different rule.** The gap stands, explained rather than filled, and
-[the data is published](docs/data/source_reconciliation.json).
+fallback, it is a different rule.** [The data is published](docs/data/source_reconciliation.json).
+
+Neither day became a gap in the end: the second scheduled attempt, at 21:00 Asia/Shanghai,
+succeeded both times and published each pick before the session it applied to. That is what the
+backstop is for, and it is a better answer than a second data source — a later attempt runs the
+same rule against the same source, while a fallback runs a different rule and hopes nobody
+checks.
 
 **The disagreements are near-ties, not divergence.** A median rank of 4 means the two providers
 are usually choosing between candidates the composite cannot separate. Where the leader is
