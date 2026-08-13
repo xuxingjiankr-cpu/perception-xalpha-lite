@@ -179,6 +179,15 @@ def _security_row(row: dict[str, Any]) -> dict[str, Any]:
         and str(row.get("estimateSource") or "").startswith(
             "twelve_rank_multivariate_calibrated"
         ),
+        "completeSixteenFactorEstimate": factor_count == 16
+        and str(row.get("estimateSource") or "").startswith(
+            "sixteen_factor_fundamental_interaction"
+        ),
+        "twelveFactorScore": _as_float(row.get("twelveFactorScore")),
+        "interactionCompositeScore": _as_float(
+            row.get("interactionCompositeScore")
+        ),
+        "interactionRanks": json_safe(row.get("interactionRanks") or {}),
         "status": "diagnostic_only_not_an_order",
     }
 

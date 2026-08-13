@@ -12405,6 +12405,110 @@ def t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable(
     check("T151 signal-date mismatch fails closed", rejected)
 
 
+def t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading() -> None:
+    """The 12+4 ranking uses fixed positive weights and an all-interaction support."""
+    import json
+
+    import pandas as pd
+    import generate_sixteen_factor_interaction_top10_v1 as sixteen
+    import stock_forecast_dashboard as dashboard
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "sixteen_factor_interaction_ranking_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    sixteen.validate_config(config)
+    date = pd.to_datetime(["2026-08-12"])
+    columns = ["SZ.000001", "SZ.000002"]
+    twelve_score = pd.DataFrame([[0.90, 0.80]], index=date, columns=columns)
+    interactions = {
+        f"interaction_{index}": pd.DataFrame(
+            [[0.0, 1.0]], index=date, columns=columns
+        )
+        for index in range(4)
+    }
+    support = pd.DataFrame(True, index=date, columns=columns)
+    combined, interaction_mean = sixteen.combine_scores(
+        twelve_score,
+        interactions,
+        support,
+        config["ranking"]["twelveFactorBlockWeight"],
+        config["ranking"]["eachInteractionWeight"],
+    )
+    check(
+        "T152 16-factor score uses 75pct guarded twelve block plus four 6.25pct interactions",
+        abs(float(combined.iloc[0, 0]) - 0.675) < 1e-7
+        and abs(float(combined.iloc[0, 1]) - 0.85) < 1e-7
+        and abs(float(interaction_mean.iloc[0, 0])) < 1e-12
+        and abs(float(interaction_mean.iloc[0, 1]) - 1.0) < 1e-12
+        and combined.iloc[0].idxmax() == "SZ.000002",
+    )
+    fixture_rows = [
+        {
+            "rank": rank,
+            "securityId": f"SZ.{300000 + rank:06d}",
+            "name": f"示例{rank}",
+            "adaptiveFactorScore": 1.0 - rank / 100.0,
+            "twelveFactorScore": 0.8,
+            "interactionCompositeScore": 0.9,
+            "interactionRanks": {
+                "earnings_volume_confirmation": 0.9,
+                "growth_momentum_confirmation": 0.9,
+                "quality_low_volatility": 0.9,
+                "cash_quality_reversal": 0.9,
+            },
+            "expectedGrossReturn": 0.001,
+            "probabilityUp": 0.51,
+            "probabilitySevereLoss": 0.07,
+            "factorCount": 16,
+            "imputedFactorCount": 0,
+            "estimateSource": (
+                "sixteen_factor_fundamental_interaction_multivariate_calibrated"
+            ),
+        }
+        for rank in range(1, 11)
+    ]
+    fixture_result = {
+        "signalDate": "2026-08-12",
+        "intendedTradingSession": "2026-08-13",
+        "runId": "sixteen_fixture",
+        "codeVersion": sixteen.CODE_VERSION,
+        "forecastReliability": {"status": "low_confidence_diagnostic_estimates_only"},
+        "periodDiagnostics": {},
+    }
+    snapshot = dashboard.build_contract(fixture_result, fixture_rows)
+    check(
+        "T152 dashboard identifies complete sixteen-factor rows and preserves components",
+        all(row["completeSixteenFactorEstimate"] for row in snapshot["top10"])
+        and all(not row["completeTwelveFactorEstimate"] for row in snapshot["top10"])
+        and snapshot["top10"][0]["twelveFactorScore"] == 0.8
+        and snapshot["top10"][0]["interactionCompositeScore"] == 0.9
+        and len(snapshot["top10"][0]["interactionRanks"]) == 4,
+    )
+    source = (
+        ROOT / "scripts" / "generate_sixteen_factor_interaction_top10_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T152 sixteen-factor challenger cannot fit rank weights or reach trading",
+        config["ranking"]["historicalOutcomeMayFitRankingWeights"] is False
+        and config["ranking"]["historicalOutcomeMaySelectInteraction"] is False
+        and config["ranking"]["missingInteractionMayBeImputed"] is False
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12550,6 +12654,7 @@ if __name__ == "__main__":
     t149_pit_fundamentals_increment_is_same_support_causal_and_nontrading()
     t150_fundamental_price_interactions_are_preregistered_causal_and_fixed()
     t151_fundamental_interaction_dashboard_merge_is_shadow_only_and_rank_stable()
+    t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

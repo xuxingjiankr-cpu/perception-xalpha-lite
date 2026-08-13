@@ -18,6 +18,7 @@ const escapeHtml = (value) => String(value ?? "")
   .replaceAll("'", "&#039;");
 
 function sourceLabel(row) {
+  if (row.completeSixteenFactorEstimate) return "16因子（12+4交互）";
   if (!row.completeTwelveFactorEstimate) return "非完整12因子（拒绝）";
   return row.imputedFactorCount > 0
     ? `完整12因子（中性补全${row.imputedFactorCount}项）`
@@ -31,6 +32,7 @@ const signedPct = (value, digits = 3) => {
 };
 
 function shadowMetric(row, field, deltaField, digits = 2, tail = false) {
+  if (row.completeSixteenFactorEstimate) return '<small class="shadow-metric improved">基本面交互：已进入排名</small>';
   const shadow = row.fundamentalInteractionShadow;
   if (!shadow) return '<small class="shadow-metric unavailable">基本面交互：不可用</small>';
   const delta = Number(shadow[deltaField]);
@@ -46,7 +48,7 @@ function renderRows(rows) {
       <td><span class="metric ${metricClass(row.probabilityUp, .5)}">${pct(row.probabilityUp)}</span>${shadowMetric(row, "probabilityUp", "deltaProbabilityUp")}</td>
       <td><span class="metric ${metricClass(row.expectedGrossReturn)}">${pct(row.expectedGrossReturn, 3)}</span>${shadowMetric(row, "expectedGrossReturn", "deltaExpectedGrossReturn", 3)}</td>
       <td><span class="metric ${row.probabilityTailLoss > .08 ? "negative" : "neutral"}">${pct(row.probabilityTailLoss)}</span>${shadowMetric(row, "probabilityTailLoss", "deltaProbabilityTailLoss", 2, true)}</td>
-      <td><span class="source-badge ${row.completeTwelveFactorEstimate ? "" : "fallback"}">${sourceLabel(row)}</span>${row.fundamentalInteractionShadow ? '<small class="shadow-badge">+ 基本面×价量影子</small>' : ''}</td>
+      <td><span class="source-badge ${(row.completeTwelveFactorEstimate || row.completeSixteenFactorEstimate) ? "" : "fallback"}">${sourceLabel(row)}</span>${row.fundamentalInteractionShadow ? '<small class="shadow-badge">+ 基本面×价量影子</small>' : ''}</td>
     </tr>
   `).join("");
 }
@@ -88,8 +90,11 @@ async function loadLatest() {
   const probabilitySpread = distribution.top10ProbabilityUpSpread;
   const directionWeak = probabilitySpread === null || probabilitySpread === undefined || probabilitySpread < .05;
   const interaction = data.fundamentalInteractionShadow;
+  const sixteenFactorRanking = data.top10.some((row) => row.completeSixteenFactorEstimate);
   $("#reliabilityTitle").textContent = low ? "当前预测可信度较低" : "历史区分度通过，仍需前向验证";
-  const interactionText = interaction
+  const interactionText = sixteenFactorRanking
+    ? " 当前排名已使用完整12因子（75%）与四项基本面×价量交互（各6.25%）重新计算；仍为研究排名。"
+    : interaction
     ? ` 基本面交互已作为影子层加入：验证/影子 Top10 尾亏 AUC ${Number(interaction.validationTop10TailAuc ?? 0).toFixed(3)}/${Number(interaction.shadowTop10TailAuc ?? 0).toFixed(3)}；历史总门未通过，不改变排名。`
     : " 基本面交互影子层尚无同日结果。";
   $("#reliabilityText").textContent = `原12因子影子期上涨 AUC ${Number(reliability.shadowUpAuc ?? 0).toFixed(3)}，尾亏 AUC ${Number(reliability.shadowTailAuc ?? 0).toFixed(3)}；Top10 预计涨幅跨度 ${pct(spread, 3)}，上涨概率跨度 ${pct(probabilitySpread, 3)}。${directionWeak ? "方向概率区分力不足，不能判断确定上涨或下跌。" : "方向概率存在横截面差异，仍不代表确定涨跌。"}${interactionText}`;

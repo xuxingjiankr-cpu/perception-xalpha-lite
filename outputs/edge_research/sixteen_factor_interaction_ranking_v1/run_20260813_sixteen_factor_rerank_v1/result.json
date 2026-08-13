@@ -1,0 +1,841 @@
+{
+  "schemaVersion": "sixteen_factor_interaction_ranking_result_v1",
+  "codeVersion": "sixteen_factor_interaction_ranking_v1_20260813",
+  "status": "research_only_shadow_only_not_trading",
+  "generatedAt": "2026-08-13T11:33:41.032868+09:00",
+  "runId": "run_20260813_sixteen_factor_rerank_v1",
+  "dataRange": [
+    "2019-01-02",
+    "2026-08-12"
+  ],
+  "signalDate": "2026-08-12",
+  "intendedTradingSession": "2026-08-13",
+  "panelAudit": {
+    "schemaVersion": "ashare_research_panel_audit_v1",
+    "status": "diagnostic_only_research_only",
+    "universeKind": "all_a_shares_pit_adjusted",
+    "masterPath": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\master\\ashare_pit_master_latest.jsonl",
+    "barsRoot": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\baostock_pit_adjusted\\bars_1d_backward_adjusted",
+    "masterCount": 5443,
+    "matchedBarFiles": 5443,
+    "masterCoverage": 1.0,
+    "minimumRequiredCoverage": 0.98,
+    "acceptedSymbols": 4710,
+    "acceptedByExchange": {
+      "SH": 1981,
+      "SZ": 2729
+    },
+    "acceptedByBoard": {
+      "None": 4710
+    },
+    "amountSourceCounts": {
+      "exchange_reported_via_baostock": 4710
+    },
+    "rejectionCounts": {
+      "insufficient_median_amount": 528,
+      "insufficient_observations": 201,
+      "excess_suspension_fraction": 4
+    },
+    "invalidRows": 0,
+    "duplicateDates": 0,
+    "volumeRowsScaledFromLotsToShares": 0,
+    "historicalStatusRows": 8503298,
+    "adjustedPriceRows": 8503298,
+    "historicalValidationEligible": true,
+    "pointInTimeMembership": true,
+    "historicalStatusAvailable": true,
+    "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+    "noForwardFill": true,
+    "rawPricesUnadjusted": false,
+    "unbiasedHistoricalValidationEligible": true,
+    "orders": [],
+    "automaticTradingChanges": [],
+    "fundamentalAudit": {
+      "schemaVersion": "ashare_fundamental_pit_audit_v1",
+      "status": "diagnostic_only_research_only",
+      "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+      "pricePanelSymbols": 4710,
+      "symbolsWithFundamentals": 4710,
+      "symbolCoverage": 1.0,
+      "minimumSymbolCoverage": 0.6,
+      "validStatementRows": 296875,
+      "missingNoticeDateRows": 0,
+      "latestFeatureCoverage": {
+        "fund_eps_ytd": 1.0,
+        "fund_book_value_per_share": 1.0,
+        "fund_revenue_yoy": 1.0,
+        "fund_net_profit_yoy": 1.0,
+        "fund_roe": 1.0,
+        "fund_roic": 0.98089172,
+        "fund_gross_margin": 0.98492569,
+        "fund_net_margin": 1.0,
+        "fund_debt_asset_ratio": 1.0,
+        "fund_current_ratio": 0.9866242,
+        "fund_quick_ratio": 0.9866242,
+        "fund_cash_to_revenue": 1.0,
+        "fund_cash_to_profit": 0.98492569,
+        "fund_receivable_turnover_days": 0.98089172,
+        "fund_inventory_turnover_days": 0.97876858,
+        "fund_total_asset_turnover": 1.0,
+        "fund_book_to_price": 0.96348195,
+        "fund_annualized_earnings_yield": 0.97091295,
+        "fund_quality_composite": 0.98089172,
+        "fund_growth_composite": 1.0,
+        "fund_balance_sheet_safety": 0.9866242,
+        "fund_accrual_quality": 0.98492569
+      },
+      "minimumLatestCoreFeatureCoverage": 0.35,
+      "historicalValidationEligible": true,
+      "availabilityRule": "first market date strictly after max(noticeDate, updateDate)",
+      "restatementLimitation": "The public endpoint exposes the currently retrievable statement version; historical restatement vintages may be incomplete. Using UPDATE_DATE is conservative but cannot reconstruct unavailable old vintages.",
+      "pointInTimeMembership": true,
+      "survivorshipWarning": "SH/SZ membership includes listings and delistings whose lifetime overlaps 2019 onward. Historical ST and trading status are enforced per bar. BJ is excluded because equivalent PIT status coverage is unavailable.",
+      "orders": [],
+      "automaticTradingChanges": []
+    }
+  },
+  "factorAudit": {
+    "factorCount": 12,
+    "factors": [
+      {
+        "factorKey": "gtja191/alpha_070",
+        "direction": -1.0,
+        "baseWeight": 0.10972302839665153,
+        "finiteValues": 6917464
+      },
+      {
+        "factorKey": "gtja191/alpha_052",
+        "direction": -1.0,
+        "baseWeight": 0.09754145388582226,
+        "finiteValues": 6896779
+      },
+      {
+        "factorKey": "qlib158/vstd60",
+        "direction": 1.0,
+        "baseWeight": 0.09596236745725856,
+        "finiteValues": 6866759
+      },
+      {
+        "factorKey": "gtja191/alpha_097",
+        "direction": -1.0,
+        "baseWeight": 0.08407276928311685,
+        "finiteValues": 6913347
+      },
+      {
+        "factorKey": "academic/retskew",
+        "direction": 1.0,
+        "baseWeight": 0.0824076063413904,
+        "finiteValues": 6865876
+      },
+      {
+        "factorKey": "gtja191/alpha_145",
+        "direction": -1.0,
+        "baseWeight": 0.08032135398638528,
+        "finiteValues": 6897722
+      },
+      {
+        "factorKey": "qlib158/cord30",
+        "direction": -1.0,
+        "baseWeight": 0.07947576740718569,
+        "finiteValues": 6893025
+      },
+      {
+        "factorKey": "gtja191/alpha_063",
+        "direction": -1.0,
+        "baseWeight": 0.07819515902290122,
+        "finiteValues": 6922664
+      },
+      {
+        "factorKey": "alpha101/alpha_029",
+        "direction": 1.0,
+        "baseWeight": 0.07519241648411835,
+        "finiteValues": 6912321
+      },
+      {
+        "factorKey": "alpha101/alpha_094",
+        "direction": 1.0,
+        "baseWeight": 0.0730773681113405,
+        "finiteValues": 5530720
+      },
+      {
+        "factorKey": "alpha101/alpha_088",
+        "direction": 1.0,
+        "baseWeight": 0.07243180047084757,
+        "finiteValues": 6915402
+      },
+      {
+        "factorKey": "qlib158/min5",
+        "direction": 1.0,
+        "baseWeight": 0.07159890915298193,
+        "finiteValues": 6918499
+      }
+    ]
+  },
+  "fundamentalAudit": {
+    "schemaVersion": "fundamental_mechanism_event_audit_v1",
+    "status": "research_only",
+    "root": "C:\\Users\\XU XINGJIAN\\Documents\\Codex\\data\\market\\ashare_research\\fundamentals_pit",
+    "symbolsRequested": 4710,
+    "filesFound": 4710,
+    "symbolFileCoverage": 1.0,
+    "statementEvents": 114897,
+    "eventDateStart": "2019-01-02",
+    "eventDateEnd": "2026-08-10",
+    "processingCounts": {
+      "same_day_older_report_used_as_causal_context": 178552,
+      "available_earnings_innovation_reported_net_profit_growth": 110569,
+      "available_earnings_innovation_net_profit_growth_acceleration": 108432,
+      "available_earnings_innovation_eps_yoy_innovation": 108928,
+      "available_earnings_innovation_parent_profit_yoy_innovation": 110392,
+      "available_growth_acceleration_reported_revenue_growth": 110482,
+      "available_growth_acceleration_revenue_growth_acceleration": 108337,
+      "available_growth_acceleration_revenue_ytd_yoy_innovation": 110325,
+      "available_growth_acceleration_asset_turnover_acceleration": 109230,
+      "available_quality_return_on_equity": 111929,
+      "available_quality_net_margin": 114134,
+      "available_cash_flow_quality_operating_cash_to_revenue": 114080,
+      "available_cash_flow_quality_cash_margin_gap": 114080,
+      "accepted_statement_events": 114897,
+      "available_quality_return_on_invested_capital": 111387,
+      "available_quality_gross_margin": 111308,
+      "available_cash_flow_quality_operating_cash_to_profit": 108567,
+      "available_cash_flow_quality_cash_to_profit_improvement": 105878,
+      "non_advancing_report_date_skipped": 3426
+    },
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "reportDateUsedForAvailability": false,
+    "futureRowsWrittenBack": 0
+  },
+  "factorCompletionAudit": {
+    "method": "same_date_cross_sectional_median_rank",
+    "factorCount": 12,
+    "maximumImputedFactorsForEligibility": 2,
+    "neutralFallbackRank": 0.5,
+    "latestEligibleSecurities": 4404,
+    "latestSupportedSecurities": 4335,
+    "latestExcludedForExcessMissing": 69,
+    "latestMissingCountDistribution": {
+      "0": 3777,
+      "1": 554,
+      "2": 4,
+      "3": 40,
+      "4": 5,
+      "5": 1,
+      "6": 12,
+      "7": 4,
+      "8": 2,
+      "9": 2,
+      "11": 3
+    },
+    "strictlyPastOrSameDateOnly": true,
+    "missingnessUsedAsDirectionalFeature": false
+  },
+  "rankingDefinition": {
+    "factorCount": 16,
+    "topCount": 10,
+    "twelveFactorBlockWeight": 0.75,
+    "eachInteractionWeight": 0.0625,
+    "interactionCount": 4,
+    "weightRule": "sixteen_equal_slots_preserve_relative_weights_inside_guarded_twelve_factor_block",
+    "requireAllFourFundamentalInteractions": true,
+    "missingInteractionMayBeImputed": false,
+    "historicalOutcomeMayFitRankingWeights": false,
+    "historicalOutcomeMaySelectInteraction": false,
+    "probabilityStretchingAllowed": false
+  },
+  "weightUpdateCount": 370,
+  "latestTwelveFactorWeights": {
+    "gtja191/alpha_070": 0.11314195094304266,
+    "gtja191/alpha_052": 0.09835556505478767,
+    "qlib158/vstd60": 0.09459503963174432,
+    "gtja191/alpha_097": 0.08701338466868405,
+    "academic/retskew": 0.08161599037067375,
+    "gtja191/alpha_145": 0.07939129582298103,
+    "qlib158/cord30": 0.08070774810865117,
+    "gtja191/alpha_063": 0.07523334602681797,
+    "alpha101/alpha_029": 0.07117623646440478,
+    "alpha101/alpha_094": 0.07127406220780111,
+    "alpha101/alpha_088": 0.07627163475091028,
+    "qlib158/min5": 0.07122374594950133
+  },
+  "fitAudit": {
+    "baseRows": 775200,
+    "baseDays": 1292,
+    "calibrationRows": 268527,
+    "calibrationDays": 63,
+    "returnCoefficients": [
+      0.0014066257611899705,
+      0.0002896107942357215,
+      -0.0004504645051044794,
+      0.0003954895359849589,
+      0.00032812980291868003,
+      -3.9184470053594114e-05,
+      -0.0003556713637839896,
+      -0.00013012778302752464,
+      0.00042943633214155243,
+      6.830149567035389e-05,
+      -0.00012367810704460544,
+      0.00015121384681339293,
+      1.723258495117296e-05,
+      0.00021667666796117697,
+      -0.0001706107434712449,
+      0.0007313573066710603
+    ],
+    "classifierCoefficients": {
+      "grossUp": [
+        0.025459778735781525,
+        0.012068691359752266,
+        0.0330991805199889,
+        0.09597459465642039,
+        0.039453918618632705,
+        0.01850886360993112,
+        0.004034752348062831,
+        0.037728868799572386,
+        0.024695573943298552,
+        -0.006034191295619542,
+        -0.006091186987962745,
+        0.05248487645381747,
+        -0.0029334399167158776,
+        0.016868081111657825,
+        -0.012225849016325164,
+        0.02157746951468901
+      ],
+      "netPositive": [
+        0.030068214418352394,
+        0.006444392920138356,
+        0.013295301590521344,
+        0.04926081242967219,
+        0.02655546286411203,
+        0.02260438312774916,
+        0.0013764991527992286,
+        0.04265087497622489,
+        0.023310661636727497,
+        -0.0015359015160874556,
+        -0.0389896997609447,
+        0.00587278985975018,
+        0.0049270442843338995,
+        0.006412818014426341,
+        -0.0762645106724023,
+        0.019896993060036654
+      ],
+      "severeLoss": [
+        -0.3669249877515388,
+        -0.13414444961440913,
+        -0.15775373999769277,
+        0.001712542154655413,
+        -0.09871192766017056,
+        -0.021356181843973795,
+        -0.03763459987471848,
+        0.038292531291524226,
+        -0.06830970967612988,
+        -0.12732366289060656,
+        -0.37185850368018614,
+        -0.32298656806098247,
+        0.029651660570178477,
+        -0.019812831937870225,
+        -0.4693689023944646,
+        -0.09655982709414038
+      ]
+    }
+  },
+  "returnAmplitudeCalibrationAudit": {
+    "method": "calibration_period_zscore_then_fixed_ridge",
+    "calibrationRows": 268527,
+    "calibrationDays": 63,
+    "rawPredictionMean": 0.000539954339316489,
+    "rawPredictionStd": 0.0005766396297587443,
+    "ridgeAlpha": 10.0,
+    "calibratedCoefficient": 0.0005502203747134905,
+    "calibratedIntercept": 0.0007281831415120746,
+    "standardizationUsesCalibrationPeriodOnly": true
+  },
+  "periodDiagnostics": {
+    "audit": {
+      "rows": 266350,
+      "days": 63,
+      "expectedReturnMse": 0.0010558284,
+      "probability": {
+        "grossUp": {
+          "n": 266350,
+          "events": 128256,
+          "eventRate": 0.48153182,
+          "meanProbability": 0.4891856,
+          "brier": 0.2496581,
+          "logLoss": 0.69246325,
+          "auc": 0.53469722,
+          "ece": 0.00765378
+        },
+        "netPositive": {
+          "n": 266350,
+          "events": 114457,
+          "eventRate": 0.42972405,
+          "meanProbability": 0.44445406,
+          "brier": 0.24525917,
+          "logLoss": 0.68363873,
+          "auc": 0.52624395,
+          "ece": 0.01473001
+        },
+        "severeLoss": {
+          "n": 266350,
+          "events": 24972,
+          "eventRate": 0.09375634,
+          "meanProbability": 0.12119004,
+          "brier": 0.08287387,
+          "logLoss": 0.30168232,
+          "auc": 0.67610824,
+          "ece": 0.03316784
+        }
+      },
+      "top10": {
+        "observations": 630,
+        "signalDays": 63,
+        "meanNamesPerDay": 10.0,
+        "meanGrossReturn": 0.00105832,
+        "meanNetReturn": -0.00194168,
+        "netWinRate": 0.46984127,
+        "nonPositiveRate": 0.45238095,
+        "severeLossRate": 0.05873016,
+        "dailyCvar10": -0.0377788
+      },
+      "spread": {
+        "days": 63,
+        "meanTop10GrossUpSpread": 0.00093021,
+        "medianTop10GrossUpSpread": 0.00086642
+      },
+      "monotonicity": {
+        "decileMeanReturns": {
+          "1": -0.00191397,
+          "2": -0.00033024,
+          "3": 0.00024018,
+          "4": 0.0008654,
+          "5": 0.00113111,
+          "6": 0.00104664,
+          "7": 0.00133907,
+          "8": 0.00151479,
+          "9": 0.00172872,
+          "10": 0.00196983
+        },
+        "spearman": 0.98787879,
+        "adjacentIncreasingFraction": 0.88888889
+      }
+    },
+    "validation": {
+      "rows": 532246,
+      "days": 126,
+      "expectedReturnMse": 0.000886643,
+      "probability": {
+        "grossUp": {
+          "n": 532246,
+          "events": 260659,
+          "eventRate": 0.48973407,
+          "meanProbability": 0.48918121,
+          "brier": 0.24984888,
+          "logLoss": 0.69284488,
+          "auc": 0.52604871,
+          "ece": 0.00055286
+        },
+        "netPositive": {
+          "n": 532246,
+          "events": 230448,
+          "eventRate": 0.43297272,
+          "meanProbability": 0.44445126,
+          "brier": 0.24562838,
+          "logLoss": 0.68438035,
+          "auc": 0.51472052,
+          "ece": 0.01147854
+        },
+        "severeLoss": {
+          "n": 532246,
+          "events": 42341,
+          "eventRate": 0.07955156,
+          "meanProbability": 0.12179671,
+          "brier": 0.07150694,
+          "logLoss": 0.27005191,
+          "auc": 0.73892229,
+          "ece": 0.0478033
+        }
+      },
+      "top10": {
+        "observations": 1260,
+        "signalDays": 126,
+        "meanNamesPerDay": 10.0,
+        "meanGrossReturn": 0.00137914,
+        "meanNetReturn": -0.00162086,
+        "netWinRate": 0.42619048,
+        "nonPositiveRate": 0.47063492,
+        "severeLossRate": 0.00952381,
+        "dailyCvar10": -0.01870723
+      },
+      "spread": {
+        "days": 126,
+        "meanTop10GrossUpSpread": 0.00098751,
+        "medianTop10GrossUpSpread": 0.00095261
+      },
+      "monotonicity": {
+        "decileMeanReturns": {
+          "1": 0.00103325,
+          "2": 0.00212586,
+          "3": 0.00208618,
+          "4": 0.00196926,
+          "5": 0.00232945,
+          "6": 0.00188212,
+          "7": 0.0020513,
+          "8": 0.00191907,
+          "9": 0.00190305,
+          "10": 0.00170394
+        },
+        "spearman": -0.27272727,
+        "adjacentIncreasingFraction": 0.33333333
+      }
+    },
+    "shadow": {
+      "rows": 538260,
+      "days": 128,
+      "expectedReturnMse": 0.001235774,
+      "probability": {
+        "grossUp": {
+          "n": 538260,
+          "events": 250285,
+          "eventRate": 0.46498904,
+          "meanProbability": 0.48918105,
+          "brier": 0.24935343,
+          "logLoss": 0.69185384,
+          "auc": 0.50355676,
+          "ece": 0.02419201
+        },
+        "netPositive": {
+          "n": 538260,
+          "events": 228016,
+          "eventRate": 0.42361684,
+          "meanProbability": 0.44445202,
+          "brier": 0.24459844,
+          "logLoss": 0.68231208,
+          "auc": 0.50201226,
+          "ece": 0.02083518
+        },
+        "severeLoss": {
+          "n": 538260,
+          "events": 77344,
+          "eventRate": 0.14369264,
+          "meanProbability": 0.1216959,
+          "brier": 0.1200027,
+          "logLoss": 0.3986469,
+          "auc": 0.65398513,
+          "ece": 0.02831585
+        }
+      },
+      "top10": {
+        "observations": 1280,
+        "signalDays": 128,
+        "meanNamesPerDay": 10.0,
+        "meanGrossReturn": -0.00024821,
+        "meanNetReturn": -0.00324821,
+        "netWinRate": 0.43203125,
+        "nonPositiveRate": 0.5078125,
+        "severeLossRate": 0.06484375,
+        "dailyCvar10": -0.0301983
+      },
+      "spread": {
+        "days": 130,
+        "meanTop10GrossUpSpread": 0.00097278,
+        "medianTop10GrossUpSpread": 0.00097356
+      },
+      "monotonicity": {
+        "decileMeanReturns": {
+          "1": -0.00080783,
+          "2": -0.0004785,
+          "3": -0.0006258,
+          "4": -0.00080688,
+          "5": -0.00067621,
+          "6": -0.0007154,
+          "7": -0.00065849,
+          "8": -0.00053107,
+          "9": -0.00042685,
+          "10": -0.00033976
+        },
+        "spearman": 0.61212121,
+        "adjacentIncreasingFraction": 0.66666667
+      }
+    }
+  },
+  "forecastReliability": {
+    "status": "low_confidence_diagnostic_estimates_only",
+    "checks": {
+      "validation": {
+        "grossUpAucAtLeast052": true,
+        "severeLossAucAtLeast060": true,
+        "passed": true
+      },
+      "shadow": {
+        "grossUpAucAtLeast052": false,
+        "severeLossAucAtLeast060": true,
+        "passed": false
+      }
+    },
+    "eligibleForTrading": false
+  },
+  "latestForecastDistribution": {
+    "securityCount": 4215,
+    "distinctExpectedReturnsAtEightDecimals": 4172,
+    "expectedReturnMinimum": -0.00075435,
+    "expectedReturnMaximum": 0.00226174,
+    "expectedReturnSpread": 0.00301609,
+    "probabilityUpMinimum": 0.48622263,
+    "probabilityUpMaximum": 0.49155347,
+    "probabilityUpSpread": 0.005330840000000003,
+    "probabilityTailLossMinimum": 0.060738,
+    "probabilityTailLossMaximum": 0.2318397,
+    "probabilityTailLossSpread": 0.17110170000000002,
+    "top10ExpectedReturnSpread": 0.0006500199999999999,
+    "top10ProbabilityUpSpread": 0.0007362999999999675,
+    "top10ProbabilityTailLossSpread": 0.007843749999999997,
+    "mechanicallyStretched": false
+  },
+  "latestTop10": [
+    {
+      "rank": 1,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.600955",
+      "name": "维远股份",
+      "close": 13.1631,
+      "adaptiveFactorScore": 0.83746225,
+      "twelveFactorScore": 0.87693663,
+      "interactionCompositeScore": 0.71903914,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.69015419,
+        "growth_momentum_confirmation": 0.52289444,
+        "quality_low_volatility": 0.72218269,
+        "cash_quality_reversal": 0.94092524
+      },
+      "expectedGrossReturn": 0.00181369,
+      "probabilityUp": 0.49155347,
+      "probabilitySevereLoss": 0.06745887,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 2,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.688334",
+      "name": "西高院",
+      "close": 19.3156,
+      "adaptiveFactorScore": 0.79267645,
+      "twelveFactorScore": 0.77629692,
+      "interactionCompositeScore": 0.84181494,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.79928827,
+        "growth_momentum_confirmation": 0.61043888,
+        "quality_low_volatility": 0.99098456,
+        "cash_quality_reversal": 0.96654803
+      },
+      "expectedGrossReturn": 0.00181895,
+      "probabilityUp": 0.49116982,
+      "probabilitySevereLoss": 0.0621212,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 3,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.603075",
+      "name": "热威股份",
+      "close": 21.009,
+      "adaptiveFactorScore": 0.79072487,
+      "twelveFactorScore": 0.84441447,
+      "interactionCompositeScore": 0.62965602,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.68208778,
+        "growth_momentum_confirmation": 0.1658363,
+        "quality_low_volatility": 0.8332147,
+        "cash_quality_reversal": 0.83748519
+      },
+      "expectedGrossReturn": 0.00155064,
+      "probabilityUp": 0.49136052,
+      "probabilitySevereLoss": 0.06805287,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 4,
+      "signalDate": "2026-08-12",
+      "securityId": "SZ.000027",
+      "name": "深圳能源",
+      "close": 101.9846,
+      "adaptiveFactorScore": 0.78678364,
+      "twelveFactorScore": 0.82021923,
+      "interactionCompositeScore": 0.68647689,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.37864769,
+        "growth_momentum_confirmation": 0.56631082,
+        "quality_low_volatility": 0.95729536,
+        "cash_quality_reversal": 0.84365362
+      },
+      "expectedGrossReturn": 0.00116893,
+      "probabilityUp": 0.49081717,
+      "probabilitySevereLoss": 0.06300723,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 5,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.688128",
+      "name": "中国电研",
+      "close": 25.613,
+      "adaptiveFactorScore": 0.78357893,
+      "twelveFactorScore": 0.80631801,
+      "interactionCompositeScore": 0.71536183,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.51530248,
+        "growth_momentum_confirmation": 0.53879005,
+        "quality_low_volatility": 0.97793597,
+        "cash_quality_reversal": 0.82941872
+      },
+      "expectedGrossReturn": 0.00161212,
+      "probabilityUp": 0.49133509,
+      "probabilitySevereLoss": 0.06329596,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 6,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.603173",
+      "name": "福斯达",
+      "close": 33.7538,
+      "adaptiveFactorScore": 0.78160626,
+      "twelveFactorScore": 0.79724253,
+      "interactionCompositeScore": 0.73469752,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.63558722,
+        "growth_momentum_confirmation": 0.35492289,
+        "quality_low_volatility": 0.96915776,
+        "cash_quality_reversal": 0.97912216
+      },
+      "expectedGrossReturn": 0.00140296,
+      "probabilityUp": 0.49083418,
+      "probabilitySevereLoss": 0.06460495,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 7,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.603856",
+      "name": "东宏股份",
+      "close": 17.3352,
+      "adaptiveFactorScore": 0.77952844,
+      "twelveFactorScore": 0.81979833,
+      "interactionCompositeScore": 0.65871888,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.44911033,
+        "growth_momentum_confirmation": 0.31981021,
+        "quality_low_volatility": 0.90035588,
+        "cash_quality_reversal": 0.96559906
+      },
+      "expectedGrossReturn": 0.00147429,
+      "probabilityUp": 0.49110078,
+      "probabilitySevereLoss": 0.06610738,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 8,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.601033",
+      "name": "永兴股份",
+      "close": 15.967,
+      "adaptiveFactorScore": 0.77798396,
+      "twelveFactorScore": 0.76012733,
+      "interactionCompositeScore": 0.83155394,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.66951364,
+        "growth_momentum_confirmation": 0.69489914,
+        "quality_low_volatility": 0.98932385,
+        "cash_quality_reversal": 0.97247922
+      },
+      "expectedGrossReturn": 0.00165236,
+      "probabilityUp": 0.49097379,
+      "probabilitySevereLoss": 0.06936878,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 9,
+      "signalDate": "2026-08-12",
+      "securityId": "SZ.000819",
+      "name": "岳阳兴长",
+      "close": 64.823,
+      "adaptiveFactorScore": 0.77631813,
+      "twelveFactorScore": 0.81415373,
+      "interactionCompositeScore": 0.6628114,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.51696324,
+        "growth_momentum_confirmation": 0.55112696,
+        "quality_low_volatility": 0.61613286,
+        "cash_quality_reversal": 0.96702254
+      },
+      "expectedGrossReturn": 0.00165915,
+      "probabilityUp": 0.49125067,
+      "probabilitySevereLoss": 0.06996495,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    },
+    {
+      "rank": 10,
+      "signalDate": "2026-08-12",
+      "securityId": "SH.600283",
+      "name": "钱江水利",
+      "close": 14.9555,
+      "adaptiveFactorScore": 0.7760976,
+      "twelveFactorScore": 0.79120249,
+      "interactionCompositeScore": 0.73078293,
+      "interactionRanks": {
+        "earnings_volume_confirmation": 0.47473308,
+        "growth_momentum_confirmation": 0.71625149,
+        "quality_low_volatility": 0.97959667,
+        "cash_quality_reversal": 0.75255042
+      },
+      "expectedGrossReturn": 0.00173843,
+      "probabilityUp": 0.49117176,
+      "probabilitySevereLoss": 0.0648751,
+      "factorCount": 16,
+      "imputedFactorCount": 0,
+      "factorCompletion": "all_four_interactions_present_price_factors_complete",
+      "estimateSource": "sixteen_factor_fundamental_interaction_multivariate_calibrated",
+      "status": "diagnostic_only_reranked_not_an_order"
+    }
+  ],
+  "latestAllForecastCount": 4215,
+  "historicalRunCanPromote": false,
+  "eligibleForTrading": false,
+  "orders": [],
+  "automaticTradingChanges": []
+}

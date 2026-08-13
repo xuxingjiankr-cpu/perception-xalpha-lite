@@ -63,6 +63,21 @@ remain the stable primary contract.
 Displayed deltas are measured against the primary values in the same dashboard
 snapshot, while the interaction run's own baseline is retained as provenance.
 
+## Sixteen-factor challenger ranking
+
+The dashboard can alternatively be published from a full cross-sectional
+reranking that combines the existing guarded twelve-factor score with all four
+interactions. The frozen aggregation gives the twelve-factor block 75% and
+each interaction 6.25%. This is equivalent to sixteen equal factor slots while
+preserving the relative weights already used inside the guarded twelve-factor
+block. None of these five block weights is fitted from historical outcomes.
+
+Every ranked security must have all four PIT interaction ranks. Missing
+fundamental interactions fail closed rather than being imputed. The resulting
+Top10 is explicitly labelled `16 factors (12 + 4 interactions)` and remains a
+research-only challenger: reranking the dashboard does not alter any order,
+position, execution lock, risk gate or trading configuration.
+
 ## Open the page
 
 Double-click `打开股票预测观察台.cmd` in the repository root. The launcher
@@ -94,9 +109,8 @@ published without rerunning the model:
 py -3.13 scripts/stock_forecast_dashboard.py publish --result <run-directory>\result.json
 ```
 
-To generate the complete twelve-factor forecast, run the frozen interaction
-research, verify the signal-date and Top10 identity, and publish both layers in
-one fail-closed job:
+To generate the full sixteen-factor challenger ranking and publish it to the
+read-only dashboard in one fail-closed job:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\run_stock_forecast_with_fundamental_interactions.ps1

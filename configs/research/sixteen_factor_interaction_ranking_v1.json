@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "sixteen_factor_interaction_ranking_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Rerank the complete PIT-supported A-share cross-section using the existing guarded twelve-factor score plus four preregistered fundamental by price-volume interaction ranks.",
+  "sourceInteractionConfig": "configs/research/twelve_factor_fundamental_price_interactions_v1.json",
+  "sourceInteractionConfigSha256": "2dcd0754bbce4cc03782a68538b1920599620e14a8a40ae7bedf249d8170c15e",
+  "ranking": {
+    "factorCount": 16,
+    "topCount": 10,
+    "twelveFactorBlockWeight": 0.75,
+    "eachInteractionWeight": 0.0625,
+    "interactionCount": 4,
+    "weightRule": "sixteen_equal_slots_preserve_relative_weights_inside_guarded_twelve_factor_block",
+    "requireAllFourFundamentalInteractions": true,
+    "missingInteractionMayBeImputed": false,
+    "historicalOutcomeMayFitRankingWeights": false,
+    "historicalOutcomeMaySelectInteraction": false,
+    "probabilityStretchingAllowed": false
+  },
+  "output": {
+    "root": "outputs/edge_research/sixteen_factor_interaction_ranking_v1",
+    "publishReadOnlyDashboard": true,
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
