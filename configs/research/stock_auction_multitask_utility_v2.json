@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "stock_auction_multitask_utility_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Correct the V1 winner-ranker lottery-stock failure with one preregistered shallow nonlinear model that jointly ranks probability of an up day, expected open-to-close return and avoidance of a severe left-tail loss.",
+  "sourceAuctionConfig": "configs/research/stock_auction_signal_amplification_v1.json",
+  "sourceWinCaptureConfig": "configs/research/stock_top10_win_capture_weights_v2.json",
+  "failureBeingCorrected": {
+    "runId": "run_20260814_auction_signal_amplification_v1",
+    "diagnosis": "Winner-only pairwise ranking raised mean gross return while lowering win rate and tripling severe-loss frequency; it selected high-volatility lottery exposures.",
+    "parametersChosenFromFailureMetrics": false,
+    "singleNewCandidate": true
+  },
+  "timing": {
+    "featureTimestamp": "session_d_opening_auction_complete_09_25",
+    "label": "session_d_close_div_open_minus_one",
+    "dailyOpenIsNotExecutableAuctionFill": true,
+    "sameDayHighLowCloseVolumeAmountForbiddenFromFeatures": true
+  },
+  "training": {
+    "lookbackTradingDays": 504,
+    "refitEveryTradingDays": 63,
+    "outerPurgeTradingDays": 10,
+    "calibrationTradingDays": 63,
+    "innerPurgeTradingDays": 2,
+    "maximumRowsPerTradingDay": 500,
+    "randomSeed": 20260814,
+    "winsorQuantiles": [0.005, 0.995],
+    "minimumCalibrationEvents": 50
+  },
+  "model": {
+    "kind": "three_independent_shallow_hist_gradient_boosting_heads",
+    "heads": ["probability_up", "expected_return", "probability_severe_loss"],
+    "learningRate": 0.04,
+    "maxIter": 100,
+    "maxLeafNodes": 15,
+    "minSamplesLeaf": 500,
+    "l2Regularization": 5.0,
+    "severeLossThreshold": -0.03,
+    "probabilityCalibration": "train_only_isotonic_or_constant_prior",
+    "returnCalibration": "train_only_positive_slope_ridge_or_constant_mean"
+  },
+  "utility": {
+    "probabilityUpRankWeight": 0.55,
+    "expectedReturnRankWeight": 0.30,
+    "tailSafetyRankWeight": 0.15,
+    "weightsFrozenBeforeRun": true,
+    "crossSectionalRanksOnly": true
+  },
+  "evaluation": {
+    "topCount": 10,
+    "roundTripCost": 0.003,
+    "minimumWinRateImprovementPercentagePoints": 1.0,
+    "minimumMeanGrossImprovementBps": 5.0,
+    "requireMeanPercentileImprovement": true,
+    "requireSevereLossNotWorse": true,
+    "requireMajorityBlocksImproveWinRate": true,
+    "requireMajorityBlocksImproveMeanGross": true,
+    "sameAuctionTimeSupportAsControl": true,
+    "unresolvedSelectedNameMayBeReplaced": false,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_multitask_utility_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}

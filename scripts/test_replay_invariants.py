@@ -12779,6 +12779,213 @@ def t155_win_capture_weights_are_purged_bounded_and_fixed_count() -> None:
     )
 
 
+def t156_auction_signal_amplification_is_causal_routed_and_nontrading() -> None:
+    """Auction-time features may use the open, but no later field or trading hook."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_stock_auction_signal_amplification_v1 as auction
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_signal_amplification_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    auction.validate_config(config)
+    dates = pd.bdate_range("2025-09-01", periods=180)
+    columns = [f"SZ.{value:06d}" for value in range(1, 201)]
+    cross_section = np.linspace(-1.0, 1.0, len(columns))
+    close = pd.DataFrame(
+        np.tile(
+            10.0 + np.arange(len(dates), dtype=float)[:, None] * 0.01,
+            (1, len(columns)),
+        ),
+        index=dates,
+        columns=columns,
+    )
+    gap = np.tile(cross_section * 0.02, (len(dates), 1))
+    open_price = close.shift(1).fillna(close.iloc[0]).mul(1.0 + gap)
+    amount = pd.DataFrame(1e9, index=dates, columns=columns)
+    base_true = pd.DataFrame(True, index=dates, columns=columns)
+    panel = {
+        "open": open_price,
+        "high": open_price * 1.02,
+        "low": open_price * 0.98,
+        "close": close,
+        "volume": amount / 10.0,
+        "amount": amount,
+        "returns": close.pct_change(fill_method=None),
+        "membership": base_true,
+        "trade_status": base_true.astype(float),
+        "is_st": (~base_true).astype(float),
+    }
+    universe = {
+        "pointInTimeAmountWindow": 20,
+        "pointInTimeMinimumHistory": 20,
+        "pointInTimeMinimumAmount": 1e6,
+    }
+    opening = auction.opening_time_mask(panel, universe, config)
+    prior_score = pd.DataFrame(
+        np.tile(np.linspace(0.0, 1.0, len(columns)), (len(dates), 1)),
+        index=dates,
+        columns=columns,
+    )
+    features, _route, _outcome, _complete = auction.build_execution_features(
+        panel, prior_score, opening, config
+    )
+    revised = {key: value.copy() for key, value in panel.items()}
+    revised["high"].loc[dates[-1]] *= 4.0
+    revised["low"].loc[dates[-1]] *= 0.2
+    revised["close"].loc[dates[-1]] *= 3.0
+    revised["volume"].loc[dates[-1]] *= 9.0
+    revised["amount"].loc[dates[-1]] *= 9.0
+    opening_revised = auction.opening_time_mask(revised, universe, config)
+    revised_features, _revised_route, _revised_outcome, _revised_complete = (
+        auction.build_execution_features(revised, prior_score, opening_revised, config)
+    )
+    check(
+        "T156 current high/low/close/volume/amount cannot revise auction-time selection",
+        opening.loc[dates[-1]].equals(opening_revised.loc[dates[-1]])
+        and all(
+            features[name].loc[dates[-1]].equals(
+                revised_features[name].loc[dates[-1]]
+            )
+            for name in features
+        ),
+    )
+    rng = np.random.default_rng(156)
+    fit_features = {
+        name: pd.DataFrame(
+            rng.normal(0.0, 0.1, size=(40, len(columns))),
+            index=dates[:40],
+            columns=columns,
+        )
+        for name in config["features"]["ordered"]
+    }
+    planted = pd.DataFrame(
+        np.tile(cross_section, (40, 1)), index=dates[:40], columns=columns
+    )
+    fit_features["overnight_gap_robust_z"] = planted
+    fit_outcome = planted * 0.04
+    coefficient, audit = auction.fit_coefficients(
+        fit_features, fit_outcome, dates[:40], config
+    )
+    gap_position = config["features"]["ordered"].index(
+        "overnight_gap_robust_z"
+    )
+    check(
+        "T156 pairwise auction ranker learns planted opening information",
+        audit["success"] is True and coefficient[gap_position] > 0.0,
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_signal_amplification_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T156 auction routing stays fixed purged historical research",
+        int(config["training"]["purgeTradingDays"]) == 10
+        and config["preregisteredHypothesis"]["validationMayTune"] is False
+        and config["features"]["futureDailyHighLowCloseVolumeForbidden"] is True
+        and config["evaluation"]["sameAuctionTimeSupportForControlAndCandidates"]
+        is True
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and config["timing"]["dailyOpenIsNotExecutableAuctionFill"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
+def t157_auction_multitask_utility_is_frozen_causal_and_nontrading() -> None:
+    """The V2 correction is one frozen multi-head utility, never a tuning menu."""
+    import json
+
+    import pandas as pd
+    import research_stock_auction_multitask_utility_v2 as multitask
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_multitask_utility_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    multitask.validate_config(config)
+    dates = pd.bdate_range("2026-01-05", periods=5)
+    columns = ["SZ.000001", "SZ.000002", "SZ.000003"]
+    complete = pd.DataFrame(True, index=dates, columns=columns)
+    gap = pd.DataFrame(
+        [[-0.5, 0.0, 0.5]] * len(dates), index=dates, columns=columns
+    )
+    base = {
+        name: pd.DataFrame(0.0, index=dates, columns=columns)
+        for name in (
+            "prior_close_rank",
+            "overnight_gap_robust_z",
+            "overnight_gap_abs_rank",
+            "prior_intraday_rank",
+            "prior_volatility_rank",
+            "prior_liquidity_rank",
+            "prior_score_x_gap",
+        )
+    }
+    base["overnight_gap_robust_z"] = gap
+    route = pd.Series("negative_gap_quiet", index=dates)
+    features = multitask.model_features(base, route, complete)
+    check(
+        "T157 asymmetric auction features separate reversal from momentum",
+        features["negative_gap_reversal"].loc[dates[0], "SZ.000001"] == 0.5
+        and features["negative_gap_reversal"].loc[dates[0], "SZ.000003"] == 0.0
+        and features["positive_gap_momentum"].loc[dates[0], "SZ.000001"] == 0.0
+        and features["positive_gap_momentum"].loc[dates[0], "SZ.000003"] == 0.5,
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_multitask_utility_v2.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T157 multitask auction utility is one purged frozen nontrading candidate",
+        config["failureBeingCorrected"]["singleNewCandidate"] is True
+        and config["failureBeingCorrected"]["parametersChosenFromFailureMetrics"]
+        is False
+        and int(config["training"]["outerPurgeTradingDays"]) == 10
+        and int(config["training"]["innerPurgeTradingDays"]) == 2
+        and config["utility"]["weightsFrozenBeforeRun"] is True
+        and abs(
+            sum(
+                float(value)
+                for key, value in config["utility"].items()
+                if key.endswith("RankWeight")
+            )
+            - 1.0
+        )
+        < 1e-12
+        and config["timing"][
+            "sameDayHighLowCloseVolumeAmountForbiddenFromFeatures"
+        ]
+        is True
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12928,6 +13135,8 @@ if __name__ == "__main__":
     t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only()
     t154_sixteen_factor_daily_accountability_abstains_and_is_idempotent()
     t155_win_capture_weights_are_purged_bounded_and_fixed_count()
+    t156_auction_signal_amplification_is_causal_routed_and_nontrading()
+    t157_auction_multitask_utility_is_frozen_causal_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

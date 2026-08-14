@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "stock_auction_signal_amplification_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether information first observable at the next A-share opening auction amplifies the frozen prior-close sixteen-factor Top10 rank, and whether a causal market-state router improves that auction-time rank.",
+  "sourceWinCaptureConfig": "configs/research/stock_top10_win_capture_weights_v2.json",
+  "preregisteredHypothesis": {
+    "informationGap": "A prior-close model cannot observe overnight news, the auction clearing gap or cross-sectional opening pressure. Signal scaling alone cannot recover that missing information.",
+    "globalClaim": "A regularized pairwise ranker combining the frozen prior-close rank with opening-auction gap, prior intraday path, volatility and liquidity improves next-session open-to-close Top10 win rate and gross return.",
+    "routedClaim": "A causal router based only on the contemporaneously observed cross-sectional opening gap and a lagged dispersion threshold improves on the global ranker under non-stationary trading patterns.",
+    "parametersFrozenBeforeRun": true,
+    "historicalOutcomeMaySelectObjective": false,
+    "validationMayTune": false
+  },
+  "timing": {
+    "priorScoreTimestamp": "session_t_close",
+    "newInformationTimestamp": "session_t_plus_1_opening_auction_complete_09_25",
+    "hypotheticalEntryTimestamp": "session_t_plus_1_continuous_market_open_after_09_30",
+    "exitTimestamp": "session_t_plus_1_close",
+    "label": "close_t_plus_1_div_open_t_plus_1_minus_one",
+    "dailyOpenIsNotExecutableAuctionFill": true,
+    "historicalDailyBarsOnlySupportFeasibility": true
+  },
+  "training": {
+    "lookbackTradingDays": 504,
+    "refitEveryTradingDays": 63,
+    "purgeTradingDays": 10,
+    "winnerCount": 10,
+    "nearZeroNonPositiveCount": 10,
+    "worstLossCount": 10,
+    "minimumCrossSectionRows": 100,
+    "pairwiseMarginScale": 3.0,
+    "l2ShrinkageToPrior": 1.0,
+    "routeCoefficientWeight": 0.5,
+    "minimumRouteTradingDays": 60,
+    "dispersionHistoryTradingDays": 126
+  },
+  "features": {
+    "ordered": [
+      "prior_close_rank",
+      "overnight_gap_robust_z",
+      "overnight_gap_abs_rank",
+      "prior_intraday_rank",
+      "prior_volatility_rank",
+      "prior_liquidity_rank",
+      "prior_score_x_gap"
+    ],
+    "allPastOrAuctionTimeOnly": true,
+    "futureDailyHighLowCloseVolumeForbidden": true,
+    "futureOutcomeForbidden": true
+  },
+  "routes": [
+    "negative_gap_quiet",
+    "negative_gap_stressed",
+    "nonnegative_gap_quiet",
+    "nonnegative_gap_stressed"
+  ],
+  "evaluation": {
+    "candidateOrder": [
+      "auction_pairwise_global",
+      "auction_pairwise_routed"
+    ],
+    "topCount": 10,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "minimumWinRateImprovementPercentagePoints": 1.0,
+    "minimumMeanGrossImprovementBps": 5.0,
+    "requireMeanPercentileImprovement": true,
+    "requireSevereLossNotWorse": true,
+    "requireMajorityBlocksImproveWinRate": true,
+    "requireMajorityBlocksImproveMeanGross": true,
+    "sameAuctionTimeSupportForControlAndCandidates": true,
+    "unresolvedSelectedNameMayBeReplaced": false,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "boardLimits": {
+    "SH_MAIN": 0.10,
+    "SZ_MAIN": 0.10,
+    "STAR": 0.20,
+    "CHINEXT": 0.20
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_signal_amplification_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
