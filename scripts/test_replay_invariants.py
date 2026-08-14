@@ -12680,6 +12680,105 @@ def t154_sixteen_factor_daily_accountability_abstains_and_is_idempotent() -> Non
     )
 
 
+def t155_win_capture_weights_are_purged_bounded_and_fixed_count() -> None:
+    """Accuracy-first weights must reward planted winners without reducing picks."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_stock_top10_win_capture_weights_v2 as capture
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_top10_win_capture_weights_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    capture.validate_config(config)
+    dates = pd.bdate_range("2026-01-05", periods=24)
+    columns = [f"SZ.{value:06d}" for value in range(1, 201)]
+    planted = np.linspace(0.0, 1.0, len(columns))
+    rng = np.random.default_rng(155)
+    features = {
+        "planted": pd.DataFrame(
+            np.tile(planted, (len(dates), 1)), index=dates, columns=columns
+        )
+    }
+    for index in range(11):
+        features[f"price_noise_{index}"] = pd.DataFrame(
+            rng.uniform(0.0, 1.0, size=(len(dates), len(columns))),
+            index=dates,
+            columns=columns,
+        )
+    for index in range(4):
+        features[f"interaction/noise_{index}"] = pd.DataFrame(
+            rng.uniform(0.0, 1.0, size=(len(dates), len(columns))),
+            index=dates,
+            columns=columns,
+        )
+    outcome = pd.DataFrame(
+        np.tile((planted - 0.5) * 0.08, (len(dates), 1)),
+        index=dates,
+        columns=columns,
+    )
+    prior = np.full(16, 1.0 / 16.0)
+    weight, audit = capture.fit_weights(
+        features,
+        outcome,
+        dates,
+        prior,
+        config["factorSets"]["current_16_reweighted"],
+        config,
+    )
+    score = capture.weighted_score(features, weight)
+    candidate = capture.metrics(outcome, score, dates, config)
+    inverse = capture.metrics(outcome, -score, dates, config)
+    check(
+        "T155 winner objective upweights planted ranking under a positive bounded simplex",
+        audit["success"] is True
+        and weight[0] > prior[0]
+        and abs(float(weight.sum()) - 1.0) < 1e-8
+        and float(weight.min()) >= config["training"]["minimumFactorWeight"] - 1e-9
+        and float(weight.max()) <= config["training"]["maximumFactorWeight"] + 1e-9,
+    )
+    check(
+        "T155 evaluation always selects ten and measures positive and strong-winner capture",
+        candidate["selectedRows"] == len(dates) * 10
+        and inverse["selectedRows"] == len(dates) * 10
+        and candidate["grossUpRate"] > inverse["grossUpRate"]
+        and candidate["meanReturnPercentile"] > inverse["meanReturnPercentile"]
+        and candidate["trueMarketTop10OverlapRate"]
+        > inverse["trueMarketTop10OverlapRate"],
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_top10_win_capture_weights_v2.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T155 weight and factor challengers remain purged historical shadow research",
+        int(config["training"]["purgeTradingDays"]) == 10
+        and config["outcome"]["definition"]
+        == "close_t_plus_1_div_open_t_plus_1_minus_one"
+        and config["outcome"]["futureTradabilityMayFilterSelectionBeforeRanking"]
+        is False
+        and config["outcome"]["unresolvedSelectedNameMayBeReplaced"] is False
+        and config["training"]["historicalOutcomeMaySelectObjective"] is False
+        and config["training"]["sameDayLossMayChangeWeights"] is False
+        and config["evaluation"]["historicalWindowsAlreadyViewed"] is True
+        and config["evaluation"]["freshForwardRequiredForPromotion"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -12828,6 +12927,7 @@ if __name__ == "__main__":
     t152_sixteen_factor_ranking_is_fixed_complete_and_nontrading()
     t153_sixteen_factor_weight_fit_is_purged_bounded_and_reject_only()
     t154_sixteen_factor_daily_accountability_abstains_and_is_idempotent()
+    t155_win_capture_weights_are_purged_bounded_and_fixed_count()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

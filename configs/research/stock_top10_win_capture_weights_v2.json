@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "stock_top10_win_capture_weights_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether a fixed accuracy-first objective can improve both Top10 positive-return rate and strong-winner capture, first by reweighting the current sixteen features and then by preregistered fundamental-family replacement or extension.",
+  "sourceWeightConfig": "configs/research/sixteen_factor_walkforward_weights_v1.json",
+  "candidateOrder": [
+    "current_16_reweighted",
+    "replace_interactions_with_direct_fundamentals_16",
+    "price_fundamental_interaction_20"
+  ],
+  "outcome": {
+    "signalTimestamp": "session_t_close",
+    "entryTimestamp": "next_session_buyable_open",
+    "exitTimestamp": "same_next_session_sellable_close",
+    "definition": "close_t_plus_1_div_open_t_plus_1_minus_one",
+    "futureTradabilityMayFilterTrainingLabels": true,
+    "futureTradabilityMayFilterSelectionBeforeRanking": false,
+    "unresolvedSelectedNameMayBeReplaced": false
+  },
+  "training": {
+    "method": "bounded_daily_equal_positive_winner_vs_nonpositive_and_tail_pairwise_logistic",
+    "lookbackTradingDays": 504,
+    "refitEveryTradingDays": 63,
+    "purgeTradingDays": 10,
+    "winnerCount": 10,
+    "nearZeroNonPositiveCount": 10,
+    "worstLossCount": 10,
+    "minimumCrossSectionRows": 100,
+    "minimumFactorWeight": 0.01,
+    "maximumFactorWeight": 0.15,
+    "l2ShrinkageToPrior": 0.1,
+    "pairwiseMarginScale": 5.0,
+    "historicalOutcomeMaySelectObjective": false,
+    "validationOrShadowMayTuneHyperparameters": false,
+    "sameDayLossMayChangeWeights": false
+  },
+  "factorSets": {
+    "current_16_reweighted": {
+      "priceBlockPrior": 0.75,
+      "directFundamentalBlockPrior": 0.0,
+      "interactionBlockPrior": 0.25,
+      "nonPriceBlockMinimum": 0.15,
+      "nonPriceBlockMaximum": 0.4
+    },
+    "replace_interactions_with_direct_fundamentals_16": {
+      "priceBlockPrior": 0.75,
+      "directFundamentalBlockPrior": 0.25,
+      "interactionBlockPrior": 0.0,
+      "nonPriceBlockMinimum": 0.15,
+      "nonPriceBlockMaximum": 0.4
+    },
+    "price_fundamental_interaction_20": {
+      "priceBlockPrior": 0.6,
+      "directFundamentalBlockPrior": 0.2,
+      "interactionBlockPrior": 0.2,
+      "nonPriceBlockMinimum": 0.25,
+      "nonPriceBlockMaximum": 0.5
+    }
+  },
+  "evaluation": {
+    "topCount": 10,
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "topReturnDecileThreshold": 0.9,
+    "requireGrossUpRateImprovement": true,
+    "requireMeanGrossReturnImprovement": true,
+    "requireMeanReturnPercentileImprovement": true,
+    "requireTrueTop10OverlapImprovement": true,
+    "requireSevereLossNotWorse": true,
+    "requireMajorityWalkForwardBlocksImproveUpRate": true,
+    "requireMajorityWalkForwardBlocksImproveGross": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true,
+    "reportHindsightAndTrailingOnIdenticalDates": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_top10_win_capture_weights_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
