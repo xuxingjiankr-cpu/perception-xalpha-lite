@@ -12986,6 +12986,69 @@ def t157_auction_multitask_utility_is_frozen_causal_and_nontrading() -> None:
     )
 
 
+def t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading() -> None:
+    """V3 keeps raw rank separation and may abstain without touching trading."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_stock_auction_ranked_abstention_v3 as v3
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_ranked_abstention_v3.json"
+        ).read_text(encoding="utf-8")
+    )
+    v3.validate_config(config)
+    utility = v3.raw_ranked_utility(
+        np.array([0.51, 0.52, 0.53]),
+        np.array([0.02, 0.00, 0.01]),
+        np.array([0.04, 0.06, 0.02]),
+        config["ranking"],
+    )
+    eligible = v3.opportunity_mask(
+        np.array([0.53, 0.53, 0.50]),
+        np.array([0.001, 0.001, 0.001]),
+        np.array([0.02, 0.09, 0.02]),
+        config["opportunityFilter"],
+    )
+    check(
+        "T158 raw auction heads retain separation while calibrated gate may abstain",
+        len(np.unique(utility)) == 3
+        and eligible.tolist() == [True, False, False]
+        and config["ranking"]["calibratedValuesMayDetermineRankOrder"] is False
+        and config["opportunityFilter"]["maySelectFewerThanMaximum"] is True
+        and config["opportunityFilter"]["mayAbstainEntireDay"] is True,
+    )
+    dates = pd.bdate_range("2026-01-05", periods=2)
+    columns = ["A", "B", "C"]
+    score = pd.DataFrame([[3.0, 2.0, np.nan], [np.nan, np.nan, np.nan]], index=dates, columns=columns)
+    control = pd.DataFrame([[1.0, 3.0, 2.0], [1.0, 2.0, 3.0]], index=dates, columns=columns)
+    support = pd.DataFrame(1.0, index=dates, columns=columns)
+    matched = v3.matched_control_score(control, support, score, 10)
+    source = (
+        ROOT / "scripts" / "research_stock_auction_ranked_abstention_v3.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T158 matched control uses identical daily count and V3 is research-only",
+        matched.notna().sum(axis=1).tolist() == [2, 0]
+        and config["evaluation"]["matchedCoverageControlRequired"] is True
+        and config["failureBeingCorrected"]["historicalWindowAlreadyViewed"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13137,6 +13200,7 @@ if __name__ == "__main__":
     t155_win_capture_weights_are_purged_bounded_and_fixed_count()
     t156_auction_signal_amplification_is_causal_routed_and_nontrading()
     t157_auction_multitask_utility_is_frozen_causal_and_nontrading()
+    t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

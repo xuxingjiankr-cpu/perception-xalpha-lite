@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "stock_auction_ranked_abstention_v3",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Preserve auction cross-sectional discrimination by ranking raw out-of-fold head outputs while using separately calibrated probabilities only as a fixed opportunity filter and report layer.",
+  "sourceMultitaskConfig": "configs/research/stock_auction_multitask_utility_v2.json",
+  "failureBeingCorrected": {
+    "diagnosis": "Monotone isotonic calibration formed a wide top plateau, so calibrated-rank Top10 membership could be arbitrary even when raw model outputs differed.",
+    "parametersFrozenBeforeRun": true,
+    "singleCandidate": true,
+    "historicalWindowAlreadyViewed": true,
+    "freshForwardRequired": true
+  },
+  "ranking": {
+    "source": "raw_out_of_fold_head_predictions",
+    "probabilityUpRankWeight": 0.55,
+    "expectedReturnRankWeight": 0.30,
+    "tailSafetyRankWeight": 0.15,
+    "calibratedValuesMayDetermineRankOrder": false,
+    "weightsReusedUnchangedFromV2": true
+  },
+  "opportunityFilter": {
+    "minimumCalibratedProbabilityUp": 0.52,
+    "minimumCalibratedExpectedGrossReturn": 0.0,
+    "maximumCalibratedSevereLossProbability": 0.08,
+    "maximumSelectionsPerDay": 10,
+    "maySelectFewerThanMaximum": true,
+    "mayAbstainEntireDay": true,
+    "thresholdsFrozenBeforeRun": true
+  },
+  "evaluation": {
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "minimumWinRateImprovementPercentagePoints": 1.0,
+    "minimumMeanGrossImprovementBps": 5.0,
+    "minimumActiveDayRate": 0.30,
+    "minimumAverageSelectionsPerActiveDay": 3.0,
+    "requireMeanPercentileImprovement": true,
+    "requireSevereLossNotWorse": true,
+    "requireMajorityBlocksImproveWinRate": true,
+    "requireMajorityBlocksImproveMeanGross": true,
+    "matchedCoverageControlRequired": true,
+    "unresolvedSelectedNameMayBeReplaced": false,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_ranked_abstention_v3",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
