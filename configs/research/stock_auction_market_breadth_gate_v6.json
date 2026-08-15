@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "stock_auction_market_breadth_gate_v6",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test one hierarchical win-rate hypothesis: retain the frozen V5 stock ranker and abstain on days whose 09:25 all-market auction breadth does not belong to a train-only reliable market-up cohort.",
+  "sourceExpandedPitConfig": "configs/research/stock_auction_expanded_pit_win_v5.json",
+  "preregisteredHypothesis": {
+    "singleCandidate": true,
+    "parametersFrozenBeforeRun": true,
+    "historicalWindowAlreadyViewed": true,
+    "validationMayTune": false,
+    "freshForwardRequired": true,
+    "v5StockModelAndReliabilityUnchanged": true
+  },
+  "dayGate": {
+    "label": "same_session_eligible_cross_section_up_fraction_strictly_above_one_half",
+    "minimumCrossSectionRows": 100,
+    "featureColumns": [
+      "auction_positive_gap_breadth",
+      "auction_median_gap",
+      "auction_gap_iqr",
+      "auction_large_positive_gap_breadth",
+      "auction_large_negative_gap_breadth",
+      "prior_session_intraday_up_breadth"
+    ],
+    "largeGapAbsoluteThreshold": 0.01,
+    "model": "l2_logistic_regression",
+    "regularizationC": 0.1,
+    "maximumIterations": 1000,
+    "trainingMedianImputation": true,
+    "trainingOnlyStandardization": true,
+    "calibrationScoreCutoff": "median_raw_probability",
+    "minimumCalibrationSelectedDays": 20,
+    "oneSidedConfidenceLevel": 0.90,
+    "oneSidedNormalCriticalValue": 1.2815515655446004,
+    "minimumCalibrationWinRateLowerBound": 0.50,
+    "minimumEnabledWalkForwardBlocks": 3
+  },
+  "timing": {
+    "auctionFeaturesAvailableBy": "09:25_Asia_Shanghai",
+    "priorSessionFeatureShift": 1,
+    "sameSessionCloseHighLowVolumeAmountForbidden": true,
+    "labelMayBeUsedOnlyInsideHistoricalTrainingRows": true
+  },
+  "evaluation": {
+    "matchedCoverageControlRequired": true,
+    "sameSupportAndDailyCountRequired": true,
+    "v4AcceptanceChecksRemainRequired": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_market_breadth_gate_v6",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}

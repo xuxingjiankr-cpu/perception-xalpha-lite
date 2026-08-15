@@ -13165,6 +13165,84 @@ def t160_auction_expanded_pit_features_are_lagged_and_nontrading() -> None:
     )
 
 
+def t161_auction_market_breadth_gate_is_point_in_time_and_nontrading() -> None:
+    """V6 can use the opening auction, while the same day's close remains label-only."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_stock_auction_market_breadth_gate_v6 as v6
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_market_breadth_gate_v6.json"
+        ).read_text(encoding="utf-8")
+    )
+    v6.validate_config(config)
+    dates = pd.bdate_range("2026-01-05", periods=3)
+    columns = [f"SZ.{number:06d}" for number in range(120)]
+    open_price = pd.DataFrame(
+        np.repeat(np.array([[100.0], [102.0], [103.0]]), len(columns), axis=1),
+        index=dates,
+        columns=columns,
+    )
+    close = pd.DataFrame(
+        np.repeat(np.array([[101.0], [99.0], [104.0]]), len(columns), axis=1),
+        index=dates,
+        columns=columns,
+    )
+    panel = {"open": open_price, "close": close}
+    support = pd.DataFrame(True, index=dates, columns=columns)
+    outcome = close.div(open_price) - 1.0
+    features, label = v6.build_day_table(panel, support, support, outcome, config)
+    original = features.loc[dates[1]].copy()
+    revised_close = close.copy()
+    revised_close.loc[dates[1]] = 200.0
+    revised_outcome = revised_close.div(open_price) - 1.0
+    revised_features, revised_label = v6.build_day_table(
+        {"open": open_price, "close": revised_close},
+        support,
+        support,
+        revised_outcome,
+        config,
+    )
+    missing_label_outcome = outcome.copy()
+    missing_label_outcome.loc[dates[1]] = np.nan
+    feature_without_label, missing_label = v6.build_day_table(
+        panel, support, support, missing_label_outcome, config
+    )
+    check(
+        "T161 same-day close changes the offline label but not 09:25 features",
+        np.allclose(original.to_numpy(), revised_features.loc[dates[1]].to_numpy())
+        and float(label.loc[dates[1]]) == 0.0
+        and float(revised_label.loc[dates[1]]) == 1.0
+        and feature_without_label.loc[dates[1]].notna().all()
+        and pd.isna(missing_label.loc[dates[1]]),
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_market_breadth_gate_v6.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T161 auction breadth gate is frozen matched-control research only",
+        config["preregisteredHypothesis"]["validationMayTune"] is False
+        and config["preregisteredHypothesis"]["v5StockModelAndReliabilityUnchanged"] is True
+        and config["timing"]["labelMayBeUsedOnlyInsideHistoricalTrainingRows"] is True
+        and config["evaluation"]["sameSupportAndDailyCountRequired"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13319,6 +13397,7 @@ if __name__ == "__main__":
     t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading()
     t159_auction_selective_win_is_train_only_one_sided_and_nontrading()
     t160_auction_expanded_pit_features_are_lagged_and_nontrading()
+    t161_auction_market_breadth_gate_is_point_in_time_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
