@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "stock_auction_expanded_pit_win_v5",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test whether preserving the twenty individual PIT price, fundamental and interaction ranks, instead of compressing them into one prior-close score, improves the opening-auction win-only classifier through nonlinear interactions.",
+  "sourceSelectiveWinConfig": "configs/research/stock_auction_selective_win_v4.json",
+  "sourceFeatureSet": "price_fundamental_interaction_20",
+  "preregisteredHypothesis": {
+    "singleCandidate": true,
+    "parametersFrozenBeforeRun": true,
+    "historicalWindowAlreadyViewed": true,
+    "validationMayTune": false,
+    "freshForwardRequired": true
+  },
+  "features": {
+    "auctionFeaturesUnchanged": true,
+    "priorCloseFeatureCount": 20,
+    "priorCloseFeaturesMustUseShiftOne": true,
+    "sameSessionHighLowCloseVolumeAmountForbidden": true,
+    "missingFeatureMayBeFilledFromFuture": false,
+    "nonlinearModelHyperparametersReusedUnchanged": true
+  },
+  "evaluation": {
+    "matchedCoverageControlRequired": true,
+    "sameSupportRequired": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_expanded_pit_win_v5",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}

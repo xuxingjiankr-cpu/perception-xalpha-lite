@@ -13099,6 +13099,72 @@ def t159_auction_selective_win_is_train_only_one_sided_and_nontrading() -> None:
     )
 
 
+def t160_auction_expanded_pit_features_are_lagged_and_nontrading() -> None:
+    """V5 exposes individual PIT inputs without leaking the auction day's close."""
+    import json
+
+    import pandas as pd
+    import research_stock_auction_expanded_pit_win_v5 as v5
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_expanded_pit_win_v5.json"
+        ).read_text(encoding="utf-8")
+    )
+    v5.validate_config(config)
+    dates = pd.bdate_range("2026-01-05", periods=3)
+    columns = ["000001.SZ"]
+    auction_feature = pd.DataFrame([10.0, 20.0, 30.0], index=dates, columns=columns)
+    complete = pd.DataFrame(True, index=dates, columns=columns)
+    prior = {
+        f"factor_{number:02d}": pd.DataFrame(
+            [float(number), float(number + 100), float(number + 200)],
+            index=dates,
+            columns=columns,
+        )
+        for number in range(20)
+    }
+    expanded, support = v5.expanded_features(
+        {"auction_feature": auction_feature}, prior, complete, config
+    )
+    original_second_day = float(expanded["prior_pit/factor_00"].iloc[1, 0])
+    prior["factor_00"].iloc[2, 0] = 999999.0
+    revised, _ = v5.expanded_features(
+        {"auction_feature": auction_feature}, prior, complete, config
+    )
+    check(
+        "T160 expanded PIT features are shifted one full session",
+        len(expanded) == 21
+        and support.iloc[:, 0].tolist() == [False, True, True]
+        and pd.isna(expanded["prior_pit/factor_00"].iloc[0, 0])
+        and original_second_day == 0.0
+        and float(revised["prior_pit/factor_00"].iloc[1, 0]) == original_second_day,
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_expanded_pit_win_v5.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T160 expanded auction classifier remains frozen research only",
+        config["preregisteredHypothesis"]["singleCandidate"] is True
+        and config["preregisteredHypothesis"]["validationMayTune"] is False
+        and config["preregisteredHypothesis"]["historicalWindowAlreadyViewed"] is True
+        and config["features"]["sameSessionHighLowCloseVolumeAmountForbidden"] is True
+        and config["evaluation"]["matchedCoverageControlRequired"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13252,6 +13318,7 @@ if __name__ == "__main__":
     t157_auction_multitask_utility_is_frozen_causal_and_nontrading()
     t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading()
     t159_auction_selective_win_is_train_only_one_sided_and_nontrading()
+    t160_auction_expanded_pit_features_are_lagged_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
