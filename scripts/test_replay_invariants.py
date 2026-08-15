@@ -13049,6 +13049,56 @@ def t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading() -> N
     )
 
 
+def t159_auction_selective_win_is_train_only_one_sided_and_nontrading() -> None:
+    """V4 directly ranks win evidence and certifies bins using train labels only."""
+    import json
+
+    import numpy as np
+    import research_stock_auction_selective_win_v4 as v4
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_selective_win_v4.json"
+        ).read_text(encoding="utf-8")
+    )
+    v4.validate_config(config)
+    z = float(config["selectiveCalibration"]["oneSidedNormalCriticalValue"])
+    weak = v4.wilson_lower_bound(510, 1000, z)
+    strong = v4.wilson_lower_bound(550, 1000, z)
+    bins = v4.percentile_bins(np.array([0.1, 0.2, 0.3, 0.4]), 4)
+    check(
+        "T159 one-sided reliability rejects weak bins and retains ordered raw ranks",
+        weak < 0.50 < strong
+        and bins.tolist() == [0, 1, 2, 3]
+        and config["ranking"]["source"] == "raw_probability_up_head_only"
+        and float(config["ranking"]["expectedReturnHeadRankWeight"]) == 0.0
+        and float(config["ranking"]["tailHeadRankWeight"]) == 0.0,
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_selective_win_v4.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T159 selective win calibration is purged historical research only",
+        config["selectiveCalibration"]["calibrationUsesTrainingWindowOnly"] is True
+        and config["preregisteredHypothesis"]["validationMayTune"] is False
+        and config["preregisteredHypothesis"]["historicalWindowAlreadyViewed"] is True
+        and config["evaluation"]["matchedCoverageControlRequired"] is True
+        and config["selectiveCalibration"]["mayAbstainEntireDay"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13201,6 +13251,7 @@ if __name__ == "__main__":
     t156_auction_signal_amplification_is_causal_routed_and_nontrading()
     t157_auction_multitask_utility_is_frozen_causal_and_nontrading()
     t158_auction_raw_rank_abstention_preserves_order_and_stays_nontrading()
+    t159_auction_selective_win_is_train_only_one_sided_and_nontrading()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

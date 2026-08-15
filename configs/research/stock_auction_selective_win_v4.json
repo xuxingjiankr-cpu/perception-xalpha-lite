@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "stock_auction_selective_win_v4",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test one win-rate-first selective classifier: rank only the raw probability-up head and trade only train-calibration score bins whose one-sided win-rate lower bound exceeds chance, subject to a fixed tail-risk ceiling.",
+  "sourceMultitaskConfig": "configs/research/stock_auction_multitask_utility_v2.json",
+  "preregisteredHypothesis": {
+    "singleCandidate": true,
+    "parametersFrozenBeforeRun": true,
+    "historicalWindowAlreadyViewed": true,
+    "validationMayTune": false,
+    "freshForwardRequired": true
+  },
+  "ranking": {
+    "source": "raw_probability_up_head_only",
+    "expectedReturnHeadRankWeight": 0.0,
+    "tailHeadRankWeight": 0.0,
+    "calibratedProbabilityMayDetermineRankOrder": false
+  },
+  "selectiveCalibration": {
+    "rankBins": 10,
+    "oneSidedConfidenceLevel": 0.90,
+    "oneSidedNormalCriticalValue": 1.2815515655446004,
+    "minimumBinObservations": 1000,
+    "minimumWinRateLowerBound": 0.50,
+    "maximumCalibratedSevereLossProbability": 0.08,
+    "maximumSelectionsPerDay": 10,
+    "maySelectFewerThanMaximum": true,
+    "mayAbstainEntireDay": true,
+    "calibrationUsesTrainingWindowOnly": true
+  },
+  "evaluation": {
+    "roundTripCost": 0.003,
+    "severeLossThreshold": -0.03,
+    "minimumWinRateImprovementPercentagePoints": 1.0,
+    "minimumActiveDayRate": 0.30,
+    "minimumAverageSelectionsPerActiveDay": 3.0,
+    "requireMeanGrossNotWorse": true,
+    "requireMeanPercentileImprovement": true,
+    "requireSevereLossNotWorse": true,
+    "requireMajorityBlocksImproveWinRate": true,
+    "requireMajorityBlocksDoNotWorsenGross": true,
+    "matchedCoverageControlRequired": true,
+    "unresolvedSelectedNameMayBeReplaced": false,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_selective_win_v4",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
