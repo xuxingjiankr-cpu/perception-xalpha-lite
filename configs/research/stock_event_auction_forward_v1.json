@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "stock_event_auction_forward_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Prospectively test whether a causally available positive filing-event pool, with no forced quota, has higher next-session open-to-close accuracy than same-pool controls, and whether a simple preregistered opening-auction confirmation adds value.",
+  "prospective": {
+    "strictlyAfter": "2026-08-14",
+    "minimumIndependentActiveDaysForVerdict": 20,
+    "preferredIndependentActiveDays": 60,
+    "parametersMayAdapt": false,
+    "historicalOutcomesMayTune": false,
+    "forwardOutcomesMayTuneThisVersion": false
+  },
+  "sources": {
+    "catalystConfig": "configs/research/perception_xalpha_pit_fundamental_catalyst_v5.json",
+    "catalystConfigSha256": "8641b9c1550d8883a61bdcc552b8bd6f9af9a88a184949bb872228d44c5d03c1",
+    "catalystCode": "scripts/research_perception_xalpha_pit_fundamental_catalyst_v5.py",
+    "catalystCodeSha256": "daecbf5489d465e3ef2fd14bcbbd08c4b66225a607118d12a9b7936013e45678",
+    "auctionFeatureConfig": "configs/research/stock_auction_market_breadth_gate_v6.json",
+    "auctionFeatureConfigSha256": "e3d5b60a85016a3ba11f563c832fd7357c6c408a582850e3031f2da11c5531b0",
+    "snapshotRoot": "data/market/eastmoney/full_market/snapshots"
+  },
+  "eventPool": {
+    "availabilityRule": "first_market_date_strictly_after_max_notice_update",
+    "signalEventDate": "immediately_prior_available_market_session",
+    "positiveCatalystThreshold": 0.0,
+    "requiresGrowthComponent": true,
+    "minimumAvailableGroups": 2,
+    "minimumFundamentalFileCoverage": 0.95,
+    "ranking": "trailing_20_session_mean_amount_descending_execution_tiebreak_only",
+    "liquidityLookbackSessions": 20,
+    "maximumSelectionsPerArm": 10,
+    "neverForceSelections": true
+  },
+  "auction": {
+    "featureAvailableAt": "09:25_Asia_Shanghai",
+    "validSourceTimeStart": "09:25:00",
+    "validSourceTimeEnd": "09:29:59",
+    "minimumAllMarketRows": 3000,
+    "commonExecutionMask": {
+      "positiveOpenAndPreviousClose": true,
+      "excludeLockedLimitUpUsingAskPrice1Zero": true,
+      "priorSessionPointInTimeEligible": true
+    },
+    "armBMarketGate": {
+      "minimumPositiveGapBreadthExclusive": 0.5,
+      "minimumMedianOpeningGapInclusive": 0.0,
+      "model": "none_fixed_mechanism_thresholds"
+    },
+    "armBStockConfirmation": {
+      "openingGapStrictlyPositive": true,
+      "model": "none_fixed_mechanism_threshold"
+    }
+  },
+  "arms": {
+    "event_liquidity": "positive filing event pool; auction is used only for executable-support checks; trailing ADV is an execution tie-break, not a return model",
+    "event_auction_confirmed": "same event pool and execution tie-break, enabled only when fixed all-market opening breadth and stock-level positive-gap confirmation both pass"
+  },
+  "controls": {
+    "sameDateSameSupportSameCountDeterministicPermutation": true,
+    "sameDateSameAuctionStateNonEventLiquidityMatched": true,
+    "seed": 20260816,
+    "compareEachArmToOwnSupportControl": true,
+    "primaryMembershipControl": "non_event_nearest_log_adv_without_replacement"
+  },
+  "outcome": {
+    "entry": "same_session_open_if_executable",
+    "exit": "same_session_close_if_resolved",
+    "grossUpThreshold": 0.0,
+    "severeLossThreshold": -0.03,
+    "roundTripCostReportedOnly": 0.003
+  },
+  "evaluation": {
+    "primary": [
+      "stock_level_gross_up_rate",
+      "daily_majority_up_rate"
+    ],
+    "secondary": [
+      "mean_gross_open_to_close_return",
+      "severe_loss_rate",
+      "active_day_coverage",
+      "average_selections_per_active_day"
+    ],
+    "verdictRequiresHigherWinRateThanMatchedControl": true,
+    "verdictRequiresHigherMeanGrossThanMatchedControl": true,
+    "verdictRequiresNoHigherSevereLossThanMatchedControl": true,
+    "noAutomaticPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_event_auction_forward_v1",
+    "dailyDirectory": "daily",
+    "outcomeDirectory": "outcomes",
+    "predictionLedger": "predictions.jsonl",
+    "outcomeLedger": "outcomes.jsonl",
+    "reportJson": "forward_report.json",
+    "reportMarkdown": "forward_report.md",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishToObservationPool": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}

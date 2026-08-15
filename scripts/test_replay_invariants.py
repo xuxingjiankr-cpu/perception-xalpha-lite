@@ -13295,6 +13295,173 @@ def t162_auction_hierarchical_selector_keeps_rank_and_tail_roles_separate() -> N
     )
 
 
+def t163_event_auction_forward_is_causal_selective_and_isolated() -> None:
+    """The event-first forward ledger must allow cash and ignore future bars."""
+    import copy
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import run_stock_event_auction_forward_v1 as forward
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_event_auction_forward_v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    forward.validate_config(config)
+    toy = copy.deepcopy(config)
+    toy["auction"]["minimumAllMarketRows"] = 4
+    dates = pd.bdate_range("2026-07-01", periods=22)
+    signal_date = dates[-2]
+    future_date = dates[-1]
+    columns = [
+        "SH.600001",
+        "SH.600002",
+        "SH.600003",
+        "SH.600004",
+        "SH.600005",
+        "SH.600006",
+    ]
+    amount = pd.DataFrame(
+        {
+            security: np.full(len(dates), float(index + 1) * 1_000_000.0)
+            for index, security in enumerate(columns)
+        },
+        index=dates,
+    )
+    panel = {
+        "close": pd.DataFrame(10.0, index=dates, columns=columns),
+        "amount": amount,
+        "eligible": pd.DataFrame(True, index=dates, columns=columns),
+    }
+    events = pd.DataFrame(
+        [
+            {
+                "securityId": "SH.600001",
+                "changeScoreRaw": 0.8,
+                "availableGroups": 4,
+            },
+            {
+                "securityId": "SH.600002",
+                "changeScoreRaw": 0.4,
+                "availableGroups": 3,
+            },
+        ]
+    ).set_index("securityId", drop=False)
+    snapshot = pd.DataFrame(
+        {
+            "stockCode": [item.split(".")[1] for item in columns],
+            "name": list("ABCDEF"),
+            "open": [10.1, 9.9, 10.2, 10.1, 10.3, 10.2],
+            "prevClose": [10.0] * 6,
+            "bidPrice1": [10.0] * 6,
+            "askPrice1": [10.2] * 6,
+        }
+    )
+    first, gate = forward.build_arm_payloads(
+        panel, events, snapshot, signal_date, "2026-08-17", toy
+    )
+    shocked = {key: value.copy() for key, value in panel.items()}
+    shocked["close"].loc[future_date] = 9999.0
+    shocked["amount"].loc[future_date] = 9999_000_000.0
+    shocked["eligible"].loc[future_date] = False
+    second, shocked_gate = forward.build_arm_payloads(
+        shocked, events, snapshot, signal_date, "2026-08-17", toy
+    )
+    check(
+        "T163 event-auction selections are invariant to unseen future bars",
+        first == second and gate == shocked_gate,
+    )
+    check(
+        "T163 event arms never force ten names and confirmation can narrow support",
+        first["event_liquidity"]["selectionCount"] == 2
+        and first["event_auction_confirmed"]["selectionCount"] == 1
+        and len(first["event_liquidity"]["nonEventLiquidityMatched"]) == 2
+        and len(first["event_auction_confirmed"]["nonEventLiquidityMatched"]) == 1
+        and gate["passed"] is True,
+    )
+    empty, _ = forward.build_arm_payloads(
+        panel, events.iloc[0:0], snapshot, signal_date, "2026-08-17", toy
+    )
+    check(
+        "T163 a no-event day records cash instead of filling a quota",
+        all(empty[arm]["selectionCount"] == 0 for arm in forward.ARM_NAMES),
+    )
+    source = (
+        ROOT / "scripts" / "run_stock_event_auction_forward_v1.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T163 forward event study is hash-pinned matched-control research only",
+        config["prospective"]["forwardOutcomesMayTuneThisVersion"] is False
+        and config["eventPool"]["neverForceSelections"] is True
+        and config["controls"]["sameDateSameAuctionStateNonEventLiquidityMatched"] is True
+        and config["evaluation"]["noAutomaticPromotion"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
+def t164_full_market_snapshot_honors_server_page_cap_and_fails_closed() -> None:
+    """A requested pz above Eastmoney's cap must not truncate the A-share file."""
+    import collect_eastmoney_full_market as collector
+
+    original = collector.http_json
+
+    def fake_http_json(endpoints, params, timeout_seconds):
+        del endpoints, timeout_seconds
+        page = int(params["pn"])
+        start = (page - 1) * 100
+        stop = min(start + 100, 205)
+        rows = [
+            {"f12": f"{index:06d}", "f13": "0", "f14": f"S{index}"}
+            for index in range(start, stop)
+        ]
+        return {
+            "data": {"total": 205, "diff": rows}
+        }, {"ok": True, "endpoint_used": "test"}
+
+    collector.http_json = fake_http_json
+    try:
+        rows, meta = collector.fetch_scope_snapshot(
+            "ashare",
+            page_size=1000,
+            timeout_seconds=1.0,
+            page_retries=1,
+            page_workers=3,
+        )
+    finally:
+        collector.http_json = original
+    check(
+        "T164 server-capped pagination fetches every reported row",
+        len(rows) == 205
+        and meta["page_size_requested"] == 1000
+        and meta["page_size"] == 100
+        and len(meta["pages"]) == 3
+        and meta["complete"] is True
+        and meta["failed_pages"] == [],
+    )
+    source = (
+        ROOT / "scripts" / "collect_eastmoney_full_market.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T164 incomplete snapshots are explicitly fail-closed",
+        '"incomplete_fail_closed"' in source
+        and "collection_completed_at" in source
+        and "submit_order" not in source.lower(),
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13451,6 +13618,8 @@ if __name__ == "__main__":
     t160_auction_expanded_pit_features_are_lagged_and_nontrading()
     t161_auction_market_breadth_gate_is_point_in_time_and_nontrading()
     t162_auction_hierarchical_selector_keeps_rank_and_tail_roles_separate()
+    t163_event_auction_forward_is_causal_selective_and_isolated()
+    t164_full_market_snapshot_honors_server_page_cap_and_fails_closed()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

@@ -13,9 +13,11 @@ import argparse
 import csv
 import gzip
 import json
+import math
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -304,16 +306,19 @@ def fetch_scope_snapshot(
     max_pages: int = 0,
     page_retries: int = 3,
     retry_sleep_seconds: float = 0.5,
+    page_workers: int = 1,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
-    meta: dict[str, Any] = {"scope": scope, "page_size": page_size, "pages": []}
-    total = None
-    page = 1
-    failed_pages: list[int] = []
-    while True:
+    # The clist endpoint silently caps large requested pages (currently at 100).
+    # Using the requested size to infer the final page therefore truncated a
+    # nominal 5,500-name A-share snapshot after only six ~100-row responses.
+    # Query at the observed safe cap and stop only from the reported total.
+    requested_page_size = int(page_size)
+    query_page_size = max(1, min(requested_page_size, 100))
+
+    def fetch_page(page: int) -> tuple[int, list[dict[str, Any]], dict[str, Any], int | None]:
         params = {
             "pn": str(page),
-            "pz": str(page_size),
+            "pz": str(query_page_size),
             "po": "1",
             "np": "1",
             "ut": EASTMONEY_TOKEN,
@@ -343,38 +348,65 @@ def fetch_scope_snapshot(
             if attempt_no < page_retries and retry_sleep_seconds > 0:
                 time.sleep(retry_sleep_seconds)
         data = payload.get("data") or {}
-        if total is None:
-            total = int(data.get("total") or 0)
-            meta["total_reported"] = total
-        rows.extend(diff)
-        meta["pages"].append({
+        total = int(data.get("total") or 0) or None
+        return page, diff, {
             "page": page,
             "row_count": len(diff),
             "request": req_meta,
             "page_attempts": page_attempts,
-        })
-        if not diff and not req_meta.get("ok"):
-            failed_pages.append(page)
-            if total is None:
-                meta["stopped_on_failed_page"] = page
-                break
-            if max_pages and page >= max_pages:
-                break
-            if total is not None and page * page_size >= total:
-                break
-            page += 1
-            continue
-        if not diff:
-            break
-        if max_pages and page >= max_pages:
+        }, total
+
+    first_page, first_rows, first_meta, total = fetch_page(1)
+    del first_page
+    meta: dict[str, Any] = {
+        "scope": scope,
+        "page_size_requested": requested_page_size,
+        "page_size": query_page_size,
+        "page_workers": max(1, int(page_workers)),
+        "pages": [first_meta],
+        "total_reported": total or 0,
+    }
+    rows_by_page: dict[int, list[dict[str, Any]]] = {1: first_rows}
+    failed_pages: list[int] = []
+    if not first_rows and not first_meta["request"].get("ok"):
+        failed_pages.append(1)
+    if total is None:
+        meta["stopped_on_failed_page"] = 1
+        meta["row_count"] = len(first_rows)
+        meta["failed_pages"] = failed_pages
+        meta["complete"] = False
+        return first_rows, meta
+
+    total_pages = max(1, int(math.ceil(total / query_page_size)))
+    if max_pages:
+        if max_pages < total_pages:
             meta["truncated_by_max_pages"] = True
-            break
-        if total is not None and len(rows) >= total:
-            break
-        page += 1
+        total_pages = min(total_pages, int(max_pages))
+    remaining = list(range(2, total_pages + 1))
+    workers = max(1, min(int(page_workers), len(remaining) or 1))
+    if workers == 1:
+        page_results = [fetch_page(page) for page in remaining]
+    else:
+        page_results = []
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {executor.submit(fetch_page, page): page for page in remaining}
+            for future in as_completed(futures):
+                page_results.append(future.result())
+    page_meta: dict[int, dict[str, Any]] = {1: first_meta}
+    for page, diff, item_meta, _reported_total in page_results:
+        rows_by_page[page] = diff
+        page_meta[page] = item_meta
+        if not diff and not item_meta["request"].get("ok"):
+            failed_pages.append(page)
+    meta["pages"] = [page_meta[page] for page in sorted(page_meta)]
+    rows = [row for page in sorted(rows_by_page) for row in rows_by_page[page]]
     meta["row_count"] = len(rows)
-    meta["failed_pages"] = failed_pages
-    meta["complete"] = bool(total is not None and len(rows) >= total and not failed_pages)
+    meta["failed_pages"] = sorted(failed_pages)
+    meta["complete"] = bool(
+        not meta.get("truncated_by_max_pages")
+        and len(rows) >= total
+        and not failed_pages
+    )
     return rows, meta
 
 
@@ -403,12 +435,10 @@ def collect_snapshot(args: argparse.Namespace) -> dict[str, Any]:
         append_jsonl(OUTPUT_ROOT / "snapshot_runs.jsonl", summary)
         return summary
 
-    collected_at = now_iso()
+    collection_started_at = now_iso()
     trade_date = session["trade_date"]
-    stamp = now_cn().strftime("%Y%m%d_%H%M%S")
-    all_rows: list[dict[str, Any]] = []
+    raw_by_scope: list[tuple[str, list[dict[str, Any]]]] = []
     scope_meta: list[dict[str, Any]] = []
-    seen: set[str] = set()
     for scope in scopes_for(args.scope):
         raw_rows, meta = fetch_scope_snapshot(
             scope,
@@ -417,8 +447,16 @@ def collect_snapshot(args: argparse.Namespace) -> dict[str, Any]:
             args.max_pages,
             args.page_retries,
             args.retry_sleep_seconds,
+            args.page_workers,
         )
         scope_meta.append(meta)
+        raw_by_scope.append((scope, raw_rows))
+
+    collected_at = now_iso()
+    stamp = now_cn().strftime("%Y%m%d_%H%M%S")
+    all_rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for scope, raw_rows in raw_by_scope:
         for raw in raw_rows:
             norm = normalize_snapshot_row(raw, scope, collected_at, trade_date)
             key = norm["secid"]
@@ -430,9 +468,12 @@ def collect_snapshot(args: argparse.Namespace) -> dict[str, Any]:
     out_dir = DATA_ROOT / "full_market" / "snapshots" / trade_date
     path = out_dir / f"eastmoney_full_market_{stamp}_{args.scope}.csv.gz"
     write_csv_gz(path, all_rows, SNAPSHOT_COLUMNS)
+    complete = bool(scope_meta and all(item.get("complete") for item in scope_meta))
     summary = {
         "task": "eastmoney_full_market_snapshot",
-        "status": "ok" if all_rows else "no_rows",
+        "status": "ok" if all_rows and complete else (
+            "incomplete_fail_closed" if all_rows else "no_rows"
+        ),
         "scope": args.scope,
         "row_count": len(all_rows),
         "output_file": str(path),
@@ -443,6 +484,8 @@ def collect_snapshot(args: argparse.Namespace) -> dict[str, Any]:
         "paper_trading_only": True,
         "live_ready": False,
         "formal_strategy_allowed": False,
+        "collection_started_at": collection_started_at,
+        "collection_completed_at": collected_at,
         "created_at": now_iso(),
     }
     write_json(OUTPUT_ROOT / "latest_snapshot_summary.json", summary)
@@ -827,6 +870,7 @@ def build_parser() -> argparse.ArgumentParser:
     snap.add_argument("--timeout-seconds", type=float, default=8.0)
     snap.add_argument("--page-retries", type=int, default=3)
     snap.add_argument("--retry-sleep-seconds", type=float, default=0.5)
+    snap.add_argument("--page-workers", type=int, default=8)
     snap.add_argument("--only-session", action="store_true")
 
     plan = sub.add_parser("plan-backfill")
