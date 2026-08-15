@@ -13243,6 +13243,58 @@ def t161_auction_market_breadth_gate_is_point_in_time_and_nontrading() -> None:
     )
 
 
+def t162_auction_hierarchical_selector_keeps_rank_and_tail_roles_separate() -> None:
+    """V7 preserves baseline order and uses the nonlinear model only as a risk filter."""
+    import json
+
+    import numpy as np
+    import pandas as pd
+    import research_stock_auction_hierarchical_selector_v7 as v7
+
+    config = json.loads(
+        (
+            ROOT
+            / "configs"
+            / "research"
+            / "stock_auction_hierarchical_selector_v7.json"
+        ).read_text(encoding="utf-8")
+    )
+    v7.validate_config(config)
+    dates = pd.bdate_range("2026-01-05", periods=2)
+    columns = ["A", "B", "C"]
+    baseline = pd.DataFrame([[3.0, 2.0, 1.0], [3.0, 2.0, 1.0]], index=dates, columns=columns)
+    tail = pd.DataFrame([[0.02, 0.09, 0.01], [0.01, 0.01, 0.01]], index=dates, columns=columns)
+    eligible = pd.Series([True, False], index=dates)
+    score = v7.tail_safe_baseline_score(baseline, tail, eligible, 0.08)
+    check(
+        "T162 V7 keeps baseline ranks, excludes high tail risk and can abstain a day",
+        float(score.loc[dates[0], "A"]) == 3.0
+        and pd.isna(score.loc[dates[0], "B"])
+        and float(score.loc[dates[0], "C"]) == 1.0
+        and score.loc[dates[1]].isna().all(),
+    )
+    source = (
+        ROOT / "scripts" / "research_stock_auction_hierarchical_selector_v7.py"
+    ).read_text(encoding="utf-8")
+    check(
+        "T162 hierarchical selector is frozen matched-count research only",
+        config["preregisteredHypothesis"]["noNewFittedParameter"] is True
+        and config["preregisteredHypothesis"]["validationMayTune"] is False
+        and config["policy"]["stockRanking"] == "unchanged_prior_close_rank"
+        and float(config["policy"]["maximumCalibratedSevereLossProbability"]) == 0.08
+        and config["evaluation"]["sameDaySameSupportSameCount"] is True
+        and all(
+            not value
+            for key, value in config["safety"].items()
+            if key.startswith("may")
+        )
+        and "run_t0_intraday_agent" not in source
+        and "latest_strategy_overlay.json" not in source
+        and "submit_order" not in source.lower()
+        and '"orders": []' in source,
+    )
+
+
 if __name__ == "__main__":
     t1_t3_state_and_determinism()
     t2_no_side_effects()
@@ -13398,6 +13450,7 @@ if __name__ == "__main__":
     t159_auction_selective_win_is_train_only_one_sided_and_nontrading()
     t160_auction_expanded_pit_features_are_lagged_and_nontrading()
     t161_auction_market_breadth_gate_is_point_in_time_and_nontrading()
+    t162_auction_hierarchical_selector_keeps_rank_and_tail_roles_separate()
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

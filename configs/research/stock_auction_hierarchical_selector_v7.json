@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "stock_auction_hierarchical_selector_v7",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Test a frozen decomposition of responsibilities: V6 auction breadth chooses days, the established prior-close score ranks stocks, and the V5 tail head only excludes names above its already-frozen loss ceiling.",
+  "sourceBreadthGateConfig": "configs/research/stock_auction_market_breadth_gate_v6.json",
+  "preregisteredHypothesis": {
+    "singleCandidate": true,
+    "parametersFrozenBeforeRun": true,
+    "historicalWindowAlreadyViewed": true,
+    "validationMayTune": false,
+    "freshForwardRequired": true,
+    "noNewFittedParameter": true
+  },
+  "policy": {
+    "daySelection": "unchanged_v6_train_only_auction_breadth_gate",
+    "stockRanking": "unchanged_prior_close_rank",
+    "stockRiskFilter": "unchanged_v5_calibrated_tail_probability",
+    "maximumCalibratedSevereLossProbability": 0.08,
+    "maximumSelectionsPerDay": 10,
+    "maySelectFewerThanMaximum": true,
+    "mayAbstainEntireDay": true
+  },
+  "evaluation": {
+    "matchedCoverageControlRequired": true,
+    "sameDaySameSupportSameCount": true,
+    "v4AcceptanceChecksRemainRequired": true,
+    "v6MinimumEnabledBlockCheckRemainsRequired": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardRequiredForPromotion": true
+  },
+  "output": {
+    "root": "outputs/edge_research/stock_auction_hierarchical_selector_v7",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPublishDashboard": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false
+  }
+}
