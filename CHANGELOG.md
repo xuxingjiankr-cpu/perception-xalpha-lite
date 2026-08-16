@@ -13,6 +13,8 @@
 - The user-supplied literature registry machine-checks paper metadata, claimed public-code
   mappings, implementation boundaries and next falsifiable steps. Black--Litterman and
   Hoeffding now have executable contribution cards; unrelated papers remain visibly excluded.
+- The README, project site and successful synthetic demo expose one consistent, voluntary
+  GitHub Star path without opening a browser, requesting credentials or automating engagement.
 
 ## 0.5.0 — The record publishes itself
 

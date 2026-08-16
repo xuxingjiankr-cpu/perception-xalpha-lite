@@ -5,6 +5,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/perception-xalpha-lite?color=0073B7&logo=pypi&logoColor=white)](https://pypi.org/project/perception-xalpha-lite/)
 [![ci](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/actions/workflows/ci.yml)
+[![GitHub stars](https://img.shields.io/github/stars/xuxingjiankr-cpu/perception-xalpha-lite?style=social)](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![Research Status](https://img.shields.io/badge/status-research--only-7C3AED)](#research-integrity-contract)
 [![Point-in-Time](https://img.shields.io/badge/data-point--in--time-0891B2)](#point-in-time-data-contract)
@@ -22,6 +23,10 @@
 
 A research framework that generates formulaic factors, backtests them on point-in-time data
 with real costs, and then tries to prove its own findings wrong before believing them.
+
+**If the repository catches a research mistake before it reaches capital, consider giving it
+a [GitHub Star](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite).** It helps other
+researchers discover the falsification-first workflow.
 
 Perception-XAlpha Lite separates **hypothesis generation** from **evidence
 acceptance**. It can synthesize bounded symbolic factors, but every candidate must survive

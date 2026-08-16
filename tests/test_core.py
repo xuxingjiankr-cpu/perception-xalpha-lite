@@ -98,6 +98,13 @@ def test_discovery_never_returns_orders() -> None:
     assert all("shadow" not in row for row in result["candidates"])
 
 
+def test_demo_support_link_is_explicit_and_never_an_api_action() -> None:
+    from xalpha_lite.demo_cli import PROJECT_URL
+
+    assert PROJECT_URL == "https://github.com/xuxingjiankr-cpu/perception-xalpha-lite"
+    assert "api.github.com" not in PROJECT_URL
+
+
 def test_neutral_book_is_zero_investment_and_not_market_beta() -> None:
     import sys
 

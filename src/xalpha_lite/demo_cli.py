@@ -11,6 +11,9 @@ from .doctor import audit_research_data
 from .synthetic import demo_config, make_synthetic_data
 
 
+PROJECT_URL = "https://github.com/xuxingjiankr-cpu/perception-xalpha-lite"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Zero-setup, research-only demonstration of the full XAlpha loop"
@@ -51,6 +54,7 @@ def main() -> int:
                 "output_dir": str(output.resolve()),
                 "orders": [],
                 "note": "Synthetic output demonstrates mechanics, never investment evidence.",
+                "support_if_useful": f"Star the project: {PROJECT_URL}",
             },
             indent=2,
         )
