@@ -10,6 +10,9 @@
   result in one directory.
 - The daily forward-record summary is rendered from language templates, keeping generated
   figures out of source code while preserving the English and Chinese reader views.
+- The user-supplied literature registry machine-checks paper metadata, claimed public-code
+  mappings, implementation boundaries and next falsifiable steps. Black--Litterman and
+  Hoeffding now have executable contribution cards; unrelated papers remain visibly excluded.
 
 ## 0.5.0 — The record publishes itself
 

@@ -40,6 +40,7 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Run the full synthetic contract in Colab](https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb)** — no local environment required
 - **[Contribute a paper-backed mechanism](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/issues/new?template=mechanism-proposal.yml)** — preregister its causal boundary and falsification test first
 - **[Enter the contributor benchmark](docs/CONTRIBUTOR_BENCHMARK.md)** — CI checks the callable or DSL, tests, and reproduction path
+- **[Inspect the literature registry](docs/USER_SUPPLIED_LITERATURE.md)** — see what is implemented, partially mapped, data-gated, deferred, or explicitly out of scope
 - **[Star the repository](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite)** if the falsification-first protocol is useful in your own research
 
 The contributor leaderboard measures reproducibility and causal-test coverage. It never ranks
@@ -486,7 +487,8 @@ distinguished. Availability in the library means **testable**, not **validated a
 | Decision ranking | bounded Top-K pairwise loss | Decision-focused learning | Fit block only; cannot create absent signal |
 | Forecast reliability | Brier, LogLoss, AUC, ECE | Strictly proper scoring-rule framework | Calibration block is independent and frozen |
 
-See the full [literature and implementation map](docs/PAPERS.md).
+See the full [literature and implementation map](docs/PAPERS.md) and the
+machine-validated [user-supplied literature registry](docs/USER_SUPPLIED_LITERATURE.md).
 
 ## Mathematical core
 
@@ -628,11 +630,13 @@ src/xalpha_lite/
 docs/
 ├── CONTRIBUTOR_BENCHMARK.md # CI-generated contribution scorecard
 ├── PAPERS.md              # literature-to-code traceability
+├── USER_SUPPLIED_LITERATURE.md # generated implementation-boundary registry
 ├── DATA_DOCTOR.md         # machine-readable data readiness contract
 ├── EVIDENCE_LAB.md        # dependence-aware family-level inference
 └── DECISION_TOOLKIT.md    # decision-research API and constraints
 
 benchmark/submissions/     # machine-validated mechanism and factor cards
+research/literature_registry.json # source-of-truth paper audit
 examples/perception_xalpha_quickstart.ipynb # one-click Colab contract
 ```
 

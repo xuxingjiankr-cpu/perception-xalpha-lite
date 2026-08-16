@@ -31,6 +31,25 @@
       "futureDataRole": "none"
     },
     {
+      "submissionId": "black_litterman",
+      "title": "Black--Litterman view shrinkage",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "Global Portfolio Optimization",
+        "url": "https://doi.org/10.2469/faj.v48.n5.28",
+        "year": 1992
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:black_litterman_posterior",
+      "testSelector": null,
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
       "submissionId": "bocpd",
       "title": "Bayesian Online Changepoint Detection",
       "contributor": "Perception-XAlpha maintainers",
@@ -81,6 +100,25 @@
         "year": 1989
       },
       "implementation": "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "hoeffding_bound",
+      "title": "Hoeffding finite-sample lower bound",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "Probability Inequalities for Sums of Bounded Random Variables",
+        "url": "https://doi.org/10.1080/01621459.1963.10500830",
+        "year": 1963
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:hoeffding_lower_bound",
       "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
       "prefixCausalityTested": false,
       "adversarialTested": false,

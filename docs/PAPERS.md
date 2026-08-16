@@ -9,6 +9,12 @@ research constraints**, not as proof that an implementation has alpha. This docu
 
 No empirical research result is included.
 
+The separately generated [User-Supplied Literature Registry](USER_SUPPLIED_LITERATURE.md)
+tracks additional papers proposed during development. It distinguishes partial mappings,
+direct extension candidates, data-gated mechanisms, deferred architectures, and reviewed
+out-of-scope material. CI resolves every public-code mapping so a citation cannot silently be
+presented as an implementation.
+
 ## Statistical validation and research integrity
 
 | Method | Evidence from the literature | Public implementation | Explicit boundary |
@@ -170,6 +176,22 @@ are frozen.
 | Conditional factor timing | Block-replica weights are available; validation-driven or online timing is forbidden | *Factor Timing with Portfolio Characteristics* ([article](https://academic.oup.com/raps/article/14/1/84/7191017)) |
 | Neural formula generation | The generator is bounded and symbolic; it does not reproduce AlphaForge's neural architecture | Shi et al., [arXiv:2406.18394](https://arxiv.org/abs/2406.18394) |
 | Gaussian-process ensembles | Probability calibration is included; Gaussian-process forecasting is not | *Ensemble Gaussian Process Regression for Time Series Forecasting* ([arXiv:2212.01048](https://arxiv.org/abs/2212.01048)) |
+
+## Expansion registry
+
+The project also maintains a machine-readable audit of submitted research directions,
+including CogAlpha, PRISM-VQ, Kronos, AI-Trader, heavy-tail HMMs, HSMM duration models,
+Deep LPPLS, Hawkes reflexivity, Koopman-based stochastic resilience, dependent concentration,
+and heavy-tail martingale bounds.
+
+- [Rendered registry](USER_SUPPLIED_LITERATURE.md)
+- [Public JSON](data/literature_registry.json)
+- Source of truth: `research/literature_registry.json`
+- Schema: `research/literature_registry.schema.json`
+
+The registry records a next falsifiable step for each relevant paper and retains explicit
+exclusions when no causal financial mechanism can be defended. It contains no empirical
+performance result.
 
 ## Non-claims
 

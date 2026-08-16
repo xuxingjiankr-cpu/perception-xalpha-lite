@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/schemas/literature_registry.schema.json",
+  "title": "Perception-XAlpha literature registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "purpose", "entries"],
+  "properties": {
+    "schemaVersion": {"const": "xalpha_literature_registry_v1"},
+    "purpose": {"type": "string", "minLength": 20},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "paperId", "title", "year", "url", "domain", "status",
+          "systemMapping", "implementationBoundary", "requiredData",
+          "nextFalsifiableStep", "repositorySurfaces"
+        ],
+        "properties": {
+          "paperId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$"},
+          "title": {"type": "string", "minLength": 8},
+          "year": {"type": "integer", "minimum": 1900, "maximum": 2100},
+          "url": {"type": "string", "pattern": "^https://"},
+          "domain": {"type": "string", "minLength": 3},
+          "status": {
+            "enum": [
+              "implemented", "partially_mapped", "extension_candidate",
+              "reference_only", "data_gated", "deferred", "out_of_scope"
+            ]
+          },
+          "systemMapping": {"type": "string", "minLength": 20},
+          "implementationBoundary": {"type": "string", "minLength": 20},
+          "requiredData": {"type": "string", "minLength": 10},
+          "nextFalsifiableStep": {"type": "string", "minLength": 10},
+          "repositorySurfaces": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 3}
+          }
+        }
+      }
+    }
+  }
+}

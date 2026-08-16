@@ -91,6 +91,7 @@
     <a class="button primary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Explore the repository</a>
     <a class="button secondary" href="https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb">Run in Colab</a>
     <a class="button secondary" href="PAPERS.md">Read the literature map</a>
+    <a class="button secondary" href="USER_SUPPLIED_LITERATURE.md">Inspect the paper registry</a>
   </div>
   <div class="stats">
     <div class="stat"><b>PIT</b><span>Disclosure alignment</span></div>
@@ -286,7 +287,9 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
 
   <section id="evidence">
     <h2>Research basis</h2>
-    <p>The code follows published methods while retaining explicit implementation boundaries.</p>
+    <p>The code follows published methods while retaining explicit implementation boundaries.
+      A machine-validated registry separately labels submitted papers as partially mapped,
+      extension candidates, data-gated, deferred, reference-only, or out of scope.</p>
     <div class="evidence">
       <div class="paper"><small>Selection bias</small><h3>Probability of Backtest Overfitting</h3><p>CSCV estimates how often model selection reverses out of sample after searching many alternatives. <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2326253">Bailey et al.</a></p></div>
       <div class="paper"><small>Multiple testing</small><h3>Deflated Sharpe Ratio</h3><p>DSR adjusts apparent performance for trial count, return non-normality, and selection bias. <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2460551">Bailey &amp; López de Prado</a></p></div>
@@ -297,6 +300,7 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
       <div class="paper"><small>Data snooping</small><h3>Reality Check</h3><p>The winner of a specification search must be tested against the joint null, not as a solitary preregistered strategy. <a href="https://doi.org/10.1111/1468-0262.00152">White</a></p></div>
       <div class="paper"><small>Family-wise inference</small><h3>Step-down max-t</h3><p>Studentized joint resampling can control family-wise error while exploiting dependence to improve power. <a href="https://doi.org/10.1111/j.1468-0262.2005.00615.x">Romano &amp; Wolf</a></p></div>
     </div>
+    <div class="actions"><a class="button secondary" href="USER_SUPPLIED_LITERATURE.md">Open the auditable paper registry</a></div>
   </section>
 
   <section>
@@ -328,6 +332,7 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
     <div class="actions">
       <a class="button primary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/issues/new?template=mechanism-proposal.yml">Propose a mechanism</a>
       <a class="button secondary" href="CONTRIBUTOR_BENCHMARK.md">Open the benchmark</a>
+      <a class="button secondary" href="USER_SUPPLIED_LITERATURE.md">Review the literature registry</a>
       <a class="button secondary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Star on GitHub</a>
     </div>
   </section>

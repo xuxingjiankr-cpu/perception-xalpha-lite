@@ -39,6 +39,11 @@ jobs:
           python tools/contributor_benchmark.py --check --render
           git diff --exit-code -- docs/CONTRIBUTOR_BENCHMARK.md docs/data/contributor_benchmark.json
 
+      - name: Literature registry is traceable and current
+        run: |
+          python tools/literature_registry.py --check --render
+          git diff --exit-code -- docs/USER_SUPPLIED_LITERATURE.md docs/data/literature_registry.json
+
       - name: Installed research entry points
         run: |
           xalpha-doctor --help

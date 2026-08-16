@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "black_litterman",
+  "title": "Black--Litterman view shrinkage",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Global Portfolio Optimization",
+    "url": "https://doi.org/10.2469/faj.v48.n5.28",
+    "year": 1992
+  },
+  "hypothesis": "Combining an equilibrium prior with uncertain views can reduce instability relative to treating every view as exact.",
+  "causalBoundary": "Every prior, view and uncertainty matrix must be known at the decision timestamp; the posterior cannot create predictive information.",
+  "counterfactual": "As view uncertainty grows, the posterior should move toward the equilibrium prior rather than amplify the view.",
+  "implementation": "xalpha_lite.paper_mechanisms:black_litterman_posterior",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": null,
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

@@ -1,0 +1,380 @@
+{
+  "schemaVersion": "xalpha_literature_registry_v1",
+  "purpose": "auditable_mapping_of_user_supplied_literature_to_public_research_boundaries",
+  "entries": [
+    {
+      "paperId": "alphaforge-2024",
+      "title": "AlphaForge: A Framework to Mine and Dynamically Combine Formulaic Alpha Factors",
+      "year": 2024,
+      "url": "https://arxiv.org/abs/2406.18394",
+      "domain": "factor discovery",
+      "status": "partially_mapped",
+      "systemMapping": "Bounded symbolic generation, lineage and train-only diversity pruning cover the auditable symbolic-search layer.",
+      "implementationBoundary": "The public package does not reproduce AlphaForge's neural generator or claim its empirical performance.",
+      "requiredData": "Point-in-time cross-sectional panels with frozen train/validation/shadow partitions.",
+      "nextFalsifiableStep": "Compare a frozen grammar family with economic seeds under one cumulative trial ledger.",
+      "repositorySurfaces": [
+        "xalpha_lite.discovery:bounded_generate",
+        "xalpha_lite.discovery:run_discovery"
+      ]
+    },
+    {
+      "paperId": "cogalpha-2025",
+      "title": "Cognitive Alpha Mining via LLM-Driven Code-Based Evolution",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2511.18850",
+      "domain": "factor discovery",
+      "status": "partially_mapped",
+      "systemMapping": "The repository implements bounded mutation, crossover, immutable lineage and fail-closed evaluation.",
+      "implementationBoundary": "No LLM is permitted to emit or execute arbitrary code; this is not a CogAlpha reproduction.",
+      "requiredData": "Point-in-time features, immutable candidate ledger and an independently frozen evaluation protocol.",
+      "nextFalsifiableStep": "Submit LLM proposals through the same allowlisted DSL and compare novelty and rejection rates without changing acceptance gates.",
+      "repositorySurfaces": [
+        "xalpha_lite.discovery:bounded_generate",
+        "src/xalpha_lite/dsl.py"
+      ]
+    },
+    {
+      "paperId": "prism-vq-2026",
+      "title": "Vector-Quantized Discrete Latent Factors Meet Financial Priors: Dynamic Cross-Sectional Stock Ranking Prediction for Portfolio Construction",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2605.13407",
+      "domain": "latent factor ranking",
+      "status": "reference_only",
+      "systemMapping": "Motivates future tests of discrete latent states alongside explicit financial priors.",
+      "implementationBoundary": "Vector quantization, mixture-of-experts routing and learned latent factors are not implemented.",
+      "requiredData": "Large point-in-time cross-sectional panels and a separately preregistered neural training protocol.",
+      "nextFalsifiableStep": "Test whether a frozen discrete-state representation adds OOS ranking value over explicit factors on identical support.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "kronos-2025",
+      "title": "Kronos: A Foundation Model for the Language of Financial Markets",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2508.02739",
+      "domain": "financial time-series foundation models",
+      "status": "reference_only",
+      "systemMapping": "Provides a candidate representation benchmark for candlestick and volatility forecasting.",
+      "implementationBoundary": "No Kronos weights, tokenizer or inference path ships in this repository.",
+      "requiredData": "OHLCV sequences with vendor provenance, fixed horizons and contamination-audited evaluation dates.",
+      "nextFalsifiableStep": "Freeze one public checkpoint and compare zero-shot features with price-only baselines under purged walk-forward.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "ai-trader-2025",
+      "title": "AI-Trader: Benchmarking Autonomous Agents in Real-Time Financial Markets",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2512.10971",
+      "domain": "forward evaluation",
+      "status": "partially_mapped",
+      "systemMapping": "Frozen specifications and tamper-evident forward records implement the uncontaminated-evaluation principle without an agent.",
+      "implementationBoundary": "The package contains no autonomous news agent, broker access, order path or live-trading benchmark.",
+      "requiredData": "Predictions committed before outcome maturity and scored only after the frozen horizon closes.",
+      "nextFalsifiableStep": "Compare preregistered model cards on the same forward ledger while keeping all outputs research-only.",
+      "repositorySurfaces": [
+        "src/xalpha_lite/forward.py"
+      ]
+    },
+    {
+      "paperId": "characteristics-covariances-2019",
+      "title": "Characteristics Are Covariances: A Unified Model of Risk and Return",
+      "year": 2019,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0304405X19301151",
+      "domain": "conditional factor models",
+      "status": "reference_only",
+      "systemMapping": "Motivates conditioning latent exposures on point-in-time characteristics.",
+      "implementationBoundary": "Instrumented PCA estimation is not included; neutralization is not IPCA.",
+      "requiredData": "Long point-in-time characteristic panels with stable identifiers and delisting coverage.",
+      "nextFalsifiableStep": "Benchmark frozen IPCA factors against explicit characteristic factors on the same investible universe.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "factor-timing-characteristics-2024",
+      "title": "Factor Timing with Portfolio Characteristics",
+      "year": 2024,
+      "url": "https://academic.oup.com/raps/article/14/1/84/7191017",
+      "domain": "factor timing",
+      "status": "reference_only",
+      "systemMapping": "Motivates preregistered conditional factor timing rather than validation-driven weight switching.",
+      "implementationBoundary": "Block-replica weight sensitivity is implemented, but online factor timing is forbidden.",
+      "requiredData": "Long factor-return history and characteristics known at each allocation date.",
+      "nextFalsifiableStep": "Fit timing rules only on rolling training blocks and report the gap from hindsight factor selection.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "multifactor-timing-dl-2026",
+      "title": "Multifactor Timing with Deep Learning",
+      "year": 2026,
+      "url": "https://doi.org/10.1093/jjfinec/nbag006",
+      "domain": "factor timing",
+      "status": "reference_only",
+      "systemMapping": "Provides a multitask alternative for testing whether shared structure improves factor-sign forecasts.",
+      "implementationBoundary": "No LSTM, multitask neural network or deep timing policy is implemented.",
+      "requiredData": "Long, bias-controlled factor returns and predictors with a fully frozen rolling protocol.",
+      "nextFalsifiableStep": "Compare multitask predictions with equal-weight and linear timing baselines under the same cost model.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "meta-mixture-2025",
+      "title": "Meta-Learning the Optimal Mixture of Strategies for Online Portfolio Selection",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2505.03659",
+      "domain": "online strategy mixtures",
+      "status": "reference_only",
+      "systemMapping": "Motivates comparison of frozen ensembles with adaptive mixtures under regime drift.",
+      "implementationBoundary": "No online learner changes strategy weights in this research-only package.",
+      "requiredData": "Causal strategy returns, realistic turnover and a preregistered update schedule.",
+      "nextFalsifiableStep": "Measure whether an online mixture beats equal weight after costs without reading validation or shadow outcomes.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "ensemble-gpr-2022",
+      "title": "Empirical Asset Pricing via Ensemble Gaussian Process Regression",
+      "year": 2022,
+      "url": "https://arxiv.org/abs/2212.01048",
+      "domain": "nonlinear asset pricing",
+      "status": "reference_only",
+      "systemMapping": "Provides a nonlinear probabilistic benchmark for cross-sectional forecasting.",
+      "implementationBoundary": "Probability calibration is available, but Gaussian-process forecasting is not implemented.",
+      "requiredData": "Point-in-time characteristics, frozen kernels and an independently calibrated probability block.",
+      "nextFalsifiableStep": "Compare calibrated GPR predictions with linear and symbolic candidates on identical dates and names.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "heavy-tail-hmm-2026",
+      "title": "Continuous Hidden Markov Models for Equity Returns: Heavy-Tail Emission Families and Regime-Conditional Value-at-Risk",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.23492",
+      "domain": "regime risk",
+      "status": "extension_candidate",
+      "systemMapping": "Directly motivates replacing Gaussian-only emissions with preregistered heavy-tail families.",
+      "implementationBoundary": "The existing causal HMM is a fixed two-state Gaussian filter; heavy-tail estimation and VaR are absent.",
+      "requiredData": "Causal returns with a train-only emission-family choice and forward-filtered state probabilities.",
+      "nextFalsifiableStep": "Hold the state count fixed and test Student-t emissions against Gaussian emissions on calibration and tail-risk metrics.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter"
+      ]
+    },
+    {
+      "paperId": "hmm-fisher-information-2026",
+      "title": "Observed Fisher Information in Hidden Markov Models - Application to a Noisy Gaussian Random Walk",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.02118",
+      "domain": "regime uncertainty",
+      "status": "extension_candidate",
+      "systemMapping": "Motivates reporting parameter uncertainty instead of treating fitted HMM parameters as known.",
+      "implementationBoundary": "Observed Fisher information and parameter confidence intervals are not implemented.",
+      "requiredData": "A frozen likelihood specification, train-only parameter estimates and enough transitions for identification.",
+      "nextFalsifiableStep": "Quantify whether parameter uncertainty changes state-probability calibration on untouched periods.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter"
+      ]
+    },
+    {
+      "paperId": "china-hsmm-2017",
+      "title": "Decoding Chinese Stock Market Returns: Three-State Hidden Semi-Markov Model",
+      "year": 2017,
+      "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2827838",
+      "domain": "regime duration",
+      "status": "extension_candidate",
+      "systemMapping": "Motivates explicit state-duration tests for Chinese equity regimes.",
+      "implementationBoundary": "The public HMM has geometric state durations and two states; no HSMM is implemented.",
+      "requiredData": "Long return histories with enough independent regime transitions for duration estimation.",
+      "nextFalsifiableStep": "Compare frozen two-state HMM and three-state HSMM probabilities under purged chronological validation.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter"
+      ]
+    },
+    {
+      "paperId": "deep-lppls-2024",
+      "title": "Deep LPPLS: Forecasting of Temporal Critical Points in Natural, Engineering and Financial Systems",
+      "year": 2024,
+      "url": "https://arxiv.org/abs/2405.12803",
+      "domain": "critical-transition modeling",
+      "status": "deferred",
+      "systemMapping": "The fixed-grid classic LPPLS primitive supplies a transparent feasibility baseline.",
+      "implementationBoundary": "Deep LPPLS is deliberately excluded until classic LPPLS shows stable incremental value.",
+      "requiredData": "Many independent bubble episodes, fixed window scans and untouched temporal holdouts.",
+      "nextFalsifiableStep": "First require stable classic LPPLS residual and critical-time distributions across periods and asset groups.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:simplified_lppls_features"
+      ]
+    },
+    {
+      "paperId": "hawkes-reflexivity-2012",
+      "title": "Quantifying Reflexivity in Financial Markets: Towards a Prediction of Flash Crashes",
+      "year": 2012,
+      "url": "https://arxiv.org/abs/1201.3572",
+      "domain": "event intensity",
+      "status": "data_gated",
+      "systemMapping": "Motivates a Hawkes endogeneity diagnostic for clustered high-risk market events.",
+      "implementationBoundary": "No Hawkes estimator is included because daily or bar data cannot identify event excitation reliably.",
+      "requiredData": "Timestamped trade or order-book events with validated clocks, session boundaries and event definitions.",
+      "nextFalsifiableStep": "Audit event-time coverage and recover excitation on synthetic processes before any market hypothesis test.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "soc-finance-2024",
+      "title": "The Self-Organized Criticality Paradigm in Economics and Finance",
+      "year": 2024,
+      "url": "https://arxiv.org/abs/2407.10284",
+      "domain": "complex systems",
+      "status": "deferred",
+      "systemMapping": "Supplies a hypothesis vocabulary for clustered activity, avalanches and endogenous fragility.",
+      "implementationBoundary": "No SOC score or avalanche process is represented as a validated financial feature.",
+      "requiredData": "Preregistered event definitions across multiple regimes and instruments, not visual power-law fits.",
+      "nextFalsifiableStep": "Test scaling and alternative generative explanations before defining any SOC-derived feature.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "koopman-stochastic-resilience-2026",
+      "title": "Generalized Stochastic Resilience for Early Warning Signals Based on Koopman Operator",
+      "year": 2026,
+      "url": "https://doi.org/10.1007/s11071-025-12072-5",
+      "domain": "transition diagnostics",
+      "status": "extension_candidate",
+      "systemMapping": "Provides a principled bridge between the existing EWS and DMD/Koopman primitives.",
+      "implementationBoundary": "Generalized stochastic resilience is not implemented; EWS and DMD remain separate diagnostics.",
+      "requiredData": "Equally spaced multivariate windows with train-frozen delay dimension and adequate transition events.",
+      "nextFalsifiableStep": "Test incremental transition calibration versus EWS alone on the same causal windows.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:early_warning_features",
+        "xalpha_lite.paper_mechanisms:causal_dmd_residual"
+      ]
+    },
+    {
+      "paperId": "surrogate-transition-ml-2025",
+      "title": "Predicting Critical Transitions with Machine Learning Trained on Surrogates of Historical Data",
+      "year": 2025,
+      "url": "https://doi.org/10.1038/s42005-025-02172-4",
+      "domain": "transition diagnostics",
+      "status": "deferred",
+      "systemMapping": "Motivates surrogate-trained transition classifiers after simple causal diagnostics are exhausted.",
+      "implementationBoundary": "Cross-domain surrogate ML is not implemented and cannot validate a financial signal by analogy.",
+      "requiredData": "Many independent market transitions and a frozen simulator family with explicit misspecification tests.",
+      "nextFalsifiableStep": "Show that surrogate-trained predictions remain calibrated under held-out real regimes and simulator perturbations.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "tipping-review-2024",
+      "title": "Tipping Point Detection and Early Warnings in Climate, Ecological, and Human Systems",
+      "year": 2024,
+      "url": "https://doi.org/10.5194/esd-15-1117-2024",
+      "domain": "early-warning review",
+      "status": "reference_only",
+      "systemMapping": "Frames failure modes and validation requirements for generic early-warning indicators.",
+      "implementationBoundary": "Evidence from nonfinancial systems is methodological context, not financial validation.",
+      "requiredData": "Independent labeled transitions and negative controls within the target financial domain.",
+      "nextFalsifiableStep": "Audit false alarms, lead time and regime specificity rather than reporting EWS correlation alone.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "mixing-borel-cantelli-2026",
+      "title": "Finite-Sample Borel--Cantelli Inequalities under Mixing Conditions",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2604.23791",
+      "domain": "dependent concentration",
+      "status": "extension_candidate",
+      "systemMapping": "Motivates replacing independent-trial confidence claims when observations are serially dependent.",
+      "implementationBoundary": "The current Hoeffding primitive exposes but does not correct its independence limitation.",
+      "requiredData": "A defensible mixing model or empirically bounded dependence coefficients.",
+      "nextFalsifiableStep": "Compare nominal and dependence-adjusted coverage on frozen block-dependent simulations.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:hoeffding_lower_bound"
+      ]
+    },
+    {
+      "paperId": "fuk-nagaev-martingales-2025",
+      "title": "Fuk-Nagaev Inequality in Smooth Banach Spaces: Optimum Bounds for Distributions of Heavy-Tailed Martingales",
+      "year": 2025,
+      "url": "https://arxiv.org/abs/2512.10012",
+      "domain": "heavy-tail concentration",
+      "status": "extension_candidate",
+      "systemMapping": "Motivates a heavy-tail and martingale-aware alternative to bounded independent Hoeffding intervals.",
+      "implementationBoundary": "No Fuk-Nagaev bound or martingale-difference diagnostic is implemented.",
+      "requiredData": "Explicit tail-moment assumptions and a testable martingale filtration.",
+      "nextFalsifiableStep": "Validate finite-sample coverage under preregistered heavy-tail simulations before market use.",
+      "repositorySurfaces": [
+        "xalpha_lite.paper_mechanisms:hoeffding_lower_bound"
+      ]
+    },
+    {
+      "paperId": "quantile-means-rl-2026",
+      "title": "Quantile of Means: A Bonus-Free Ensemble Method for Minimax Optimal Reinforcement Learning",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.20107",
+      "domain": "reinforcement learning",
+      "status": "out_of_scope",
+      "systemMapping": "No direct mapping to the current point-in-time factor validation contract.",
+      "implementationBoundary": "An RL confidence construction is not treated as a trading factor without a separately specified decision process.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned unless a bounded offline decision problem is preregistered.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "pdmp-sampling-2026",
+      "title": "Establishing an Omega(sqrt(d)) Complexity Lower Bound for PDMP Samplers and How to Break It: A Sub-sqrt(d) Algorithm for Gaussian-Tailed Targets",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.19909",
+      "domain": "Monte Carlo theory",
+      "status": "out_of_scope",
+      "systemMapping": "No current sampler requires this result.",
+      "implementationBoundary": "Sampling complexity theory is not presented as alpha generation.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "lattice-polytopes-2026",
+      "title": "Simplex Faces and Quadratic Toric Ideals of Lattice Polytopes",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.20430",
+      "domain": "discrete geometry",
+      "status": "out_of_scope",
+      "systemMapping": "No defensible connection to the package's research mechanisms.",
+      "implementationBoundary": "Mathematical sophistication alone is not a finance mechanism.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "kitaev-excitations-2026",
+      "title": "Fractional Excitations in Kitaev Quasi-One-Dimensional Chain",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.20309",
+      "domain": "condensed-matter physics",
+      "status": "out_of_scope",
+      "systemMapping": "No defensible connection to financial point-in-time prediction.",
+      "implementationBoundary": "Physical terminology is not transferred into factor definitions by analogy.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "surface-beris-edwards-2026",
+      "title": "Existence of Weak Solutions of the Surface Beris--Edwards Model",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2607.01638",
+      "domain": "continuum physics",
+      "status": "out_of_scope",
+      "systemMapping": "No causal financial observable or testable market mechanism has been specified.",
+      "implementationBoundary": "The PDE model is not repurposed as a price predictor.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "quantum-chernoff-2026",
+      "title": "Reading Weakly, Acting Strongly: A Static Parity Horizon and Its Dynamical Bypass in the Monitored Lipkin--Meshkov--Glick Model",
+      "year": 2026,
+      "url": "https://arxiv.org/abs/2606.24928",
+      "domain": "quantum information",
+      "status": "out_of_scope",
+      "systemMapping": "A monitored quantum-system result has no specified mapping to market concentration bounds or causal features.",
+      "implementationBoundary": "No quantum-information objective is used in validation.",
+      "requiredData": "Not applicable to the current scope.",
+      "nextFalsifiableStep": "No implementation planned.",
+      "repositorySurfaces": []
+    }
+  ]
+}

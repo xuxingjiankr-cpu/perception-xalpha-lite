@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "hoeffding_bound",
+  "title": "Hoeffding finite-sample lower bound",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Probability Inequalities for Sums of Bounded Random Variables",
+    "url": "https://doi.org/10.1080/01621459.1963.10500830",
+    "year": 1963
+  },
+  "hypothesis": "A bounded independent-trial concentration inequality can expose how little precision a small success count supports.",
+  "causalBoundary": "Only matured Bernoulli outcomes enter the count; dependence and effective sample size remain explicit unmet assumptions.",
+  "counterfactual": "At fixed successes and confidence, increasing the valid trial count should narrow the concentration penalty.",
+  "implementation": "xalpha_lite.paper_mechanisms:hoeffding_lower_bound",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}
