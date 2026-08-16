@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "bocpd",
+  "title": "Bayesian Online Changepoint Detection",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Bayesian Online Changepoint Detection",
+    "url": "https://arxiv.org/abs/0710.3742",
+    "year": 2007
+  },
+  "hypothesis": "A posterior run-length distribution can diagnose structural transitions without making a directional-return claim.",
+  "causalBoundary": "At index t the filter consumes observations through t only; its hazard and conjugate-prior parameters are fixed before evaluation.",
+  "counterfactual": "Stationary synthetic observations should not create persistent high changepoint probability beyond the frozen hazard model.",
+  "implementation": "xalpha_lite.paper_mechanisms:bocpd_change_probability",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

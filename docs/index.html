@@ -78,7 +78,7 @@
 <body>
 <nav><div><div class="brand">Perception-<span>XAlpha</span></div><div class="links">
   <a href="#start">Run it</a><a href="#live">Live record</a><a href="#architecture">Architecture</a><a href="#primitives">Primitives</a>
-  <a href="#lab">Evidence Lab</a><a href="#evidence">Research Basis</a><a href="#contract">Integrity Contract</a>
+  <a href="#lab">Evidence Lab</a><a href="#evidence">Research Basis</a><a href="#contribute">Contribute</a><a href="#contract">Integrity Contract</a>
   <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">GitHub</a>
 </div></div></nav>
 <main>
@@ -89,6 +89,7 @@
     without broker access or automatic strategy promotion.</p>
   <div class="actions">
     <a class="button primary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Explore the repository</a>
+    <a class="button secondary" href="https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb">Run in Colab</a>
     <a class="button secondary" href="PAPERS.md">Read the literature map</a>
   </div>
   <div class="stats">
@@ -306,6 +307,29 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
       <tr><td>Hybrid mechanisms</td><td>Quality × risk, value × reversal, growth × momentum</td><td>Incremental value over both component legs</td></tr>
       <tr><td>State and dynamics</td><td>HMM, EWS, BOCPD, DMD, LPPLS</td><td>True predictive increment versus mechanical abstention</td></tr>
     </tbody></table>
+  </section>
+
+  <section id="contribute">
+    <h2>Turn a paper into an auditable contribution</h2>
+    <p>Contributions start with a narrow claim, a point-in-time boundary and a falsification
+      design. CI resolves the implementation, verifies repository tests and regenerates a public
+      scorecard. The score measures research-engineering completeness, never historical returns.</p>
+    <div class="grid">
+      <div class="card"><b>Preregister</b><h3>Paper-backed mechanism</h3><p>Identify the exact
+        algorithmic claim, observable inputs, offline labels and the counterfactual that could
+        reject it before writing substantial code.</p></div>
+      <div class="card"><b>Reproduce</b><h3>One-click Colab</h3><p>Run the deterministic synthetic
+        research contract, inspect its artifacts, then replace the toy contribution with a
+        minimal reproducible experiment.</p></div>
+      <div class="card"><b>Verify</b><h3>Contributor benchmark</h3><p>Machine-validated cards connect
+        literature, a callable or audited DSL expression, causal tests and a reproduction path.
+        Missing evidence remains visibly missing.</p></div>
+    </div>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/issues/new?template=mechanism-proposal.yml">Propose a mechanism</a>
+      <a class="button secondary" href="CONTRIBUTOR_BENCHMARK.md">Open the benchmark</a>
+      <a class="button secondary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Star on GitHub</a>
+    </div>
   </section>
 
   <section id="contract">

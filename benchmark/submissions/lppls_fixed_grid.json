@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "lppls_fixed_grid",
+  "title": "Fixed-grid simplified LPPLS diagnostics",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "A Stable and Robust Calibration Scheme of the Log-Periodic Power Law Model",
+    "url": "https://doi.org/10.1016/j.physa.2013.04.012",
+    "year": 2013
+  },
+  "hypothesis": "A preregistered LPPLS grid can report fit residual and critical-time dispersion without selecting a visually attractive crash date.",
+  "causalBoundary": "Every fit window ends at t, all grids are supplied before evaluation, and outputs are stability diagnostics rather than future event labels.",
+  "counterfactual": "Geometric random walks and fixed trend controls should expose whether apparent log-periodicity is merely flexible curve fitting.",
+  "implementation": "xalpha_lite.paper_mechanisms:simplified_lppls_features",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": null,
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "hmm_filter",
+  "title": "Causal two-state Hidden Markov filter",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "A New Approach to the Economic Analysis of Nonstationary Time Series and the Business Cycle",
+    "url": "https://doi.org/10.2307/1912559",
+    "year": 1989
+  },
+  "hypothesis": "Forward-filtered state probabilities can describe regime uncertainty without using full-path hindsight labels.",
+  "causalBoundary": "At t the posterior uses the frozen transition and emission parameters plus observations through t only; Viterbi backtracking is excluded.",
+  "counterfactual": "Swapping frozen emission means should swap state interpretation without improving predictive evidence on unseen observations.",
+  "implementation": "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/benchmark/submission.schema.json",
+  "title": "Perception-XAlpha contributor benchmark card",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "submissionId",
+    "title",
+    "contributor",
+    "kind",
+    "paper",
+    "hypothesis",
+    "causalBoundary",
+    "counterfactual",
+    "testSelector",
+    "prefixCausalityTested",
+    "adversarialTested"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "xalpha_contributor_submission_v1"},
+    "submissionId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]+$"},
+    "title": {"type": "string", "minLength": 4},
+    "contributor": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["mechanism", "factor"]},
+    "paper": {
+      "type": "object",
+      "required": ["title", "url", "year"],
+      "properties": {
+        "title": {"type": "string"},
+        "url": {"type": "string", "pattern": "^https://"},
+        "year": {"type": "integer", "minimum": 1900}
+      }
+    },
+    "hypothesis": {"type": "string", "minLength": 20},
+    "causalBoundary": {"type": "string", "minLength": 20},
+    "counterfactual": {"type": "string", "minLength": 10},
+    "implementation": {"type": ["string", "null"]},
+    "expression": {"type": ["object", "null"]},
+    "counterExpression": {"type": ["object", "null"]},
+    "allowedFields": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "allowedWindows": {"type": "array", "items": {"type": "integer", "minimum": 1}, "uniqueItems": true},
+    "testSelector": {"type": ["string", "null"]},
+    "prefixCausalityTested": {"type": "boolean"},
+    "adversarialTested": {"type": "boolean"},
+    "reproductionExample": {"type": ["string", "null"]},
+    "futureDataRole": {"enum": ["none", "offline_label_only"]}
+  },
+  "additionalProperties": false
+}

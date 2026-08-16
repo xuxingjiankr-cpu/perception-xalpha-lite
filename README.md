@@ -10,6 +10,7 @@
 [![Point-in-Time](https://img.shields.io/badge/data-point--in--time-0891B2)](#point-in-time-data-contract)
 [![Safe DSL](https://img.shields.io/badge/factor%20language-audited%20DSL-059669)](src/xalpha_lite/dsl.py)
 [![License](https://img.shields.io/badge/license-MIT-111827)](LICENSE)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb)
 
 **English** | [简体中文](docs/README_CN.md)
 
@@ -33,6 +34,16 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Wiki](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/wiki)** — the measurements behind each design decision, including the rejected hypotheses
 - **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
+
+## Use, cite, extend
+
+- **[Run the full synthetic contract in Colab](https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb)** — no local environment required
+- **[Contribute a paper-backed mechanism](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/issues/new?template=mechanism-proposal.yml)** — preregister its causal boundary and falsification test first
+- **[Enter the contributor benchmark](docs/CONTRIBUTOR_BENCHMARK.md)** — CI checks the callable or DSL, tests, and reproduction path
+- **[Star the repository](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite)** if the falsification-first protocol is useful in your own research
+
+The contributor leaderboard measures reproducibility and causal-test coverage. It never ranks
+returns and does not imply that a mechanism has predictive value.
 
 ## Run the whole contract in two commands
 
@@ -615,10 +626,14 @@ src/xalpha_lite/
 └── cli.py                 # research-only command line interface
 
 docs/
+├── CONTRIBUTOR_BENCHMARK.md # CI-generated contribution scorecard
 ├── PAPERS.md              # literature-to-code traceability
 ├── DATA_DOCTOR.md         # machine-readable data readiness contract
 ├── EVIDENCE_LAB.md        # dependence-aware family-level inference
 └── DECISION_TOOLKIT.md    # decision-research API and constraints
+
+benchmark/submissions/     # machine-validated mechanism and factor cards
+examples/perception_xalpha_quickstart.ipynb # one-click Colab contract
 ```
 
 ## Reproducibility contract

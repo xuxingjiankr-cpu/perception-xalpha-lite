@@ -1,0 +1,55 @@
+name: Contributor benchmark submission
+description: Register a factor or mechanism in the public research-engineering benchmark.
+title: "[Benchmark] "
+labels:
+  - contributor-benchmark
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The leaderboard measures reproducibility, causal tests and falsification coverage. It does not rank historical returns.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Contribution type
+      options:
+        - Formulaic factor
+        - Research mechanism
+    validations:
+      required: true
+  - type: input
+    id: paper
+    attributes:
+      label: Primary reference
+      placeholder: https://doi.org/...
+    validations:
+      required: true
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Proposed implementation
+      description: For a mechanism, name the module and callable. For a factor, provide the audited DSL expression.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Causal and adversarial tests
+      description: Describe prefix invariance, determinism, counterfactual and failure tests.
+    validations:
+      required: true
+  - type: input
+    id: example
+    attributes:
+      label: Reproduction example
+      description: Proposed example or notebook path.
+      placeholder: examples/...
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Submission contract
+      options:
+        - label: I understand that benchmark rank is engineering completeness, not predictive performance.
+          required: true
+        - label: I will include the full trial and data-boundary implications in the pull request.
+          required: true

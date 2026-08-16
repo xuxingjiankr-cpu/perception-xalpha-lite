@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "dmd_residual",
+  "title": "Fixed-window Dynamic Mode Decomposition residual",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Dynamic mode decomposition of numerical and experimental data",
+    "url": "https://doi.org/10.1017/S0022112010001217",
+    "year": 2010
+  },
+  "hypothesis": "A fixed-window linear evolution operator can expose locally unexplained dynamics as a diagnostic residual.",
+  "causalBoundary": "The operator at t is fitted only on a trailing window ending at t-1, and the current observation is used only to form the residual.",
+  "counterfactual": "A stable linear synthetic process should produce smaller residuals than a deliberately perturbed continuation under the same frozen window.",
+  "implementation": "xalpha_lite.paper_mechanisms:causal_dmd_residual",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": true,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

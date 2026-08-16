@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "ews",
+  "title": "Generic early-warning statistics",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Early-warning signals for critical transitions",
+    "url": "https://doi.org/10.1038/nature08227",
+    "year": 2009
+  },
+  "hypothesis": "Rolling variance, lag-one autocorrelation and skew can diagnose critical slowing while remaining non-directional features.",
+  "causalBoundary": "Every statistic at t is computed from a trailing preregistered window that ends at t; no centered or future window is allowed.",
+  "counterfactual": "Time-shuffled stationary inputs should remove persistent autocorrelation structure while preserving marginal observations.",
+  "implementation": "xalpha_lite.paper_mechanisms:early_warning_features",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "none"
+}

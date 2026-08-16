@@ -34,6 +34,11 @@ jobs:
       - name: Static contract
         run: python -m ruff check src tests tools examples
 
+      - name: Contributor benchmark is executable and current
+        run: |
+          python tools/contributor_benchmark.py --check --render
+          git diff --exit-code -- docs/CONTRIBUTOR_BENCHMARK.md docs/data/contributor_benchmark.json
+
       - name: Installed research entry points
         run: |
           xalpha-doctor --help
@@ -46,6 +51,7 @@ jobs:
           python examples/selection_artifact.py
           python examples/run_synthetic.py
           python examples/run_forward_record_synthetic.py
+          python examples/run_paper_mechanisms_synthetic.py
           python tools/audit_returns.py
 
       # The forward record's value is entirely in what it refuses. If a refusal ever

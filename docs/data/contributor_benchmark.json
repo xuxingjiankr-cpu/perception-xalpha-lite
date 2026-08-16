@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "xalpha_contributor_benchmark_v1",
+  "meaning": "research_engineering_completeness_not_predictive_performance",
+  "scoring": {
+    "paperTraceability": 20,
+    "hypothesisAndCausalBoundary": 15,
+    "validatedImplementation": 20,
+    "falsificationDesign": 15,
+    "prefixCausalityTest": 15,
+    "adversarialTest": 10,
+    "reproductionExample": 5
+  },
+  "entries": [
+    {
+      "submissionId": "dmd_residual",
+      "title": "Fixed-window Dynamic Mode Decomposition residual",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 90,
+      "tier": "causal-tested",
+      "paper": {
+        "title": "Dynamic mode decomposition of numerical and experimental data",
+        "url": "https://doi.org/10.1017/S0022112010001217",
+        "year": 2010
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:causal_dmd_residual",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": true,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "bocpd",
+      "title": "Bayesian Online Changepoint Detection",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "Bayesian Online Changepoint Detection",
+        "url": "https://arxiv.org/abs/0710.3742",
+        "year": 2007
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:bocpd_change_probability",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "ews",
+      "title": "Generic early-warning statistics",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "Early-warning signals for critical transitions",
+        "url": "https://doi.org/10.1038/nature08227",
+        "year": 2009
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:early_warning_features",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "hmm_filter",
+      "title": "Causal two-state Hidden Markov filter",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "A New Approach to the Economic Analysis of Nonstationary Time Series and the Business Cycle",
+        "url": "https://doi.org/10.2307/1912559",
+        "year": 1989
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:causal_two_state_hmm_filter",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "lppls_fixed_grid",
+      "title": "Fixed-grid simplified LPPLS diagnostics",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "A Stable and Robust Calibration Scheme of the Log-Periodic Power Law Model",
+        "url": "https://doi.org/10.1016/j.physa.2013.04.012",
+        "year": 2013
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:simplified_lppls_features",
+      "testSelector": null,
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "none"
+    },
+    {
+      "submissionId": "triple_barrier",
+      "title": "Triple-barrier offline labels",
+      "contributor": "Perception-XAlpha maintainers",
+      "kind": "mechanism",
+      "score": 75,
+      "tier": "reproducible-implementation",
+      "paper": {
+        "title": "Advances in Financial Machine Learning",
+        "url": "https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086",
+        "year": 2018
+      },
+      "implementation": "xalpha_lite.paper_mechanisms:triple_barrier_labels",
+      "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+      "prefixCausalityTested": false,
+      "adversarialTested": false,
+      "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+      "futureDataRole": "offline_label_only"
+    }
+  ]
+}

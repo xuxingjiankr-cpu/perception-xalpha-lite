@@ -10,6 +10,8 @@ mechanically on every commit.
 
 - **Repository, wiki and live record:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite
 - **中文说明:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/README_CN.md
+- **Colab quickstart:** https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb
+- **Contributor benchmark:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/CONTRIBUTOR_BENCHMARK.md
 
 ```bash
 pip install perception-xalpha-lite
@@ -19,6 +21,10 @@ xalpha-demo --output-dir xalpha-demo-output
 The installed demo creates deterministic synthetic prices and point-in-time fundamentals,
 runs the complete falsification loop, and writes inspectable inputs, readiness and result
 artifacts. Nothing in it is a performance claim.
+
+Paper-backed mechanisms and audited DSL factors can be proposed through the repository's issue
+templates. The contributor leaderboard measures reproducibility and causal-test coverage—not
+returns, alpha, or deployment readiness.
 
 Audit local data before spending compute on discovery:
 

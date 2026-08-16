@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Research documentation
+    url: https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/
+    about: Read the architecture, evidence boundaries and forward-record contract first.
+  - name: Security report
+    url: https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/security/advisories/new
+    about: Report a vulnerability privately rather than opening a public issue.

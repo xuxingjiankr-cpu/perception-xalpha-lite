@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xalpha_contributor_submission_v1",
+  "submissionId": "triple_barrier",
+  "title": "Triple-barrier offline labels",
+  "contributor": "Perception-XAlpha maintainers",
+  "kind": "mechanism",
+  "paper": {
+    "title": "Advances in Financial Machine Learning",
+    "url": "https://www.wiley.com/en-us/Advances+in+Financial+Machine+Learning-p-9781119482086",
+    "year": 2018
+  },
+  "hypothesis": "Profit, loss and time barriers provide a consistent offline outcome definition for later predictive falsification.",
+  "causalBoundary": "Labels intentionally inspect future prices and are confined to offline label tables; they are prohibited from the feature namespace.",
+  "counterfactual": "Reversing symmetric return paths should exchange profit and loss labels while leaving time-barrier counts structurally comparable.",
+  "implementation": "xalpha_lite.paper_mechanisms:triple_barrier_labels",
+  "expression": null,
+  "counterExpression": null,
+  "testSelector": "tests/test_core.py::test_paper_primitives_are_causal_and_bounded",
+  "prefixCausalityTested": false,
+  "adversarialTested": false,
+  "reproductionExample": "examples/run_paper_mechanisms_synthetic.py",
+  "futureDataRole": "offline_label_only"
+}

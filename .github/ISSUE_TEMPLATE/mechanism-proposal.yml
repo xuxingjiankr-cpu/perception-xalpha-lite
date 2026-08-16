@@ -1,0 +1,75 @@
+name: Paper-backed mechanism proposal
+description: Propose one research mechanism with an explicit causal boundary and falsification test.
+title: "[Mechanism] "
+labels:
+  - research-mechanism
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose the research claim before optimizing an implementation. A cited paper is a starting point, not evidence that the mechanism creates alpha in a new market.
+  - type: input
+    id: paper
+    attributes:
+      label: Primary paper
+      description: DOI, publisher, arXiv, SSRN, or author-manuscript URL.
+      placeholder: https://doi.org/...
+    validations:
+      required: true
+  - type: textarea
+    id: claim
+    attributes:
+      label: Exact claim to implement
+      description: State the narrow result or algorithmic primitive, not a profitability promise.
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Mechanism and hypothesis
+      description: What market, information, risk, or statistical mechanism could make this useful?
+    validations:
+      required: true
+  - type: textarea
+    id: causal_boundary
+    attributes:
+      label: Point-in-time boundary
+      description: List every input and when it becomes observable. Identify any future-dependent label.
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Output role
+      options:
+        - Past-only feature
+        - Offline label only
+        - Risk diagnostic
+        - Probability calibrator
+        - Validation or multiple-testing tool
+        - Portfolio prior or shrinkage tool
+    validations:
+      required: true
+  - type: textarea
+    id: falsification
+    attributes:
+      label: Counterfactual, placebo, or adversarial test
+      description: What result would make us reject this mechanism?
+    validations:
+      required: true
+  - type: textarea
+    id: non_claims
+    attributes:
+      label: Non-claims and limitations
+      description: State what this implementation must never imply.
+    validations:
+      required: true
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Research-only contract
+      options:
+        - label: I will not add broker access, order placement, automatic promotion, or private trading results.
+          required: true
+        - label: I will add deterministic tests and a contributor-benchmark card if the proposal is accepted.
+          required: true
