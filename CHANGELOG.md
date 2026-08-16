@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — Data contracts become executable
+
+- `xalpha-doctor` audits price and fundamental inputs before discovery. Duplicate bars,
+  impossible OHLC, missing notice dates, insufficient chronological capacity, absent
+  neutralization controls and missing tradability fields fail closed in machine-readable JSON.
+- `xalpha-demo` runs the installed package end to end without a checkout or private dataset. It
+  emits deterministic synthetic inputs, the doctor report, frozen config and full research
+  result in one directory.
+- The daily forward-record summary is rendered from language templates, keeping generated
+  figures out of source code while preserving the English and Chinese reader views.
+
 ## 0.5.0 — The record publishes itself
 
 The daily record now runs on GitHub Actions from public data, and publishes the name **before**

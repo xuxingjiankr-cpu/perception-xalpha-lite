@@ -34,6 +34,34 @@ produce an order. It is deliberately **not** a trading engine.
 - **[Research roadmap](https://github.com/users/xuxingjiankr-cpu/projects/1)** — what is being tested, what was rejected, what is waiting on forward data
 - **[Site](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/)** — the same material, rendered
 
+## Run the whole contract in two commands
+
+```bash
+pip install "perception-xalpha-lite @ git+https://github.com/xuxingjiankr-cpu/perception-xalpha-lite.git@main"
+xalpha-demo --output-dir xalpha-demo-output
+```
+
+`xalpha-demo` needs no dataset and no repository checkout. It creates a deterministic toy
+market, audits its point-in-time contract, runs bounded factor synthesis, counter/placebo
+controls, purged walk-forward, PBO and deflated Sharpe, then leaves every artifact in one
+directory. The data are synthetic and the output is a mechanics demonstration, never an
+investment result.
+
+Before running the same loop on local data, make the data prove it is structurally ready:
+
+```bash
+xalpha-doctor \
+  --prices data/prices.csv \
+  --fundamentals data/fundamentals.csv \
+  --config configs/example.json \
+  --output outputs/data_readiness.json
+```
+
+The doctor returns a non-zero exit code for duplicate bars, invalid OHLC, missing disclosure
+dates, an undersized chronological split, absent neutralization controls, or missing
+tradability fields. It names but does not pretend to solve vendor provenance and survivorship.
+See the [data-doctor contract](docs/DATA_DOCTOR.md).
+
 ## Audit your own backtest
 
 ```bash
@@ -72,6 +100,20 @@ Each evening a frozen specification (`dea0e608`) picks one name out of ~4,700 el
 commits it here, timestamped, **before that market opens**. The file is append-only, and the
 whole thing — fetch, select, score, redraw — runs on a GitHub runner from public data, so a
 reader can rerun it and get the same name.
+
+<!-- LIVE-RECORD:BEGIN -->
+| the live record, as of 2026-08-14 | |
+|---|--:|
+| Sessions scored | **4** |
+| Cumulative excess over the eligible universe | **+0.63%** |
+| Mean gross per session | +0.43% |
+| Sessions the book rose | 3/4 |
+| Next session's name, published in advance | `SZ_301203` |
+| Verdict | `insufficient_forward_sample` |
+
+Below 60 scored sessions the verdict does not change, whatever the
+numbers do. This block is rewritten by the daily job, not by hand.
+<!-- LIVE-RECORD:END -->
 
 Two separate records run, and they answer different questions:
 
@@ -563,13 +605,18 @@ src/xalpha_lite/
 ├── forward.py             # frozen specifications, tamper-evident forward records
 ├── decision.py            # Top-K weights, block replicas, calibration
 ├── evidence.py            # stationary bootstrap, Reality Check, step-down inference
+├── doctor.py              # fail-closed PIT data readiness and leakage-risk audit
+├── synthetic.py           # deterministic zero-setup research inputs
 ├── evidence_cli.py        # searched-family evidence command line interface
+├── doctor_cli.py          # data-doctor command line interface
+├── demo_cli.py            # installed-package full-loop demonstration
 ├── forward_cli.py         # freeze / log / score command line interface
 ├── paper_mechanisms.py    # auditable research primitives
 └── cli.py                 # research-only command line interface
 
 docs/
 ├── PAPERS.md              # literature-to-code traceability
+├── DATA_DOCTOR.md         # machine-readable data readiness contract
 ├── EVIDENCE_LAB.md        # dependence-aware family-level inference
 └── DECISION_TOOLKIT.md    # decision-research API and constraints
 ```

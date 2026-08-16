@@ -52,10 +52,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- docs/; then
+          if git diff --quiet -- docs/ README.md; then
             echo "nothing changed"
           else
-            git add docs/
+            git add docs/ README.md
             git commit -m "data: daily record [skip ci]"
             git pull --rebase --autostash
             git push

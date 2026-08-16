@@ -1,0 +1,32 @@
+{
+  "en": [
+    "<!-- LIVE-RECORD:BEGIN -->",
+    "| the live record, as of {date} | |",
+    "|---|--:|",
+    "| Sessions scored | **{sessions}** |",
+    "| Cumulative excess over the eligible universe | **{cumulative}** |",
+    "| Mean gross per session | {mean_gross} |",
+    "| Sessions the book rose | {positive_sessions}/{sessions} |",
+    "| Next session's name, published in advance | `{next_symbol}` |",
+    "| Verdict | `{verdict}` |",
+    "",
+    "Below {minimum_sample} scored sessions the verdict does not change, whatever the",
+    "numbers do. This block is rewritten by the daily job, not by hand.",
+    "<!-- LIVE-RECORD:END -->"
+  ],
+  "zh-CN": [
+    "<!-- LIVE-RECORD:BEGIN -->",
+    "| 实盘记录,截至 {date} | |",
+    "|---|--:|",
+    "| 已打分交易日 | **{sessions}** |",
+    "| 相对可选股票池的累计超额 | **{cumulative}** |",
+    "| 每个交易日的平均毛收益 | {mean_gross} |",
+    "| 组合上涨的交易日 | {positive_sessions}/{sessions} |",
+    "| 事前公布的下一个持仓 | `{next_symbol}` |",
+    "| 结论 | `{verdict}` |",
+    "",
+    "不足 {minimum_sample} 个已打分交易日,结论不会改变,无论数字怎么走。",
+    "这一段由每日任务重写,不是手写的。",
+    "<!-- LIVE-RECORD:END -->"
+  ]
+}

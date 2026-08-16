@@ -15,7 +15,6 @@ import numpy as np
 import pandas as pd
 
 from selection_artifact import (  # noqa: E402  (same directory, deliberate)
-    DECILE,
     SEED,
     SPLIT,
     TOP_K,

@@ -31,6 +31,14 @@ jobs:
       - name: Test
         run: python -m pytest tests -q
 
+      - name: Static contract
+        run: python -m ruff check src tests tools examples
+
+      - name: Installed research entry points
+        run: |
+          xalpha-doctor --help
+          xalpha-demo --help
+
       # The examples are part of the contract, not decoration: a framework about
       # reproducibility has to prove its own examples still run on every commit.
       - name: Examples reproduce

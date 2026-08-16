@@ -97,3 +97,21 @@ def test_registry_records_where_a_specification_runs(status: str) -> None:
             assert entry["runs_on"], f"{entry['name']} is live but names no host"
         else:
             assert entry["runs_on"] is None, f"{entry['name']} is retired but still names a host"
+
+
+def test_live_record_block_is_machine_written_and_still_marked() -> None:
+    """The daily job rewrites this block; without the markers it silently stops.
+
+    Two sentences in these files were written as facts about one particular day and had to be
+    corrected within a week — a superseded digest, and "the solid span is empty" on the morning
+    the first live session landed. The block exists so those numbers are never typed by hand
+    again, which only works while the markers are there to find.
+    """
+    for name in ("README.md", "docs/README_CN.md"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert text.count("<!-- LIVE-RECORD:BEGIN -->") == 1, f"{name}: opening marker"
+        assert text.count("<!-- LIVE-RECORD:END -->") == 1, f"{name}: closing marker"
+        head, _, rest = text.partition("<!-- LIVE-RECORD:BEGIN -->")
+        body, _, _ = rest.partition("<!-- LIVE-RECORD:END -->")
+        assert "Verdict" in body or "结论" in body, f"{name}: block was emptied"
+        assert text.index("<!-- LIVE-RECORD:BEGIN -->") < text.index("<!-- LIVE-RECORD:END -->")

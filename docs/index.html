@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
+  <meta name="description" content="Open-source point-in-time factor research with an executable data doctor, bounded symbolic discovery, purged walk-forward validation, PBO, deflated Sharpe and public forward records.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Perception-XAlpha Lite">
   <meta property="og:title" content="Perception-XAlpha Lite — falsification-first factor research">
-  <meta property="og:description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
+  <meta property="og:description" content="Executable data contracts, bounded symbolic discovery and falsification-first validation for quantitative factor research.">
   <meta property="og:url" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/">
   <meta property="og:image" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/social-preview.png">
   <meta property="og:image:width" content="1280">
   <meta property="og:image:height" content="640">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Perception-XAlpha Lite — falsification-first factor research">
-  <meta name="twitter:description" content="456 published factors ranked on training data only. Training-side selection predicts out-of-sample outcome at Spearman +0.48 — and the top ten still average -0.24% per hold against the universe they came from. Selection works; it is not enough. Research-only, no profitability claim.">
+  <meta name="twitter:description" content="Executable data contracts, bounded symbolic discovery and falsification-first validation for quantitative factor research.">
   <meta name="twitter:image" content="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/social-preview.png">
   <link rel="canonical" href="https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/">
   <link rel="icon" type="image/svg+xml" href="logo.svg">
@@ -77,7 +77,7 @@
 </head>
 <body>
 <nav><div><div class="brand">Perception-<span>XAlpha</span></div><div class="links">
-  <a href="#live">Live record</a><a href="#architecture">Architecture</a><a href="#primitives">Primitives</a>
+  <a href="#start">Run it</a><a href="#live">Live record</a><a href="#architecture">Architecture</a><a href="#primitives">Primitives</a>
   <a href="#lab">Evidence Lab</a><a href="#evidence">Research Basis</a><a href="#contract">Integrity Contract</a>
   <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">GitHub</a>
 </div></div></nav>
@@ -97,6 +97,25 @@
     <div class="stat"><b>max-t</b><span>Joint family inference</span></div>
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
+
+  <section id="start">
+    <h2>Run the contract before reading a claim</h2>
+    <p>The package now has two zero-friction entry points: one demonstrates the entire loop on
+      deterministic synthetic data; the other fails closed on structurally unsafe local data
+      before a search consumes compute.</p>
+    <div class="grid">
+      <div class="card"><b>Zero-setup research loop</b><h3><code>xalpha-demo</code></h3>
+        <p>Creates inspectable prices, disclosure-timed fundamentals, a readiness report, frozen
+          config and full falsification result in one directory. Synthetic mechanics only.</p></div>
+      <div class="card"><b>Data integrity preflight</b><h3><code>xalpha-doctor</code></h3>
+        <p>Checks temporal capacity, duplicate keys, OHLC integrity, disclosure dates,
+          neutralization fields and tradability support. Blocking faults return exit code 2.</p></div>
+    </div>
+    <pre>pip install "perception-xalpha-lite @ git+https://github.com/xuxingjiankr-cpu/perception-xalpha-lite.git@main"
+xalpha-demo --output-dir xalpha-demo-output
+xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config config.json</pre>
+    <p><a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/DATA_DOCTOR.md">Read the machine-readable data contract &rarr;</a></p>
+  </section>
 
   <section id="live">
     <h2>The live record, redrawn every day</h2>

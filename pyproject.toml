@@ -8,12 +8,11 @@ version = "0.5.0"
 description = "Research-only, point-in-time factor discovery with a safe DSL and anti-overfitting guards"
 readme = "README_PYPI.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "XU XINGJIAN"}]
 dependencies = ["numpy>=1.26", "pandas>=2.1", "scipy>=1.11"]
 classifiers = [
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -25,7 +24,8 @@ classifiers = [
 ]
 keywords = ["backtest-overfitting", "deflated-sharpe-ratio", "pbo", "cscv",
             "point-in-time", "factor-research", "quantitative-finance", "quant",
-            "purged-walk-forward", "multiple-testing", "alpha-research"]
+            "purged-walk-forward", "multiple-testing", "alpha-research",
+            "data-quality", "lookahead-bias"]
 
 [project.urls]
 Homepage = "https://github.com/xuxingjiankr-cpu/perception-xalpha-lite"
@@ -41,6 +41,8 @@ data = ["baostock>=0.8"]
 xalpha-lite = "xalpha_lite.cli:main"
 xalpha-evidence = "xalpha_lite.evidence_cli:main"
 xalpha-forward = "xalpha_lite.forward_cli:main"
+xalpha-doctor = "xalpha_lite.doctor_cli:main"
+xalpha-demo = "xalpha_lite.demo_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

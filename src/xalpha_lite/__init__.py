@@ -10,6 +10,7 @@ from .decision import (
 )
 from .book import long_only_book, long_only_weights, universe_benchmark
 from .discovery import run_discovery
+from .doctor import audit_research_data
 from .evidence import (
     BootstrapDesign,
     benjamini_hochberg_qvalues,
@@ -29,6 +30,7 @@ from .forward import (
     validate_spec,
 )
 from .pit import align_point_in_time_fundamentals
+from .synthetic import demo_config, make_synthetic_data
 from .universe import (
     apply_sealed_bar_limits,
     point_in_time_eligibility,
@@ -38,12 +40,14 @@ from .universe import (
 __all__ = [
     "BootstrapDesign",
     "align_point_in_time_fundamentals",
+    "audit_research_data",
     "append_prediction",
     "apply_sealed_bar_limits",
     "benjamini_hochberg_qvalues",
     "benjamini_yekutieli_qvalues",
     "build_prediction",
     "chronological_research_partitions",
+    "demo_config",
     "evidence_report",
     "fit_logistic_probability_model",
     "fit_pairwise_topk_weights",
@@ -53,6 +57,7 @@ __all__ = [
     "load_spec",
     "long_only_book",
     "long_only_weights",
+    "make_synthetic_data",
     "point_in_time_eligibility",
     "probability_metrics",
     "romano_wolf_stepdown",

@@ -55,6 +55,10 @@ SPEC_PATH = DATA / "single_name_rotation_v4.spec.json"
 PICKS = DATA / "published_picks.jsonl"
 LATEST = DATA / "next_pick.json"
 SERIES = DATA / "rotation.jsonl"
+READMES = (ROOT / "README.md", ROOT / "docs" / "README_CN.md")
+LIVE_RECORD_TEMPLATES = DATA / "live_record_templates.json"
+BEGIN, END = "<!-- LIVE-RECORD:BEGIN -->", "<!-- LIVE-RECORD:END -->"
+MINIMUM_READABLE_SAMPLE = 60
 FIELDS = "date,open,high,low,close,volume,amount,isST,tradestatus"
 EMPTY_STATEMENTS = pd.DataFrame(columns=["symbol", "report_date", "notice_date", "update_date"])
 INDEX_CODES = {"sh.000016": "SSE50 (onshore A50 proxy)", "sh.000300": "CSI300"}
@@ -412,6 +416,49 @@ def append_records(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.D
     return 0
 
 
+def refresh_readmes(spec: dict) -> None:
+    """Rewrite the live-record block in both READMEs from the record itself.
+
+    Prose that states a fact about one particular day stops being true the next. Two sentences
+    written that way had to be corrected within a week — a specification digest that had been
+    superseded, and "the solid span is empty" on the morning the first live session landed. The
+    fix is not to be more careful; it is to stop writing those numbers by hand.
+    """
+    picks = read_jsonl(PICKS)
+    live = [row for row in read_jsonl(SERIES) if row.get("phase") == "live"]
+    if not live:
+        return
+    net = [float(row["strategy_net"]) for row in live]
+    gross = [float(row["strategy_gross"]) for row in live]
+    latest = max(picks, key=lambda row: row["as_of"]) if picks else None
+    cumulative = np.prod([1.0 + value for value in net]) - 1.0
+    verdict = ("insufficient_forward_sample" if len(live) < MINIMUM_READABLE_SAMPLE
+               else "sample_sufficient_for_first_read")
+
+    values = {
+        "date": live[-1]["date"],
+        "sessions": len(live),
+        "cumulative": f"{cumulative:+.2%}",
+        "mean_gross": f"{np.mean(gross):+.2%}",
+        "positive_sessions": sum(1 for value in gross if value > 0),
+        "next_symbol": latest["symbol"] if latest else "—",
+        "verdict": verdict,
+        "minimum_sample": MINIMUM_READABLE_SAMPLE,
+    }
+    templates = json.loads(LIVE_RECORD_TEMPLATES.read_text(encoding="utf-8"))
+    blocks = ["\n".join(line.format(**values) for line in templates[language])
+              for language in ("en", "zh-CN")]
+
+    for path, block in zip(READMES, blocks):
+        text = path.read_text(encoding="utf-8")
+        if BEGIN not in text or END not in text:
+            continue
+        head, _, rest = text.partition(BEGIN)
+        _, _, tail = rest.partition(END)
+        path.write_text(head + block + tail, encoding="utf-8")
+        print(f"refreshed the live block in {path.name}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, default=6)
@@ -423,7 +470,10 @@ def main() -> int:
     status = publish_pick(spec, panel, eligible, signal, args.dry_run)
     if status not in (0,):
         return status
-    return append_records(spec, panel, eligible, signal, args.dry_run)
+    status = append_records(spec, panel, eligible, signal, args.dry_run)
+    if not args.dry_run:
+        refresh_readmes(spec)
+    return status
 
 
 if __name__ == "__main__":

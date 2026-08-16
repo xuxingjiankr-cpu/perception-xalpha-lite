@@ -13,6 +13,21 @@ mechanically on every commit.
 
 ```bash
 pip install perception-xalpha-lite
+xalpha-demo --output-dir xalpha-demo-output
+```
+
+The installed demo creates deterministic synthetic prices and point-in-time fundamentals,
+runs the complete falsification loop, and writes inspectable inputs, readiness and result
+artifacts. Nothing in it is a performance claim.
+
+Audit local data before spending compute on discovery:
+
+```bash
+xalpha-doctor \
+  --prices data/prices.csv \
+  --fundamentals data/fundamentals.csv \
+  --config configs/example.json \
+  --output outputs/data_readiness.json
 ```
 
 ## Audit a backtest for overfitting
@@ -72,8 +87,10 @@ python examples/selection_artifact.py    # IR 4.53 manufactured from pure noise
 | `forward` | frozen specifications: no overwrite, digest verified on load, one entry per session, scoring only fully elapsed windows |
 | `evidence` | stationary bootstrap, White's Reality Check, Romano–Wolf step-down, BH/BY |
 | `decision` | Top-K pairwise weighting, block replicas, independent probability calibration |
+| `doctor` | fail-closed schema, disclosure-timing, tradability and leakage-risk preflight |
+| `synthetic` | deterministic zero-setup data for the installed full-loop demonstration |
 
-Command line: `xalpha-lite`, `xalpha-evidence`, `xalpha-forward`.
+Command line: `xalpha-lite`, `xalpha-evidence`, `xalpha-forward`, `xalpha-doctor`, `xalpha-demo`.
 
 ## Current status, stated plainly
 
