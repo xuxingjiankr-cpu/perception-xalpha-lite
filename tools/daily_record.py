@@ -309,7 +309,10 @@ def publish_pick(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.Dat
         "eligible_names": int(eligible.loc[as_of].sum()),
         "spec_sha256": spec["spec_sha256"],
         "published_at": datetime.now(timezone.utc).isoformat(),
-        "computed_by": "github-actions",
+        # Where it actually ran, not where it usually runs. The first entry written from a
+        # workstation carried "github-actions" because the label was a constant, which is a
+        # false provenance claim in a record whose value is provenance.
+        "computed_by": "github-actions" if os.environ.get("GITHUB_ACTIONS") else "maintainer workstation",
         "status": "research_only_forward_record_not_trading",
         "orders": [],
     }
