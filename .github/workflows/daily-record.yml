@@ -7,12 +7,12 @@ name: daily-record
 
 on:
   schedule:
-    - cron: "0 9 * * 1-5"     # 17:00 Asia/Shanghai, after the close
-    # A second attempt, because the first one has already been lost to a degraded data source
-    # and a gap in a forward record cannot be filled in afterwards without it looking chosen.
-    # The script is idempotent: a session already published is reported as reproduced, not
-    # rewritten, so a redundant run costs a runner and changes nothing.
-    - cron: "0 13 * * 1-5"    # 21:00 Asia/Shanghai, backstop
+    # Weekly, not daily. The provider throttles GitHub's address ranges — a workstation gets
+    # 10 of 10 sample symbols in 1.2 seconds while a runner gets 12% of the universe, every
+    # trading day for a week — so the picks are produced on the maintainer's machine and this
+    # is now a reachability probe. If a runner can ever fetch the universe again, that is worth
+    # knowing; asking daily only produces one identical issue per day.
+    - cron: "0 13 * * 1"      # 21:00 Asia/Shanghai, Mondays
   workflow_dispatch:
     inputs:
       dry_run:
