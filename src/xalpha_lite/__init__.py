@@ -30,6 +30,7 @@ from .forward import (
     validate_spec,
 )
 from .pit import align_point_in_time_fundamentals
+from .search_protocol import validate_search_protocol
 from .synthetic import demo_config, make_synthetic_data
 from .universe import (
     apply_sealed_bar_limits,
@@ -68,6 +69,7 @@ __all__ = [
     "stationary_bootstrap_mean_intervals",
     "universe_benchmark",
     "validate_spec",
+    "validate_search_protocol",
     "white_reality_check",
 ]
 __version__ = "0.5.0"

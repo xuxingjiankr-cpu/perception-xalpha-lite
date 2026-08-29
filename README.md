@@ -450,7 +450,7 @@ flowchart LR
     subgraph DISCOVERY["Autonomous Discovery Plane"]
         C --> D["Audited factor DSL"]
         D --> E["Economic seeds"]
-        E --> F["Bounded mutation + crossover"]
+        E --> F["Preregistered CoE / ToT / EA search"]
         F --> G["Immutable birth certificates"]
     end
     subgraph VALIDATION["Falsification Plane"]
@@ -478,6 +478,7 @@ distinguished. Availability in the library means **testable**, not **validated a
 |---|---|---|---|
 | Disclosure timing | `align_point_in_time_fundamentals()` | Information must not exist before publication | Missing disclosure dates fail closed |
 | Symbolic search | audited JSON DSL + bounded generator | Interpretable formulaic alpha search; related to AlphaForge | No `eval`, subprocess, network, or arbitrary Python |
+| Search orchestration | preregistered CoE / ToT / EA protocol | AlphaBench-inspired comparison of proposal strategies | Common DSL/budget and train-only selection; proposal engines never judge validity |
 | Neutral portfolios | industry/size residualization | Cross-sectional factor research | Zero-investment research proxy; not an executable short book |
 | Regime inference | causal two-state HMM | Hamilton regime switching | Forward filtering only; full-path Viterbi is not online-safe |
 | Transition risk | EWS + BOCPD | Critical slowing and Bayesian run-length inference | Risk diagnostic, not directional alpha |
@@ -492,7 +493,8 @@ distinguished. Availability in the library means **testable**, not **validated a
 | Decision ranking | bounded Top-K pairwise loss | Decision-focused learning | Fit block only; cannot create absent signal |
 | Forecast reliability | Brier, LogLoss, AUC, ECE | Strictly proper scoring-rule framework | Calibration block is independent and frozen |
 
-See the full [literature and implementation map](docs/PAPERS.md) and the
+See the [search-protocol contract](docs/SEARCH_PROTOCOL.md), the full
+[literature and implementation map](docs/PAPERS.md), and the
 machine-validated [user-supplied literature registry](docs/USER_SUPPLIED_LITERATURE.md).
 
 ## Mathematical core

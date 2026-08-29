@@ -69,6 +69,7 @@ The complete method contract and command-line workflow are documented in
 | How can a system explore formulaic factors while retaining interpretability? | AlphaForge uses a generative-predictive architecture for formulaic factor generation and combination | allowlisted JSON DSL, economic seeds, bounded mutation/crossover | No neural generator; every expression is statically inspectable |
 | How can factor lineage remain reproducible? | Evolutionary and grammar-guided research motivates explicit generation histories | immutable factor ID, parent IDs, operator, generation, expression hash | No claim that lineage quality implies predictive quality |
 | How should redundant candidates be handled? | Diverse factor sets reduce repeated variants of the same behavior | train-only behavioral-correlation pruning | Validation/shadow correlations never select the parent pool |
+| How should proposal strategies be compared without turning an LLM into a factor judge? | AlphaBench separates alpha generation from empirical evaluation and compares structured search paradigms | preregistered CoE/ToT/EA schedule, common DSL/budget, train-only pairwise selection and per-arm audit | Paper-inspired orchestration only; reported AlphaBench performance is not reproduced and absolute zero-shot factor judgement is prohibited |
 
 ### Primary references
 
@@ -78,6 +79,11 @@ The complete method contract and command-line workflow are documented in
 - Zhang, T., et al. (2020). *AutoAlpha: An Efficient Hierarchical Evolutionary
   Algorithm for Mining Alpha Factors in Quantitative Investment*.
   [arXiv:2002.08245](https://arxiv.org/abs/2002.08245)
+- *AlphaBench: A Benchmark for LLM-Driven Alpha Mining* (2026). ICLR 2026.
+  [Conference paper](https://proceedings.iclr.cc/paper_files/paper/2026/file/4f3820576130a8f796ddbf204c841487-Paper-Conference.pdf)
+
+The public protocol and its interpretation boundary are documented in
+[SEARCH_PROTOCOL.md](SEARCH_PROTOCOL.md).
 
 ## Decision-focused ranking and calibration
 

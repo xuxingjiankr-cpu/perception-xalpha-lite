@@ -1,0 +1,69 @@
+{
+  "status": "research_only_not_trading",
+  "prediction_horizon_days": 10,
+  "purge_days": 10,
+  "validation_days": 126,
+  "shadow_days": 126,
+  "minimum_train_days": 504,
+  "round_trip_cost": 0.003,
+  "require_neutralization_data": true,
+  "minimum_daily_amount": 1000000,
+  "maximum_amount_participation": 0.01,
+  "candidate_budget": 64,
+  "stage2_budget": 16,
+  "parent_pool_size": 8,
+  "minimum_train_rank_ic": 0.005,
+  "walk_forward_folds": 3,
+  "minimum_positive_walk_forward_folds": 2,
+  "pbo_blocks": 8,
+  "pbo_maximum": 0.2,
+  "placebo_repetitions": 200,
+  "permutation_alpha": 0.05,
+  "maximum_counter_correlation": 0.9,
+  "maximum_factor_behavior_correlation": 0.85,
+  "dsr_probability_minimum": 0.95,
+  "previous_research_trials": 0,
+  "random_seed": 20260829,
+  "search_protocol": {
+    "schema_version": "alphabench_search_protocol_v1",
+    "status": "research_only_not_trading",
+    "proposal_role": "candidate_generation_and_queue_ordering_only",
+    "absolute_factor_judgement_allowed": false,
+    "selection_evidence": "train_only",
+    "validation_feedback_allowed": false,
+    "shadow_feedback_allowed": false,
+    "final_judge": "pit_counter_placebo_purged_pbo_dsr",
+    "generation_schedule": ["coe", "tot", "ea", "coe", "tot", "ea"],
+    "arms": {
+      "coe": {
+        "frontier_size": 6,
+        "children_per_parent": 1,
+        "operator_weights": {
+          "rolling_refinement": 0.7,
+          "temporal_zscore": 0.3
+        }
+      },
+      "tot": {
+        "frontier_size": 3,
+        "children_per_parent": 4,
+        "operator_weights": {
+          "causal_lag_mutation": 0.25,
+          "rolling_refinement": 0.25,
+          "temporal_zscore": 0.2,
+          "mechanism_crossover_add": 0.3
+        }
+      },
+      "ea": {
+        "frontier_size": 8,
+        "children_per_parent": 4,
+        "operator_weights": {
+          "causal_lag_mutation": 0.2,
+          "rolling_refinement": 0.2,
+          "temporal_zscore": 0.2,
+          "mechanism_crossover_add": 0.2,
+          "mechanism_crossover_mul": 0.2
+        }
+      }
+    }
+  }
+}

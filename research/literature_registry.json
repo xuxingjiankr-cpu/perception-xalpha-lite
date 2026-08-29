@@ -35,6 +35,23 @@
       ]
     },
     {
+      "paperId": "alphabench-2026",
+      "title": "AlphaBench: A Benchmark for LLM-Driven Alpha Mining",
+      "year": 2026,
+      "url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/4f3820576130a8f796ddbf204c841487-Paper-Conference.pdf",
+      "domain": "factor-search orchestration",
+      "status": "partially_mapped",
+      "systemMapping": "A preregistered public protocol compares bounded CoE, ToT and evolutionary proposal strategies under one DSL, candidate budget and train-only selection rule.",
+      "implementationBoundary": "This is a paper-inspired orchestration layer, not a reproduction of the paper's data or reported results; no LLM may judge factor validity or inspect held-out feedback.",
+      "requiredData": "Point-in-time panels with a frozen train/validation/shadow split and a cumulative candidate trial ledger.",
+      "nextFalsifiableStep": "Compare per-arm uniqueness, parent improvement and Stage-2 survival under the same deterministic falsification pipeline.",
+      "repositorySurfaces": [
+        "xalpha_lite.search_protocol:validate_search_protocol",
+        "xalpha_lite.search_protocol:select_frontier",
+        "xalpha_lite.discovery:bounded_generate_audited"
+      ]
+    },
+    {
       "paperId": "prism-vq-2026",
       "title": "Vector-Quantized Discrete Latent Factors Meet Financial Priors: Dynamic Cross-Sectional Stock Ranking Prediction for Portfolio Construction",
       "year": 2026,

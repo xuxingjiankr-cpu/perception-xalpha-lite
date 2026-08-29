@@ -12,7 +12,7 @@ or repository path and regenerates this page from `research/literature_registry.
 | Status | Count | Meaning |
 |---|---:|---|
 | `implemented` | 0 | A matching bounded public callable exists; no alpha claim follows. |
-| `partially_mapped` | 3 | Some auditable primitives exist, but the paper's full architecture does not. |
+| `partially_mapped` | 4 | Some auditable primitives exist, but the paper's full architecture does not. |
 | `extension_candidate` | 6 | A direct, testable extension of an existing primitive; not implemented. |
 | `data_gated` | 1 | The mechanism needs event types or data granularity not present in the package. |
 | `deferred` | 3 | Deliberately postponed until a simpler prerequisite survives falsification. |
@@ -23,6 +23,7 @@ or repository path and regenerates this page from `research/literature_registry.
 
 | Paper | Domain | Status | Public mapping and boundary | Next falsifiable step |
 |---|---|---|---|---|
+| [AlphaBench: A Benchmark for LLM-Driven Alpha Mining](https://proceedings.iclr.cc/paper_files/paper/2026/file/4f3820576130a8f796ddbf204c841487-Paper-Conference.pdf) (2026) | factor-search orchestration | `partially_mapped` | A preregistered public protocol compares bounded CoE, ToT and evolutionary proposal strategies under one DSL, candidate budget and train-only selection rule. **Boundary:** This is a paper-inspired orchestration layer, not a reproduction of the paper's data or reported results; no LLM may judge factor validity or inspect held-out feedback. | Compare per-arm uniqueness, parent improvement and Stage-2 survival under the same deterministic falsification pipeline. |
 | [AI-Trader: Benchmarking Autonomous Agents in Real-Time Financial Markets](https://arxiv.org/abs/2512.10971) (2025) | forward evaluation | `partially_mapped` | Frozen specifications and tamper-evident forward records implement the uncontaminated-evaluation principle without an agent. **Boundary:** The package contains no autonomous news agent, broker access, order path or live-trading benchmark. | Compare preregistered model cards on the same forward ledger while keeping all outputs research-only. |
 | [Cognitive Alpha Mining via LLM-Driven Code-Based Evolution](https://arxiv.org/abs/2511.18850) (2025) | factor discovery | `partially_mapped` | The repository implements bounded mutation, crossover, immutable lineage and fail-closed evaluation. **Boundary:** No LLM is permitted to emit or execute arbitrary code; this is not a CogAlpha reproduction. | Submit LLM proposals through the same allowlisted DSL and compare novelty and rejection rates without changing acceptance gates. |
 | [AlphaForge: A Framework to Mine and Dynamically Combine Formulaic Alpha Factors](https://arxiv.org/abs/2406.18394) (2024) | factor discovery | `partially_mapped` | Bounded symbolic generation, lineage and train-only diversity pruning cover the auditable symbolic-search layer. **Boundary:** The public package does not reproduce AlphaForge's neural generator or claim its empirical performance. | Compare a frozen grammar family with economic seeds under one cumulative trial ledger. |

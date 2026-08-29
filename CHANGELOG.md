@@ -2,6 +2,10 @@
 
 ## Unreleased — Data contracts become executable
 
+- An AlphaBench-inspired research protocol compares bounded CoE, ToT and evolutionary
+  candidate search under one DSL, one budget and the existing deterministic falsification
+  pipeline. Search diagnostics are reported per arm; no proposal engine can inspect held-out
+  feedback, judge factors absolutely or bypass validation.
 - `xalpha-doctor` audits price and fundamental inputs before discovery. Duplicate bars,
   impossible OHLC, missing notice dates, insufficient chronological capacity, absent
   neutralization controls and missing tradability fields fail closed in machine-readable JSON.

@@ -20,6 +20,7 @@ import pandas as pd
 
 from .dsl import canonical, evaluate, fields_used, validate
 from .pit import align_point_in_time_fundamentals
+from . import search_protocol as search
 
 
 WINDOWS = {3, 5, 10, 20, 60, 120, 252}
@@ -145,6 +146,7 @@ def _candidate(
     parents: list[str] | None = None,
     generation: int = 0,
     operator: str = "seed",
+    search_paradigm: str | None = None,
 ) -> dict[str, Any]:
     fingerprint = hashlib.sha256(canonical(expression).encode()).hexdigest()
     factor_id = f"factor_{fingerprint[:20]}"
@@ -157,7 +159,9 @@ def _candidate(
         "phenomenon": phenomenon,
         "mechanism": mechanism,
     }
-    return {
+    if search_paradigm is not None:
+        birth["search_paradigm"] = search_paradigm
+    candidate = {
         "factor_id": factor_id,
         "name": name,
         "domain": domain,
@@ -173,6 +177,9 @@ def _candidate(
             ).hexdigest(),
         },
     }
+    if search_paradigm is not None:
+        candidate["search_paradigm"] = search_paradigm
+    return candidate
 
 
 def seed_library(panel: dict[str, pd.DataFrame]) -> list[dict[str, Any]]:
@@ -630,7 +637,54 @@ def purged_walk_forward(
     }
 
 
-def bounded_generate(
+def _generated_child(
+    left: dict[str, Any],
+    right: dict[str, Any],
+    operator: str,
+    window: int,
+    attempt: int,
+    search_paradigm: str | None = None,
+) -> dict[str, Any]:
+    if operator == "temporal_zscore":
+        expression = {"zscore": True, "arg": left["expression"], "window": window}
+        parent_ids = [left["factor_id"]]
+    elif operator == "rolling_refinement":
+        expression = _roll("mean", left["expression"], window)
+        parent_ids = [left["factor_id"]]
+    elif operator == "causal_lag_mutation":
+        expression = {"lag": window, "arg": left["expression"]}
+        parent_ids = [left["factor_id"]]
+    elif operator == "mechanism_crossover_mul":
+        expression = _b("mul", left["expression"], right["expression"])
+        parent_ids = [left["factor_id"], right["factor_id"]]
+    elif operator == "mechanism_crossover_add":
+        expression = _b("add", left["expression"], right["expression"])
+        parent_ids = [left["factor_id"], right["factor_id"]]
+    else:
+        raise ValueError(f"unknown bounded synthesis operator: {operator}")
+    generation = 1 + max(
+        int(left["birth_certificate"]["generation"]),
+        int(right["birth_certificate"]["generation"]),
+    )
+    return _candidate(
+        f"generated_{operator}_{attempt:03d}",
+        "generated_hybrid" if len(parent_ids) > 1 else left["domain"],
+        left["phenomenon"],
+        f"{left['mechanism']} | {operator}",
+        expression,
+        (
+            [left["expression"], right["expression"]]
+            if len(parent_ids) > 1
+            else left["counter_expressions"]
+        ),
+        parent_ids,
+        generation,
+        operator,
+        search_paradigm,
+    )
+
+
+def bounded_generate_audited(
     panel: dict[str, pd.DataFrame],
     target: pd.DataFrame,
     split: Split,
@@ -638,6 +692,7 @@ def bounded_generate(
 ) -> tuple[
     list[dict[str, Any]],
     dict[str, tuple[float, float, pd.DataFrame, pd.DataFrame]],
+    dict[str, Any],
 ]:
     budget = int(config["candidate_budget"])
     candidates = seed_library(panel)
@@ -651,6 +706,121 @@ def bounded_generate(
                 scored[row["factor_id"]] = result
 
     score_rows(candidates)
+    protocol = config.get("search_protocol")
+    if protocol is not None:
+        search.validate_search_protocol(protocol, budget)
+        benchmark = search.empty_benchmark()
+        generation_audit: list[dict[str, Any]] = []
+        for candidate in candidates:
+            candidate["search_paradigm"] = "seed"
+            search.record_candidate(
+                benchmark,
+                "seed",
+                unique=True,
+                fast_screen_passed=candidate["factor_id"] in scored,
+            )
+        attempt = 0
+        for scheduled_generation in range(1, len(protocol["generation_schedule"]) + 1):
+            if len(candidates) >= budget:
+                break
+            paradigm = search.paradigm_for_generation(scheduled_generation, protocol)
+            frontier, comparisons = search.select_frontier(
+                candidates, scored, paradigm, protocol
+            )
+            generation_row = {
+                "scheduled_generation": scheduled_generation,
+                "search_paradigm": paradigm,
+                "frontier": [candidate["factor_id"] for candidate in frontier],
+                "pairwise_train_comparisons": comparisons,
+                "selection_evidence": "train_only",
+                "validation_feedback_used": False,
+                "shadow_feedback_used": False,
+                "generated_children": 0,
+            }
+            generation_audit.append(generation_row)
+            if not frontier:
+                break
+            children_per_parent = int(
+                protocol["arms"][paradigm]["children_per_parent"]
+            )
+            for parent_index, left in enumerate(frontier):
+                for child_index in range(children_per_parent):
+                    if len(candidates) >= budget or attempt >= budget * 30:
+                        break
+                    right = frontier[(parent_index + child_index + 1) % len(frontier)]
+                    operator = search.choose_operator(
+                        protocol,
+                        paradigm,
+                        scheduled_generation,
+                        parent_index,
+                        child_index,
+                        int(config["random_seed"]),
+                    )
+                    window = (5, 10, 20, 60, 120)[
+                        (attempt + scheduled_generation + child_index) % 5
+                    ]
+                    child = _generated_child(
+                        left,
+                        right,
+                        operator,
+                        window,
+                        attempt,
+                        paradigm,
+                    )
+                    attempt += 1
+                    generation_row["generated_children"] += 1
+                    if child["factor_id"] in seen:
+                        search.record_candidate(
+                            benchmark,
+                            paradigm,
+                            unique=False,
+                            fast_screen_passed=False,
+                        )
+                        continue
+                    try:
+                        validate(child["expression"], set(panel), WINDOWS)
+                    except ValueError:
+                        search.record_candidate(
+                            benchmark,
+                            paradigm,
+                            unique=False,
+                            fast_screen_passed=False,
+                        )
+                        continue
+                    seen.add(child["factor_id"])
+                    candidates.append(child)
+                    score_rows([child])
+                    child_result = scored.get(child["factor_id"])
+                    comparable_parent_scores = [
+                        scored[parent_id][0]
+                        for parent_id in child["birth_certificate"]["parents"]
+                        if parent_id in scored
+                    ]
+                    search.record_candidate(
+                        benchmark,
+                        paradigm,
+                        unique=True,
+                        fast_screen_passed=child_result is not None,
+                        child_score=None if child_result is None else child_result[0],
+                        parent_score=(
+                            max(comparable_parent_scores)
+                            if comparable_parent_scores
+                            else None
+                        ),
+                    )
+                if len(candidates) >= budget or attempt >= budget * 30:
+                    break
+        return candidates[:budget], scored, {
+            "enabled": True,
+            "schema_version": protocol["schema_version"],
+            "generation_schedule": list(protocol["generation_schedule"]),
+            "proposal_role": protocol["proposal_role"],
+            "absolute_factor_judgement_allowed": False,
+            "final_judge": protocol["final_judge"],
+            "generation_audit": generation_audit,
+            "_benchmark": benchmark,
+        }
+
     attempt = 0
     while len(candidates) < budget and attempt < budget * 30 and scored:
         parents = sorted(
@@ -662,35 +832,15 @@ def bounded_generate(
         right = parents[(attempt * 3 + 1) % len(parents)]
         operation = attempt % 5
         window = (5, 10, 20, 60, 120)[attempt % 5]
-        if operation == 0:
-            expression = {"zscore": True, "arg": left["expression"], "window": window}
-            operator, parent_ids = "temporal_zscore", [left["factor_id"]]
-        elif operation == 1:
-            expression = _roll("mean", left["expression"], window)
-            operator, parent_ids = "rolling_refinement", [left["factor_id"]]
-        elif operation == 2:
-            expression = {"lag": window, "arg": left["expression"]}
-            operator, parent_ids = "causal_lag_mutation", [left["factor_id"]]
-        elif operation == 3:
-            expression = _b("mul", left["expression"], right["expression"])
-            operator, parent_ids = "mechanism_crossover_mul", [left["factor_id"], right["factor_id"]]
-        else:
-            expression = _b("add", left["expression"], right["expression"])
-            operator, parent_ids = "mechanism_crossover_add", [left["factor_id"], right["factor_id"]]
-        generation = 1 + max(
-            int(left["birth_certificate"]["generation"]),
-            int(right["birth_certificate"]["generation"]),
-        )
-        child = _candidate(
-            f"generated_{operator}_{attempt:03d}",
-            "generated_hybrid" if len(parent_ids) > 1 else left["domain"],
-            left["phenomenon"],
-            f"{left['mechanism']} | {operator}",
-            expression,
-            [left["expression"], right["expression"]] if len(parent_ids) > 1 else left["counter_expressions"],
-            parent_ids,
-            generation,
-            operator,
+        operator = (
+            "temporal_zscore",
+            "rolling_refinement",
+            "causal_lag_mutation",
+            "mechanism_crossover_mul",
+            "mechanism_crossover_add",
+        )[operation]
+        child = _generated_child(
+            left, right, operator, window, attempt
         )
         attempt += 1
         if child["factor_id"] in seen:
@@ -702,7 +852,21 @@ def bounded_generate(
         seen.add(child["factor_id"])
         candidates.append(child)
         score_rows([child])
-    return candidates[:budget], scored
+    return candidates[:budget], scored, {"enabled": False}
+
+
+def bounded_generate(
+    panel: dict[str, pd.DataFrame],
+    target: pd.DataFrame,
+    split: Split,
+    config: dict[str, Any],
+) -> tuple[
+    list[dict[str, Any]],
+    dict[str, tuple[float, float, pd.DataFrame, pd.DataFrame]],
+]:
+    """Backward-compatible candidate generator without the optional audit payload."""
+    candidates, scored, _ = bounded_generate_audited(panel, target, split, config)
+    return candidates, scored
 
 
 def _signal_correlation(left: pd.DataFrame, right: pd.DataFrame, mask: pd.Series) -> float | None:
@@ -776,7 +940,9 @@ def run_discovery(
     target = panel["open"].shift(-(horizon + 1)) / panel["open"].shift(-1) - 1.0
     one_day = panel["open"].shift(-2) / panel["open"].shift(-1) - 1.0
     research_plan = detect_train_phenomena(panel, split)
-    candidates, train_scored = bounded_generate(panel, target, split, config)
+    candidates, train_scored, search_audit = bounded_generate_audited(
+        panel, target, split, config
+    )
     signal_cache = {factor_id: values[2] for factor_id, values in train_scored.items()}
     ranked = sorted(
         (row for row in candidates if row["factor_id"] in train_scored),
@@ -982,6 +1148,15 @@ def run_discovery(
     if hard_stop:
         for row in evaluated_rows:
             row["validation_survivor"] = False
+    if search_audit["enabled"]:
+        benchmark = search_audit.pop("_benchmark")
+        for row in evaluated_rows:
+            search.record_stage2(
+                benchmark,
+                str(row.get("search_paradigm", "seed")),
+                bool(row["validation_survivor"]),
+            )
+        search_audit["benchmark"] = search.finalise_benchmark(benchmark)
     result = {
         "schema_version": "perception_xalpha_lite_result_v2",
         "status": "diagnostic_only_research_only_not_trading",
@@ -1004,6 +1179,7 @@ def run_discovery(
             "current_candidates": len(candidates),
             "declared_total_trials": declared_trials,
         },
+        "search_protocol": search_audit,
         "train_factor_correlation": correlations,
         "mechanism_tree": [row["birth_certificate"] for row in candidates],
         "candidates": evaluated_rows,
