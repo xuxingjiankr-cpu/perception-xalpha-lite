@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "twelve_factor_top10_feedback_v2",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Treat every frozen factor as a Top10 selection expert and score the actual historical Top10 outcomes it would have produced. Only fully resolved, seven-session-lagged outcomes may alter a later weight. The adapter never abstains, shrinks strongly to the frozen prior and fails back to the prior whenever evidence is insufficient.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "singleOnlineRule": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "holdingTradingDays": 1,
+    "maximumExitDelayTradingDays": 5,
+    "fullOutcomeAvailabilityLagTradingDays": 7,
+    "severeLossThreshold": -0.03,
+    "extremeWinnerCrossSectionQuantile": 0.95,
+    "topCount": 10
+  },
+  "feedback": {
+    "updateEveryTradingDays": 1,
+    "recentResolvedSignalDays": 7,
+    "longResolvedSignalDays": 63,
+    "minimumRecentObservations": 7,
+    "minimumLongObservations": 30,
+    "metricWeights": {
+      "top10GrossReturn": 0.25,
+      "top10WinRate": 0.25,
+      "extremeWinnerRate": 0.25,
+      "severeLossAvoidance": 0.25
+    },
+    "recentEvidenceWeight": 0.7,
+    "longEvidenceWeight": 0.3,
+    "exponentLearningRate": 0.5,
+    "adaptiveAllocation": 0.25,
+    "minimumRelativeWeight": 0.75,
+    "maximumRelativeWeight": 1.25,
+    "maximumOneUpdateL1Turnover": 0.04,
+    "negativeEvidenceMayReverseDirection": false,
+    "minimumPositiveWeight": true,
+    "failBackToPriorOnInsufficientEvidence": true
+  },
+  "evaluation": {
+    "sameTop10CountRequired": true,
+    "noAbstentionAllowed": true,
+    "reportMarketDownAndMarketUpSeparately": true,
+    "pairedDailyHacTMinimum": 1.96,
+    "mustImproveValidationAndShadow": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_top10_feedback_v2",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "Seven resolved signal days are noisy and can describe a transient regime rather than persistent factor skill; the adapter is strongly shrunk and bounded for that reason.",
+    "The factor set and every historical evaluation window have already been viewed; historical results can reject this rule but cannot validate or promote it.",
+    "Extreme-winner capture is defined cross-sectionally and does not claim that a selected stock will reach its exchange price limit.",
+    "Daily bars cannot reproduce queue priority or actual fills at locked price limits.",
+    "Expected return and win probability are estimates, never guarantees."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

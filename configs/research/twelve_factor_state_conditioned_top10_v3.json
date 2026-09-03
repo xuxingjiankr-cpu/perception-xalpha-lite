@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "twelve_factor_state_conditioned_top10_v3",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Ask which factors performed best during historical market states resembling the signal-day state, instead of which factors performed best most recently. Every state feature is measured at the close of D-1 and every analogue date must already be fully resolved, so no future state, return or label can enter the distance.",
+  "baseFeedbackConfig": "configs/research/twelve_factor_top10_feedback_v2.json",
+  "baseFeedbackConfigSha256": "b73973a09d6362f3394b96ecae269aa1eb0ac862371e891a1363e2a8941a1fa5",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "stateFeaturesFrozen": true,
+    "singleNearestStateRule": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "state": {
+    "featureColumns": [
+      "market_return_5",
+      "market_return_20",
+      "market_volatility_20",
+      "market_downside_semivariance_20",
+      "market_breadth_20",
+      "market_return_dispersion_1",
+      "market_liquidity_shock_20"
+    ],
+    "historicalLookbackTradingDays": 756,
+    "nearestResolvedStates": 20,
+    "minimumNearestResolvedStates": 20,
+    "globalResolvedSignalDays": 30,
+    "minimumGlobalResolvedSignalDays": 30,
+    "robustScale": "past_candidate_median_and_mad_only",
+    "stateEvidenceWeight": 0.7,
+    "globalEvidenceWeight": 0.3
+  },
+  "weighting": {
+    "metricWeights": {
+      "top10GrossReturn": 0.25,
+      "top10WinRate": 0.25,
+      "extremeWinnerRate": 0.25,
+      "severeLossAvoidance": 0.25
+    },
+    "exponentLearningRate": 0.5,
+    "adaptiveAllocation": 0.25,
+    "minimumRelativeWeight": 0.75,
+    "maximumRelativeWeight": 1.25,
+    "maximumOneUpdateL1Turnover": 0.04
+  },
+  "evaluation": {
+    "noAbstentionAllowed": true,
+    "sameTop10CountRequired": true,
+    "reportMarketDownAndMarketUpSeparately": true,
+    "pairedDailyHacTMinimum": 1.96,
+    "mustImproveValidationAndShadow": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/twelve_factor_state_conditioned_top10_v3",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "Nearest historical states are analogues, not repeated experiments; structural change can make old analogues irrelevant.",
+    "The seven state variables and nearest-neighbour count are one preregistered hypothesis and may not be tuned after viewing this run.",
+    "Every historical evaluation window has already been viewed, so historical results are reject-only and cannot validate or promote the method.",
+    "Extreme-winner capture is cross-sectional and does not guarantee an exchange limit-up or an executable fill.",
+    "Expected returns and probabilities are estimates, never guarantees."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
