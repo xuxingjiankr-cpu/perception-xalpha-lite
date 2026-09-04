@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Continue"
+﻿$ErrorActionPreference = "Continue"
 $env:PYTHONIOENCODING = "utf-8"
 
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -21,6 +21,7 @@ $status = [ordered]@{
     ranking = "not_run"
     accountability = "not_run"
     choiceWatchlist = "not_run"
+    tailForwardRecord = "not_run"
     rankingRun = $rankingRun
     rankingResult = $null
     exitCode = $null
@@ -129,5 +130,19 @@ if ($LASTEXITCODE -ne 0) {
     exit 26
 }
 $status.choiceWatchlist = "ok"
+
+# Fresh-forward record for the tail exclusion screen (RESEARCH_LOG #13). Runs after
+# the production outputs so a failure here cannot block them, but still fails closed:
+# a forward record with silent gaps is worse than one that stops, because the missing
+# sessions are not missing at random.
+& py -3.13 scripts\run_tail_screen_forward_record_v1.py log `
+  *>&1 | Tee-Object -FilePath $logPath -Append
+if ($LASTEXITCODE -ne 0) {
+    $status.tailForwardRecord = "failed_closed_$LASTEXITCODE"
+    Save-Status "failed_closed" 27
+    exit 27
+}
+$status.tailForwardRecord = "ok"
+
 Save-Status "completed_research_only" 0
 exit 0

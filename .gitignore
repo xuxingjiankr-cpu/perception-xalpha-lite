@@ -46,6 +46,12 @@ _external/
 **/*.bak*
 **/KILL_SWITCH
 
+# A frozen forward record is only a record if it is versioned. The specification
+# and its append-only prediction log are the deliberate exception to the rule that
+# runtime output stays untracked; their whole value is the timestamped history.
+!docs/forward_records/
+!docs/forward_records/**
+
 # Secrets / local environment
 .env
 .env.*

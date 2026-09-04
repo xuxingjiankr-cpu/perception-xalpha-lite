@@ -45,9 +45,14 @@ import panel_cache  # noqa: E402
 
 from xalpha_lite.forward import append_prediction, freeze_spec, load_spec, read_log
 
+# The specification and the prediction log live under docs/ because they are TRACKED:
+# a frozen, tamper-evident record whose only copy sits in a gitignored directory has
+# no independent timestamp, and the digest it carries could be recomputed by whoever
+# edited it. The scorecard is derived and stays in outputs/.
+RECORD_DIR = ROOT / "docs" / "forward_records"
 OUT_DIR = ROOT / "outputs" / "forward_record"
-SPEC_PATH = OUT_DIR / "tail_exclusion_screen_v1.spec.json"
-LOG_PATH = OUT_DIR / "tail_exclusion_screen_v1.predictions.jsonl"
+SPEC_PATH = RECORD_DIR / "tail_exclusion_screen_v1.spec.json"
+LOG_PATH = RECORD_DIR / "tail_exclusion_screen_v1.predictions.jsonl"
 CODE_VERSION = "tail_screen_forward_record_v1_20260905"
 
 DRAFT_SPEC: dict[str, Any] = {

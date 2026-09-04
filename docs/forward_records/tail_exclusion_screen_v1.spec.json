@@ -1,0 +1,29 @@
+{
+  "name": "tail_exclusion_screen_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "rationale": "RESEARCH_LOG #13 found the frozen twelve-factor book ranks severe-loss risk monotonically across all ten score deciles and stably out of sample, while #12 found it has no day-neutral selection edge at any horizon. Every historical window behind #13 has been viewed, so this record exists to settle the tail claim on sessions that had not happened when it was frozen.",
+  "book": "frozen_prior",
+  "bucket_count": 10,
+  "horizons": [
+    1,
+    5
+  ],
+  "severe_loss_threshold": -0.03,
+  "benchmark": "same_day_eligible_universe",
+  "claim": "The worst score decile carries a severe-loss rate at least one percentage point above the same-day eligible universe, with a day-clustered t of at least two, at holding horizons of one and five sessions.",
+  "acceptance": {
+    "minimum_excess_severe_loss_rate": 0.01,
+    "minimum_day_clustered_t": 2.0,
+    "minimum_resolved_sessions": 60,
+    "both_horizons_must_agree": true
+  },
+  "known_confound": "The worst decile is also the most volatile slice; on the historical shadow window it carried the HIGHEST excess return (+6.7 bps at h=1, +32.9 at h=5) while being negative on validation. This record therefore also tracks the excess return of the excluded slice, and a tail result that arrives together with a positive return excess is a risk trade, not an edge.",
+  "cannot": [
+    "create or modify orders",
+    "size or hold any position",
+    "alter trading configuration, risk gates or strategy overlays",
+    "promote itself on any historical window"
+  ],
+  "frozen_at": "2026-09-04T21:37:37.651899+00:00",
+  "spec_sha256": "1620e0883b64cdd398ac37120cfaab223b78a702ebe38edb7c720cee6af38998"
+}
