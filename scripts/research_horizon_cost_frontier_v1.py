@@ -30,6 +30,7 @@ import research_perception_xalpha_autonomous as perception  # noqa: E402
 import research_perception_xalpha_horizon_precision_v3 as precision  # noqa: E402
 import research_perception_xalpha_rolling_health_v4 as rolling  # noqa: E402
 import research_twelve_factor_guarded_online_weights_v1 as guarded  # noqa: E402
+import panel_cache  # noqa: E402
 
 
 SCHEMA_VERSION = "horizon_cost_frontier_result_v1"
@@ -271,7 +272,7 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     )
     base = load_json(ROOT / frozen["baseResearchConfig"])
     _, cog_config = perception.load_base_configs(base)
-    panel, panel_audit = perception.build_configured_panel(base, cog_config)
+    panel, panel_audit = panel_cache.build_configured_panel_cached(base, cog_config)
     print(
         f"panel_ready symbols={panel['close'].shape[1]} sessions={panel['close'].shape[0]}",
         flush=True,
