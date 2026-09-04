@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "horizon_cost_frontier_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "The sixteen-factor Top10 book earns roughly 7-14 bps gross per pick against a 30 bps round-trip cost assumption, so every weighting variant tested so far is net negative. Reweighting moves gross inside a band that never reaches the cost line. This module tests the axis nobody has varied: the holding horizon. The same round-trip cost is paid once regardless of how long the position is held, so the question is whether gross edge grows fast enough with horizon to clear a fixed cost, and whether the frozen weighting still matters once the horizon changes.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "horizonGridFrozenBeforeEvaluation": true,
+    "weightingBooksFrozenBeforeEvaluation": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "maximumExitDelayTradingDays": 5,
+    "severeLossThreshold": -0.03,
+    "topCount": 10,
+    "roundTripCostAssumption": 0.003
+  },
+  "sweep": {
+    "holdingTradingDaysGrid": [1, 2, 3, 5, 10, 20],
+    "weightingBooks": [
+      "frozen_prior",
+      "equal_weight",
+      "single_factor_each"
+    ],
+    "singleFactorSelectionIsExPost": true,
+    "singleFactorReportsFullDistribution": true
+  },
+  "evaluation": {
+    "perPickAndPerHoldingDayBothRequired": true,
+    "dayClusteredTRequired": true,
+    "noAbstentionAllowed": true,
+    "sameTop10CountRequired": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true,
+    "netEdgeMustExceedZeroToPass": true
+  },
+  "output": {
+    "root": "outputs/edge_research/horizon_cost_frontier_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "A fixed 30 bps round-trip assumption is a modelling choice, not a measured fill; real A-share cost varies with size, liquidity and stamp duty and is not constant across the cross-section.",
+    "Longer horizons mechanically reduce the number of independent observations, so the day-clustered t at 20 sessions rests on far fewer effective samples than at 1 session.",
+    "Overlapping holding windows at horizons above one session induce autocorrelation that a simple day-clustered t does not fully absorb.",
+    "The best single factor is chosen after seeing the grid, so its apparent edge carries multiple-testing exposure; only the full distribution across factors is interpretable.",
+    "Every historical evaluation window has already been viewed, so this run can reject a horizon but can never validate or promote one.",
+    "Gross returns ignore borrow, price limits at the exit open and any impact beyond the cost assumption."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
