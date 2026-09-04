@@ -361,10 +361,10 @@
       ]
     },
     "frontier_competition_policy": {
-      "enabled": true,
+      "enabled": false,
       "mode": "active_rerank",
       "paper_competition_only": true,
-      "note": "Experimental paper-contest candidate reranking only. It cannot bypass entry/risk/execution checks or change sizing. Fresh L2 coverage is mandatory; otherwise ranking falls back to baseline momentum.",
+      "note": "DISABLED 2026-09-04 after the OBI audit reached a verdict (RESEARCH_LOG #11; outputs/l2_depth/obi_audit.md). idiosyncratic_obi carried 0.20 of the rerank weight, but across 5.26M depth rows / 170 codes / 14 sessions the OBI top-bottom spread is only 0.24-0.60 bps against a measured 4.671 bps median half-spread, its forward-return IC is NEGATIVE (day-clustered t=-3.72), and the trade simulation is -12.56 bps/trade as taker and still -2.52 bps at the optimistic maker ceiling that ignores adverse selection. Independently, the configured depth_files pattern (depth_{trade_date}.jsonl) matched zero files, so active_rerank had been silently failing its freshness gate and falling back to baseline momentum anyway. Experimental paper-contest candidate reranking only; it never could bypass entry/risk/execution checks or change sizing. Re-enable only with a revalidated feature set - alpha_validated stays false.",
       "allowed_asset_classes": [
         "gold_etf",
         "cross_border_etf",
