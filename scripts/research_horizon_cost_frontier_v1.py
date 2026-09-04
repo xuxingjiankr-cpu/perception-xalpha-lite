@@ -137,6 +137,7 @@ def summarise_book(
     holding_days: int,
     cost: float,
     severe: float,
+    universe_daily: pd.Series | None = None,
 ) -> dict[str, Any]:
     selected = outcome.reindex(index=dates).where(mask.reindex(index=dates).fillna(False))
     stacked = selected.stack(future_stack=True).dropna()
@@ -151,10 +152,22 @@ def summarise_book(
             "upRate": None,
             "severeLossRate": None,
             "dayClusteredT": None,
+            "meanExcessPerPick": None,
+            "excessDayClusteredT": None,
         }
     daily_mean = selected.mean(axis=1, skipna=True).dropna()
     gross = float(stacked.mean())
     net = gross - cost
+    # Absolute return at a long horizon is dominated by market direction, so the
+    # selection edge is only visible against the eligible universe on the same day.
+    excess_mean: float | None = None
+    excess_t: float | None = None
+    if universe_daily is not None:
+        benchmark = universe_daily.reindex(daily_mean.index)
+        daily_excess = (daily_mean - benchmark).dropna()
+        if len(daily_excess):
+            excess_mean = float(daily_excess.mean())
+            excess_t = day_clustered_t(daily_excess)
     return {
         "picks": picks,
         "signalDays": int(len(daily_mean)),
@@ -164,6 +177,8 @@ def summarise_book(
         "upRate": float(stacked.gt(0.0).mean()),
         "severeLossRate": float(stacked.le(severe).mean()),
         "dayClusteredT": day_clustered_t(daily_mean),
+        "meanExcessPerPick": excess_mean,
+        "excessDayClusteredT": excess_t,
     }
 
 
@@ -320,11 +335,18 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
             )
             for name, score in scores.items()
         }
+        universe_daily = outcome.where(execution_eligible).mean(axis=1, skipna=True)
         for period in period_order:
             dates = contained[period]
             for name in books:
                 row = summarise_book(
-                    masks[name], outcome, dates, holding_days, cost, severe
+                    masks[name],
+                    outcome,
+                    dates,
+                    holding_days,
+                    cost,
+                    severe,
+                    universe_daily,
                 )
                 row["book"] = name
                 row["holdingTradingDays"] = holding_days

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -108,6 +109,20 @@ def cache_key(base: dict[str, Any], cog_config: dict[str, Any]) -> tuple[str, di
     return key, inputs
 
 
+def _field_file(field: str) -> str:
+    """Map a field name to a safe file name.
+
+    Factor keys look like ``gtja191/alpha_070``; using one directly as a path would
+    try to write into a directory that does not exist, so the cache would silently
+    refuse to store forever.  Names that are already path-safe are left untouched so
+    that panels cached by earlier versions stay readable.
+    """
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", field)
+    if safe != field:
+        safe = f"{safe}__{_sha256_bytes(field.encode('utf-8'))[:8]}"
+    return f"{safe}.parquet"
+
+
 def _frame_checksum(frame: pd.DataFrame) -> str:
     """Cheap structural fingerprint; catches truncated or reordered parquet."""
     return _sha256_bytes(
@@ -138,7 +153,7 @@ def load(key: str, cache_root: Path | None = None) -> tuple[dict[str, pd.DataFra
             return None
         panel: dict[str, pd.DataFrame] = {}
         for field, expected in manifest["fields"].items():
-            frame = pd.read_parquet(root / f"{field}.parquet")
+            frame = pd.read_parquet(root / _field_file(field))
             if _frame_checksum(frame) != expected:
                 return None
             panel[field] = frame
@@ -166,7 +181,7 @@ def store(
         for field, frame in panel.items():
             if not isinstance(frame, pd.DataFrame):
                 return False
-            target = staging / f"{field}.parquet"
+            target = staging / _field_file(field)
             frame.to_parquet(target)
             # Serving a lossy field silently would corrupt every later experiment,
             # so the round trip is proven here rather than assumed.
@@ -200,6 +215,65 @@ def store(
     finally:
         if staging.exists():
             shutil.rmtree(staging, ignore_errors=True)
+
+
+RANK_BOOK_SOURCES = ("research_perception_xalpha_rolling_health_v4.py",)
+STATIC_SCORE_FIELD = "__static_score__"
+
+
+def rank_book_key(panel_key: str, frozen: dict[str, Any]) -> str:
+    """Ranks are a pure function of the panel, the frozen factors and the ranker."""
+    payload = {
+        "cacheFormatVersion": CACHE_FORMAT_VERSION,
+        "panelKey": panel_key,
+        "frozenFactors": frozen.get("frozenFactors"),
+        "rankSources": {
+            name: _sha256_file(ROOT / "scripts" / name)
+            for name in RANK_BOOK_SOURCES
+            if (ROOT / "scripts" / name).exists()
+        },
+    }
+    return _sha256_bytes(
+        json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
+    )
+
+
+def build_rank_book_cached(
+    panel: dict[str, pd.DataFrame],
+    frozen: dict[str, Any],
+    panel_key: str,
+    *,
+    cache_root: Path | None = None,
+    enabled: bool = True,
+    verbose: bool = True,
+) -> tuple[dict[str, pd.DataFrame], pd.DataFrame, Any]:
+    """Cache compute_rank_book, which becomes the bottleneck once the panel is cached."""
+    import research_perception_xalpha_rolling_health_v4 as rolling
+
+    if not enabled:
+        return rolling.compute_rank_book(panel, frozen)
+    try:
+        key = rank_book_key(panel_key, frozen)
+    except Exception:
+        return rolling.compute_rank_book(panel, frozen)
+    root = Path(cache_root or DEFAULT_CACHE_ROOT) / "rank_book"
+    cached = load(key, root)
+    if cached is not None:
+        frames, audit = cached
+        static_score = frames.pop(STATIC_SCORE_FIELD, None)
+        if static_score is not None:
+            if verbose:
+                print(f"rank_book_cache hit key={key[:16]}", flush=True)
+            return frames, static_score, audit.get("factorAudit")
+    if verbose:
+        print(f"rank_book_cache miss key={key[:16]} computing", flush=True)
+    ranks, static_score, factor_audit = rolling.compute_rank_book(panel, frozen)
+    payload = dict(ranks)
+    payload[STATIC_SCORE_FIELD] = static_score
+    stored = store(key, {"rankBookKey": key}, payload, {"factorAudit": factor_audit}, root)
+    if verbose:
+        print(f"rank_book_cache {'stored' if stored else 'store_failed'} key={key[:16]}", flush=True)
+    return ranks, static_score, factor_audit
 
 
 def build_configured_panel_cached(

@@ -204,6 +204,59 @@ def main() -> int:
             not any(p.name.endswith(".staging") for p in cache_root.iterdir()),
         )
 
+        frozen_a = {"frozenFactors": [{"factorKey": "z/a", "weight": 0.5, "direction": 1}]}
+        frozen_b = {"frozenFactors": [{"factorKey": "z/a", "weight": 0.6, "direction": 1}]}
+        rank_key = panel_cache.rank_book_key("panel-key-1", frozen_a)
+        check(
+            "rank book key is deterministic",
+            rank_key == panel_cache.rank_book_key("panel-key-1", frozen_a),
+        )
+        check(
+            "a different panel gives a different rank book key",
+            panel_cache.rank_book_key("panel-key-2", frozen_a) != rank_key,
+        )
+        check(
+            "changing a frozen weight changes the rank book key",
+            panel_cache.rank_book_key("panel-key-1", frozen_b) != rank_key,
+        )
+        saved_sources = panel_cache.RANK_BOOK_SOURCES
+        try:
+            panel_cache.RANK_BOOK_SOURCES = ()
+            check(
+                "the rank book key covers the ranker source code",
+                panel_cache.rank_book_key("panel-key-1", frozen_a) != rank_key,
+            )
+        finally:
+            panel_cache.RANK_BOOK_SOURCES = saved_sources
+
+        ranks = {"z/a": panel["close"], "z/b": panel["volume"]}
+        payload = dict(ranks)
+        payload[panel_cache.STATIC_SCORE_FIELD] = panel["returns"]
+        rank_root = workspace / "rank_cache"
+        check(
+            "a rank book stores with its static score",
+            panel_cache.store(
+                rank_key, {"rankBookKey": rank_key}, payload, {"factorAudit": {"factorCount": 2}}, rank_root
+            )
+            is True,
+        )
+        rank_loaded = panel_cache.load(rank_key, rank_root)
+        check("a rank book loads back", rank_loaded is not None)
+        rank_frames, rank_audit = rank_loaded
+        recovered_static = rank_frames.pop(panel_cache.STATIC_SCORE_FIELD)
+        check(
+            "the static score separates cleanly from the factor ranks",
+            recovered_static.equals(panel["returns"]) and set(rank_frames) == set(ranks),
+        )
+        check(
+            "each cached factor rank is exact",
+            all(rank_frames[k].equals(ranks[k]) for k in ranks),
+        )
+        check(
+            "the factor audit round-trips",
+            rank_audit.get("factorAudit", {}).get("factorCount") == 2,
+        )
+
         source = (ROOT / "scripts" / "panel_cache.py").read_text(encoding="utf-8").lower()
         forbidden = ("submitorder", "cancelorder", "build_decision(", "latest_strategy_overlay")
         check(
