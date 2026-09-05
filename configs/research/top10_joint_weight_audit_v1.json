@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "top10_joint_weight_audit_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "sourceRankingConfig": "configs/research/sixteen_factor_interaction_ranking_v1.json",
+  "hypothesis": "Redundancy control and simultaneous return, up-rate and left-tail objectives may improve a complete sixteen-factor Top10 book. Volatility-residual ablations distinguish stock selection from merely selecting low-volatility stocks.",
+  "training": {
+    "lookbackSessions": 252,
+    "refitSessions": 21,
+    "purgeSessions": 7,
+    "minimumDays": 200,
+    "minimumCrossSection": 100,
+    "baselineNeighbourhoodCount": 100,
+    "baselineNeighbourhoodMass": 0.6,
+    "returnScale": 0.02,
+    "returnClip": 3.0,
+    "l2Prior": 0.1,
+    "covarianceDiagonalShrinkage": 0.25,
+    "minimumWeight": 0.01,
+    "maximumWeight": 0.25
+  },
+  "candidates": {
+    "decorrelated": {"neutralizeVolatility": false, "targets": [0, 0, 0]},
+    "joint_balanced": {"neutralizeVolatility": false, "targets": [0.4, 0.4, 0.2]},
+    "win_tilt": {"neutralizeVolatility": false, "targets": [0.2, 0.6, 0.2]},
+    "return_tilt": {"neutralizeVolatility": false, "targets": [0.6, 0.3, 0.1]},
+    "vol_neutral_balanced": {"neutralizeVolatility": true, "targets": [0.4, 0.4, 0.2]},
+    "vol_neutral_win": {"neutralizeVolatility": true, "targets": [0.2, 0.6, 0.2]}
+  },
+  "evaluation": {
+    "holdingSessions": 1,
+    "maximumExitDelay": 5,
+    "roundTripCost": 0.003,
+    "tailThreshold": -0.03,
+    "topCount": 10,
+    "hacLags": 7,
+    "minimumFillFraction": 0.95,
+    "holmFamilyAlpha": 0.05,
+    "historicalTrialCountLowerBound": 454,
+    "historicalWindowsAlreadyViewed": true,
+    "primaryPeriods": ["validation", "shadow"],
+    "neverPromoteFromThisStudy": true
+  },
+  "outputRoot": "outputs/edge_research/top10_joint_weight_audit_v1",
+  "safety": {
+    "mayTrade": false,
+    "mayPublishDashboard": false,
+    "mayChangeExistingConfig": false,
+    "mayChangeForwardRecord": false,
+    "ordersAlwaysEmpty": true
+  }
+}

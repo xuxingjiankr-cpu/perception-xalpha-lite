@@ -1156,6 +1156,9 @@ def t23_sector_diversification_entry_filter() -> None:
     cfg["strategy"]["intraday_momentum"]["enabled"] = False
     cfg["strategy"]["t0_entry_eligibility"] = {"enabled": False}
     cfg["strategy"]["entry_logic_v2"] = {"enabled": False}  # isolate: this test is about sector diversification, not entry timing
+    # Isolate entry diversification from the newer risk-take-profit policy. This
+    # changes only this in-memory fixture; production risk settings stay intact.
+    cfg["strategy"]["risk_take_profit_enabled"] = False
     cfg["strategy"]["target_holdings"] = 5
     cfg["sector_diversification"] = {
         "enabled": True,
@@ -13620,6 +13623,14 @@ if __name__ == "__main__":
     t162_auction_hierarchical_selector_keeps_rank_and_tail_roles_separate()
     t163_event_auction_forward_is_causal_selective_and_isolated()
     t164_full_market_snapshot_honors_server_page_cap_and_fails_closed()
+    # Exercise the real weight-audit entry, not only isolated optimization helpers.
+    import unittest as _unittest
+    import test_top10_joint_weight_audit_v1 as _joint_tests
+    _joint_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_joint_tests.JointWeightTests).run(_joint_result)
+    check("T165 joint Top10 weights are causal, fixed-count and research-only",
+          _joint_result.wasSuccessful() and _joint_result.testsRun == 6,
+          str(_joint_result.failures + _joint_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
