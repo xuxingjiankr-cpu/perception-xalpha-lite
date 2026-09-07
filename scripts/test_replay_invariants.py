@@ -13631,6 +13631,12 @@ if __name__ == "__main__":
     check("T165 joint Top10 weights are causal, fixed-count and research-only",
           _joint_result.wasSuccessful() and _joint_result.testsRun == 6,
           str(_joint_result.failures + _joint_result.errors))
+    import test_research_ashare_pit_panel_v2 as _pit_tests
+    _pit_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_pit_tests.PitPanelTests).run(_pit_result)
+    check("T166 opt-in PIT universe is unchanged by bad future rows",
+          _pit_result.wasSuccessful() and _pit_result.testsRun == 4,
+          str(_pit_result.failures + _pit_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

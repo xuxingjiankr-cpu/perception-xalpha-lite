@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "top10_payoff_decomposition_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "sourceRankingConfig": "configs/research/sixteen_factor_interaction_ranking_v1.json",
+  "panel": {
+    "startDate": "2019-01-02", "endDate": "2026-09-04",
+    "liquidityWindow": 60, "minimumLiquidityObservations": 48,
+    "minimumPriorObservations": 500, "minimumAmountCny": 30000000,
+    "maximumMissingFraction": 0.15, "maximumSuspensionFraction": 0.2,
+    "minimumCrossSection": 300
+  },
+  "training": {
+    "trainSessions": 252, "calibrationSessions": 63, "purgeSessions": 7,
+    "refitSessions": 21, "minimumTrainDays": 180, "minimumCalibrationDays": 40,
+    "maximumRowsPerDay": 300, "minimumCrossSection": 100,
+    "seed": 20260908, "logisticC": 0.1, "ridgeAlpha": 10,
+    "returnScale": 0.02, "targetClipQuantile": 0.995
+  },
+  "evaluation": {
+    "topCount": 10, "holdingSessions": 1, "maximumExitDelay": 5,
+    "openLimitBuffer": 0.005, "roundTripCost": 0.003, "tailThreshold": -0.03,
+    "minimumResolvedFraction": 0.95, "hacLags": 7, "alpha": 0.05,
+    "historicalTrialCountLowerBound": 460,
+    "historicalWindowsAlreadyViewed": true, "neverPromote": true
+  },
+  "policies": ["guarded16", "frozen16", "equal16", "direct_return", "up_probability", "payoff_decomposition"],
+  "outputRoot": "outputs/edge_research/top10_payoff_decomposition_v1",
+  "safety": {
+    "mayTrade": false, "mayPublishDashboard": false, "mayChangeExistingConfig": false,
+    "mayChangeForwardRecord": false, "ordersAlwaysEmpty": true
+  }
+}
