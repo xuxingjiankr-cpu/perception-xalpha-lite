@@ -99,4 +99,11 @@ Tests must cover actual run entry, input-tail invariance, strict label maturity,
 train/calibration/test isolation, next-open execution and no future replacement.
 Run the full existing replay invariant suite before committing.
 
+Rule references (used for conservative execution proxies, not alpha claims):
+[SSE trading rules, effective July 6, 2026](https://www.sse.com.cn/lawandrules/sselawsrules2025/stocks/exchange/c/c_20260424_10816482.shtml),
+[SZSE risk-warning rule revision](https://www.szse.cn/lawrules/service/member/t20260630_621404.html),
+[SZSE August 24, 2020 ChiNext limit change](https://www.szse.cn/aboutus/trends/conference/t20200821_580925.html).
+Main-board ST uses 5% before the 2026 revision; afterwards 10%. STAR and reformed
+ChiNext use 20%. Eligibility seasoning excludes IPO early-session exceptions.
+
 No further parameter adjustment from this experiment's outcome is authorised.

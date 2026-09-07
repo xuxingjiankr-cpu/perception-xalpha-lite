@@ -13637,6 +13637,12 @@ if __name__ == "__main__":
     check("T166 opt-in PIT universe is unchanged by bad future rows",
           _pit_result.wasSuccessful() and _pit_result.testsRun == 4,
           str(_pit_result.failures + _pit_result.errors))
+    import test_top10_payoff_decomposition_v1 as _payoff_tests
+    _payoff_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_payoff_tests.PayoffTests).run(_payoff_result)
+    check("T167 payoff decomposition is calibrated, purged and fixed-count",
+          _payoff_result.wasSuccessful() and _payoff_result.testsRun == 6,
+          str(_payoff_result.failures + _payoff_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
