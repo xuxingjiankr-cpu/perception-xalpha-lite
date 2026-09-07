@@ -119,13 +119,13 @@ whole thing — fetch, select, score, redraw — runs on a GitHub runner from pu
 reader can rerun it and get the same name.
 
 <!-- LIVE-RECORD:BEGIN -->
-| the live record, as of 2026-08-25 | |
+| the live record, as of 2026-09-02 | |
 |---|--:|
-| Sessions scored | **7** |
-| Cumulative excess over the eligible universe | **-0.25%** |
-| Mean gross per session | +0.17% |
-| Sessions the book rose | 5/7 |
-| Next session's name, published in advance | `SH_688455` |
+| Sessions scored | **8** |
+| Cumulative excess over the eligible universe | **-4.40%** |
+| Mean gross per session | -0.38% |
+| Sessions the book rose | 5/8 |
+| Next session's name, published in advance | `SZ_300804` |
 | Verdict | `insufficient_forward_sample` |
 
 Below 60 scored sessions the verdict does not change, whatever the
