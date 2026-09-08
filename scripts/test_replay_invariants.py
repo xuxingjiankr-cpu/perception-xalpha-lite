@@ -13649,6 +13649,12 @@ if __name__ == "__main__":
     check("T168 strict VWAP basis and fixed Top10 targets cannot impute or promote",
           _strict_result.wasSuccessful() and _strict_result.testsRun == 10,
           str(_strict_result.failures + _strict_result.errors))
+    import test_sina_research_daily_v1 as _sina_daily_tests
+    _sina_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_sina_daily_tests.SinaDailyTests).run(_sina_result)
+    check("T169 Sina source recovery is causal, isolated and never trades",
+          _sina_result.wasSuccessful() and _sina_result.testsRun == 12,
+          str(_sina_result.failures + _sina_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
