@@ -13643,6 +13643,12 @@ if __name__ == "__main__":
     check("T167 payoff decomposition is calibrated, purged and fixed-count",
           _payoff_result.wasSuccessful() and _payoff_result.testsRun == 6,
           str(_payoff_result.failures + _payoff_result.errors))
+    import test_top10_strict_upgrade_v1 as _strict_upgrade_tests
+    _strict_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_strict_upgrade_tests.StrictUpgradeTests).run(_strict_result)
+    check("T168 strict VWAP basis and fixed Top10 targets cannot impute or promote",
+          _strict_result.wasSuccessful() and _strict_result.testsRun == 10,
+          str(_strict_result.failures + _strict_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")
