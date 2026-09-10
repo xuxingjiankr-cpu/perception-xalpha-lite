@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "sina_daily_research_v1",
+  "researchOnly": true,
+  "startDate": "2019-01-02",
+  "endDate": "2026-09-08",
+  "masterPaths": [
+    "data/market/ashare_research/baostock_pit_adjusted/master/ashare_pit_master_20260812.jsonl",
+    "data/market/ashare_research/master/ashare_master_20260908.jsonl"
+  ],
+  "dataRoot": "data/market/ashare_research/sina_daily_v1",
+  "outputRoot": "outputs/edge_research/sina_daily_v1",
+  "requestIntervalSeconds": 2.0,
+  "connectTimeoutSeconds": 5,
+  "readTimeoutSeconds": 20,
+  "maximumConsecutiveTransportFailures": 5,
+  "rawVwapRelativeTolerance": 0.00001,
+  "rawVwapAbsoluteToleranceCny": 0.0001,
+  "adjustment": "same_vendor_hfq_factor_effective_date_asof_no_future_factor",
+  "historicalVintageVerified": false,
+  "metadataPolicy": "unknown_ST_and_trade_status_stay_null_no_carry_forward",
+  "minimumFreshPriceSymbolsForReview": 3000,
+  "mayTrainAutomatically": false,
+  "mayPublishDashboard": false,
+  "mayTrade": false
+}

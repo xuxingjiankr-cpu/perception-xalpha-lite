@@ -70,6 +70,32 @@ IDs. Resume requires identical config, code, master, decoder and dependency hash
 completed artifacts are checked before reuse. Failed symbol records are retained,
 not silently retried. A new, explicitly reviewed run is required to retry failures.
 
+### Recovery when a mutable latest master has changed
+
+Do not overwrite `master_latest` with old data or relax the original resume hash
+contract. Pin archived master filenames whose **contents** match the origin hashes.
+Use a new run ID and `--seed-run <origin_run_id>`. A separate manifest records the
+new commit and source manifest hash. Each reused response/bar file is hash checked
+and copied (never hardlinked); original artifacts are not edited. Numeric config,
+symbols, calendar, decoder, helper and dependency versions must be identical.
+Normalizer changes are rejected; the initial 1228208 release is explicitly pinned
+for backwards compatibility. All current releases include a normalizer source hash.
+An access-denied origin cannot seed a restart. Ordinary `--resume` stays strict.
+
+For the interrupted September 9 collection, the recovery configuration pins the
+August 12 PIT master and September 8 current-master archive. Both contents match
+the original run. The requested price cutoff remains **September 8**, not September
+11; input vintages are recorded individually and are not claimed to be historical
+publication vintages. A stale `running` status without a live process is not progress.
+
+`audit_sina_fundamental_readiness_v1.py --price-run <run_id> --run-id <audit_id>`
+freezes the existing per-symbol collection records, verifies file hashes, audits
+the original four fundamental families using their existing causal transformations,
+and checks same-date historical ST/trade-status availability. It does not fit a
+model, inspect outcome returns, carry metadata forward or treat a partially downloaded
+stock list as a representative trading universe. Outputs are independently stored
+under `outputs/edge_research/sina_fundamental_readiness_v1/`.
+
 Raw responses, raw bars, adjusted bars and the selected universe are written under
 `data/market/ashare_research/sina_daily_v1/<run_id>/`. Audit manifest, per-symbol
 records, progress/status and final result are under

@@ -13655,6 +13655,18 @@ if __name__ == "__main__":
     check("T169 Sina source recovery is causal, isolated and never trades",
           _sina_result.wasSuccessful() and _sina_result.testsRun == 12,
           str(_sina_result.failures + _sina_result.errors))
+    import test_sina_seed_recovery_v1 as _seed_tests
+    _seed_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_seed_tests.SeedRecoveryTests).run(_seed_result)
+    check("T170 interrupted collection reuses identical frozen sources without rewriting origin",
+          _seed_result.wasSuccessful() and _seed_result.testsRun == 2,
+          str(_seed_result.failures + _seed_result.errors))
+    import test_sina_fundamental_readiness_v1 as _fund_ready_tests
+    _fund_ready_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_fund_ready_tests.FundamentalReadinessTests).run(_fund_ready_result)
+    check("T171 fundamental readiness cannot use future statements or carried status",
+          _fund_ready_result.wasSuccessful() and _fund_ready_result.testsRun == 2,
+          str(_fund_ready_result.failures + _fund_ready_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

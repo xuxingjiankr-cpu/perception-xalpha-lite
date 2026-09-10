@@ -7,6 +7,7 @@ This verifies a price basis, NOT historical vendor vintages or tradability.
 from __future__ import annotations
 
 import argparse
+import ast
 from bisect import bisect_right
 from collections import Counter
 from contextlib import contextmanager
@@ -18,6 +19,7 @@ import math
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 
@@ -258,6 +260,84 @@ def verify_cached(record, data):
             raise DataError("resume_artifact_hash_mismatch")
 
 
+def normalizer_hash():
+    source = Path(__file__).read_text(encoding="utf-8")
+    names = {"strict_json", "parse_assignment", "iso_date", "finite", "parse_factors", "decode_bars", "normalize"}
+    segments = [ast.get_source_segment(source, node) for node in ast.parse(source).body
+                if isinstance(node, ast.FunctionDef) and node.name in names]
+    if len(segments) != len(names):
+        raise DataError("normalizer_definition_missing")
+    return sha((json.dumps([SOURCE, BASE, OHLC]) + "\n" + "\n".join(segments)).encode("utf-8"))
+
+
+def seed_contract(seed_id, cfg, contract):
+    """New run only: reuse identical-definition data, never relax --resume."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", seed_id):
+        raise DataError("invalid_seed_run_id")
+    origin = ROOT / cfg["outputRoot"] / seed_id
+    payload = (origin / "manifest.json").read_bytes()
+    previous = strict_json(payload.decode("utf-8"))
+    old = previous["contract"]
+    if previous.get("researchOnly") is not True or previous.get("orders") != [] or previous.get("mayPromote") is not False:
+        raise DataError("unsafe_seed_manifest")
+    a = {k: v for k, v in cfg.items() if k != "masterPaths"}
+    b = {k: v for k, v in previous["config"].items() if k != "masterPaths"}
+    if a != b:
+        raise DataError("seed_config_mismatch")
+    for key in ("symbols", "sessionsSha256", "decoderSha256", "atomicHelperSha256", "dependencies"):
+        if old[key] != contract[key]:
+            raise DataError("seed_contract_mismatch:" + key)
+    if [r["sha256"] for r in old["masterSources"]] != [r["sha256"] for r in contract["masterSources"]]:
+        raise DataError("seed_master_content_changed")
+    legacy = old.get("codeCommit") == "12282088d427b2a1b76efce6f511a126c37a55a5" and old.get("scriptSha256") == "69f70cf37ff3b3ff8b71dd73bb65bb52ef2d8ed28fedecea77d0c5ace1cf799f"
+    expected_normalizer = "cffca9294a5b4d4ffa72b0294bed49d891e44c82e07d023c77f41b56455c4461" if legacy else old.get("normalizerSha256")
+    if expected_normalizer != contract["normalizerSha256"]:
+        raise DataError("seed_normalizer_changed")
+    state = strict_json((origin / "status.json").read_text(encoding="utf-8"))
+    if state.get("failClosedReason", "").startswith("AccessDenied:"):
+        raise DataError("access_denied_seed_cannot_restart")
+    return {"seedRunId": seed_id, "seedManifestSha256": sha(payload),
+            "seedCodeCommit": old["codeCommit"], "seedStatusAtInspection": state.get("state"),
+            "masterContentIdentical": True, "newRunIsNotOldRunContinuation": True}
+
+
+def copy_seed(seed, cfg, data, output, keys):
+    """Copy, not hard-link. Preserve original runs and validate every reused byte."""
+    if not seed:
+        return 0
+    origin = ROOT / cfg["outputRoot"] / seed["seedRunId"]
+    source_data = ROOT / cfg["dataRoot"] / seed["seedRunId"]
+    count = 0
+    for path in sorted((origin / "symbols").glob("*.json")):
+        content = path.read_bytes()
+        record = strict_json(content.decode("utf-8"))
+        sid = record["securityId"]
+        stem = sid.replace(".", "_")
+        if sid not in keys or path.name != stem + ".json":
+            raise DataError("seed_symbol_mismatch")
+        if record["state"] != "collected":
+            raise DataError("failed_seed_requires_separate_review")
+        expected = {f"provider_payloads/{stem}_raw.js.txt", f"provider_payloads/{stem}_hfq.js.txt",
+                    f"raw/{stem}.jsonl", f"adjusted/{stem}.jsonl"}
+        if set(record["files"]) != expected:
+            raise DataError("seed_missing_required_artifact")
+        verify_cached(record, source_data)
+        target_record = output / "symbols" / path.name
+        if target_record.exists():
+            continue
+        for relative in sorted(expected):
+            target = data / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temp = target.with_suffix(target.suffix + ".seed_tmp")
+            shutil.copyfile(source_data / relative, temp)
+            os.replace(temp, target)
+        verify_cached(record, data)
+        record["seedProvenance"] = {**seed, "originalRecordSha256": sha(content)}
+        atomic_json(target_record, record)
+        count += 1
+    return count
+
+
 def run(args):
     import exchange_calendars as xc
     import pandas as pd
@@ -292,6 +372,7 @@ def run(args):
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip())
     contract = {"configSha256": sha(cfg_bytes), "codeCommit": commit, "codeDirty": dirty,
                 "scriptSha256": sha(Path(__file__).read_bytes()),
+                "normalizerSha256": normalizer_hash(),
                 "atomicHelperSha256": sha((ROOT / "scripts/collect_ashare_research_daily.py").read_bytes()),
                 "decoderSha256": sha(hk_js_decode.encode()), "masterSources": sources,
                 "symbols": sorted(keys), "sessionsSha256": sha("\n".join(sessions).encode()),
@@ -300,10 +381,14 @@ def run(args):
     data, output = ROOT / cfg["dataRoot"] / args.run_id, ROOT / cfg["outputRoot"] / args.run_id
     with single_instance(ROOT / cfg["dataRoot"] / "collector.lock"):
         manifest_path = output / "manifest.json"
+        seed = None
         if manifest_path.exists():
             old = strict_json(manifest_path.read_text(encoding="utf-8"))
             if not args.resume or old["contract"] != contract:
                 raise DataError("resume_contract_mismatch_or_run_exists")
+            seed = old.get("seed")
+            if getattr(args, "seed_run", None) and (not seed or args.seed_run != seed["seedRunId"]):
+                raise DataError("resume_seed_mismatch")
             previous_status = output / "status.json"
             if previous_status.exists():
                 reason = strict_json(previous_status.read_text(encoding="utf-8")).get("failClosedReason", "")
@@ -312,10 +397,19 @@ def run(args):
         else:
             if args.resume or data.exists() or output.exists():
                 raise DataError("new_run_requires_empty_independent_directories")
+            if getattr(args, "seed_run", None):
+                if args.seed_run == args.run_id:
+                    raise DataError("seed_must_be_another_run")
+                seed = seed_contract(args.seed_run, cfg, contract)
             atomic_json(manifest_path, {"schemaVersion": cfg["schemaVersion"], "runId": args.run_id,
                         "startedAt": now(), "contract": contract, "config": cfg, "researchOnly": True,
-                        "historicalVintageVerified": False, "orders": [], "mayPromote": False})
+                        "historicalVintageVerified": False, "orders": [], "mayPromote": False, "seed": seed})
             atomic_jsonl(data / "universe.jsonl", (universe[sid] for sid in sorted(keys)))
+        if seed:
+            current_seed = seed_contract(seed["seedRunId"], cfg, contract)
+            if current_seed["seedManifestSha256"] != seed["seedManifestSha256"]:
+                raise DataError("seed_manifest_changed")
+            copy_seed(seed, cfg, data, output, set(keys))
         decoder = py_mini_racer.MiniRacer()
         decoder.eval(hk_js_decode)
         client = PublicClient(cfg)
@@ -331,6 +425,7 @@ def run(args):
 
         def checkpoint():
             status.update(updatedAt=now(), attemptedSymbols=len(records),
+                          reusedSymbols=sum("seedProvenance" in r for r in records),
                           successfulSymbols=sum(r["state"] == "collected" for r in records),
                           failedSymbols=sum(r["state"] != "collected" for r in records),
                           validAdjustedRows=sum(r.get("validAdjustedRows", 0) for r in records),
@@ -412,6 +507,7 @@ def main():
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--symbols", help="Optional comma-separated master IDs for a pilot, e.g. SH.600000,SZ.000001")
     parser.add_argument("--resume", action="store_true", help="Reuse verified completed symbol artifacts only, identical contract required")
+    parser.add_argument("--seed-run", help="New independent run using hash-verified identical-definition files from an earlier run")
     args = parser.parse_args()
     try:
         return run(args)
