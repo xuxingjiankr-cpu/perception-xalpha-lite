@@ -66,6 +66,16 @@ def indexed(rows, sid):
     return out
 
 
+def close_value(actual, expected):
+    """Scalar equivalent of finite np.isclose(rtol=1e-8, atol=1e-8).
+
+    Avoid constructing millions of temporary NumPy arrays during input checks.
+    This changes no model, threshold, candidate or successful finite comparison.
+    """
+    return (source.finite(actual) and source.finite(expected)
+            and abs(actual - expected) <= 1e-8 + 1e-8 * abs(expected))
+
+
 def symbol_frame(raw_rows, adj_rows, status_rows, master, sessions):
     """Same-vendor price arithmetic; status-only exact-date cross-provider join.
 
@@ -107,7 +117,7 @@ def symbol_frame(raw_rows, adj_rows, status_rows, master, sessions):
                 if not factor_ok:
                     raise ValueError("future_or_missing_adjustment_factor:" + sid)
                 for k in source.OHLC:
-                    if not source.finite(r.get(k), True) or not np.isclose(a[k], r[k] * factor, rtol=1e-8):
+                    if not source.finite(r.get(k), True) or not close_value(a[k], r[k] * factor):
                         raise ValueError("adjustment_arithmetic_mismatch:" + sid)
                 if not (r["low"] <= min(r["open"], r["close"]) <= max(r["open"], r["close"]) <= r["high"]):
                     raise ValueError("invalid_ohlc:" + sid)
@@ -116,7 +126,7 @@ def symbol_frame(raw_rows, adj_rows, status_rows, master, sessions):
                     raise ValueError("flow_mismatch:" + sid)
                 vwap = r["amount"] / r["volume"]
                 tol = .0001 + r["high"] * 1e-5
-                if not r["low"] - tol <= vwap <= r["high"] + tol or not np.isclose(a["vwap"], vwap * factor, rtol=1e-8):
+                if not r["low"] - tol <= vwap <= r["high"] + tol or not close_value(a["vwap"], vwap * factor):
                     raise ValueError("invalid_vwap_basis:" + sid)
                 row.update(close=a["close"], volume=r["volume"], amount=r["amount"])
         data.append(row)
@@ -402,6 +412,20 @@ def selection_exposure(picks, sessions, c):
             "details": observations, "historicalSelectionIsDiagnosticOnly": True}
 
 
+def coverage_gate(comparisons, frame, sessions, daily, start, end):
+    expected = {str(sessions[i].date()) for i in range(start, end) if i in daily}
+    predicted = set(frame.date)
+    missing = sorted(expected - predicted)
+    absent_support = [str(sessions[i].date()) for i in range(start, end) if i not in daily]
+    for result in comparisons.values():
+        result["requirements"]["allCommonSupportDaysPredicted"] = not missing
+        result["requirements"]["allRequestedSessionsHaveCommonSupport"] = not absent_support
+        result["numericalTargetsMet"] = all(result["requirements"].values())
+    return {"requestedSignalDays": end - start, "commonSupportDays": len(expected),
+            "predictedSignalDays": len(predicted), "missingPredictions": missing,
+            "noCommonSupportDates": absent_support, "researchOnly": True}
+
+
 def run(path, run_id):
     c = json.loads(Path(path).read_text(encoding="utf-8"))
     validate(c)
@@ -466,8 +490,10 @@ def run(path, run_id):
         comparisons = {a: targets.assess_top10(frame, tc, a, "equal_families", "reused_history") for a in ARMS[1:]}
         comparisons["interaction_increment"] = targets.assess_top10(frame, tc, "interaction_model", "context_model", "reused_history")
         comparisons["current_vs_lagged"] = targets.assess_top10(frame, tc, "interaction_model", "lagged_interaction_counter", "reused_history")
+        evaluation_coverage = coverage_gate(comparisons, frame, sessions, daily, start, end)
         result = {"researchOnly": True, "runId": run_id, "state": "completed_diagnostic_only", "mayPromote": False, "orders": [],
                   "dataAudit": {k: v for k, v in audit.items() if k != "dailyCoverage"}, "folds": len(fold_meta), "skippedFolds": skipped,
+                  "evaluationCoverage": evaluation_coverage,
                   "arms": {a: summary(frame.loc[frame.policy.eq(a)], c) for a in ARMS}, "comparisons": comparisons,
                   "hindsightVsTrailing": selection_exposure(frame, sessions, c),
                   "trials": {**c["trials"], "globalLowerBoundAfterRun": c["trials"]["globalPriorLowerBound"] + len(ARMS),

@@ -13671,7 +13671,7 @@ if __name__ == "__main__":
     _sina_train_result = _unittest.TestResult()
     _unittest.defaultTestLoader.loadTestsFromTestCase(_sina_train_tests.SinaFundamentalTrainingTests).run(_sina_train_result)
     check("T172 Sina fundamental training is causal, calibrated, fixed-count and isolated",
-          _sina_train_result.wasSuccessful() and _sina_train_result.testsRun == 8,
+          _sina_train_result.wasSuccessful() and _sina_train_result.testsRun == 10,
           str(_sina_train_result.failures + _sina_train_result.errors))
     print()
     if failures:

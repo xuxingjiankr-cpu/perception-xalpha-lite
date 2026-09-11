@@ -106,6 +106,25 @@ class SinaFundamentalTrainingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'purge'):
             m.validate(broken)
 
+    def test_scalar_price_validation_is_numerically_identical(self):
+        rng = np.random.default_rng(4)
+        for b in rng.normal(size=10000) * 1000:
+            b = float(b)
+            for scale in (.99, 1., 1.01):
+                a = b + scale * (1e-8 + 1e-8 * abs(b))
+                self.assertEqual(m.close_value(a, b), bool(np.isclose(a, b, rtol=1e-8, atol=1e-8)))
+        self.assertFalse(m.close_value(None, 1.))
+        self.assertFalse(m.close_value(float('inf'), float('inf')))
+
+    def test_missing_evaluation_days_prevent_target_acceptance(self):
+        dates = pd.bdate_range('2020-01-01', periods=5)
+        result = {'a': {'requirements': {'prior': True}, 'numericalTargetsMet': True}}
+        frame = pd.DataFrame({'date': dates[:2].strftime('%Y-%m-%d')})
+        cov = m.coverage_gate(result, frame, dates, {i: {} for i in range(4)}, 0, 5)
+        self.assertEqual(len(cov['missingPredictions']), 2)
+        self.assertEqual(len(cov['noCommonSupportDates']), 1)
+        self.assertFalse(result['a']['numericalTargetsMet'])
+
     def synthetic(self):
         dates = pd.bdate_range('2020-01-01', periods=143)
         rng = np.random.default_rng(12)

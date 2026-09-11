@@ -100,7 +100,10 @@ count unresolved exposure as zero-return cash. Report resolution coverage and
 all-selected win bounds. Net mean needs ten resolved picks; paired comparisons
 need both books complete on identical dates. Such conditional means can be
 optimistic and are not evidence by themselves. All unresolved days block strict
-target acceptance. Cohort means are NOT account returns or funded portfolio PnL.
+  target acceptance. Cohort means are NOT account returns or funded portfolio PnL.
+All requested evaluation sessions and all common-support days are also accounted
+for: missing cross-sections or skipped fit blocks block target acceptance, even
+if the remaining reported days look good.
 
 ## Reporting and stopping
 
