@@ -77,11 +77,28 @@ if (-not $pitPassed) {
     }
 }
 if (-not $pitPassed) {
-    $status.pitAdjustedData = "failed_closed_after_parallel_and_serial_retry"
+    # BaoStock has refused every login since 2026-08-17 (10001011 / 10002007), which
+    # failed this job closed on 10 consecutive runs and starved every downstream step.
+    # Fall back to the bounded mootdx short-gap updater rather than lose the session:
+    # it is fail-closed in its own right (98% target coverage, reconciliation-error
+    # bound, frozen 5-session gap limit) and stamps its rows
+    # mootdx_raw_normalized_to_baostock_scale, so the audit trail always shows which
+    # vendor a session came from. BaoStock remains primary and is still tried first.
+    & py -3.13 scripts\append_ashare_pit_adjusted_mootdx_short_gap.py --target-date $date `
+      *>&1 | Tee-Object -FilePath $logPath -Append
+    if ($LASTEXITCODE -eq 0) {
+        $pitPassed = $true
+        $status.pitAdjustedData = "ok_via_mootdx_short_gap_fallback"
+    }
+}
+if (-not $pitPassed) {
+    $status.pitAdjustedData = "failed_closed_after_baostock_and_mootdx_fallback"
     Save-Status "failed_closed" 20
     exit 20
 }
-$status.pitAdjustedData = "ok"
+if ($status.pitAdjustedData -eq "not_run") {
+    $status.pitAdjustedData = "ok"
+}
 
 & py -3.13 scripts\generate_sixteen_factor_interaction_top10_v1.py --run-id $rankingRun `
   *>&1 | Tee-Object -FilePath $logPath -Append
