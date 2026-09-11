@@ -13673,6 +13673,12 @@ if __name__ == "__main__":
     check("T172 Sina fundamental training is causal, calibrated, fixed-count and isolated",
           _sina_train_result.wasSuccessful() and _sina_train_result.testsRun == 10,
           str(_sina_train_result.failures + _sina_train_result.errors))
+    import test_sina_disclosure_timing_v1 as _timing_tests
+    _timing_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_timing_tests.DisclosureTimingTests).run(_timing_result)
+    check("T173 disclosure timing preserves frozen baselines, causal clocks and identical support",
+          _timing_result.wasSuccessful() and _timing_result.testsRun == 10,
+          str(_timing_result.failures + _timing_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

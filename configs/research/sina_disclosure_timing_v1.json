@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "sina_disclosure_timing_v1",
+  "preregisteredAt": "2026-09-12T07:00:00+09:00",
+  "researchOnly": true,
+  "baseConfig": "configs/research/sina_fundamental_top10_v1.json",
+  "baseConfigSha256": "5eab7159fd04353879ae09b2cc8ff4f07ffd8f7064cfa01b30c800600f7f3d83",
+  "baseModuleSha256": "71c45402e2003726945b8bfcfc39f270a8815b24bb35c347269de318573ab4bb",
+  "referenceRun": "run_20260912_frozen_fundamental_training_v1_r2",
+  "referenceManifestSha256": "4df2258dc3b13885c801093ea8285cad8177e37cb6daf1099cdfee3f2584423e",
+  "hypothesis": "Previously disclosed financial characteristics may have time-dependent predictive content. Test statement-availability age, not consensus earnings surprise or a new price-volume search.",
+  "arms": ["equal_families", "pooled_payoff", "disclosure_timing", "lagged_timing_counter"],
+  "features": {
+    "availability": "first_session_strictly_after_max_noticeDate_updateDate",
+    "halfLifeSessions": [5, 20],
+    "counterLagSessions": 20,
+    "baselineFamilyMaxAgeSessions": 130,
+    "knownDisclosureAgeExpires": false,
+    "interactions": "each_of_four_current_family_ranks_times_each_decay",
+    "unknownAge": "fail_closed_never_zero_or_no_event",
+    "newFeatureCount": 10,
+    "modelFeatureCount": 22
+  },
+  "training": "inherit_exact_base_config_without_parameter_search",
+  "referenceModels": "reuse_numeric_frozen_fold_artifacts_and_verify_original_picks",
+  "comparison": {
+    "sameSupportRequired": true,
+    "fixedTop10BeforeOutcomes": true,
+    "probabilityMetrics": "identical_resolved_eligible_stock_date_labels_for_every_arm",
+    "payoffMetrics": "all_arms_jointly_complete_dates_plus_all_selected_resolution_bounds",
+    "requiredControls": ["equal_families", "pooled_payoff", "lagged_timing_counter"],
+    "historicalWindowsAlreadyViewed": true,
+    "mayPromote": false,
+    "searchVariants": 1
+  },
+  "trials": {
+    "globalPriorLowerBound": 465,
+    "reportedPolicyComparisons": 4,
+    "newModelArms": 2,
+    "newComparisonsPerFamily": 4,
+    "priorGlobalAndFamilyCountsComplete": false,
+    "dsr": null
+  },
+  "outputRoot": "outputs/edge_research/sina_disclosure_timing_v1",
+  "safety": {
+    "mayTrade": false,
+    "mayPublishDashboard": false,
+    "mayChangeFrozenModel": false,
+    "mayChangeForwardLedger": false,
+    "mayPromote": false,
+    "ordersAlwaysEmpty": true
+  }
+}
