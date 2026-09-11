@@ -13667,6 +13667,12 @@ if __name__ == "__main__":
     check("T171 fundamental readiness cannot use future statements or carried status",
           _fund_ready_result.wasSuccessful() and _fund_ready_result.testsRun == 2,
           str(_fund_ready_result.failures + _fund_ready_result.errors))
+    import test_sina_fundamental_top10_v1 as _sina_train_tests
+    _sina_train_result = _unittest.TestResult()
+    _unittest.defaultTestLoader.loadTestsFromTestCase(_sina_train_tests.SinaFundamentalTrainingTests).run(_sina_train_result)
+    check("T172 Sina fundamental training is causal, calibrated, fixed-count and isolated",
+          _sina_train_result.wasSuccessful() and _sina_train_result.testsRun == 8,
+          str(_sina_train_result.failures + _sina_train_result.errors))
     print()
     if failures:
         print(f"FAILED: {len(failures)} invariant(s): {failures}")

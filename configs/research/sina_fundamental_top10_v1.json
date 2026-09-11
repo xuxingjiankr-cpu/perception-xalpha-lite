@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "sina_fundamental_top10_v1",
+  "researchOnly": true,
+  "preregisteredAt": "2026-09-12T01:49:51+09:00",
+  "sourceRun": "recovery_20260911_sina_v1",
+  "inputAuditRun": "audit_20260912_full5798",
+  "masterPath": "data/market/ashare_research/baostock_pit_adjusted/master/ashare_pit_master_20260812.jsonl",
+  "statusRoot": "data/market/ashare_research/baostock_pit_adjusted/bars_1d_backward_adjusted",
+  "fundamentalConfig": "configs/research/fundamental_mechanism_families_v1.json",
+  "panel": {
+    "startDate": "2019-01-02", "endDate": "2026-09-08",
+    "liquidityWindow": 60, "minimumLiquidityObservations": 48,
+    "minimumPriorObservations": 500, "minimumAmountCny": 30000000,
+    "maximumMissingFraction": 0.15, "maximumSuspensionFraction": 0.2,
+    "minimumCrossSection": 300
+  },
+  "features": {
+    "momentumWindow": 20, "reversalWindow": 5, "volatilityWindow": 20,
+    "volumeShortWindow": 5, "volumeLongWindow": 20,
+    "counterLagSessions": 65, "maxFundamentalAgeSessions": 130,
+    "componentWeights": "equal_within_each_of_four_families",
+    "missingDisclosureResetsPriorValues": true,
+    "oldTwelveFactorDefinitionsUsed": false
+  },
+  "training": {
+    "trainSessions": 252, "calibrationSessions": 63, "purgeSessions": 7,
+    "refitSessions": 21, "minimumTrainDays": 180, "minimumCalibrationDays": 40,
+    "maximumRowsPerDay": 300, "minimumCrossSection": 100,
+    "seed": 20260912, "logisticC": 0.1, "ridgeAlpha": 10,
+    "returnScale": 0.02, "targetClipQuantile": 0.995
+  },
+  "evaluation": {
+    "startDate": "2024-01-02", "topCount": 10, "holdingSessions": 1,
+    "maximumExitDelay": 5, "roundTripCost": 0.003, "tailThreshold": -0.03,
+    "openLimitBuffer": 0.005, "excludeCorporateActionLegs": true,
+    "historicalWindowsAlreadyViewed": true, "neverPromote": true,
+    "hindsightSelector": "best_whole_evaluation_arm_net_mean_on_joint_complete_days",
+    "trailingSelector": "prior_63_signal_days_fully_matured_net_mean_on_joint_complete_days",
+    "minimumTrailingSelectorDays": 20
+  },
+  "arms": ["equal_families", "fundamental_model", "context_model", "interaction_model", "lagged_interaction_counter"],
+  "primaryComparison": ["interaction_model", "context_model"],
+  "targetsConfig": "configs/research/top10_strict_upgrade_v1.json",
+  "trials": {
+    "globalPriorLowerBound": 460, "newPolicyComparisons": 5,
+    "newComparisonsPerFamily": 5,
+    "priorGlobalAndFamilyCountsComplete": false,
+    "noMultiplicityCertificate": true
+  },
+  "outputRoot": "outputs/edge_research/sina_fundamental_top10_v1",
+  "safety": {"mayTrade": false, "mayPublishDashboard": false, "mayChangeFrozenModel": false,
+    "mayChangeForwardLedger": false, "mayPromote": false, "ordersAlwaysEmpty": true}
+}
