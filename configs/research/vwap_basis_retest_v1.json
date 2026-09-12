@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "vwap_basis_retest_v1",
+  "researchOnly": true,
+  "frontierConfig": "configs/research/horizon_cost_frontier_v1.json",
+  "tailConfig": "configs/research/tail_exclusion_screen_v1_volatility_ablation.json",
+  "basisVersions": ["legacy_amount_volume_v1", "archive_vwap_v2"],
+  "onlyAffectedFactor": "alpha101/alpha_094",
+  "sameSupport": "original_eligibility_intersect_complete_twelve_ranks_in_both_versions_and_finite_rv20",
+  "rankWithinCommonSupport": true,
+  "oldNextSessionExecutionEligibilityUnchanged": true,
+  "frontierMinimumPositiveTBothWindows": 2.0,
+  "compositeBooks": ["frozen_prior", "equal_weight"],
+  "tailRequiredHorizons": [1, 5],
+  "tailRequiredWindows": ["validation", "shadow"],
+  "tailBothAxesRequired": true,
+  "secondaryDiagnostic": "existing_qlib158/vstd60_volume_variability_vs_return_volatility20_no_new_factor",
+  "historicalWindowsAlreadyViewed": true,
+  "mayPromote": false,
+  "mayTrade": false,
+  "orders": [],
+  "noReweightingOrTraining": true,
+  "outputRoot": "outputs/edge_research/vwap_basis_retest_v1"
+}

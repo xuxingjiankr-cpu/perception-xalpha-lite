@@ -217,15 +217,17 @@ def store(
             shutil.rmtree(staging, ignore_errors=True)
 
 
-RANK_BOOK_SOURCES = ("research_perception_xalpha_rolling_health_v4.py",)
+RANK_BOOK_SOURCES = ("research_perception_xalpha_rolling_health_v4.py",
+                     "research_perception_xalpha_horizon_precision_v3.py")
 STATIC_SCORE_FIELD = "__static_score__"
 
 
-def rank_book_key(panel_key: str, frozen: dict[str, Any]) -> str:
+def rank_book_key(panel_key: str, frozen: dict[str, Any], *, vwap_basis: str = "archive_vwap_v2") -> str:
     """Ranks are a pure function of the panel, the frozen factors and the ranker."""
     payload = {
         "cacheFormatVersion": CACHE_FORMAT_VERSION,
         "panelKey": panel_key,
+        "factorVwapBasis": vwap_basis,
         "frozenFactors": frozen.get("frozenFactors"),
         "rankSources": {
             name: _sha256_file(ROOT / "scripts" / name)
@@ -246,16 +248,17 @@ def build_rank_book_cached(
     cache_root: Path | None = None,
     enabled: bool = True,
     verbose: bool = True,
+    vwap_basis: str = "archive_vwap_v2",
 ) -> tuple[dict[str, pd.DataFrame], pd.DataFrame, Any]:
     """Cache compute_rank_book, which becomes the bottleneck once the panel is cached."""
     import research_perception_xalpha_rolling_health_v4 as rolling
 
     if not enabled:
-        return rolling.compute_rank_book(panel, frozen)
+        return rolling.compute_rank_book(panel, frozen, vwap_basis=vwap_basis)
     try:
-        key = rank_book_key(panel_key, frozen)
+        key = rank_book_key(panel_key, frozen, vwap_basis=vwap_basis)
     except Exception:
-        return rolling.compute_rank_book(panel, frozen)
+        return rolling.compute_rank_book(panel, frozen, vwap_basis=vwap_basis)
     root = Path(cache_root or DEFAULT_CACHE_ROOT) / "rank_book"
     cached = load(key, root)
     if cached is not None:
@@ -267,7 +270,7 @@ def build_rank_book_cached(
             return frames, static_score, audit.get("factorAudit")
     if verbose:
         print(f"rank_book_cache miss key={key[:16]} computing", flush=True)
-    ranks, static_score, factor_audit = rolling.compute_rank_book(panel, frozen)
+    ranks, static_score, factor_audit = rolling.compute_rank_book(panel, frozen, vwap_basis=vwap_basis)
     payload = dict(ranks)
     payload[STATIC_SCORE_FIELD] = static_score
     stored = store(key, {"rankBookKey": key}, payload, {"factorAudit": factor_audit}, root)

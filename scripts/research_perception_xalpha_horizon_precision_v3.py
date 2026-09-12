@@ -164,12 +164,38 @@ def verify_frozen_source(config: dict[str, Any]) -> tuple[dict[str, Any], str]:
     return source, hashlib.sha256(raw).hexdigest()
 
 
-def build_factor_inputs(panel: dict[str, Any]) -> dict[str, Any]:
+def build_factor_inputs(
+    panel: dict[str, Any], *, vwap_basis: str = "archive_vwap_v2"
+) -> dict[str, Any]:
+    """Preserve the supplied price-basis-consistent proxy, not cash/share VWAP.
+
+    legacy_amount_volume_v1 exists solely for labelled identical-support research
+    comparisons. Neither version calls an OHLC4 proxy true transaction VWAP.
+    """
     inputs = dict(panel)
     close = panel["close"]
     inputs["returns"] = close.pct_change(fill_method=None)
     volume = panel["volume"].replace(0.0, np.nan)
-    inputs["vwap"] = panel["amount"].div(volume).combine_first(close)
+    cash = panel["amount"].div(volume)
+    if vwap_basis not in ("archive_vwap_v2", "legacy_amount_volume_v1"):
+        raise ValueError("unknown_factor_vwap_basis")
+    archived = panel.get("vwap", close * np.nan).reindex_like(close)
+    if vwap_basis == "archive_vwap_v2":
+        inputs["vwap"] = archived.combine_first(cash).combine_first(close)
+        archive_mask = archived.notna()
+    else:
+        inputs["vwap"] = cash.combine_first(close)
+        archive_mask = pd.DataFrame(False, index=close.index, columns=close.columns)
+    cash_mask = ~archive_mask & cash.notna()
+    close_mask = ~archive_mask & ~cash_mask & close.notna()
+    inputs["vwap"].attrs["factorInputBasisAudit"] = {
+        "version": vwap_basis,
+        "archivePreservedCells": int(archive_mask.to_numpy().sum()),
+        "unadjustedAmountVolumeFallbackCells": int(cash_mask.to_numpy().sum()),
+        "closeFallbackCells": int(close_mask.to_numpy().sum()),
+        "archiveSemantics": "preserved_as_supplied_not_certified_true_transaction_vwap",
+        "fallbackBasisCertified": False,
+    }
     return inputs
 
 
@@ -217,6 +243,7 @@ def compute_frozen_scores(
         del raw, oriented, ranked
     score = numerator.div(available_weight.replace(0.0, np.nan)).where(eligible)
     return score, support.astype(np.int16), {
+        "factorInputBasis": inputs["vwap"].attrs["factorInputBasisAudit"],
         "factorCount": len(audit),
         "supportRankPercentile": support_threshold,
         "factors": audit,

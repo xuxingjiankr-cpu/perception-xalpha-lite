@@ -279,7 +279,7 @@ def markdown_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
+def run(config_path: Path, run_id: str | None = None, *, paired_inputs: dict | None = None) -> dict[str, Any]:
     config = load_json(config_path)
     validate_config(config)
     frozen, source, frozen_sha = guarded.load_frozen_config(
@@ -287,14 +287,19 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     )
     base = load_json(ROOT / frozen["baseResearchConfig"])
     _, cog_config = perception.load_base_configs(base)
-    panel_key, _ = panel_cache.cache_key(base, cog_config)
-    panel, panel_audit = panel_cache.build_configured_panel_cached(base, cog_config)
+    if paired_inputs is None:
+        panel_key, _ = panel_cache.cache_key(base, cog_config)
+        panel, panel_audit = panel_cache.build_configured_panel_cached(base, cog_config)
+        ranks, _static, factor_audit = panel_cache.build_rank_book_cached(panel, frozen, panel_key)
+    else:
+        output = ROOT / paired_inputs["output"]
+        if not output.resolve().is_relative_to((ROOT / "outputs/edge_research/vwap_basis_retest_v1").resolve()):
+            raise ValueError("paired_retest_output_not_isolated")
+        output.mkdir(parents=True, exist_ok=False)
+        panel, panel_audit, ranks, factor_audit = (paired_inputs[k] for k in ("panel", "panelAudit", "ranks", "factorAudit"))
     print(
         f"panel_ready symbols={panel['close'].shape[1]} sessions={panel['close'].shape[0]}",
         flush=True,
-    )
-    ranks, _static, factor_audit = panel_cache.build_rank_book_cached(
-        panel, frozen, panel_key
     )
     factors = list(ranks.keys())
     prior = pd.Series(
@@ -347,6 +352,8 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         outcome, execution_eligible, _delay = precision.executable_horizon_return(
             panel, holding_days, max_delay
         )
+        if paired_inputs is not None:
+            execution_eligible &= paired_inputs["commonSupport"]
         contained = {
             name: precision.contained_signal_dates(dates, holding_days, max_delay)
             for name, dates in splits.items()
@@ -374,8 +381,9 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         + "_"
         + precision.digest({"config": config, "code": CODE_VERSION})[:10]
     )
-    output = ROOT / config["output"]["root"] / run_id
-    output.mkdir(parents=True, exist_ok=True)
+    if paired_inputs is None:
+        output = ROOT / config["output"]["root"] / run_id
+        output.mkdir(parents=True, exist_ok=True)
 
     report: dict[str, Any] = {
         "schemaVersion": SCHEMA_VERSION,
@@ -404,6 +412,11 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
         "automaticTradingChanges": [],
     }
     report["verdict"] = build_verdict(report, config)
+    if paired_inputs is not None:
+        report["basisRetest"] = paired_inputs["audit"]
+        report["originalStudyGateNotConclusion"] = report["verdict"]
+        report["verdict"] = {"decision": "reject_only_pending_paired_basis_audit", "eligibleForTrading": False,
+                             "historicalHypothesisPass": False}
 
     precision.atomic_write(
         output / "summary.json",

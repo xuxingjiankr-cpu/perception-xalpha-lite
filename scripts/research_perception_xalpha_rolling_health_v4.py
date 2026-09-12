@@ -109,11 +109,12 @@ def load_frozen_precision_config(config: dict[str, Any]) -> tuple[dict[str, Any]
 def compute_rank_book(
     panel: dict[str, Any],
     frozen: dict[str, Any],
+    *, vwap_basis: str = "archive_vwap_v2",
 ) -> tuple[dict[str, pd.DataFrame], pd.DataFrame, dict[str, Any]]:
     """Compute frozen oriented ranks once; float32 storage keeps the full PIT run bounded."""
     close = panel["close"]
     eligible = panel["eligible"]
-    inputs = precision.build_factor_inputs(panel)
+    inputs = precision.build_factor_inputs(panel, vwap_basis=vwap_basis)
     ranks: dict[str, pd.DataFrame] = {}
     static_numerator = close * 0.0
     static_available = close * 0.0
@@ -144,7 +145,8 @@ def compute_rank_book(
         print(f"factor_rank_ready {position}/12 {key}", flush=True)
         del raw, rank
     static_score = static_numerator.div(static_available.replace(0.0, np.nan)).where(eligible)
-    return ranks, static_score, {"factorCount": len(audit), "factors": audit}
+    return ranks, static_score, {"factorCount": len(audit), "factors": audit,
+                                "factorInputBasis": inputs["vwap"].attrs["factorInputBasisAudit"]}
 
 
 def factor_daily_ic(
