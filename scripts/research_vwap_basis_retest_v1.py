@@ -61,6 +61,8 @@ def common_rank_support(panel, old, new):
     if set(old) != set(new) or len(old) != 12 or AFFECTED not in old:
         raise ValueError("not_same_frozen_twelve")
     common = panel["eligible"].copy()
+    old_available = common & False
+    new_available = common & False
     audit = []
     for key in old:
         if not old[key].index.equals(new[key].index) or not old[key].columns.equals(new[key].columns):
@@ -68,24 +70,29 @@ def common_rank_support(panel, old, new):
         equal = old[key].equals(new[key])
         if key != AFFECTED and not equal:
             raise ValueError("unexpected_change_outside_single_vwap_factor:" + key)
-        common &= np.isfinite(old[key]) & np.isfinite(new[key])
+        old_available |= np.isfinite(old[key])
+        new_available |= np.isfinite(new[key])
         differences = ~(old[key].eq(new[key]) | (old[key].isna() & new[key].isna()))
         audit.append({"factorKey": key, "unchanged": equal, "changedCells": int(differences.to_numpy().sum())})
     rv = panel["returns"].rolling(20, min_periods=10).std()
-    common &= np.isfinite(rv)
+    # Positive frozen/equal weights use the original available-factor arithmetic.
+    # Requiring ALL twelve finite or reranking would change the experiment in
+    # addition to the VWAP correction. Refuse rather than shrink eligibility.
+    if (common & ~(old_available & new_available & np.isfinite(rv))).to_numpy().any():
+        raise ValueError("original_eligibility_not_fully_supported_by_both_composites_and_rv20")
     counts = common.sum(axis=1)
     if not counts.ge(10).any():
         raise ValueError("no_joint_rank_support")
     return common, {"researchOnly": True, "factorChanges": audit, "supportSha256": frame_digest(common),
                     "originalEligibleCells": int(panel["eligible"].to_numpy().sum()), "commonCells": int(common.to_numpy().sum()),
                     "droppedCells": int((panel["eligible"] & ~common).to_numpy().sum()),
-                    "rule": "all_twelve_finite_in_both_basis_versions_plus_rv20_no_outcomes_used",
+                    "rule": "original_eligibility_unchanged_both_composites_and_rv20_finite_no_reranking",
                     "dates": [str(common.index[0].date()), str(common.index[-1].date())], "symbols": len(common.columns)}
 
 
 def paired_ranks(ranks, common):
-    # Rank within the identical name set, not two different finite-name sets.
-    return {k: r.where(common).rank(axis=1, pct=True).astype(np.float32) for k, r in ranks.items()}
+    # Preserve every pre-existing rank value and missing-value convention.
+    return {k: r.where(common) for k, r in ranks.items()}
 
 
 def conclusions(old_frontier, new_frontier, old_tail, new_tail, c):
@@ -167,7 +174,9 @@ def report_text(r):
 
 def run(config_path, run_id):
     c = read(config_path)
-    if (c["schemaVersion"] != "vwap_basis_retest_v1" or not c["researchOnly"] or c["mayPromote"] or c["mayTrade"] or c["orders"]
+    if (c["schemaVersion"] != "vwap_basis_retest_v1" or c.get("supportVersion") != "preserve_original_eligibility_v2"
+            or c["sameSupport"] != "original_eligibility_unchanged" or c["rankWithinCommonSupport"]
+            or not c["researchOnly"] or c["mayPromote"] or c["mayTrade"] or c["orders"]
             or c["basisVersions"] != [OLD, NEW] or c["onlyAffectedFactor"] != AFFECTED or c["frontierMinimumPositiveTBothWindows"] != 2.
             or c["compositeBooks"] != ["frozen_prior", "equal_weight"] or c["tailRequiredHorizons"] != [1, 5]
             or c["tailRequiredWindows"] != ["validation", "shadow"] or c["outputRoot"] != "outputs/edge_research/vwap_basis_retest_v1"):
@@ -264,7 +273,7 @@ def run(config_path, run_id):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--config", type=Path, default=ROOT / "configs/research/vwap_basis_retest_v1.json")
+    ap.add_argument("--config", type=Path, default=ROOT / "configs/research/vwap_basis_retest_v2.json")
     ap.add_argument("--run-id", required=True)
     a = ap.parse_args()
     run(a.config, a.run_id)

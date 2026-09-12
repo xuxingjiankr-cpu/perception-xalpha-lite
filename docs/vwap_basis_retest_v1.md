@@ -27,12 +27,17 @@ research outputs are not overwritten by this re-test.
 
 ## Same-support comparison
 
-Both versions use the SAME in-memory panel, axes and original eligibility. The
-comparison mask intersects finite ranks for all twelve factors in both versions
-and finite original RV20; it never inspects labels. Ranks are recomputed within
-that identical comparison name set. The mask, per-date counts and full content
-hash are written. Any reduction versus original eligibility is disclosed: compare
-new-run OLD against new-run CORRECTED, not against old reports on different data.
+Both versions use the SAME in-memory panel, axes and ORIGINAL eligibility, with
+no complete-case deletion or reranking. The original available-factor arithmetic
+and all existing rank values are preserved. The runner asserts that both
+composites and RV20 cover every original eligible cell, failing rather than
+shrinking the comparison set. The eligibility mask, per-date counts and full
+content hash are written. Compare new-run OLD against new-run CORRECTED.
+
+The initial `vwap_basis_retest_v1.json` complete-case proposal was aborted before
+any horizon result: it would have removed 1,412,528 cells and changed all ranks.
+It is retained as an audit record, not used for a conclusion. The active config
+is `vwap_basis_retest_v2.json`; no evaluation threshold or weight was changed.
 
 The two existing study `run()` entry points consume this paired input explicitly,
 using their unchanged splits, horizons, frozen weights, execution eligibility,

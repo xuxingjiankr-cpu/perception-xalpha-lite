@@ -67,14 +67,31 @@ class VwapBasisRetestTests(unittest.TestCase):
 
     def test_real_twelve_only_alpha094_changes_and_same_support(self):
         p = self.fixture()
+        p['eligible'].iloc[:65] = False
         frozen = m.read(m.ROOT / 'configs/research/perception_xalpha_horizon_precision_v3.json')
         old, _, _ = rolling.compute_rank_book(p, frozen, vwap_basis=m.OLD)
         new, _, _ = rolling.compute_rank_book(p, frozen, vwap_basis=m.NEW)
         common, audit = m.common_rank_support(p, old, new)
         self.assertEqual(sum(r['unchanged'] for r in audit['factorChanges']), 11)
+        pd.testing.assert_frame_equal(common, p['eligible'])
+        self.assertEqual(audit['droppedCells'], 0)
         a, b = m.paired_ranks(old, common), m.paired_ranks(new, common)
         for k in a:
-            self.assertTrue(a[k].notna().equals(b[k].notna()))
+            pd.testing.assert_frame_equal(a[k], old[k])
+            pd.testing.assert_frame_equal(b[k], new[k])
+        # A missing factor must not remove a name with other available factors.
+        incomplete_old, incomplete_new = copy.deepcopy(old), copy.deepcopy(new)
+        for book in (incomplete_old, incomplete_new):
+            book['qlib158/vstd60'].iloc[-1, 0] = np.nan
+        unchanged, _ = m.common_rank_support(p, incomplete_old, incomplete_new)
+        pd.testing.assert_frame_equal(unchanged, p['eligible'])
+        unsupported = copy.deepcopy(old)
+        for frame in unsupported.values():
+            frame.iloc[-1, 0] = np.nan
+        # Align the other eleven first, so this pins coverage rather than the
+        # independent one-factor-only assertion.
+        with self.assertRaisesRegex(ValueError, 'not_fully_supported'):
+            m.common_rank_support(p, unsupported, unsupported)
         changed = copy.deepcopy(new)
         changed['qlib158/vstd60'].iloc[-1, 0] += .1
         with self.assertRaisesRegex(ValueError, 'outside_single_vwap_factor'):
