@@ -57,7 +57,7 @@ def price_basis_audit(panel, inputs, *, require_consistent=False):
             "warning": "A same-session OHLC envelope is a scale sanity check, not a proof of vendor vintage or executable VWAP. Preserved panel fields may include upstream fallbacks."}
 
 
-def common_rank_support(panel, old, new):
+def common_rank_support(panel, old, new, rv20_missing_max_share=0.0):
     if set(old) != set(new) or len(old) != 12 or AFFECTED not in old:
         raise ValueError("not_same_frozen_twelve")
     common = panel["eligible"].copy()
@@ -74,19 +74,45 @@ def common_rank_support(panel, old, new):
         new_available |= np.isfinite(new[key])
         differences = ~(old[key].eq(new[key]) | (old[key].isna() & new[key].isna()))
         audit.append({"factorKey": key, "unchanged": equal, "changedCells": int(differences.to_numpy().sum())})
-    rv = panel["returns"].rolling(20, min_periods=10).std()
     # Positive frozen/equal weights use the original available-factor arithmetic.
     # Requiring ALL twelve finite or reranking would change the experiment in
     # addition to the VWAP correction. Refuse rather than shrink eligibility.
-    if (common & ~(old_available & new_available & np.isfinite(rv))).to_numpy().any():
-        raise ValueError("original_eligibility_not_fully_supported_by_both_composites_and_rv20")
+    #
+    # This is the precondition the VWAP change could actually break, so it stays
+    # strict: every originally eligible cell must carry factor support in BOTH
+    # bases, or the paired composite comparison is not like-for-like.
+    if (common & ~(old_available & new_available)).to_numpy().any():
+        raise ValueError("original_eligibility_not_fully_supported_by_both_composites")
+    rv = panel["returns"].rolling(20, min_periods=10).std()
+    # rv20 is the tail ablation's realized_volatility_20 input, NOT one of the
+    # twelve frozen factors, and it is derived from panel["returns"], which does
+    # not depend on vwap_basis. It is therefore identical in both arms and
+    # cancels exactly in the paired comparison; it cannot bias OLD against NEW.
+    # It is undefined for names trading through long suspensions, where the
+    # trailing 20 sessions cannot hold the 10 finite returns min_periods wants.
+    # Gating the whole run on it refuses a VWAP question over cells the VWAP
+    # change never touched, so bound and record it instead of refusing outright.
+    rv_missing = common & ~np.isfinite(rv)
+    rv_missing_cells = int(rv_missing.to_numpy().sum())
+    eligible_cells = int(common.to_numpy().sum())
+    rv_missing_share = rv_missing_cells / eligible_cells if eligible_cells else 0.0
+    if rv_missing_share > rv20_missing_max_share:
+        raise ValueError(
+            "rv20_missing_share_above_preregistered_threshold:"
+            f"{rv_missing_share:.6f}>{rv20_missing_max_share:.6f}"
+        )
     counts = common.sum(axis=1)
     if not counts.ge(10).any():
         raise ValueError("no_joint_rank_support")
     return common, {"researchOnly": True, "factorChanges": audit, "supportSha256": frame_digest(common),
                     "originalEligibleCells": int(panel["eligible"].to_numpy().sum()), "commonCells": int(common.to_numpy().sum()),
                     "droppedCells": int((panel["eligible"] & ~common).to_numpy().sum()),
-                    "rule": "original_eligibility_unchanged_both_composites_and_rv20_finite_no_reranking",
+                    "rule": "original_eligibility_unchanged_both_composites_supported_rv20_missing_bounded_no_reranking",
+                    "rv20MissingCells": rv_missing_cells,
+                    "rv20MissingShare": rv_missing_share,
+                    "rv20MissingMaxShare": rv20_missing_max_share,
+                    "rv20MissingSymbols": int(rv_missing.any(axis=0).sum()),
+                    "rv20IsBasisIndependentAndCancelsInThePair": True,
                     "dates": [str(common.index[0].date()), str(common.index[-1].date())], "symbols": len(common.columns)}
 
 
@@ -174,8 +200,9 @@ def report_text(r):
 
 def run(config_path, run_id):
     c = read(config_path)
-    if (c["schemaVersion"] != "vwap_basis_retest_v1" or c.get("supportVersion") != "preserve_original_eligibility_v2"
+    if (c["schemaVersion"] != "vwap_basis_retest_v1" or c.get("supportVersion") != "preserve_original_eligibility_rv20_bounded_v3"
             or c["sameSupport"] != "original_eligibility_unchanged" or c["rankWithinCommonSupport"]
+            or not isinstance(c["rv20MissingMaxShare"], float) or not 0.0 <= c["rv20MissingMaxShare"] <= 0.01
             or not c["researchOnly"] or c["mayPromote"] or c["mayTrade"] or c["orders"]
             or c["basisVersions"] != [OLD, NEW] or c["onlyAffectedFactor"] != AFFECTED or c["frontierMinimumPositiveTBothWindows"] != 2.
             or c["compositeBooks"] != ["frozen_prior", "equal_weight"] or c["tailRequiredHorizons"] != [1, 5]
@@ -229,7 +256,8 @@ def run(config_path, run_id):
             ranks, static, fa = panel_cache.build_rank_book_cached(panel, frozen, panel_key, vwap_basis=basis)
             versions[basis], audits[basis] = ranks, fa
             del static
-        common, support = common_rank_support(panel, versions[OLD], versions[NEW])
+        common, support = common_rank_support(panel, versions[OLD], versions[NEW],
+                                              c["rv20MissingMaxShare"])
         save(out / "identical_support_audit.json", support)
         common.to_parquet(out / "common_support.parquet")
         pd.DataFrame({"date": common.index, "originalEligible": panel["eligible"].sum(axis=1).values,

@@ -13683,7 +13683,7 @@ if __name__ == "__main__":
     _vwap_basis_result = _unittest.TestResult()
     _unittest.defaultTestLoader.loadTestsFromTestCase(_vwap_basis_tests.VwapBasisRetestTests).run(_vwap_basis_result)
     check("T174 adjusted VWAP, identical support and both reject-only study entry points",
-          _vwap_basis_result.wasSuccessful() and _vwap_basis_result.testsRun == 8,
+          _vwap_basis_result.wasSuccessful() and _vwap_basis_result.testsRun == 11,
           str(_vwap_basis_result.failures + _vwap_basis_result.errors))
     print()
     if failures:
