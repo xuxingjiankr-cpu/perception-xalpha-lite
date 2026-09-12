@@ -120,6 +120,19 @@ def main() -> int:
         ),
     )
 
+    # Regression: DataFrame has no .between, and the run path clips prices.
+    wild = pd.DataFrame(
+        {"OK": [10.0, 20.0], "DUST": [0.001, 0.002], "ABSURD": [9e6, 9e6]},
+        index=pd.bdate_range("2025-01-02", periods=2),
+    )
+    clipped = cost.clip_to_plausible_price(wild, 0.5, 5000.0)
+    check(
+        "an implausible amount/volume ratio is dropped, not given a tick floor",
+        clipped["OK"].notna().all()
+        and clipped["DUST"].isna().all()
+        and clipped["ABSURD"].isna().all(),
+    )
+
     flat = pd.DataFrame(
         {"A": [10.0] * 5, "B": [20.0] * 5, "C": [200.0] * 5},
         index=pd.bdate_range("2025-01-02", periods=5),

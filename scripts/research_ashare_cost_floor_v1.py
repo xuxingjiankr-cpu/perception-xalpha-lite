@@ -107,6 +107,18 @@ def actual_traded_price(panel: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return panel["amount"].div(volume)
 
 
+def clip_to_plausible_price(
+    price: pd.DataFrame, low_cny: float, high_cny: float
+) -> pd.DataFrame:
+    """Drop implausible amount/volume ratios rather than let them set a tick floor.
+
+    A bad amount or volume field produces a price of a fraction of a fen or of
+    millions, and either would dominate a bps floor computed as tick/price.
+    DataFrame has no .between, so the bound is written out.
+    """
+    return price.where((price >= low_cny) & (price <= high_cny))
+
+
 def relative_tick_floor_bps(price: pd.DataFrame, tick: float) -> pd.DataFrame:
     """Hard lower bound on round-trip spread cost: one full tick, in bps.
 
@@ -331,12 +343,9 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
     price_cfg = config["price"]
     tick = float(price_cfg["tickSizeCny"])
     price = actual_traded_price(panel)
-    price = price.where(
-        price.between(
-            float(price_cfg["minimumActualPriceCny"]),
-            float(price_cfg["maximumActualPriceCny"]),
-        )
-    )
+    low_cny = float(price_cfg["minimumActualPriceCny"])
+    high_cny = float(price_cfg["maximumActualPriceCny"])
+    price = clip_to_plausible_price(price, low_cny, high_cny)
     tick_bps = relative_tick_floor_bps(price, tick).where(panel["eligible"])
     cs_bps = corwin_schultz_bps(
         panel["high"], panel["low"], int(config["estimators"]["corwinSchultz"]["windowSessions"])
