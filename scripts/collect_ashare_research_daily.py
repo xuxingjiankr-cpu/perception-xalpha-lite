@@ -455,6 +455,22 @@ def collect_one(
                     "researchOnly": True,
                 }
             )
+        # A vendor outage returns zero rows, and filter_dates applies to what is
+        # PERSISTED rather than to what is fetched, so both paths previously wrote a
+        # shorter file over a longer one and silently destroyed history. On
+        # 2026-09-12 that emptied 2250 of 5566 symbol files while the TDX endpoint
+        # was returning nothing for every SH/SZ name. Never shrink an existing file
+        # unless --force says to.
+        if old and len(rows) < len(old) and not force:
+            return {
+                "securityId": security["securityId"],
+                "status": "refused_shrinking_overwrite",
+                "rows": len(old),
+                "fetchedRows": len(rows),
+                "first": old[0].get("dt"),
+                "last": old[-1].get("dt"),
+                "path": str(path),
+            }
         atomic_jsonl(path, rows)
         return {
             "securityId": security["securityId"],
