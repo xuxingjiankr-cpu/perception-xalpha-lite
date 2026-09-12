@@ -309,11 +309,30 @@ def run(config_path: Path, run_id: str | None = None) -> dict[str, Any]:
             close_index, factors, {k: 1.0 / len(factors) for k in factors}
         ),
     }
-    selected_books = [name for name in config["screen"]["books"] if name in books]
+    requested = list(config["screen"]["books"])
+    if "single_factor_each" in requested:
+        for key in factors:
+            books[f"single/{key}"] = frontier.weight_frame(
+                close_index, factors, {key: 1.0}
+            )
+    selected_books = [name for name in requested if name in books]
+    if "single_factor_each" in requested:
+        selected_books += [name for name in books if name.startswith("single/")]
     scores = {
         name: guarded.adaptive_score(ranks, books[name], panel)
         for name in selected_books
     }
+    if "realized_volatility_20" in requested:
+        # The free alternative. If a plain twenty-session realised volatility ranks
+        # tail risk as well as the factor composite, #13 is "volatile stocks have fat
+        # tails" - true, already known, and not a finding worth a forward record.
+        volatility = (
+            panel["returns"].rolling(20, min_periods=10).std().where(panel["eligible"])
+        )
+        # Higher volatility must map to a WORSE score, so the sign is flipped to match
+        # the book's convention that a high score is a good name.
+        scores["realized_volatility_20"] = -volatility
+        selected_books.append("realized_volatility_20")
     print(f"scored_books n={len(scores)}", flush=True)
 
     severe = float(config["data"]["severeLossThreshold"])

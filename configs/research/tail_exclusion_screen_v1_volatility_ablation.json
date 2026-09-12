@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "tail_exclusion_screen_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Ablation of RESEARCH_LOG #13, run to try to REJECT it rather than extend it. #13 found the frozen composite ranks severe-loss risk monotonically and stably, but the worst decile was also the most volatile slice and carried the highest shadow-window return, which is what a pure volatility ranking would look like. This run adds every single-factor book and a plain twenty-session realised-volatility sort computed straight off the panel. If the free volatility sort ranks tail risk as well as the composite, #13 is not a finding and the forward record should be closed.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "bucketGridFrozenBeforeEvaluation": true,
+    "horizonGridFrozenBeforeEvaluation": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "data": {
+    "signalTiming": "day_t_close_past_only",
+    "hypotheticalEntryTiming": "day_t_plus_1_open_if_buyable",
+    "maximumExitDelayTradingDays": 5,
+    "severeLossThreshold": -0.03
+  },
+  "screen": {
+    "bucketCount": 10,
+    "holdingTradingDaysGrid": [
+      1,
+      5
+    ],
+    "books": [
+      "frozen_prior",
+      "equal_weight",
+      "single_factor_each",
+      "realized_volatility_20"
+    ],
+    "benchmark": "same_day_eligible_universe_mean"
+  },
+  "evaluation": {
+    "excessMeasuredAgainstSameDayUniverse": true,
+    "dayClusteredTRequired": true,
+    "bothWindowsMustAgree": true,
+    "worstBucketMinimumExcessSevereLossRate": 0.01,
+    "minimumDayClusteredT": 2.0,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/tail_exclusion_screen_v1_volatility_ablation",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "This ablation was designed after seeing #13, so it carries selection exposure and can only REJECT the finding, never strengthen it.",
+    "Realised volatility is one free alternative among several; failing to beat it does not prove the composite is the only such alternative.",
+    "The single-factor books are compared after the fact, so the best of twelve is not a clean estimate of any one factor's standalone ranking power.",
+    "An exclusion screen is only useful against a universe that is otherwise being selected from; it produces no return on its own and this module measures no portfolio.",
+    "Excluding the worst bucket also removes whatever upside it contained, so the return excess of the excluded slice is reported alongside its severe-loss excess and must be read together.",
+    "Severe loss is defined on the executable gross return at the chosen horizon and ignores borrow, limit-locked exits and any impact beyond the frozen cost assumption.",
+    "Bucket boundaries are fixed deciles chosen before evaluation; a screen tuned to a different cut after seeing this run would carry selection exposure that these numbers do not price.",
+    "Every historical evaluation window has already been viewed, so this run can reject a screen but can never validate or promote one.",
+    "A stable historical tail ranking is not a guarantee of future tail behaviour, particularly across a regime change of the kind visible between these two windows."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}

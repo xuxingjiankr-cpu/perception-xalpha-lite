@@ -14,12 +14,15 @@ Status legend: ❌ dead (failed gate / cost-walled) · ⚠️ real-but-unusable 
   noise, not tooling, not models.
 - **Daily regime: cost stops binding, but no *stable* selection alpha** (momentum right-sign,
   t~2.2 recent, but non-stationary; PBO 0.5). This is the only **🟡 open** direction.
-- **The A-share sixteen-factor Top10 book has no day-neutral selection edge** (#12), at any
-  holding horizon from 1 to 20 sessions, under the frozen prior or equal weight. But it IS a
-  strong, monotone, out-of-sample-stable ranker of SEVERE-LOSS risk at 1-5 sessions (#13). It is
-  an exclusion tool, not a picking tool, and it is currently packaged as the opposite. The catch:
-  what it really ranks is volatility, so the slice it flags as dangerous is also the slice that
-  produced the best shadow-window return.
+- **The A-share sixteen-factor book has no edge on either axis.** No day-neutral selection edge
+  at any horizon (#12), and its tail ranking is just a worse volatility sort (#14): plain 20d
+  realised volatility beats it on both windows AND excludes a slice that costs nothing, while
+  the composite excludes one that gives up 7-33 bps. Nothing in this book beats a free
+  one-liner. Stop reweighting it; stop adding data sources to it.
+- **Always ablate a surviving finding against the cheapest thing that could produce it.** #13
+  passed a strict preregistered gate and was one forward record away from being believed. The
+  gate asked 'is the worst decile worse than the universe', which was the wrong question. One
+  hour of ablation killed it.
 - The strategy's live buys net **+10 bps/trade at 万三** — but that's **beta**, not skill
   (day-neutral selection edge ≈ 0). Fine for a total-return competition; not alpha.
 
@@ -39,6 +42,7 @@ Status legend: ❌ dead (failed gate / cost-walled) · ⚠️ real-but-unusable 
 | 11 | Order-book imbalance (OBI) is a harvestable intraday edge | `research_orderbook_imbalance.py`, 5.26M depth rows / 170 codes / 14d (06-25..07-31) | ❌ | **Misses the preregistered bar by ~10x.** IC is *negative* (+1: −0.0223, day-clustered t=−3.72); top-bottom spread 0.24–0.60 bps vs the **4.671 bps** measured median half-spread. Trade sim: TAKER −12.56 bps/trade (t=−810); even the OPTIMISTIC maker ceiling (ignores adverse selection) is −2.52 bps. Isolated paper account −1.584% / 13d. Audit: `outputs/l2_depth/obi_audit.md` |
 | 12 | A-share Top10: reweighting or a longer horizon can clear the 30 bps cost | `research_horizon_cost_frontier_v1.py`, 6 horizons x 14 books, 2019-2026 | ❌❌ | **Two dead ends at once.** (a) *Weighting carries no information*: frozen prior vs EQUAL WEIGHT are indistinguishable at every horizon in both windows, and which one leads flips by horizon - four weighting studies (V1, V2, V3, walk-forward) were tuning a parameter that does not matter. (b) *Horizon does not help, and the apparent effect was beta*: gross swings from 11 to 247 bps (validation) and -16 to -302 bps (shadow) across h=1..20, but excess over the same-day eligible universe stays flat at -66..+16 bps with |t| <= 1.70 everywhere. Day-neutral selection edge ≈ 0 at every horizon, against a 30 bps cost. Same verdict the ETF line reached; now measured on stocks |
 | 13 | The same book IS a stable tail-risk ranker even though it cannot pick winners | `research_tail_exclusion_screen_v1.py`, 10 deciles x 4 horizons x 2 books | 🟡 | **First gate pass in a long time.** Severe-loss rate rises monotonically across all ten score deciles (shadow h=1: 8.47% -> 24.98% against a 14.93% universe). Worst decile excess +12.5pp t=19.7 (validation) and +10.1pp t=11.8 (shadow); best decile -5.6pp t=-11.9 and -6.5pp t=-10.0. Survives at h=1 and h=5, dies by h=10 (shadow t=1.55) and h=20 (sign flips) - tail risk is stock-specific over days and washes into the market over weeks. **But it ranks VOLATILITY, not expected return**: the worst decile also had the HIGHEST excess return on shadow (+6.7 bps at h=1, +32.9 at h=5) while being negative on validation, so exclusion buys tail reduction at an unstable and possibly positive return cost. Frozen prior and equal weight agree to 4 decimals here too (#12). Historical windows viewed: fresh-forward only |
+| 14 | #13 survives against a free volatility sort | `tail_exclusion_screen_v1_volatility_ablation`, 12 single-factor books + plain 20d realised vol | ❌ | **#13 is falsified; it was ranking volatility, worse than volatility does.** A one-line 20-session realised-vol sort beats the 16-factor composite at ranking tail risk on BOTH windows (shadow 12.83pp vs 10.05pp; validation 12.76pp vs 12.52pp) and dominates on the second axis too: the slice vol excludes had excess return **-6.1 bps** at h=1 and **-12.3 bps** at h=5, while the slice the composite excludes had **+6.7** and **+32.9 bps** - excluding it COSTS return. Even single `qlib158/min5` beats the composite on both windows. The preregistered gate still 'passed' because it only asks whether the worst decile is worse than the universe; it never asked whether a free alternative does it better. Forward record CLOSED |
 
 ## Infra / data facts learned (don't re-discover)
 - **Host TZ is KST (+09:00).** `minute_quotes.timestamp` is host wall-clock; use

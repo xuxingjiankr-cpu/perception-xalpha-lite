@@ -148,18 +148,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 $status.choiceWatchlist = "ok"
 
-# Fresh-forward record for the tail exclusion screen (RESEARCH_LOG #13). Runs after
-# the production outputs so a failure here cannot block them, but still fails closed:
-# a forward record with silent gaps is worse than one that stops, because the missing
-# sessions are not missing at random.
-& py -3.13 scripts\run_tail_screen_forward_record_v1.py log `
-  *>&1 | Tee-Object -FilePath $logPath -Append
-if ($LASTEXITCODE -ne 0) {
-    $status.tailForwardRecord = "failed_closed_$LASTEXITCODE"
-    Save-Status "failed_closed" 27
-    exit 27
-}
-$status.tailForwardRecord = "ok"
+# The tail-screen forward record was CLOSED on 2026-09-12 (RESEARCH_LOG #14): the
+# ablation showed a plain twenty-session realised-volatility sort ranks tail risk
+# better than the factor composite on both windows, so accumulating sixty sessions
+# would only have tested a dominated method. See
+# docs/forward_records/tail_exclusion_screen_v1.CLOSED.md. The spec and its one
+# recorded session stay in place; nothing is logged against them any more.
+$status.tailForwardRecord = "closed_see_research_log_14"
 
 Save-Status "completed_research_only" 0
 exit 0
