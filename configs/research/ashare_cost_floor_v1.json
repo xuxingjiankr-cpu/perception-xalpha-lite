@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "ashare_cost_floor_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "Every rejection in this programme rests on one number that was never measured. RESEARCH_LOG #12 established that the whole reachable gross band of the A-share Top10 book is 7.5 to 13.8 bps per pick, against a round-trip cost assumption of a flat 30 bps written into configs as 0.003. That single assumed constant, not any factor result, is what makes the conclusion negative. The ETF line measured its own half-spread empirically (4.4 bps per leg median, 0.5 to 2 bps for liquid names) and the stock line never did the equivalent. This module measures it, stratified by liquidity, and reports what the picks the book actually selects would really cost.",
+  "basePrecisionConfig": "configs/research/perception_xalpha_horizon_precision_v3.json",
+  "preregisteredHypothesis": {
+    "factorDefinitionsDirectionsAndPriorWeightsFrozen": true,
+    "costEstimatorsFrozenBeforeEvaluation": true,
+    "feeParametersAreInputsNotFindings": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "countsAsNewResearchTrials": 1
+  },
+  "price": {
+    "actualPriceSource": "exchange_reported_amount_divided_by_volume",
+    "actualPriceNote": "The panel is backward adjusted, so relative tick size must NOT be computed from adjusted close. amount/volume is exchange-reported cash over shares and is therefore an unadjusted average traded price. This is the same quantity that is WRONG as a vwap factor input against adjusted OHLC, and exactly right here.",
+    "tickSizeCny": 0.01,
+    "tickSizeNote": "Main board, STAR and ChiNext quote in 0.01 CNY. Confirm before treating any single name's floor as exact.",
+    "minimumActualPriceCny": 0.5,
+    "maximumActualPriceCny": 5000.0
+  },
+  "estimators": {
+    "relativeTickFloor": {
+      "enabled": true,
+      "exact": true,
+      "note": "A round trip crosses the spread twice, so the minimum possible spread cost is one full tick: 10000 * tick / price bps. This has zero estimation error and is a hard LOWER bound, never the expected cost."
+    },
+    "corwinSchultz": {
+      "enabled": true,
+      "exact": false,
+      "windowSessions": 20,
+      "note": "Corwin-Schultz (2012) two-day high-low estimator. Uses only the high/low RATIO, which backward adjustment leaves invariant, so the adjusted panel is a valid input. Known to be biased and to produce negative estimates that are floored at zero; reported as an estimate, never as a measurement."
+    },
+    "amihud": {
+      "enabled": true,
+      "exact": false,
+      "windowSessions": 60,
+      "note": "Amihud illiquidity, absolute return over CNY amount. A relative ordering check on the other two, not a bps cost."
+    }
+  },
+  "fees": {
+    "commissionBpsPerSide": 2.5,
+    "stampDutyBpsSellSideOnly": 5.0,
+    "confirmBeforeUse": true,
+    "note": "These are INPUTS to be confirmed against the actual broker schedule, not measurements and not findings. The module reports the spread component separately from fees and sweeps a fee grid so that no conclusion depends on these two numbers being right.",
+    "sensitivityGridCommissionBps": [0.5, 1.5, 2.5, 5.0],
+    "sensitivityGridStampBps": [0.0, 5.0, 10.0]
+  },
+  "strata": {
+    "liquidityBucketCount": 10,
+    "liquidityMeasure": "trailing_60_session_median_cny_amount",
+    "minimumNamesPerBucketDay": 50
+  },
+  "evaluation": {
+    "assumedRoundTripCost": 0.003,
+    "measureCostOfActuallySelectedPicks": true,
+    "reportFloorAndEstimateSeparately": true,
+    "historicalWindowsAlreadyViewed": true,
+    "freshForwardStillRequired": true
+  },
+  "output": {
+    "root": "outputs/edge_research/ashare_cost_floor_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "knownLimitations": [
+    "The tick floor is a hard lower bound on the spread, not an expected cost. A real book is often wider than one tick, so a stratum clearing its floor has not been shown to clear its actual cost.",
+    "Corwin-Schultz is an estimator with documented bias, especially for low-priced and rarely traded names, and no calibration anchor survives: the ETF depth archive that measured a real half-spread has been rotated away, leaving only an aggregate median.",
+    "amount over volume is a daily average traded price, not the price at the moment of a hypothetical fill; intraday dispersion is invisible to it.",
+    "Market impact beyond the quoted spread is not estimated at all, and it is precisely what grows with size.",
+    "Commission and stamp duty are supplied parameters. The fee sweep shows how much the conclusion depends on them but cannot determine the right values.",
+    "Every evaluation window has already been viewed, so this run can reject the flat cost assumption but cannot promote any trading conclusion."
+  ],
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "outputStatus": "diagnostic_only"
+  }
+}
