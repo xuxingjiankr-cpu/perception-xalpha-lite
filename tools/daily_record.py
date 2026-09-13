@@ -55,7 +55,8 @@ SPEC_PATH = DATA / "single_name_rotation_v4.spec.json"
 PICKS = DATA / "published_picks.jsonl"
 LATEST = DATA / "next_pick.json"
 SERIES = DATA / "rotation.jsonl"
-READMES = (ROOT / "README.md", ROOT / "docs" / "README_CN.md")
+# Presentation-only relocation: keep the existing record and its update logic intact.
+READMES = (ROOT / "docs" / "RESEARCH_RECORD.md", ROOT / "docs" / "RESEARCH_RECORD_CN.md")
 LIVE_RECORD_TEMPLATES = DATA / "live_record_templates.json"
 BEGIN, END = "<!-- LIVE-RECORD:BEGIN -->", "<!-- LIVE-RECORD:END -->"
 MINIMUM_READABLE_SAMPLE = 60
@@ -420,7 +421,7 @@ def append_records(spec: dict, panel: dict, eligible: pd.DataFrame, signal: pd.D
 
 
 def refresh_readmes(spec: dict) -> None:
-    """Rewrite the live-record block in both READMEs from the record itself.
+    """Rewrite the marked blocks in both empirical record pages from the record itself.
 
     Prose that states a fact about one particular day stops being true the next. Two sentences
     written that way had to be corrected within a week — a specification digest that had been

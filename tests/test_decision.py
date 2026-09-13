@@ -155,7 +155,7 @@ def test_chinese_appears_only_in_declared_translations() -> None:
     """
     root = Path(__file__).resolve().parents[1]
     cjk = re.compile(r"[\u3400-\u9fff]")
-    translations = {Path("docs/README_CN.md")}
+    translations = {Path("docs/README_CN.md"), Path("docs/RESEARCH_RECORD_CN.md")}
     label_budget = 8
     included = {".md", ".html", ".py", ".json", ".toml"}
     violations = []

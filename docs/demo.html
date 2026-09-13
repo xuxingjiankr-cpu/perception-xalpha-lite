@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Three reproducible synthetic audits: backtest selection, disclosure timing, and price-basis consistency. A 45-second research-only walkthrough.">
+<title>Three audits in 45 seconds | Perception-XAlpha Lite</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1526;--panel:#142239;--ink:#f1f5fb;--muted:#acbdd5;--accent:#69dcc6;--line:#2e4561}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,sans-serif}
+main{max-width:1120px;margin:auto;padding:32px 24px 64px}a{color:var(--accent);text-underline-offset:4px}a:hover{text-decoration-thickness:2px}
+nav{display:flex;justify-content:space-between;gap:24px;font-size:14px}.eyebrow{color:var(--accent);font-size:12px;letter-spacing:.12em;font-weight:700}
+h1{font-size:clamp(32px,5vw,56px);line-height:1.1;letter-spacing:-.03em;max-width:900px;margin:32px 0 18px}
+.intro{max-width:770px;color:var(--muted)}.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:26px 0 14px}
+button,.button{background:var(--accent);color:var(--bg);border:1px solid transparent;border-radius:8px;padding:11px 16px;font:600 15px system-ui;cursor:pointer;text-decoration:none}
+button.secondary{background:transparent;color:var(--ink);border-color:var(--line)}button:disabled{opacity:.45;cursor:default}:focus-visible{outline:3px solid #ffd58a;outline-offset:4px}
+progress{width:100%;height:8px;accent-color:var(--accent)}#status{font-size:14px;color:var(--muted)}
+.cases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:24px 0}
+.case{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:24px;min-width:0}
+.case.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.case h2{font-size:23px;line-height:1.3;margin:10px 0 24px}
+.case h3{font-size:18px}.case p{color:var(--muted);font-size:15px}.case .metric{color:var(--ink);font-weight:700;font-size:19px}.case .audit{color:var(--accent);font-family:ui-monospace,monospace;font-size:13px}
+.case a{font-size:14px}.boundary{border-left:3px solid #ffd58a;padding:12px 20px;background:#19263a;color:#dde7f5;font-size:15px}
+section{margin-top:38px}h2{font-size:26px}pre{overflow:auto;padding:20px;border:1px solid var(--line);border-radius:10px;background:#07101e;font:13px/1.6 ui-monospace,monospace}
+.report{white-space:pre-wrap;overflow-wrap:anywhere}.hash{overflow-wrap:anywhere;font-size:12px;color:var(--muted)}footer{font-size:14px;color:var(--muted);margin-top:42px}
+@media(max-width:820px){.cases{grid-template-columns:1fr}.case{padding:20px}.case h2{margin-bottom:16px}nav{flex-wrap:wrap}main{padding:22px 16px}}
+</style>
+</head>
+<body><main>
+<nav><a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Perception-XAlpha Lite</a><a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/tutorials/README.md">Reproduction guides</a></nav>
+<p class="eyebrow">SYNTHETIC AUDIT LAB / RESEARCH ONLY</p>
+<h1>Find the mistake<br>before trusting the backtest.</h1>
+<p class="intro">Three failures you can reproduce without market data, credentials or an account.
+The 45-second guide highlights recorded outputs of the example below; it is not live inference
+or a computation-speed benchmark. All cases remain readable without JavaScript.</p>
+<div class="controls"><button id="play" type="button">Play 45-second guide</button>
+<button id="pause" class="secondary" type="button" disabled>Pause</button>
+<button id="reset" class="secondary" type="button">Reset</button>
+<span id="status" role="status" aria-live="polite">Ready. Three cases, 15 seconds each.</span></div>
+<progress id="progress" max="45" value="0" aria-label="Walkthrough progress in seconds"></progress>
+<div class="cases"><article class="case" id="case-0" aria-labelledby="title-0">
+  <p class="eyebrow">01 / SELECTION</p><h2 id="title-0">A Sharpe of 1.24. From noise.</h2>
+  <p class="metric">Best full-sample Sharpe: 1.24</p><p class="audit">DSR statistic: 0.532 | PBO: 0.586</p>
+  <h3>Audit the search, not just its winner.</h3><p>64 zero-mean random variants. DSR and CSCV use the existing library. A single positive realization does not change the zero-mean process.</p>
+  <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/tutorials/01-noise-selection.md">Read the reproducible case &rarr;</a>
+</article>
+<article class="case" id="case-1" aria-labelledby="title-1">
+  <p class="eyebrow">02 / AVAILABILITY</p><h2 id="title-1">The report existed. The information did not.</h2>
+  <p class="metric">Wrong-date rows: 26 / 50</p><p class="audit">First available: 2020-02-17</p>
+  <h3>Publication time, not period end.</h3><p>The PIT aligner waits until after disclosure. The March restatement must not rewrite January features. This case tests timing, not trading returns.</p>
+  <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/tutorials/02-disclosure-timing.md">Read the reproducible case &rarr;</a>
+</article>
+<article class="case" id="case-2" aria-labelledby="title-2">
+  <p class="eyebrow">03 / PRICE BASIS</p><h2 id="title-2">One numerator. Four different ranks.</h2>
+  <p class="metric">Proxy / cash price: up to 5.02x</p><p class="audit">Changed ranks: 4 / 4 | identical names</p>
+  <h3>A coherent proxy is still a proxy.</h3><p>Raw cash turnover divided by raw volume is not an adjusted price. Preserve the declared OHLC4 proxy; never relabel it as true transaction VWAP.</p>
+  <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/tutorials/03-price-basis.md">Read the reproducible case &rarr;</a>
+</article></div>
+<p class="boundary"><strong>What the result means:</strong> these checks expose specific research mistakes.
+They do not identify a profitable strategy, certify a vendor, or predict a security's return.
+DSR is not the probability that a strategy will make money. No orders are generated.</p>
+<section><h2>Reproduce every displayed number</h2>
+<p>Run from a checkout. The example writes synthetic inputs, comparisons, a report and SHA-256 manifest locally.</p>
+<pre id="command">git clone https://github.com/xuxingjiankr-cpu/perception-xalpha-lite.git
+cd perception-xalpha-lite
+python -m pip install -e .
+python examples/run_audit_cases.py --output-dir outputs/audit-cases</pre>
+<p><a class="button" href="https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb">Run in Colab</a></p>
+<p><a href="examples/audit-cases.json">Download the synthetic JSON</a> &middot;
+<a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/examples/audit-cases.md">Read the sample report</a> &middot;
+<a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/PAPERS.md">Paper-to-code map</a></p>
+<details><summary>Inspect the full recorded report</summary><pre class="report"># Three synthetic audit cases
+
+Generated by `python examples/run_audit_cases.py`. Synthetic demonstration only.
+All data are generated locally. No market forecasts, private results or orders.
+
+| Noise selection | Value |
+|---|---:|
+| Variants / declared trials | 64 / 64 |
+| Best full-sample annualized Sharpe | 1.2402 |
+| Expected maximum Sharpe under the approximation | 1.1944 |
+| DSR statistic (not probability of profitability) | 0.531984 |
+| CSCV/PBO | 0.5857 |
+| Hindsight selection on final 252 rows, bps/day | 14.381803 |
+| Train-only selection on the SAME 252 rows, bps/day | 6.892377 |
+
+## Disclosure timing
+
+Incorrect alignment changes **26** of 50 rows.
+The new value first appears on **2020-02-17**;
+its restatement first appears on **2020-03-04**.
+These are synthetic weekdays, not exchange-calendar claims.
+
+## Price basis
+
+Maximum archive-proxy / raw-cash-price ratio: **5.022545x**.
+Changed ranks: **4 / 4**, on identical symbols.
+Wrong order: TOY_B, TOY_A, TOY_D, TOY_C.
+Consistent-basis order: TOY_A, TOY_B, TOY_C, TOY_D.
+The preserved field is an **OHLC4 proxy, not transaction VWAP**.
+
+## What these checks do not establish
+
+- **A high Sharpe can come from selecting noise**: DSR is an approximate evidence statistic, not a posterior probability of profitability. CSCV is not chronological forward validation. No costs, execution or real-market structure are modeled in this IID teaching fixture.
+
+- **A reporting period is not an availability date**: The example audits availability, not return prediction. Real studies also need exchange calendars, timestamps and historical vendor vintages; an aligner cannot reconstruct revisions that a vendor discarded.
+
+- **Mixing price bases can change a cross-sectional rank**: OHLC4 is not transaction VWAP, and basis consistency is not predictive power. This explicit-metadata fixture cannot certify arbitrary vendor data. The adapter is demonstration-only and does not change the discovery input loader.
+</pre></details>
+<p class="hash">Report SHA-256: d1ebc9eb4f329b08a4b03fe5acd829102db248de02a199035d688115dbc5d9f3</p>
+</section>
+<footer>Local/static demonstration. No analytics, uploads or hidden requests.
+If this helped audit your research, <a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">star the repository</a>
+or report a reproducibility issue. Paper-backed methods are not evidence of trading alpha.</footer>
+</main>
+<script>
+(() => {
+  const cards = [...document.querySelectorAll('.case')];
+  const play = document.getElementById('play'), pause = document.getElementById('pause');
+  const status = document.getElementById('status'), progress = document.getElementById('progress');
+  let elapsed = 0, started = 0, timer = null, last = -1;
+  function stop() { clearInterval(timer); timer = null; pause.disabled = true; play.disabled = false; }
+  function draw() {
+    const current = Math.min(2, Math.floor(elapsed / 15));
+    cards.forEach((card, i) => card.classList.toggle('active', i === current));
+    progress.value = Math.min(45, elapsed);
+    if (current !== last) { status.textContent = `Case ${current + 1} of 3. ${cards[current].querySelector('h2').textContent}`; last = current; }
+  }
+  play.addEventListener('click', () => {
+    if (elapsed >= 45) elapsed = 0;
+    last = -1; started = performance.now() - elapsed * 1000; play.disabled = true; pause.disabled = false;
+    draw(); timer = setInterval(() => {
+      elapsed = Math.min(45, (performance.now() - started) / 1000); draw();
+      if (elapsed >= 45) { stop(); play.textContent = 'Replay guide'; status.textContent = 'Complete. Reproduce the checks below; no trading conclusion follows.'; }
+    }, 200);
+  });
+  pause.addEventListener('click', () => { stop(); play.textContent = 'Resume guide'; status.textContent = 'Paused. All three cases remain available.'; });
+  document.getElementById('reset').addEventListener('click', () => {
+    stop(); elapsed = 0; last = -1; progress.value = 0; cards.forEach(c => c.classList.remove('active'));
+    play.textContent = 'Play 45-second guide'; status.textContent = 'Ready. Three cases, 15 seconds each.';
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && timer) pause.click(); });
+})();
+</script></body></html>

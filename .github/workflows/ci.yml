@@ -48,6 +48,12 @@ jobs:
         run: |
           xalpha-doctor --help
           xalpha-demo --help
+          xalpha-audit-cases --help
+
+      - name: Synthetic audit presentation reproduces
+        run: |
+          python examples/run_audit_cases.py --output-dir outputs/audit-cases
+          python examples/render_audit_walkthrough.py --check
 
       # The examples are part of the contract, not decoration: a framework about
       # reproducibility has to prove its own examples still run on every commit.

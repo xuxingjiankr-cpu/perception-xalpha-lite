@@ -43,6 +43,7 @@ xalpha-evidence = "xalpha_lite.evidence_cli:main"
 xalpha-forward = "xalpha_lite.forward_cli:main"
 xalpha-doctor = "xalpha_lite.doctor_cli:main"
 xalpha-demo = "xalpha_lite.demo_cli:main"
+xalpha-audit-cases = "xalpha_lite.audit_cases:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

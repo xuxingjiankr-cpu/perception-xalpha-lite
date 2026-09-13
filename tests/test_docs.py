@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "docs" / "data" / "specs.json"
 # The reader-facing surfaces. A retired specification may be discussed in the changelog and in
 # the research notes; it may not be presented here as the rule now in force.
-FRONT_FACING = ("README.md", "docs/README_CN.md", "docs/index.html")
+FRONT_FACING = ("README.md", "docs/README_CN.md", "docs/index.html",
+                "docs/RESEARCH_RECORD.md", "docs/RESEARCH_RECORD_CN.md")
 SEARCHED = FRONT_FACING + ("CHANGELOG.md",)
 DIGEST = re.compile(r"\b[0-9a-f]{8,}\b")
 # Specification digests are always presented as code in these documents. Scanning the raw text
@@ -107,7 +108,7 @@ def test_live_record_block_is_machine_written_and_still_marked() -> None:
     the first live session landed. The block exists so those numbers are never typed by hand
     again, which only works while the markers are there to find.
     """
-    for name in ("README.md", "docs/README_CN.md"):
+    for name in ("docs/RESEARCH_RECORD.md", "docs/RESEARCH_RECORD_CN.md"):
         text = (ROOT / name).read_text(encoding="utf-8")
         assert text.count("<!-- LIVE-RECORD:BEGIN -->") == 1, f"{name}: opening marker"
         assert text.count("<!-- LIVE-RECORD:END -->") == 1, f"{name}: closing marker"

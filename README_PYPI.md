@@ -8,7 +8,7 @@ with real costs, and then tries to prove its own findings wrong before believing
 deliberately **not** a trading engine: no broker client, no order path, and CI asserts that
 mechanically on every commit.
 
-- **Repository, wiki and live record:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite
+- **Repository and documentation:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite
 - **中文说明:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/README_CN.md
 - **Colab quickstart:** https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb
 - **Contributor benchmark:** https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/CONTRIBUTOR_BENCHMARK.md
@@ -59,27 +59,12 @@ On **24 variants of pure random noise**, the best has an annualised Sharpe of **
 number most people would trade. At 24 trials, noise is expected to produce **1.18**. PBO comes
 back 0.64, deflated Sharpe probability 0.46. The verdict is that selection is doing the work.
 
-## Four biases, measured on a real equity panel
+## Reproducible audit cases
 
-![Four measured biases](https://raw.githubusercontent.com/xuxingjiankr-cpu/perception-xalpha-lite/main/docs/measured-corrections.png)
-
-| flaw | reports | survives | unit |
-|---|--:|--:|---|
-| factors chosen with hindsight | **+2.00** | −1.24 | bps/day, same panel and cost |
-| limit-locked legs priced as fillable | **+6.05** | +0.38 | % forward return of those legs |
-| universe filtered on whole history | **391** | 77 | eligible names, first year |
-| overlapping labels scored as independent | **−5.79** | −2.25 | t-statistic on pure noise |
-
-The first row is the one to sit with. Same data, same cost model, same construction — only the
-rule for *choosing* factors differs, and the gap is about 3 bps/day, larger than most published
-equity-factor results. A pipeline that cannot audit its own selection step cannot tell a
-discovery from an artifact of choosing.
-
-Reproducible on synthetic data with no signal in it, in ten seconds:
-
-```bash
-python examples/selection_artifact.py    # IR 4.53 manufactured from pure noise
-```
+The current GitHub source adds three synthetic cases: noise selection, disclosure timing,
+and price-basis consistency. [Try the guide](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/demo.html)
+or [reproduce the examples](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/tutorials/README.md).
+Install from GitHub main for these new cases; an older PyPI build may not include them.
 
 ## What is in the box
 
@@ -105,12 +90,14 @@ counterfactual, walk-forward and multiple-testing gates together. That is the ga
 a price-and-volume factor library, not the engine failing to run — and unlike most backtests,
 this one reports the exact count and the reason each candidate died.
 
-Every number in the package and its examples comes from synthetic data it generates itself.
+The installed full-loop demo uses synthetic data. Previously published empirical records
+on GitHub are separately labeled and are not synthetic or certified performance. See the
+[data provenance policy](https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/DATA_PROVENANCE.md).
 **It makes no profitability claim and never will.**
 
 ## Limitations
 
-Examples are synthetic. Public financial endpoints may not preserve every restatement vintage.
+The full-loop demonstration is synthetic. Public financial endpoints may not preserve every restatement vintage.
 A contemporary security master creates survivorship bias unless replaced by genuine
 point-in-time membership. A zero-investment research portfolio is not executable in a long-only
 cash market. Equal overlapping tranches approximate a holding horizon and model neither queue

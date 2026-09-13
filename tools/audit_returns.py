@@ -132,8 +132,8 @@ def main() -> int:
         "| | |", "|---|--:|",
         *[f"| {label} | {value if value is not None else '—'} |" for label, value in rows],
         "",
-        "> Deflated Sharpe probability is the chance this Sharpe is real given the number of",
-        "> trials; below 0.95 is weak. PBO above 0.5 means the in-sample winner is usually a",
+        "> The DSR value is an approximate evidence statistic against a search-adjusted Sharpe",
+        "> threshold, not a probability of profitability. PBO above 0.5 means the in-sample winner is usually a",
         "> below-median performer out of sample. Neither can be fixed by trying harder on the",
         "> same data — only by data that did not exist when the rule was written.",
     ]

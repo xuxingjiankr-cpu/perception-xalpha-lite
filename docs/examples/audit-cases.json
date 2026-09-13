@@ -1,0 +1,80 @@
+{
+  "schema_version": "xalpha_synthetic_audit_cases_v1",
+  "status": "synthetic_demonstration_only",
+  "source": "Generated locally; no private data, securities or empirical results",
+  "orders": [],
+  "automatic_trading_changes": [],
+  "cases": [
+    {
+      "id": "noise_selection",
+      "title": "A high Sharpe can come from selecting noise",
+      "data_kind": "synthetic_iid_zero_mean_returns",
+      "seed": 20260914,
+      "observations": 756,
+      "variants": 64,
+      "declared_trials": 64,
+      "train_rows": 504,
+      "evaluation_rows": 252,
+      "annualization_sessions": 244,
+      "full_sample_winner": "noise_18",
+      "best_sharpe_ann": 1.2402,
+      "expected_max_sharpe_ann": 1.1944,
+      "dsr_statistic": 0.531984,
+      "pbo": 0.5857,
+      "cscv_splits": 70,
+      "train_selected_variant": "noise_18",
+      "hindsight_selected_variant": "noise_19",
+      "hindsight_evaluation_bps": 14.381803,
+      "train_selected_evaluation_bps": 6.892377,
+      "same_evaluation_support": true,
+      "interpretation": "Full-sample selection is a deliberate negative control. The two selections are evaluated on the identical last 252 rows. The data-generating process has zero expected return; a realized gain is not alpha.",
+      "limitations": "DSR is an approximate evidence statistic, not a posterior probability of profitability. CSCV is not chronological forward validation. No costs, execution or real-market structure are modeled in this IID teaching fixture."
+    },
+    {
+      "id": "disclosure_timing",
+      "title": "A reporting period is not an availability date",
+      "data_kind": "synthetic_disclosures_and_weekday_calendar",
+      "calendar": "Synthetic weekdays, NOT an exchange holiday calendar",
+      "rows": 50,
+      "mismatched_rows": 26,
+      "first_disclosed_value_available": "2020-02-17",
+      "restatement_available": "2020-03-04",
+      "bad_value_on_2020_02_03": 2.5,
+      "safe_value_on_2020_02_03": 1.0,
+      "interpretation": "The existing PIT aligner exposes a value only on the next session strictly after max(notice_date, update_date). A later restatement must not alter earlier features. Missing notice_date raises ValueError.",
+      "limitations": "The example audits availability, not return prediction. Real studies also need exchange calendars, timestamps and historical vendor vintages; an aligner cannot reconstruct revisions that a vendor discarded."
+    },
+    {
+      "id": "price_basis",
+      "title": "Mixing price bases can change a cross-sectional rank",
+      "data_kind": "synthetic_adjusted_bars_and_raw_cash_amounts",
+      "symbols": [
+        "TOY_A",
+        "TOY_B",
+        "TOY_C",
+        "TOY_D"
+      ],
+      "rows": 4,
+      "same_support": true,
+      "factor": "vwap / close - 1 (toy expression, not a validated factor)",
+      "vwap_source": "adjusted_ohlc4_proxy_not_true_transaction_vwap",
+      "max_archive_to_cash_ratio": 5.022545,
+      "rank_changes": 4,
+      "wrong_order": [
+        "TOY_B",
+        "TOY_A",
+        "TOY_D",
+        "TOY_C"
+      ],
+      "corrected_order": [
+        "TOY_A",
+        "TOY_B",
+        "TOY_C",
+        "TOY_D"
+      ],
+      "basis_guard": "rejects raw cash fallback against adjusted OHLC",
+      "interpretation": "Preserve the supplied adjusted OHLC4 proxy with its provenance. Raw amount/raw volume is not an adjusted price. Symbol-specific adjustment histories need not cancel in ranks; no dates or names were removed from the comparison.",
+      "limitations": "OHLC4 is not transaction VWAP, and basis consistency is not predictive power. This explicit-metadata fixture cannot certify arbitrary vendor data. The adapter is demonstration-only and does not change the discovery input loader."
+    }
+  ]
+}

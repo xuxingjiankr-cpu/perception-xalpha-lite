@@ -83,13 +83,13 @@
 </div></div></nav>
 <main>
   <span class="eyebrow">POINT-IN-TIME · RESEARCH-ONLY · EXECUTION-ISOLATED</span>
-  <h1>Auditable <span>alpha research</span>, built to falsify itself.</h1>
+  <h1>Discover factors.<br><span>Audit the evidence.</span></h1>
   <p class="lead">A compact autonomous research framework for causal factor synthesis,
     neutral portfolio evaluation, multiple-testing correction, and decision-focused ranking—
     without broker access or automatic strategy promotion.</p>
   <div class="actions">
-    <a class="button primary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">Explore the repository</a>
-    <a class="button secondary" href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite">★ Star on GitHub</a>
+    <a class="button primary" href="demo.html">Play the 45-second audit guide</a>
+    <a class="button secondary" href="tutorials/README.md">Reproduce three synthetic cases</a>
     <a class="button secondary" href="https://colab.research.google.com/github/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/examples/perception_xalpha_quickstart.ipynb">Run in Colab</a>
     <a class="button secondary" href="PAPERS.md">Read the literature map</a>
     <a class="button secondary" href="USER_SUPPLIED_LITERATURE.md">Inspect the paper registry</a>
@@ -100,6 +100,9 @@
     <div class="stat"><b>max-t</b><span>Joint family inference</span></div>
     <div class="stat"><b>0</b><span>Execution interfaces</span></div>
   </div>
+
+  <p><a href="demo.html"><img src="audit-demo.svg" alt="Three synthetic audit cases: noise selection, disclosure timing and price-basis consistency. Open the 45-second guide." style="width:100%;height:auto"></a></p>
+  <p>Generated teaching data, not investment evidence. The guide explains recorded outputs; it is not live inference or a computation-speed benchmark. <a href="examples/audit-cases.md">Inspect the sample report</a>.</p>
 
   <section id="start">
     <h2>Run the contract before reading a claim</h2>
@@ -120,8 +123,11 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
     <p><a href="https://github.com/xuxingjiankr-cpu/perception-xalpha-lite/blob/main/docs/DATA_DOCTOR.md">Read the machine-readable data contract &rarr;</a></p>
   </section>
 
+  <details id="empirical-records"><summary>Existing empirical records — separate from the synthetic demonstrations</summary>
+  <p>Previously published historical and sampled forward materials are preserved below. They are not synthetic, not newly recertified, and not validated trading performance. <a href="DATA_PROVENANCE.md">Read the provenance boundary</a>.</p>
   <section id="live">
-    <h2>The live record, redrawn every day</h2>
+    <h2>The existing sampled forward record</h2>
+    <p>The runner has published weekly since 2026-08-22. Its specification rotates each session; the published trades sample that rule, so their compounding is not a continuous equity curve.</p>
     <p>A frozen specification (<code>dea0e608</code>) holds the single best-ranked eligible name
       and rotates every session. Fetching, selection, scoring and redrawing all run on a GitHub
       runner from public data, so a reader can rerun it and reach the same name. A separate job
@@ -143,7 +149,7 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
       a raw return net of realised cost so that it is comparable to an index; the excess line
       answers a different question and is labelled separately, because plotting an excess against
       a raw index is the oldest trick in the genre.</p>
-    <p><strong>The name is published before the session it applies to.</strong> Each evening the
+    <p><strong>The name is published before the session it applies to.</strong> On scheduled weekly runs the
       frozen specification selects one name from roughly 4,700 eligible, and it is committed here
       with a timestamp, at the top-right of the chart, before that market opens. A record scored
       afterwards always invites the question of whether the rule moved once the outcome was
@@ -239,6 +245,8 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
       together. That is the gates working on a price-and-volume library, not the engine
       failing to run &mdash; and unlike most backtests, this one reports the count.</p>
   </section>
+
+  </details>
 
   <section id="architecture">
     <h2>Research architecture</h2>
@@ -345,10 +353,11 @@ xalpha-doctor --prices prices.csv --fundamentals fundamentals.csv --config confi
   "orders": [],
   "automatic_trading_changes": []
 }</pre>
-    <div class="contract"><strong>No empirical result is published here.</strong> The repository
-      contains no proprietary factor weights, security selections, performance tables, broker
-      integration, order function, strategy overlay, or automatic promotion path. A historical
-      survivor is only eligible for a separately preregistered forward-shadow study.</div>
+    <div class="contract"><strong>Synthetic demonstrations and empirical records are different.</strong>
+      The new audit guide uses only generated inputs. Existing historical and sampled forward
+      records are preserved separately and do not certify alpha. No broker integration, order
+      function, strategy overlay or automatic promotion path is added. See the
+      <a href="DATA_PROVENANCE.md">data provenance policy</a>.</div>
   </section>
 
   <footer><span>MIT · Research and education only · No investment advice</span><span>Perception-XAlpha Lite</span></footer>
