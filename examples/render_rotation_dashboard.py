@@ -29,7 +29,9 @@ SERIES = ROOT / "docs" / "data" / "rotation.jsonl"
 NEXT_PICK = ROOT / "docs" / "data" / "next_pick.json"
 OUT = ROOT / "docs" / "daily-rotation.svg"
 # Long enough to sit through a weekend plus a public holiday without crying wolf.
-STALE_AFTER_DAYS = 6
+# The runner publishes weekly, so a six-day threshold fired a false alarm every
+# week in the day before the run. Ten days flags a genuinely missed weekly run.
+STALE_AFTER_DAYS = 10
 
 W, H = 1000, 520
 PAD = {"l": 62, "r": 168, "t": 64, "b": 58}
@@ -187,7 +189,7 @@ def main() -> None:
         bx, by = PAD["l"], PAD["t"] + PLOT_H + 34
         parts.append(f'<rect class="stale-box" x="{bx}" y="{by}" width="{PLOT_W}" height="26" rx="5"/>')
         parts.append(f'<text class="stale" x="{bx+10}" y="{by+18}">'
-                     f'STALE — last pick published {stale_days} days ago. The daily job has stopped; '
+                     f'STALE — last pick published {stale_days} days ago. The weekly job has stopped; '
                      f'this curve is not current.</text>')
     if pick:
         box_w, box_x, box_y = PAD["r"] - 24, PAD["l"] + PLOT_W + 16, H - 118

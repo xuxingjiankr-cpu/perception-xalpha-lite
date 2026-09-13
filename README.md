@@ -111,25 +111,31 @@ fail, and the tool says so when the two numbers match.
 
 ## The pick is published before the session it applies to
 
-[![Daily rotation record](docs/daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
+[![Rotation record](docs/daily-rotation.svg)](https://xuxingjiankr-cpu.github.io/perception-xalpha-lite/#live)
 
-Each evening a frozen specification (`dea0e608`) picks one name out of ~4,700 eligible and
-commits it here, timestamped, **before that market opens**. The file is append-only, and the
+A frozen specification (`dea0e608`) picks one name out of ~4,700 eligible and commits it
+here, timestamped, **before that market opens**. Since 2026-08-22 the runner publishes
+**weekly**, not nightly: the specification rotates every session, so the record samples
+roughly one session in five and understates the turnover - and the cost - the specification
+itself would incur. The file is append-only, and the
 whole thing — fetch, select, score, redraw — runs on a GitHub runner from public data, so a
 reader can rerun it and get the same name.
 
 <!-- LIVE-RECORD:BEGIN -->
 | the live record, as of 2026-09-02 | |
 |---|--:|
-| Sessions scored | **8** |
-| Cumulative excess over the eligible universe | **-4.40%** |
-| Mean gross per session | -0.38% |
-| Sessions the book rose | 5/8 |
-| Next session's name, published in advance | `SZ_300804` |
+| Trades scored | **8** |
+| Compounded excess over the eligible universe | **-4.40%** |
+| Mean gross per trade | -0.38% |
+| Trades that rose | 5/8 |
+| Next name, published in advance | `SZ_300804` |
 | Verdict | `insufficient_forward_sample` |
 
-Below 60 scored sessions the verdict does not change, whatever the
-numbers do. This block is rewritten by the daily job, not by hand.
+Each row is one holding_days=1 trade. The runner publishes weekly while the
+specification rotates every session, so these trades are sampled, not consecutive,
+and compounding them is not a continuous equity curve. Below 60 scored
+trades the verdict does not change, whatever the numbers do. This block is rewritten
+by the weekly job, not by hand.
 <!-- LIVE-RECORD:END -->
 
 Two separate records run, and they answer different questions:
@@ -170,7 +176,7 @@ than 5 bps.
 This is not a methods library sitting next to the research. The frozen forward records for the
 A-share project it was built for run on this package — `build_panel`, `point_in_time_eligibility`,
 `long_only_book`, `score_log` — the one-name rotation on a GitHub runner, the ten-name record on
-the author's machine, both appended daily.
+the author's machine. The one-name runner has appended weekly since 2026-08-22.
 
 Pointing it at real work is what found the gaps. Four, in one sitting:
 
