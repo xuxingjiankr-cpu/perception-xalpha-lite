@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "vstd60_specification_audit_v1",
+  "status": "research_only_shadow_only_not_trading",
+  "purpose": "RESEARCH_LOG #16 left a loose end. qlib158/vstd60 is a WEIGHTED member of the frozen twelve (0.0960, direction +1), labelled a 60-day volume-stability measure, and the paired VWAP re-test's side diagnostic showed it crushed by a plain 20-session realised-vol sort at ranking tail risk (5.27 vs 12.76 pp on validation h=1). The vendor formula is ts_std(volume,60)/volume, whose denominator is TODAY's volume rather than the 60-day mean, so the quantity is not a coefficient of variation and moves inversely with current volume. This audit asks only what vstd60 actually correlates with cross-sectionally. It is the same class of question the VWAP basis defect turned out to be: is a factor measuring what its label claims.",
+  "preregisteredHypothesis": {
+    "claim": "vstd60 ranks 60-day volume STABILITY, as its label and its use in the frozen twelve assume",
+    "falsifiedIf": "cross-sectional rank correlation with inverse current volume exceeds that with a true 60-day coefficient of variation, on both windows",
+    "factorDefinitionsDirectionsAndWeightsFrozen": true,
+    "noReweightingOrRefit": true,
+    "parametersFrozenBeforeHistoricalEvaluation": true,
+    "validationAndShadowAreRejectOnly": true,
+    "historicalRunCanPromote": false,
+    "historicalWindowsAlreadyViewed": true,
+    "countsAsNewResearchTrials": 1,
+    "thisIsASpecificationAuditNotAnEdgeClaim": true,
+    "cannotEstablishAnyTradingConclusion": true
+  },
+  "comparators": {
+    "trueCoefficientOfVariation60": "ts_std(volume,60) / ts_mean(volume,60)",
+    "inverseCurrentVolume": "1 / volume",
+    "realizedVolatility20": "ts_std(returns,20)",
+    "logCurrentVolume": "log(volume)"
+  },
+  "evaluation": {
+    "crossSectionalRankCorrelationPerSession": true,
+    "minimumNamesPerSession": 200,
+    "dayClusteredT": true,
+    "windows": ["validation", "shadow"],
+    "decisiveMarginInCorrelation": 0.20
+  },
+  "knownLimitations": [
+    "A correlation audit says what a factor co-moves with, never whether it predicts returns. No edge, no promotion and no weight change can follow from this file.",
+    "Both evaluation windows have already been viewed, so this run can reject a labelling claim but cannot establish anything tradeable.",
+    "#12 already showed the frozen twelve carry no day-neutral selection edge at any horizon, which caps what any single-factor finding here can mean for the book.",
+    "Spearman correlation on a single session is sensitive to the eligible-universe composition that day; the day-clustered t over sessions is the reported statistic, not any single day.",
+    "volume is backward adjusted in this panel. Ratios of volume to its own trailing statistics are invariant to a per-symbol rescaling, which is what makes this comparison valid, but absolute volume levels are not comparable across symbols."
+  ],
+  "output": {
+    "root": "outputs/edge_research/vstd60_specification_audit_v1",
+    "ordersAlwaysEmpty": true
+  },
+  "safety": {
+    "mayReadTradingConfig": false,
+    "mayWriteTradingConfig": false,
+    "mayWriteStrategyOverlay": false,
+    "mayCallBroker": false,
+    "mayCreateOrders": false,
+    "mayAlterBuildDecision": false,
+    "mayAlterRiskGate": false,
+    "mayAlterPositionSizing": false,
+    "mayPromoteAutomatically": false,
+    "mayConnectToTrading": false,
+    "mayChangeFrozenWeights": false,
+    "outputStatus": "diagnostic_only_not_an_order"
+  }
+}

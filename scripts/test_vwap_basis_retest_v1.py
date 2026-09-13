@@ -151,8 +151,15 @@ class VwapBasisRetestTests(unittest.TestCase):
             rv = m.np.isfinite(inputs['returns'].rolling(20, min_periods=10).std())
             pd.testing.assert_frame_equal(rv, rv_old)
 
+    def test_superseded_config_is_not_resurrected(self):
+        # The aborted complete-case proposal lives in git at 052c7f6 and in the
+        # run's ABORTED.json. A live file under that name would hold the ACTIVE
+        # contract while advertising the superseded one.
+        self.assertFalse(
+            (m.ROOT / 'configs/research/vwap_basis_retest_v1.json').exists())
+
     def test_config_contract_pins_the_rv20_bound(self):
-        for name in ('vwap_basis_retest_v1.json', 'vwap_basis_retest_v2.json'):
+        for name in ('vwap_basis_retest_v2.json',):
             path = m.ROOT / 'configs/research' / name
             if not path.exists():
                 continue
@@ -223,7 +230,7 @@ class VwapBasisRetestTests(unittest.TestCase):
                             mod.run(Path(__file__).resolve().parents[1] / cfg, 'synthetic', paired_inputs=prepare)
 
     def test_rejection_gate_requires_all_cells_and_both_axes(self):
-        c = m.read(m.ROOT / 'configs/research/vwap_basis_retest_v1.json')
+        c = m.read(m.ROOT / 'configs/research/vwap_basis_retest_v2.json')
         f = {'periods': {p: {'headline': [{'book': b, 'holdingTradingDays': 1, 'meanExcessPerPick': .001, 'excessDayClusteredT': 3., 'meanGrossPerPick': .002} for b in c['compositeBooks']]} for p in c['tailRequiredWindows']}}
         cells = []
         for p in c['tailRequiredWindows']:

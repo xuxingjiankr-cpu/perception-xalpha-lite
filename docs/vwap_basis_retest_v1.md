@@ -36,8 +36,11 @@ content hash are written. Compare new-run OLD against new-run CORRECTED.
 
 The initial `vwap_basis_retest_v1.json` complete-case proposal was aborted before
 any horizon result: it would have removed 1,412,528 cells and changed all ranks.
-It is retained as an audit record, not used for a conclusion. The active config
-is `vwap_basis_retest_v2.json`; no evaluation threshold or weight was changed.
+That config is preserved where an audit record belongs - in git at `052c7f6`, and
+in the `ABORTED.json` the run itself wrote - and the live file was removed once the
+corrected support policy made it byte-identical to the active config, where it would
+have carried the superseded name while holding the active contract. The single
+config is `vwap_basis_retest_v2.json`; no evaluation threshold or weight was changed.
 
 The two existing study `run()` entry points consume this paired input explicitly,
 using their unchanged splits, horizons, frozen weights, execution eligibility,
