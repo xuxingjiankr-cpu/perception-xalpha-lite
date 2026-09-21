@@ -392,6 +392,84 @@
       "requiredData": "Not applicable to the current scope.",
       "nextFalsifiableStep": "No implementation planned.",
       "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-ch3-size-value-2019",
+      "title": "Size and Value in China",
+      "year": 2019,
+      "url": "https://www.nber.org/papers/w24458",
+      "domain": "China asset pricing",
+      "status": "reference_only",
+      "systemMapping": "Nothing here implements this. It is listed because it constrains how an A-share universe may be built at all: the size factor excludes the smallest 30% of firms, which carry shell value from reverse mergers used to circumvent IPO constraints, and the value factor uses earnings-price, which the paper reports subsumes book-to-market for Chinese value effects.",
+      "implementationBoundary": "The package neither builds the CH-3 factors nor rebalances any universe to match them. Treating the smallest decile as ordinary equity is a modelling choice this entry flags, not one the code corrects.",
+      "requiredData": "Point-in-time A-share cross-sections with market capitalisation and earnings, plus a listing-status history good enough to identify shell candidates without hindsight.",
+      "nextFalsifiableStep": "Re-run an existing frozen book with and without the smallest 30% of eligible names under one trial ledger, and report whether any conclusion changes. The paper also states the model explains reported Chinese profitability AND volatility anomalies, so a realised-volatility result that survives on the full universe should be re-checked against CH-3 before being called new.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-t1-rule-2011",
+      "title": "A unique T+1 trading rule in China: Theory and evidence",
+      "year": 2011,
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S0378426611002561",
+      "domain": "settlement constraints",
+      "status": "reference_only",
+      "systemMapping": "A-share shares bought today cannot be sold until the next session opens, which is an institutional lock-up no cost constant represents. A flat round-trip assumption prices the spread and the fees; it does not price a forced overnight hold.",
+      "implementationBoundary": "No execution model in this package charges for the T+1 lock-up or tests a holding period against it. Horizons shorter than one session are not merely costly here, they are unavailable.",
+      "requiredData": "Session-level entry and exit timestamps and an explicit statement of which side of the overnight boundary each leg falls on.",
+      "nextFalsifiableStep": "State, for a frozen book, the shortest holding period the rule actually permits, and confirm that every horizon evaluated respects it rather than assuming a same-session round trip is reachable.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-t1-overnight-2020",
+      "title": "The overnight return puzzle and the T+1 trading rule in Chinese stock markets",
+      "year": 2020,
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S1386418120300033",
+      "domain": "settlement constraints",
+      "status": "reference_only",
+      "systemMapping": "Reports that A-share overnight returns are significantly negative while T+0 venues - index futures, Hong Kong, major international indices - sit near zero or positive, and attributes the gap to the T+1 lock-up discount.",
+      "implementationBoundary": "The package measures open-to-open horizons and never decomposes a holding period into its overnight and intraday parts, so it cannot currently show whether a result is an overnight artefact.",
+      "requiredData": "Matched open and close prices per session, so that overnight and intraday components can be separated on the same eligible support.",
+      "nextFalsifiableStep": "Decompose a frozen book's gross return into overnight and intraday components on the same support, and check whether the day-neutral excess survives once a systematically negative overnight leg is accounted for on both the book and its benchmark.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-price-limits-2022",
+      "title": "Price limit changes and market quality: Evidence from China",
+      "year": 2022,
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S1544612322002318",
+      "domain": "price limits",
+      "status": "reference_only",
+      "systemMapping": "Daily price limits make a quoted price unreachable rather than merely expensive. A sealed bar is not a fill at a worse price; it is no fill, and the names that seal are selected precisely by the extreme moves a ranking book chases.",
+      "implementationBoundary": "Limit-sealed entry bars are refused in the single-name forward record, but no study here measures how much of a book's reachable return the refusals remove, nor whether the refused names differ systematically from the filled ones.",
+      "requiredData": "Per-session limit-up and limit-down flags derived from the previous close and the board rule in force at that date, not a fixed percentage applied across the whole history.",
+      "nextFalsifiableStep": "Count the picks a frozen book loses to sealed bars, and report the counterfactual return of the refused names against the filled ones - an exclusion that removes the winners is a different problem from one that removes noise.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-ivol-limits-arbitrage-2018",
+      "title": "Limits of arbitrage and idiosyncratic volatility: Evidence from China stock market",
+      "year": 2018,
+      "url": "https://ideas.repec.org/a/eee/jbfina/v86y2018icp240-258.html",
+      "domain": "limits to arbitrage",
+      "status": "reference_only",
+      "systemMapping": "Reports the negative idiosyncratic-volatility premium as stronger and more persistent exactly where limits to arbitrage bite hardest. That is the same axis on which a realised-volatility sort was found to dominate a twelve-factor composite at ranking tail risk, so it is the competing explanation that has to be excluded.",
+      "implementationBoundary": "No limits-to-arbitrage proxy is constructed or controlled for anywhere in this package, so a volatility result here cannot yet be separated from this effect.",
+      "requiredData": "Idiosyncratic volatility against a stated factor model plus arbitrage-cost proxies, on the same point-in-time support as the book being tested.",
+      "nextFalsifiableStep": "Check whether a realised-volatility tail-ranking result is concentrated in the high-limits-to-arbitrage subset; if it is, it is this documented effect rather than a new finding.",
+      "repositorySurfaces": []
+    },
+    {
+      "paperId": "china-ashare-anomalies-2021",
+      "title": "Anomalies in the China A-share market",
+      "year": 2021,
+      "url": "https://www.sciencedirect.com/science/article/pii/S0927538X21001141",
+      "domain": "anomaly survey",
+      "status": "reference_only",
+      "systemMapping": "A survey of which reported A-share anomalies replicate. Its use here is as a prior count: any factor a bounded search rediscovers has already been tested many times in this market, and the cumulative trial ledger should say so.",
+      "implementationBoundary": "The package does not reproduce this survey's tests and makes no claim about which of its anomalies survive.",
+      "requiredData": "A documented anomaly list with construction rules, to be compared against what a bounded search actually produces.",
+      "nextFalsifiableStep": "Before treating any discovered factor as novel, check it against this survey and add the prior tests to the trial count rather than restarting the ledger at one.",
+      "repositorySurfaces": []
     }
   ]
 }
