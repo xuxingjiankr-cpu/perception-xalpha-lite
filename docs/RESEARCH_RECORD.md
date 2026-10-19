@@ -21,12 +21,12 @@ whole thing — fetch, select, score, redraw — runs on a GitHub runner from pu
 reader can rerun it and get the same name.
 
 <!-- LIVE-RECORD:BEGIN -->
-| the live record, as of 2026-09-30 | |
+| the live record, as of 2026-10-14 | |
 |---|--:|
-| Trades scored | **12** |
-| Compounded excess over the eligible universe | **-7.45%** |
-| Mean gross per trade | -0.38% |
-| Trades that rose | 8/12 |
+| Trades scored | **13** |
+| Compounded excess over the eligible universe | **-10.96%** |
+| Mean gross per trade | -0.50% |
+| Trades that rose | 8/13 |
 | Next name, published in advance | `SH_605255` |
 | Verdict | `insufficient_forward_sample` |
 
