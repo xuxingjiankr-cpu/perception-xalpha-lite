@@ -21,13 +21,13 @@ whole thing — fetch, select, score, redraw — runs on a GitHub runner from pu
 reader can rerun it and get the same name.
 
 <!-- LIVE-RECORD:BEGIN -->
-| the live record, as of 2026-10-14 | |
+| the live record, as of 2026-10-21 | |
 |---|--:|
-| Trades scored | **13** |
-| Compounded excess over the eligible universe | **-10.96%** |
-| Mean gross per trade | -0.50% |
-| Trades that rose | 8/13 |
-| Next name, published in advance | `SH_605255` |
+| Trades scored | **14** |
+| Compounded excess over the eligible universe | **-12.67%** |
+| Mean gross per trade | -0.47% |
+| Trades that rose | 8/14 |
+| Next name, published in advance | `SH_605099` |
 | Verdict | `insufficient_forward_sample` |
 
 Each row is one holding_days=1 trade. The runner publishes weekly while the
