@@ -1,12 +1,12 @@
 {
-  "as_of": "2026-10-26",
+  "as_of": "2026-11-02",
   "buy_at": "open of the next trading session",
-  "symbol": "SH_605099",
-  "composite_rank": 0.960204,
-  "close_on_as_of": 30.2596,
-  "eligible_names": 4605,
+  "symbol": "SZ_301439",
+  "composite_rank": 0.953055,
+  "close_on_as_of": 12.9645,
+  "eligible_names": 4623,
   "spec_sha256": "dea0e60855645c2e17bec001fd103cadfae027c1cbd9e3fdeb8ed66cdbe3de44",
-  "published_at": "2026-10-26T19:30:28.220975+00:00",
+  "published_at": "2026-11-02T22:36:59.605614+00:00",
   "computed_by": "github-actions",
   "status": "research_only_forward_record_not_trading",
   "orders": []
